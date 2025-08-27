@@ -41,6 +41,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/stores/{store}/edit', [StoreController::class, 'edit'])->name('stores.edit'); // Show form to edit a store
     Route::put('/stores/{store}', [StoreController::class, 'update'])->name('stores.update'); // Update a store
     Route::delete('/stores/{store}', [StoreController::class, 'destroy'])->name('stores.destroy'); // Delete a store
+    Route::get('/daily/reports', [StoreController::class, 'reports'])->name('reports.index'); 
 
     Route::get('/managers', [ManagerController::class, 'index'])->name('managers.index');
     Route::get('/managers/create', [ManagerController::class, 'create'])->name('managers.create');

@@ -63,9 +63,9 @@ class StoreController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    public function reports()
     {
-        //
+        return view('reports');
     }
 
     /**
