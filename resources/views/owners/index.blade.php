@@ -3,9 +3,14 @@
 @section('title', 'Owners')
 
 @section('content')
+
     <div class="container mt-5">
+    <div style="display:flex;justify-content: space-between;">
         <h1 class="mb-4">Owners</h1>
         <a href="{{ route('owners.create') }}" class="btn btn-primary mb-3">Create Owner</a>
+    </div>
+      
+
         <div class="card">
             <div class="card-body">
                 <table class="table table-striped">

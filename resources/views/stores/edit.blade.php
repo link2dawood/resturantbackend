@@ -2,12 +2,28 @@
 
 @section('title', 'Edit Store')
 
+
+
 @section('content')
 <div class="container mt-5">
     <h1 class="mb-4">Edit Store</h1>
     <form action="{{ route('stores.update', $store->id) }}" method="POST">
         @csrf
         @method('PUT')
+         @if(Auth::user()->role == 'admin')
+        <div class="mb-3">
+            <label for="store_info" class="form-label">Owners</label>
+            <select class="form-control"  name="created_by"  required>
+               <option value="">Select Owner</option>
+                @foreach ($owners as $owner)
+                    <option value="{{ $owner->id }}" @if($store->created_by == $owner->id) selected @endif>{{ $owner->name }}</option>
+                @endforeach
+            </select>
+            
+        </div>
+        @else
+        <input type="hidden" class="form-control"  name="created_by" value="{{Auth::user()->id}}" >
+        @endif
         <div class="mb-3">
             <label for="store_info" class="form-label">Store Info</label>
             <input type="text" class="form-control" id="store_info" name="store_info" value="{{ $store->store_info }}" required>

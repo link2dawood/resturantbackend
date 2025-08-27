@@ -29,4 +29,5 @@ class Store extends Model
     {
         return $this->belongsToMany(User::class, 'manager_store', 'store_id', 'manager_id');
     }
+ 
 }

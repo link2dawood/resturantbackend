@@ -4,21 +4,21 @@
 
 @section('content')
 <div class="container mt-5">
+   <div style="display:flex;justify-content: space-between;">
     <h1 class="mb-4">Stores</h1>
     <a href="{{ route('stores.create') }}" class="btn btn-primary mb-3">Create Store</a>
+    </div>
     <div class="card">
         <div class="card-body">
             <table class="table table-striped">
                 <thead>
                     <tr>
                         <th>ID</th>
-                        <th>Store Info</th>
-                        <th>Contact Name</th>
-                        <th>Phone</th>
+                          @if(Auth::user()->role == 'admin')
+                          <th>Owner</th>
+                          @endif
+                        <th>Store Info</th>    
                         <th>Address</th>
-                        <th>City</th>
-                        <th>State</th>
-                        <th>Zip</th>
                         <th>Sales Tax Rate</th>
                         <th>Medicare Tax Rate</th>
                         <th>Actions</th>
@@ -26,15 +26,19 @@
                 </thead>
                 <tbody>
                     @foreach ($stores as $store)
+                    @php
+                      $owner = App\Models\User::find($store->created_by);
+                    @endphp
                         <tr>
                             <td>{{ $store->id }}</td>
+                              @if(Auth::user()->role == 'admin')
+                              <td>
+                              {{@$owner->name}}
+                              </td>
+                              @endif
                             <td>{{ $store->store_info }}</td>
-                            <td>{{ $store->contact_name }}</td>
-                            <td>{{ $store->phone }}</td>
                             <td>{{ $store->address }}</td>
-                            <td>{{ $store->city }}</td>
-                            <td>{{ $store->state }}</td>
-                            <td>{{ $store->zip }}</td>
+
                             <td>{{ $store->sales_tax_rate }}</td>
                             <td>{{ $store->medicare_tax_rate }}</td>
                             <td>

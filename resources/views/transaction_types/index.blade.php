@@ -4,10 +4,11 @@
 
 @section('content')
 <div class="container-xl mt-5">
+   <div style="display:flex;justify-content: space-between;">
     <h2>Transaction Types</h2>
 
     <a href="{{ route('transaction-types.create') }}" class="btn btn-primary mb-3">Add Transaction Type</a>
-
+</div>
     @if(session('success'))
         <div class="alert alert-success">{{ session('success') }}</div>
     @endif

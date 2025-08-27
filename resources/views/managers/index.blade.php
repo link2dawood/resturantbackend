@@ -4,8 +4,12 @@
 
 @section('content')
 <div class="container mt-5">
+   <div style="display:flex;justify-content: space-between;">
     <h1 class="mb-4">Managers</h1>
+    @if(Auth::user()->role == 'owner')
     <a href="{{ route('managers.create') }}" class="btn btn-primary mb-3">Create Manager</a>
+    @endif
+    </div>
     <div class="card">
         <div class="card-body">
             <table class="table table-striped">
@@ -17,7 +21,9 @@
                         <th>Username</th>
                         <th>Assigned Stores</th>
                         <th>Last Online</th>
+                          @if(Auth::user()->role == 'owner')
                         <th>Actions</th>
+                        @endif
                     </tr>
                 </thead>
                 <tbody>
@@ -33,6 +39,7 @@
                                 @endforeach
                             </td>
                             <td>{{ $manager->last_online }}</td>
+                             @if(Auth::user()->role == 'owner')
                             <td>
                                 <a href="{{ route('managers.edit', $manager->id) }}" class="btn btn-warning btn-sm">Edit</a>
                                 <form action="{{ route('managers.destroy', $manager->id) }}" method="POST" style="display:inline;">
@@ -41,6 +48,7 @@
                                     <button type="submit" class="btn btn-danger btn-sm">Delete</button>
                                 </form>
                             </td>
+                            @endif
                         </tr>
                     @endforeach
                 </tbody>

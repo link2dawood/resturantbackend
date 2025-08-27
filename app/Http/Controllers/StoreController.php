@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Store;
+use App\Models\User;
 use Illuminate\Support\Facades\Gate;
 
 class StoreController extends Controller
@@ -20,7 +21,7 @@ class StoreController extends Controller
         } else {
             $stores = Store::all();
         }
-
+        
         return view('stores.index', compact('stores'));
     }
 
@@ -29,7 +30,8 @@ class StoreController extends Controller
      */
     public function create()
     {
-        return view('stores.create');
+        $owners = User::where('role','owner')->get();
+        return view('stores.create',compact('owners'));
     }
 
     /**
@@ -37,6 +39,7 @@ class StoreController extends Controller
      */
     public function store(Request $request)
     {
+      
         $validatedData = $request->validate([
             'store_info' => 'required|string|max:255',
             'contact_name' => 'required|string|max:255',
@@ -45,11 +48,12 @@ class StoreController extends Controller
             'city' => 'required|string|max:100',
             'state' => 'required|string|max:100',
             'zip' => 'required|string|max:20',
+            'created_by' => 'required',
             'sales_tax_rate' => 'required|numeric|min:0',
             'medicare_tax_rate' => 'required|numeric|min:0',
         ]);
 
-        $validatedData['created_by'] = auth()->id();
+       
 
         Store::create($validatedData);
 
@@ -69,7 +73,8 @@ class StoreController extends Controller
      */
     public function edit(Store $store)
     {
-        return view('stores.edit', compact('store'));
+        $owners = User::where('role','owner')->get();
+        return view('stores.edit', compact('store','owners'));
     }
 
     /**
@@ -82,11 +87,13 @@ class StoreController extends Controller
             'contact_name' => 'required|string|max:255',
             'phone' => 'required|string|max:20',
             'address' => 'required|string|max:255',
+             'created_by' => 'required',
             'city' => 'required|string|max:100',
             'state' => 'required|string|max:100',
             'zip' => 'required|string|max:20',
             'sales_tax_rate' => 'required|numeric|min:0',
             'medicare_tax_rate' => 'required|numeric|min:0',
+            
         ]);
 
         $store->update($validatedData);

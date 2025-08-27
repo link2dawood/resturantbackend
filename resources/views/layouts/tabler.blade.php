@@ -156,7 +156,7 @@
                                         Home
                                     </a>
                                 </li>
-                                <li class="nav-item {{ request()->routeIs('profile.*') ? 'active' : '' }}">
+                                {{-- <li class="nav-item {{ request()->routeIs('profile.*') ? 'active' : '' }}">
                                     <a class="nav-link" href="{{ route('profile.show') }}">
                                         <span class="nav-link-icon d-md-none d-lg-inline-block">
                                             <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="m0 0h24v24H0z" fill="none"/><circle cx="12" cy="7" r="4"/><path d="m6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2"/></svg>
@@ -165,7 +165,7 @@
                                             Profile
                                         </span>
                                     </a>
-                                </li>
+                                </li> --}}
                                 @if(Auth::user()->role == 'admin')
                                 <li class="nav-item {{ request()->routeIs('owners.*') ? 'active' : '' }}">
                                     <a class="nav-link" href="{{ route('owners.index') }}">
@@ -178,7 +178,6 @@
                                     </a>
                                 </li>
                                 @endif
-                                  @if(Auth::user()->role == 'owner')
                                 <li class="nav-item {{ request()->routeIs('stores.*') ? 'active' : '' }}">
                                     <a class="nav-link" href="{{ route('stores.index') }}">
                                         <span class="nav-link-icon d-md-none d-lg-inline-block">
@@ -195,6 +194,7 @@
                                         </span>
                                     </a>
                                 </li>
+                                  @if(Auth::user()->role == 'owner' || Auth::user()->role == 'admin')
                                 <li class="nav-item {{ request()->routeIs('managers.*') ? 'active' : '' }}">
                                     <a class="nav-link" href="{{ route('managers.index') }}">
                                         <span class="nav-link-icon d-md-none d-lg-inline-block">
