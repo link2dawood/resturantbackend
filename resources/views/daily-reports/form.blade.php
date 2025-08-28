@@ -3,6 +3,17 @@
 @section('content')
 
 <style>
+    .sales-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed; /* force equal widths */
+}
+
+.sales-table td {
+    width: 33.33%;   /* 3 equal columns */
+    padding: 8px;
+    vertical-align: middle;
+}
     .report-container {
         background: white;
         border-radius: 8px;
@@ -264,16 +275,38 @@
         </div>
     @endif
 
+    <select id="transactionTypeTemplate" style="display:none;">
+    <option value="">Select Type</option>
+    @foreach($types as $type)
+        <option value="{{ $type->name }}">{{ $type->name }}</option>
+    @endforeach
+</select>
+
+
     <form id="dailyReportForm" method="POST" action="{{ route('daily-reports.store') }}">
         @csrf
+
+        <input type="hidden" name="store_id" value="{{$store->id}}">
+        <input type="hidden" class="NetSales" name="net_sales" value="">
+        <input type="hidden" class="TaxInput" name="tax" value="">
+        <input type="hidden" class="SalesInput" name="sales" value="">
+        <input type="hidden" class="TotalPaidOuts" name="total_paid_outs" value="">
+        <input type="hidden" class="CashToAccountInput" name="cash_to_account" value="">
+        <input type="hidden" class="ShortInput" name="short" value="">
+        <input type="hidden" class="OverInput" name="over" value="">
+
+
+
+
+
         
         <div class="report-container">
             <!-- Header Section -->
             <div class="report-header">
-                <div class="company-name">Phil's Philly Steaks - Hulen Mall</div>
+                <div class="company-name">{{@$store->store_info}}</div>
                 <div class="company-info">
-                    <div>6301 Hulen Bend Blvd, Fort Worth, TX 76132</div>
-                    <div>Phone: (817) 346-4221</div>
+                    <div>{{@$store->address}}</div>
+                    <div>Phone: {{@$store->phone}}</div>
                 </div>
             </div>
 
@@ -303,15 +336,14 @@
                                     <td>
                                         <select class="form-input" name="transactions[0][transaction_type]">
                                             <option value="">Select Type</option>
-                                            <option value="Food Cost">Food Cost</option>
-                                            <option value="Rent">Rent</option>
-                                            <option value="Accounting">Accounting</option>
-                                            <option value="Taxes">Taxes</option>
-                                            <option value="Other">Other</option>
+                                            @foreach($types as $type)
+                                            <option value="{{$type->name}}">{{$type->name}}</option>
+                                            @endforeach
+
                                         </select>
                                     </td>
                                     <td>
-                                        <input type="number" class="form-input number-input" name="transactions[0][amount]" step="0.01" placeholder="0.00">
+                                        <input type="number" class="form-input number-input" name="transactions[0][amount]" min="0" step="0.01" placeholder="0.00">
                                     </td>
                                     <td>
                                         <button type="button" class="btn-add-row" onclick="addTransactionRow()">+</button>
@@ -342,12 +374,12 @@
                             </div>
                         </div>
                         
-                        <div class="category-labels">
+                        <!-- <div class="category-labels">
                             <div class="category">Accounting</div>
                             <div class="category">Food Cost</div>
                             <div class="category">Rent</div>
                             <div class="category">Taxes</div>
-                        </div>
+                        </div> -->
                     </div>
                 </div>
             </div>
@@ -382,11 +414,17 @@
             <!-- Financial Summary Section -->
             <div class="section-title">Financial Summary</div>
             <div class="form-section">
-                <div class="sales-grid">
-                    <div>
+                <div class="row">
+                    <div class="col-8">
                         <table class="sales-table">
                             <tr>
-                                <td rowspan="2">Total # of Coupons</td>
+                                <td rowspan="2">
+                                    <div style="display:flex;justify-content: space-between;align-items: anchor-center;">
+                                        <span>Total # of Coupons</span>
+                                        <span style="width:30%;"><input type="number" name="total_coupons" value="0" class="form-input number-input" step="0.01" style="background: white;"></span>
+                                    </div>
+                                    
+                                </td>
                                 <td><strong>Gross Sales:</strong></td>
                                 <td><input type="number" name="gross_sales" class="form-input number-input" step="0.01" required></td>
                             </tr>
@@ -400,7 +438,14 @@
                                 <td><input type="number" name="adjustments_overrings" class="form-input number-input" step="0.01" value="0.00"></td>
                             </tr>
                             <tr>
-                                <td rowspan="2">Total # of Customers</td>
+                                <td rowspan="2">
+                                    
+                                    <div style="display:flex;justify-content: space-between;align-items: anchor-center;">
+                                        <span>Total # of Customers</span>
+                                        <span style="width:30%;"><input type="number" name="total_customers" value="0" class="form-input number-input" step="0.01" style="background: white;"></span>
+                                    </div>
+
+                                </td>
                                 <td><strong>Net Sales:</strong></td>
                                 <td id="netSales" class="calculated-field number-input">$0.00</td>
                             </tr>
@@ -409,14 +454,20 @@
                                 <td id="tax" class="calculated-field number-input">$0.00</td>
                             </tr>
                             <tr>
-                                <td>Average Ticket</td>
+                                <td>
+                                   
+                                    <div style="display:flex;justify-content: space-between;align-items: anchor-center;">
+                                        <span> Average Ticket</span>
+                                        <span style="width:30%;"><input type="number" name="average_ticket" value="0" class="form-input number-input" step="0.01" style="background: white;"></span>
+                                    </div>
+                                </td>
                                 <td><strong>Sales (Pre-tax):</strong></td>
                                 <td id="salesPreTax" class="calculated-field number-input">$0.00</td>
                             </tr>
                         </table>
                     </div>
                     
-                    <div>
+                    <div class="col-4">
                         <table class="sales-table">
                             <tr>
                                 <td><strong>Net Sales:</strong></td>
@@ -439,9 +490,11 @@
                                 <td><input type="number" name="actual_deposit" class="form-input number-input" step="0.01" value="0.00"></td>
                             </tr>
                             <tr>
-                                <td style="width: 40%;"><strong>Short:</strong></td>
-                                <td id="short" class="calculated-field number-input" style="width: 30%;">$0.00</td>
-                                <td style="width: 30%;"><strong>Over:</strong></td>
+                                <td><strong>Short:</strong></td>
+                                <td id="short" class="calculated-field number-input">$0.00</td>
+                            </tr>
+                            <tr>
+                                <td ><strong>Over:</strong></td>
                                 <td id="over" class="calculated-field number-input">$0.00</td>
                             </tr>
                         </table>
@@ -498,12 +551,25 @@ function calculateTotals() {
     document.getElementById('cashToAccountFor').textContent = `$${cashToAccountFor.toFixed(2)}`;
     document.getElementById('short').textContent = `$${short.toFixed(2)}`;
     document.getElementById('over').textContent = `$${over.toFixed(2)}`;
+
+        document.querySelector('.NetSales').value = netSales.toFixed(2);
+    document.querySelector('.TaxInput').value = tax.toFixed(2);
+    document.querySelector('.SalesInput').value = salesPreTax.toFixed(2); // SalesInput = salesPreTax
+    document.querySelector('.TotalPaidOuts').value = totalPaidOuts.toFixed(2);
+    document.querySelector('.CashToAccountInput').value = cashToAccountFor.toFixed(2);
+    document.querySelector('.ShortInput').value = short.toFixed(2);
+    document.querySelector('.OverInput').value = over.toFixed(2);
 }
 
-function addTransactionRow() {
+
+
+window.addTransactionRow = function () {
     const tbody = document.querySelector('#transactionTable tbody');
     const totalRow = tbody.querySelector('.total-row');
-    
+
+    // get dynamic options from hidden select
+    const optionsHtml = document.getElementById('transactionTypeTemplate').innerHTML;
+
     const newRow = document.createElement('tr');
     newRow.innerHTML = `
         <td>
@@ -514,28 +580,24 @@ function addTransactionRow() {
         </td>
         <td>
             <select class="form-input" name="transactions[${transactionCount}][transaction_type]">
-                <option value="">Select Type</option>
-                <option value="Food Cost">Food Cost</option>
-                <option value="Rent">Rent</option>
-                <option value="Accounting">Accounting</option>
-                <option value="Taxes">Taxes</option>
-                <option value="Other">Other</option>
+                ${optionsHtml}
             </select>
         </td>
         <td>
-            <input type="number" class="form-input number-input" name="transactions[${transactionCount}][amount]" step="0.01" placeholder="0.00">
+            <input type="number" class="form-input number-input" name="transactions[${transactionCount}][amount]" step="0.01" min="0" placeholder="0.00">
         </td>
         <td>
             <button type="button" class="btn-remove-row" onclick="removeTransactionRow(this)">×</button>
         </td>
     `;
-    
+
     tbody.insertBefore(newRow, totalRow);
     transactionCount++;
-    
-    // Add event listener for the new amount input
+
+    // attach input listener for totals
     newRow.querySelector('input[name*="[amount]"]').addEventListener('input', calculateTotals);
 }
+
 
 function removeTransactionRow(button) {
     if (document.querySelectorAll('#transactionTable tbody tr:not(.total-row)').length > 1) {

@@ -51,7 +51,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/daily-reports/{dailyReport}/edit', [DailyReportController::class, 'edit'])->name('daily-reports.edit');
     Route::put('/daily-reports/{dailyReport}', [DailyReportController::class, 'update'])->name('daily-reports.update');
     Route::delete('/daily-reports/{dailyReport}', [DailyReportController::class, 'destroy'])->name('daily-reports.destroy');
-    Route::get('/daily/reports', [DailyReportController::class, 'reports'])->name('reports.index'); 
+    Route::get('stores/{id}/daily/reports', [DailyReportController::class, 'reports'])->name('stores.daily.reports.index'); 
 
     Route::get('/managers', [ManagerController::class, 'index'])->name('managers.index');
     Route::get('/managers/create', [ManagerController::class, 'create'])->name('managers.create');

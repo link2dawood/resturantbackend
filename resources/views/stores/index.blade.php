@@ -42,13 +42,38 @@
                             <td>{{ $store->sales_tax_rate }}</td>
                             <td>{{ $store->medicare_tax_rate }}</td>
                             <td>
+    <div class="dropdown">
+        <button class="btn btn-sm btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton{{ $store->id }}" data-bs-toggle="dropdown" aria-expanded="false">
+            Actions
+        </button>
+        <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton{{ $store->id }}">
+            <li>
+                <a class="dropdown-item" href="{{ route('stores.edit', $store->id) }}">Edit</a>
+            </li>
+            @if(Auth::user()->role != 'admin')
+            <li>
+                <a class="dropdown-item" href="{{url('/stores/'.$store->id.'/daily/reports')}}">Daily Report</a>
+            </li>
+            @endif
+            <li>
+                <form action="{{ route('stores.destroy', $store->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this store?')">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="dropdown-item text-danger">Delete</button>
+                </form>
+            </li>
+        </ul>
+    </div>
+</td>
+
+                            <!-- <td>
                                 <a href="{{ route('stores.edit', $store->id) }}" class="btn btn-warning btn-sm">Edit</a>
                                 <form action="{{ route('stores.destroy', $store->id) }}" method="POST" style="display:inline;">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" class="btn btn-danger btn-sm">Delete</button>
                                 </form>
-                            </td>
+                            </td> -->
                         </tr>
                     @endforeach
                 </tbody>

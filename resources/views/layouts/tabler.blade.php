@@ -210,24 +210,7 @@
                                     </a>
                                 </li>
                                 @endif
-                                @if(Auth::user()->role != 'admin')
-                                <li class="nav-item {{ request()->routeIs('reports.*') ? 'active' : '' }}">
-                                    <a class="nav-link" href="{{ route('reports.index') }}">
-                                        <span class="nav-link-icon d-md-none d-lg-inline-block">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                                <rect x="3" y="4" width="18" height="12" rx="1" />
-                                                <line x1="7" y1="20" x2="17" y2="20" />
-                                                <line x1="9" y1="16" x2="9" y2="20" />
-                                                <line x1="15" y1="16" x2="15" y2="20" />
-                                            </svg>
-                                        </span>
-                                        <span class="nav-link-title">
-                                        Daily Reports
-                                        </span>
-                                    </a>
-                                </li>
-                                @endif
+
                                 @if(Auth::user()->role == 'admin')
                                 <li class="nav-item {{ request()->routeIs('transaction-types.*') ? 'active' : '' }}">
                                     <a class="nav-link" href="{{ route('transaction-types.index') }}">

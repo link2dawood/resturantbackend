@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\DailyReport;
 use App\Models\DailyReportTransaction;
 use App\Models\Store;
+use App\Models\TransactionType;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -37,31 +38,41 @@ class DailyReportController extends Controller
      */
     public function store(Request $request)
     {
+        dd($request->all());
         $validatedData = $request->validate([
-            'restaurant_name' => 'required|string|max:100',
-            'address' => 'nullable|string',
-            'phone' => 'nullable|string|max:20',
-            'report_date' => 'required|date',
-            'weather' => 'nullable|string|max:50',
-            'holiday_event' => 'nullable|string|max:100',
-            'projected_sales' => 'required|numeric|min:0',
-            'gross_sales' => 'required|numeric|min:0',
-            'amount_of_cancels' => 'nullable|numeric|min:0',
-            'amount_of_voids' => 'nullable|numeric',
-            'number_of_no_sales' => 'nullable|integer|min:0',
-            'total_coupons' => 'nullable|integer|min:0',
-            'coupons_received' => 'nullable|numeric|min:0',
-            'adjustments_overrings' => 'nullable|numeric',
-            'total_customers' => 'nullable|integer|min:0',
-            'credit_cards' => 'nullable|numeric|min:0',
-            'actual_deposit' => 'nullable|numeric|min:0',
-            'store_id' => 'nullable|exists:stores,id',
-            'transactions' => 'nullable|array',
-            'transactions.*.transaction_id' => 'required|integer',
-            'transactions.*.company' => 'required|string|max:100',
-            'transactions.*.transaction_type' => 'required|in:Food Cost,Rent,Accounting,Taxes,Other',
-            'transactions.*.amount' => 'required|numeric|min:0'
+            'report_date'         => 'required|date',
+            'page_number'         => 'nullable|integer|min:1',
+            'weather'             => 'nullable|string|max:50',
+            'holiday_event'       => 'nullable|string|max:100',
+        
+            // decimals
+            'projected_sales'     => 'required|numeric|min:0',
+            'gross_sales'         => 'required|numeric|min:0',
+            'amount_of_cancels'   => 'nullable|numeric|min:0',
+            'amount_of_voids'     => 'nullable|numeric|min:0',
+            'coupons_received'    => 'nullable|numeric|min:0',
+            'adjustments_overrings' => 'nullable|numeric|min:0',
+            'net_sales'           => 'nullable|numeric|min:0',
+            'tax'                 => 'nullable|numeric|min:0',
+            'average_ticket'      => 'nullable|numeric|min:0',
+            'sales'               => 'nullable|numeric|min:0',
+            'total_paid_outs'     => 'required|numeric|min:0',
+            'credit_cards'        => 'nullable|numeric|min:0',
+            'cash_to_account'     => 'nullable|numeric|min:0',
+            'actual_deposit'      => 'nullable|numeric|min:0',
+            'short'               => 'nullable|numeric|min:0',
+            'over'                => 'nullable|numeric|min:0',
+        
+            // integers
+            'number_of_no_sales'  => 'nullable|integer|min:0',
+            'total_coupons'       => 'nullable|integer|min:0',
+            'total_customers'     => 'nullable|integer|min:0',
+        
+            // relationships
+            'store_id'            => 'required|exists:stores,id',
+        
         ]);
+        
 
         try {
             DB::beginTransaction();
@@ -185,9 +196,10 @@ class DailyReportController extends Controller
     /**
      * Show the reports form for creating/editing daily reports
      */
-    public function reports()
+    public function reports($id)
     {
-        $stores = Store::all();
-        return view('daily-reports.form', compact('stores'));
+        $store = Store::find($id);
+        $types = TransactionType::all();
+        return view('daily-reports.form', compact('store','types'));
     }
 }

@@ -15,14 +15,10 @@ return new class extends Migration
             $table->id();
             
             // Relationship to daily report
-            $table->foreignId('daily_report_id')->constrained('daily_reports')->onDelete('cascade');
-            
-            // Transaction details
-            $table->integer('transaction_id');
-            $table->string('company', 100);
-            $table->enum('transaction_type', ['Food Cost', 'Rent', 'Accounting', 'Taxes', 'Other']);
-            $table->decimal('amount', 10, 2);
-            
+            $table->foreignId('daily_report_id')->nullable()->constrained('daily_reports')->onDelete('cascade');
+            $table->foreignId('transaction_type_id')->nullable()->constrained('daily_reports')->onDelete('cascade');
+            $table->string('company', 100)->nullable();
+            $table->decimal('amount', 10, 2)->default(0);
             $table->timestamps();
         });
     }
