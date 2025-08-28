@@ -18,9 +18,12 @@ return new class extends Migration
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->string('role')->nullable();
-            $table->foreignId('created_by')->constrained('users')->onDelete('cascade')->onUpdate('cascade');
+            $table->foreignId('created_by')->nullable()->constrained('users')->onDelete('cascade')->onUpdate('cascade');
             $table->rememberToken();
             $table->timestamps();
+            $table->string('username')->nullable();
+            $table->json('assigned_stores')->nullable();
+            $table->timestamp('last_online')->nullable();
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {

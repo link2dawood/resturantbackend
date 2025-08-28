@@ -23,6 +23,11 @@ class User extends Authenticatable implements MustVerifyEmail
         'password',
         'google_id',
         'avatar',
+        'role',
+        'email_verified_at',
+        'username',
+        'assigned_stores',
+        'last_online',
     ];
 
     /**
@@ -59,4 +64,16 @@ class User extends Authenticatable implements MustVerifyEmail
         
         return 'https://ui-avatars.com/api/?name=' . urlencode($this->name) . '&background=206bc4&color=fff&size=128';
     }
+
+    /**
+     * The stores assigned to the manager.
+     */
+   public function stores()
+{
+    return $this->belongsToMany(Store::class, 'manager_store', 'manager_id', 'store_id');
+}
+
+
+
+
 }
