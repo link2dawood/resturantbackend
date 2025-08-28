@@ -21,7 +21,8 @@ class TransactionTypeController extends Controller
      */
     public function create()
     {
-        return view('transaction_types.create');
+        $parentTransactionTypes = TransactionType::whereNull('p_id')->get();
+        return view('transaction_types.create', compact('parentTransactionTypes'));
     }
 
     /**
@@ -31,9 +32,10 @@ class TransactionTypeController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
+            'p_id' => 'nullable|exists:transaction_types,id',
         ]);
 
-        TransactionType::create($request->only('name'));
+        TransactionType::create($request->only(['name', 'p_id']));
 
         return redirect()->route('transaction-types.index')->with('success', 'Transaction Type created successfully.');
     }
@@ -51,7 +53,8 @@ class TransactionTypeController extends Controller
      */
     public function edit(TransactionType $transactionType)
     {
-        return view('transaction_types.edit', compact('transactionType'));
+        $parentTransactionTypes = TransactionType::whereNull('p_id')->where('id', '!=', $transactionType->id)->get();
+        return view('transaction_types.edit', compact('transactionType', 'parentTransactionTypes'));
     }
 
     /**
@@ -61,9 +64,10 @@ class TransactionTypeController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
+            'p_id' => 'nullable|exists:transaction_types,id',
         ]);
 
-        $transactionType->update($request->only('name'));
+        $transactionType->update($request->only(['name', 'p_id']));
 
         return redirect()->route('transaction-types.index')->with('success', 'Transaction Type updated successfully.');
     }

@@ -18,6 +18,7 @@
             <tr>
                 <th>ID</th>
                 <th>Name</th>
+                <th>Parent</th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -26,6 +27,7 @@
                 <tr>
                     <td>{{ $type->id }}</td>
                     <td>{{ $type->name }}</td>
+                    <td>{{ $type->parent ? $type->parent->name : 'None' }}</td>
                     <td>
                         <a href="{{ route('transaction-types.edit', $type->id) }}" class="btn btn-warning">Edit</a>
                         <form action="{{ route('transaction-types.destroy', $type->id) }}" method="POST" style="display:inline;">
