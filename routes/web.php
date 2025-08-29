@@ -7,6 +7,7 @@ use App\Http\Controllers\OwnerController;
 use App\Http\Controllers\StoreController;
 use App\Http\Controllers\ManagerController;
 use App\Http\Controllers\TransactionTypeController;
+use App\Http\Controllers\DailyReportController;
 
 
 Route::get('/', [App\Http\Controllers\WelcomeController::class, 'index'])->name('index');
@@ -41,7 +42,16 @@ Route::middleware('auth')->group(function () {
     Route::get('/stores/{store}/edit', [StoreController::class, 'edit'])->name('stores.edit'); // Show form to edit a store
     Route::put('/stores/{store}', [StoreController::class, 'update'])->name('stores.update'); // Update a store
     Route::delete('/stores/{store}', [StoreController::class, 'destroy'])->name('stores.destroy'); // Delete a store
-    Route::get('/daily/reports', [StoreController::class, 'reports'])->name('reports.index'); 
+    
+    // Daily Reports Routes
+    Route::get('/daily-reports', [DailyReportController::class, 'index'])->name('daily-reports.index');
+    Route::get('/daily-reports/create', [DailyReportController::class, 'create'])->name('daily-reports.create');
+    Route::post('/daily-reports', [DailyReportController::class, 'store'])->name('daily-reports.store');
+    Route::get('/daily-reports/{dailyReport}', [DailyReportController::class, 'show'])->name('daily-reports.show');
+    Route::get('/daily-reports/{dailyReport}/edit', [DailyReportController::class, 'edit'])->name('daily-reports.edit');
+    Route::put('/daily-reports/{dailyReport}', [DailyReportController::class, 'update'])->name('daily-reports.update');
+    Route::delete('/daily-reports/{dailyReport}', [DailyReportController::class, 'destroy'])->name('daily-reports.destroy');
+    Route::get('/daily/reports', [DailyReportController::class, 'reports'])->name('reports.index'); 
 
     Route::get('/managers', [ManagerController::class, 'index'])->name('managers.index');
     Route::get('/managers/create', [ManagerController::class, 'create'])->name('managers.create');
