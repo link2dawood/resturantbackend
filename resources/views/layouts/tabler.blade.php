@@ -154,8 +154,9 @@
                                     </span>
                                     <span class="nav-link-title">
                                         Home
-                                    </a>
-                                </li>
+                                    </span>
+                                </a>
+                            </li>
                                 {{-- <li class="nav-item {{ request()->routeIs('profile.*') ? 'active' : '' }}">
                                     <a class="nav-link" href="{{ route('profile.show') }}">
                                         <span class="nav-link-icon d-md-none d-lg-inline-block">
@@ -224,6 +225,22 @@
                                         </span>
                                         <span class="nav-link-title">
                                             Transaction Types
+                                        </span>
+                                    </a>
+                                </li>
+                                @endif
+                                 @if(Auth::user()->role == 'owner' || Auth::user()->role == 'manager')
+                                <li class="nav-item {{ request()->routeIs('daily-reports.*') ? 'active' : '' }}">
+                                    <a class="nav-link" href="{{ route('daily-reports.index') }}">
+                                        <span class="nav-link-icon d-md-none d-lg-inline-block">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                                <circle cx="12" cy="7" r="4" />
+                                                <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+                                            </svg>
+                                        </span>
+                                        <span class="nav-link-title">
+                                            Daily Reports
                                         </span>
                                     </a>
                                 </li>

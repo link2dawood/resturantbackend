@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class DailyReport extends Model
 {
@@ -28,11 +29,16 @@ class DailyReport extends Model
         'credit_cards',
         'actual_deposit',
         'store_id',
-        'created_by'
+        'created_by',
+        'status',
+        'approved_by',
+        'approved_at',
+        'approval_notes'
     ];
 
     protected $casts = [
         'report_date' => 'date',
+        'approved_at' => 'datetime',
         'projected_sales' => 'decimal:2',
         'gross_sales' => 'decimal:2',
         'amount_of_cancels' => 'decimal:2',
@@ -64,9 +70,19 @@ class DailyReport extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    public function approver(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'approved_by');
+    }
+
     public function transactions(): HasMany
     {
         return $this->hasMany(DailyReportTransaction::class);
+    }
+
+    public function auditLogs(): MorphMany
+    {
+        return $this->morphMany(AuditLog::class, 'auditable');
     }
 
     public function getTotalPaidOutsAttribute(): float

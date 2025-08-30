@@ -8,6 +8,7 @@ use App\Http\Controllers\StoreController;
 use App\Http\Controllers\ManagerController;
 use App\Http\Controllers\TransactionTypeController;
 use App\Http\Controllers\DailyReportController;
+use App\Http\Controllers\AuditLogController;
 
 
 Route::get('/', [App\Http\Controllers\WelcomeController::class, 'index'])->name('index');
@@ -43,15 +44,28 @@ Route::middleware('auth')->group(function () {
     Route::put('/stores/{store}', [StoreController::class, 'update'])->name('stores.update'); // Update a store
     Route::delete('/stores/{store}', [StoreController::class, 'destroy'])->name('stores.destroy'); // Delete a store
     
-    // Daily Reports Routes
-    Route::get('/daily-reports', [DailyReportController::class, 'index'])->name('daily-reports.index');
-    Route::get('/daily-reports/create', [DailyReportController::class, 'create'])->name('daily-reports.create');
-    Route::post('/daily-reports', [DailyReportController::class, 'store'])->name('daily-reports.store');
-    Route::get('/daily-reports/{dailyReport}', [DailyReportController::class, 'show'])->name('daily-reports.show');
-    Route::get('/daily-reports/{dailyReport}/edit', [DailyReportController::class, 'edit'])->name('daily-reports.edit');
-    Route::put('/daily-reports/{dailyReport}', [DailyReportController::class, 'update'])->name('daily-reports.update');
-    Route::delete('/daily-reports/{dailyReport}', [DailyReportController::class, 'destroy'])->name('daily-reports.destroy');
-    Route::get('stores/{id}/daily/reports', [DailyReportController::class, 'reports'])->name('stores.daily.reports.index'); 
+    // Daily Reports Routes - with access control
+    Route::middleware('daily_report_access')->group(function () {
+        Route::get('/daily-reports', [DailyReportController::class, 'index'])->name('daily-reports.index');
+        Route::get('/daily-reports/create', [DailyReportController::class, 'create'])->name('daily-reports.create');
+        Route::get('/daily-reports/quick-entry', [DailyReportController::class, 'quickEntry'])->name('daily-reports.quick-entry');
+        Route::post('/daily-reports', [DailyReportController::class, 'store'])->name('daily-reports.store');
+        Route::get('/daily-reports/{dailyReport}', [DailyReportController::class, 'show'])->name('daily-reports.show');
+        Route::get('/daily-reports/{dailyReport}/edit', [DailyReportController::class, 'edit'])->name('daily-reports.edit');
+        Route::put('/daily-reports/{dailyReport}', [DailyReportController::class, 'update'])->name('daily-reports.update');
+        Route::delete('/daily-reports/{dailyReport}', [DailyReportController::class, 'destroy'])->name('daily-reports.destroy');
+        Route::get('stores/{store}/daily-reports', [DailyReportController::class, 'reports'])->name('stores.daily-reports.index');
+        
+        // Export routes
+        Route::get('/daily-reports/{dailyReport}/export-pdf', [DailyReportController::class, 'exportPdf'])->name('daily-reports.export-pdf');
+        Route::get('/daily-reports/export-csv', [DailyReportController::class, 'exportCsv'])->name('daily-reports.export-csv');
+        
+        // Approval workflow routes
+        Route::post('/daily-reports/{dailyReport}/submit', [DailyReportController::class, 'submit'])->name('daily-reports.submit');
+        Route::post('/daily-reports/{dailyReport}/approve', [DailyReportController::class, 'approve'])->name('daily-reports.approve');
+        Route::post('/daily-reports/{dailyReport}/reject', [DailyReportController::class, 'reject'])->name('daily-reports.reject');
+        Route::post('/daily-reports/{dailyReport}/return-to-draft', [DailyReportController::class, 'returnToDraft'])->name('daily-reports.return-to-draft');
+    }); 
 
     Route::get('/managers', [ManagerController::class, 'index'])->name('managers.index');
     Route::get('/managers/create', [ManagerController::class, 'create'])->name('managers.create');
@@ -69,4 +83,10 @@ Route::middleware('auth')->group(function () {
     Route::put('/transaction-types/{transactionType}', [TransactionTypeController::class, 'update'])->name('transaction-types.update');
     Route::delete('/transaction-types/{transactionType}', [TransactionTypeController::class, 'destroy'])->name('transaction-types.destroy');
     Route::post('transaction-types/{transactionType}/assign-stores', [TransactionTypeController::class, 'assignStores'])->name('transaction-types.assign.stores');
+
+    // Audit Log Routes (Admin and Owner only)
+    Route::middleware('admin_or_owner')->group(function () {
+        Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
+        Route::get('/audit-logs/{auditLog}', [AuditLogController::class, 'show'])->name('audit-logs.show');
+    });
 });

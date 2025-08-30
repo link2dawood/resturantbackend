@@ -16,7 +16,7 @@ return new class extends Migration
             
             // Relationship to daily report
             $table->foreignId('daily_report_id')->nullable()->constrained('daily_reports')->onDelete('cascade');
-            $table->foreignId('transaction_type_id')->nullable()->constrained('daily_reports')->onDelete('cascade');
+            $table->foreignId('transaction_type_id')->nullable()->constrained('transaction_types')->onDelete('cascade');
             $table->string('company', 100)->nullable();
             $table->decimal('amount', 10, 2)->default(0);
             $table->timestamps();

@@ -29,5 +29,13 @@ class Store extends Model
     {
         return $this->belongsToMany(User::class, 'manager_store', 'store_id', 'manager_id');
     }
+
+    /**
+     * The daily reports for this store.
+     */
+    public function dailyReports()
+    {
+        return $this->hasMany(DailyReport::class);
+    }
  
 }

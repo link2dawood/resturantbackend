@@ -179,19 +179,20 @@
         }
     }
 </style>
-
-<div class="page-header">
-    <div class="page-title">
-        <h1>Daily Report - {{ $dailyReport->report_date->format('M d, Y') }}</h1>
-    </div>
-    <div class="page-actions">
-        <a href="{{ route('daily-reports.edit', $dailyReport) }}" class="btn btn-warning">Edit Report</a>
-        <button onclick="window.print()" class="print-btn">Print Report</button>
-        <a href="{{ route('daily-reports.index') }}" class="btn btn-secondary">Back to List</a>
+<div class="container-xl mt-5">
+    <div class="page-header">
+        <div class="page-title">
+            <h1>Daily Report - {{ $dailyReport->report_date->format('M d, Y') }}</h1>
+        </div>
+        <div class="page-actions">
+        <a href="{{ route('daily-reports.edit', $dailyReport) }}" class="btn btn-warning">✏️ Edit Report</a>
+        <a href="{{ route('daily-reports.export-pdf', $dailyReport) }}" class="btn btn-success">📄 Export PDF</a>
+        <button onclick="window.print()" class="print-btn">🖨️ Print Report</button>
+        <a href="{{ route('daily-reports.index') }}" class="btn btn-secondary">← Back to List</a>
     </div>
 </div>
 
-<div class="report-view">
+<div class="report-view mt-5">
     <!-- Header Section -->
     <div class="report-header">
         <div class="company-name">{{ $dailyReport->restaurant_name }}</div>

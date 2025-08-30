@@ -73,6 +73,23 @@ class User extends Authenticatable implements MustVerifyEmail
     return $this->belongsToMany(Store::class, 'manager_store', 'manager_id', 'store_id');
 }
 
+    /**
+     * Alias for stores() - more descriptive for managers
+     */
+    public function managedStores()
+    {
+        return $this->stores();
+    }
+
+    /**
+     * Get the stores assigned to the manager from the assigned_stores field.
+     */
+    public function getAssignedStoresAttribute()
+    {
+        $storeIds = json_decode($this->attributes['assigned_stores'], true);
+        return Store::whereIn('id', $storeIds)->get();
+    }
+
 
 
 

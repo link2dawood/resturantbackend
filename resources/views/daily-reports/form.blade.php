@@ -260,12 +260,21 @@
 
 <div class="container-fluid p-4">
     @if($errors->any())
-        <div class="alert alert-danger">
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <h5 class="alert-heading">⚠️ Please Review and Fix the Following Issues:</h5>
             <ul class="mb-0">
                 @foreach($errors->all() as $error)
                     <li>{{ $error }}</li>
                 @endforeach
             </ul>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    @if(session('warning'))
+        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+            <strong>⚠️ Warning:</strong> {{ session('warning') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     @endif
 
@@ -606,6 +615,66 @@ function removeTransactionRow(button) {
     }
 }
 
+// Input validation and formatting
+function formatCurrency(input) {
+    let value = parseFloat(input.value);
+    if (isNaN(value)) value = 0;
+    input.value = value.toFixed(2);
+}
+
+function validateField(input) {
+    const value = parseFloat(input.value || 0);
+    const fieldName = input.name;
+    
+    // Clear previous error styling
+    input.classList.remove('is-invalid', 'is-valid');
+    
+    let isValid = true;
+    let message = '';
+    
+    // Validate negative values
+    if (value < 0 && !fieldName.includes('short')) {
+        isValid = false;
+        message = 'Value cannot be negative';
+    }
+    
+    // Validate gross vs net sales
+    if (fieldName === 'net_sales') {
+        const grossSales = parseFloat(document.querySelector('input[name="gross_sales"]').value || 0);
+        if (value > grossSales) {
+            isValid = false;
+            message = 'Net sales cannot exceed gross sales';
+        }
+    }
+    
+    // Show validation feedback
+    if (isValid) {
+        input.classList.add('is-valid');
+    } else {
+        input.classList.add('is-invalid');
+        showTooltip(input, message);
+    }
+    
+    return isValid;
+}
+
+function showTooltip(element, message) {
+    // Remove existing tooltip
+    const existingTooltip = document.querySelector('.validation-tooltip');
+    if (existingTooltip) existingTooltip.remove();
+    
+    // Create tooltip
+    const tooltip = document.createElement('div');
+    tooltip.className = 'validation-tooltip alert alert-danger p-2 mt-1';
+    tooltip.textContent = message;
+    tooltip.style.fontSize = '0.8rem';
+    
+    element.parentNode.appendChild(tooltip);
+    
+    // Auto-hide after 5 seconds
+    setTimeout(() => tooltip.remove(), 5000);
+}
+
 // Event listeners
 document.addEventListener('DOMContentLoaded', function() {
     // Add event listeners for all inputs that affect calculations
@@ -621,9 +690,30 @@ document.addEventListener('DOMContentLoaded', function() {
     inputs.forEach(selector => {
         const elements = document.querySelectorAll(selector);
         elements.forEach(element => {
-            element.addEventListener('input', calculateTotals);
+            element.addEventListener('input', function() {
+                calculateTotals();
+                validateField(this);
+            });
+            
+            element.addEventListener('blur', function() {
+                if (this.type === 'number') {
+                    formatCurrency(this);
+                }
+            });
         });
     });
+    
+    // Add loading state to form submission
+    const form = document.getElementById('dailyReportForm');
+    if (form) {
+        form.addEventListener('submit', function() {
+            const submitBtn = form.querySelector('button[type="submit"]');
+            if (submitBtn) {
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
+                submitBtn.disabled = true;
+            }
+        });
+    }
     
     // Initial calculation
     calculateTotals();

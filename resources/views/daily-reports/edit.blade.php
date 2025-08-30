@@ -2,6 +2,13 @@
 @section('title', 'Edit Daily Report')
 @section('content')
 
+<select id="transactionTypeTemplate" style="display:none;">
+    <option value="">Select Type</option>
+    @foreach($types as $type)
+        <option value="{{ $type->name }}">{{ $type->name }}</option>
+    @endforeach
+</select>
+
 <style>
     .report-container {
         background: white;
@@ -246,12 +253,12 @@
         }
     }
 </style>
-
-<div class="page-header">
-    <div class="page-title">
-        <h1>Edit Daily Report - {{ $dailyReport->report_date->format('M d, Y') }}</h1>
-    </div>
-    <div class="page-actions">
+<div class="container">
+    <div class="page-header">
+        <div class="page-title">
+            <h1>Edit Daily Report - {{ $dailyReport->report_date->format('M d, Y') }}</h1>
+        </div>
+        <div class="page-actions">
         <a href="{{ route('daily-reports.show', $dailyReport) }}" class="btn btn-secondary">Cancel</a>
     </div>
 </div>
@@ -261,13 +268,22 @@
         @csrf
         @method('PUT')
         
+        <input type="hidden" name="store_id" value="{{ $dailyReport->store_id }}">
+        <input type="hidden" class="NetSales" name="net_sales" value="">
+        <input type="hidden" class="TaxInput" name="tax" value="">
+        <input type="hidden" class="SalesInput" name="sales" value="">
+        <input type="hidden" class="TotalPaidOuts" name="total_paid_outs" value="">
+        <input type="hidden" class="CashToAccountInput" name="cash_to_account" value="">
+        <input type="hidden" class="ShortInput" name="short" value="">
+        <input type="hidden" class="OverInput" name="over" value="">
+
         <div class="report-container">
             <!-- Header Section -->
             <div class="report-header">
-                <div class="company-name">{{ $dailyReport->restaurant_name }}</div>
+                <div class="company-name">{{ $dailyReport->store->store_info ?? 'Store Information' }}</div>
                 <div class="company-info">
-                    <div>{{ $dailyReport->address }}</div>
-                    <div>Phone: {{ $dailyReport->phone }}</div>
+                    <div>{{ $dailyReport->store->address ?? '' }}</div>
+                    <div>Phone: {{ $dailyReport->store->phone ?? '' }}</div>
                 </div>
             </div>
 
@@ -298,11 +314,9 @@
                                         <td>
                                             <select class="form-input" name="transactions[{{ $index }}][transaction_type]">
                                                 <option value="">Select Type</option>
-                                                <option value="Food Cost" {{ $transaction->transaction_type === 'Food Cost' ? 'selected' : '' }}>Food Cost</option>
-                                                <option value="Rent" {{ $transaction->transaction_type === 'Rent' ? 'selected' : '' }}>Rent</option>
-                                                <option value="Accounting" {{ $transaction->transaction_type === 'Accounting' ? 'selected' : '' }}>Accounting</option>
-                                                <option value="Taxes" {{ $transaction->transaction_type === 'Taxes' ? 'selected' : '' }}>Taxes</option>
-                                                <option value="Other" {{ $transaction->transaction_type === 'Other' ? 'selected' : '' }}>Other</option>
+                                                @foreach($types as $type)
+                                                    <option value="{{ $type->name }}" {{ $transaction->transaction_type === $type->name ? 'selected' : '' }}>{{ $type->name }}</option>
+                                                @endforeach
                                             </select>
                                         </td>
                                         <td>
@@ -329,11 +343,9 @@
                                         <td>
                                             <select class="form-input" name="transactions[0][transaction_type]">
                                                 <option value="">Select Type</option>
-                                                <option value="Food Cost">Food Cost</option>
-                                                <option value="Rent">Rent</option>
-                                                <option value="Accounting">Accounting</option>
-                                                <option value="Taxes">Taxes</option>
-                                                <option value="Other">Other</option>
+                                                @foreach($types as $type)
+                                                    <option value="{{ $type->name }}">{{ $type->name }}</option>
+                                                @endforeach
                                             </select>
                                         </td>
                                         <td>
@@ -410,11 +422,16 @@
             <!-- Financial Summary Section -->
             <div class="section-title">Financial Summary</div>
             <div class="form-section">
-                <div class="sales-grid">
-                    <div>
+                <div class="row">
+                    <div class="col-8">
                         <table class="sales-table">
                             <tr>
-                                <td rowspan="2">Total # of Coupons</td>
+                                <td rowspan="2">
+                                    <div style="display:flex;justify-content: space-between;align-items: center;">
+                                        <span>Total # of Coupons</span>
+                                        <span style="width:30%;"><input type="number" name="total_coupons" value="{{ $dailyReport->total_coupons }}" class="form-input number-input" step="0.01" style="background: white;"></span>
+                                    </div>
+                                </td>
                                 <td><strong>Gross Sales:</strong></td>
                                 <td><input type="number" name="gross_sales" class="form-input number-input" step="0.01" value="{{ $dailyReport->gross_sales }}" required></td>
                             </tr>
@@ -428,7 +445,12 @@
                                 <td><input type="number" name="adjustments_overrings" class="form-input number-input" step="0.01" value="{{ $dailyReport->adjustments_overrings }}"></td>
                             </tr>
                             <tr>
-                                <td rowspan="2">Total # of Customers</td>
+                                <td rowspan="2">
+                                    <div style="display:flex;justify-content: space-between;align-items: center;">
+                                        <span>Total # of Customers</span>
+                                        <span style="width:30%;"><input type="number" name="total_customers" value="{{ $dailyReport->total_customers }}" class="form-input number-input" step="0.01" style="background: white;"></span>
+                                    </div>
+                                </td>
                                 <td><strong>Net Sales:</strong></td>
                                 <td id="netSales" class="calculated-field number-input">$0.00</td>
                             </tr>
@@ -437,14 +459,19 @@
                                 <td id="tax" class="calculated-field number-input">$0.00</td>
                             </tr>
                             <tr>
-                                <td>Average Ticket</td>
+                                <td>
+                                    <div style="display:flex;justify-content: space-between;align-items: center;">
+                                        <span>Average Ticket</span>
+                                        <span style="width:30%;"><input type="number" name="average_ticket" value="{{ $dailyReport->average_ticket }}" class="form-input number-input" step="0.01" style="background: white;"></span>
+                                    </div>
+                                </td>
                                 <td><strong>Sales (Pre-tax):</strong></td>
                                 <td id="salesPreTax" class="calculated-field number-input">$0.00</td>
                             </tr>
                         </table>
                     </div>
                     
-                    <div>
+                    <div class="col-4">
                         <table class="sales-table">
                             <tr>
                                 <td><strong>Net Sales:</strong></td>
@@ -467,9 +494,11 @@
                                 <td><input type="number" name="actual_deposit" class="form-input number-input" step="0.01" value="{{ $dailyReport->actual_deposit }}"></td>
                             </tr>
                             <tr>
-                                <td style="width: 40%;"><strong>Short:</strong></td>
-                                <td id="short" class="calculated-field number-input" style="width: 30%;">$0.00</td>
-                                <td style="width: 30%;"><strong>Over:</strong></td>
+                                <td><strong>Short:</strong></td>
+                                <td id="short" class="calculated-field number-input">$0.00</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Over:</strong></td>
                                 <td id="over" class="calculated-field number-input">$0.00</td>
                             </tr>
                         </table>
@@ -526,11 +555,23 @@ function calculateTotals() {
     document.getElementById('cashToAccountFor').textContent = `$${cashToAccountFor.toFixed(2)}`;
     document.getElementById('short').textContent = `$${short.toFixed(2)}`;
     document.getElementById('over').textContent = `$${over.toFixed(2)}`;
+
+    // Update hidden fields
+    document.querySelector('.NetSales').value = netSales.toFixed(2);
+    document.querySelector('.TaxInput').value = tax.toFixed(2);
+    document.querySelector('.SalesInput').value = salesPreTax.toFixed(2);
+    document.querySelector('.TotalPaidOuts').value = totalPaidOuts.toFixed(2);
+    document.querySelector('.CashToAccountInput').value = cashToAccountFor.toFixed(2);
+    document.querySelector('.ShortInput').value = short.toFixed(2);
+    document.querySelector('.OverInput').value = over.toFixed(2);
 }
 
 function addTransactionRow() {
     const tbody = document.querySelector('#transactionTable tbody');
     const totalRow = tbody.querySelector('.total-row');
+
+    // Get dynamic options from hidden select
+    const optionsHtml = document.getElementById('transactionTypeTemplate').innerHTML;
     
     const newRow = document.createElement('tr');
     newRow.innerHTML = `
@@ -542,12 +583,7 @@ function addTransactionRow() {
         </td>
         <td>
             <select class="form-input" name="transactions[${transactionCount}][transaction_type]">
-                <option value="">Select Type</option>
-                <option value="Food Cost">Food Cost</option>
-                <option value="Rent">Rent</option>
-                <option value="Accounting">Accounting</option>
-                <option value="Taxes">Taxes</option>
-                <option value="Other">Other</option>
+                ${optionsHtml}
             </select>
         </td>
         <td>

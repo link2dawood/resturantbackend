@@ -9,9 +9,8 @@ class DailyReportTransaction extends Model
 {
     protected $fillable = [
         'daily_report_id',
-        'transaction_id',
+        'transaction_type_id',
         'company',
-        'transaction_type',
         'amount'
     ];
 
@@ -22,5 +21,10 @@ class DailyReportTransaction extends Model
     public function dailyReport(): BelongsTo
     {
         return $this->belongsTo(DailyReport::class);
+    }
+
+    public function transactionType(): BelongsTo
+    {
+        return $this->belongsTo(TransactionType::class);
     }
 }

@@ -14,6 +14,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web([
             \App\Http\Middleware\SecurityHeaders::class,
         ]);
+        
+        $middleware->alias([
+            'daily_report_access' => \App\Http\Middleware\CheckDailyReportAccess::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

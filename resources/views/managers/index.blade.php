@@ -20,7 +20,6 @@
                         <th>Email</th>
                         <th>Username</th>
                         <th>Assigned Stores</th>
-                        <th>Last Online</th>
                           @if(Auth::user()->role == 'owner')
                         <th>Actions</th>
                         @endif
@@ -34,11 +33,14 @@
                             <td>{{ $manager->email }}</td>
                             <td>{{ $manager->username }}</td>
                             <td>
-                                @foreach ($manager->stores as $store)
-                                    <span class="badge bg-primary">{{ $store->store_info }}</span>
-                                @endforeach
+                                @if ($manager->stores->isNotEmpty())
+                                    @foreach ($manager->stores as $store)
+                                        <span class="badge bg-primary">{{ $store['store_info'] }}</span>
+                                    @endforeach
+                                @else
+                                    <span class="text-muted">No stores assigned</span>
+                                @endif
                             </td>
-                            <td>{{ $manager->last_online }}</td>
                              @if(Auth::user()->role == 'owner')
                             <td>
                                 <a href="{{ route('managers.edit', $manager->id) }}" class="btn btn-warning btn-sm">Edit</a>
