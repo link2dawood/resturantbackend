@@ -84,7 +84,7 @@
         <div class="text-center py-5">
             <h4>No Reports Found</h4>
             <p>Start by creating your first daily report.</p>
-            <a href="{{ route('daily-reports.create') }}" class="btn btn-success">Create Report</a>
+            {{-- <a href="{{ route('daily-reports.create') }}" class="btn btn-success">Create Report</a> --}}
         </div>
     @endif
 </div>

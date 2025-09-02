@@ -57,7 +57,9 @@ class DailyReport extends Model
         'cash_to_account_for',
         'short',
         'over',
-        'average_ticket'
+        'average_ticket',
+        'total_revenue_entries',
+        'online_platform_revenue'
     ];
 
     public function store(): BelongsTo
@@ -78,6 +80,11 @@ class DailyReport extends Model
     public function transactions(): HasMany
     {
         return $this->hasMany(DailyReportTransaction::class);
+    }
+
+    public function revenues(): HasMany
+    {
+        return $this->hasMany(DailyReportRevenue::class);
     }
 
     public function auditLogs(): MorphMany
@@ -108,7 +115,7 @@ class DailyReport extends Model
 
     public function getCashToAccountForAttribute(): float
     {
-        return $this->getNetSalesAttribute() - $this->getTotalPaidOutsAttribute() - $this->credit_cards;
+        return $this->getNetSalesAttribute() - $this->getTotalPaidOutsAttribute() - $this->credit_cards - $this->getOnlinePlatformRevenueAttribute();
     }
 
     public function getShortAttribute(): float
@@ -129,5 +136,19 @@ class DailyReport extends Model
     {
         return $this->total_customers > 0 ? 
                $this->getNetSalesAttribute() / $this->total_customers : 0;
+    }
+
+    public function getTotalRevenueEntriesAttribute(): float
+    {
+        return $this->revenues->sum('amount');
+    }
+
+    public function getOnlinePlatformRevenueAttribute(): float
+    {
+        return $this->revenues()
+            ->whereHas('revenueIncomeType', function ($query) {
+                $query->where('category', 'online');
+            })
+            ->sum('amount');
     }
 }

@@ -346,7 +346,7 @@
                                         <select class="form-input" name="transactions[0][transaction_type]">
                                             <option value="">Select Type</option>
                                             @foreach($types as $type)
-                                            <option value="{{$type->name}}">{{$type->name}}</option>
+                                            <option value="{{$type->id}}">{{$type->name}}</option>
                                             @endforeach
 
                                         </select>
@@ -389,6 +389,57 @@
                             <div class="category">Rent</div>
                             <div class="category">Taxes</div>
                         </div> -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Revenue Types Section -->
+            <div class="section-title">Revenue Income Tracking</div>
+            <div class="form-section">
+                <div class="row">
+                    <div class="col-lg-12">
+                        <table class="transaction-table" id="revenueTable">
+                            <thead>
+                                <tr>
+                                    <th style="width: 30%;">Revenue Type</th>
+                                    <th style="width: 20%;">Amount ($)</th>
+                                    <th style="width: 35%;">Notes</th>
+                                    <th style="width: 15%;">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>
+                                        <select class="form-input" name="revenues[0][revenue_income_type_id]">
+                                            <option value="">Select Revenue Type</option>
+                                                @foreach($revenueTypes as $revenueType)
+                                                    <option value="{{ $revenueType->id }}">{{ $revenueType->name }}</option>
+                                                @endforeach
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <input type="number" class="form-input revenue-amount" name="revenues[0][amount]" step="0.01" min="0" placeholder="0.00">
+                                    </td>
+                                    <td>
+                                        <input type="text" class="form-input" name="revenues[0][notes]" placeholder="Optional notes">
+                                    </td>
+                                    <td>
+                                        <button type="button" class="btn-remove" onclick="removeRevenueRow(this)">×</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <button type="button" id="addRevenueRow" class="btn-add-row" style="margin-top: 10px;">+ Add Revenue Entry</button>
+                        <div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 4px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="font-weight: 600; color: #495057;">Total Revenue Entries:</span>
+                                <span id="totalRevenue" style="font-weight: 600; color: #28a745; font-size: 1.1rem;">$0.00</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 5px;">
+                                <span style="font-weight: 600; color: #495057;">Online Platform Revenue:</span>
+                                <span id="onlineRevenue" style="font-weight: 600; color: #17a2b8; font-size: 1.1rem;">$0.00</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -536,11 +587,33 @@ function calculateTotals() {
         totalPaidOuts += parseFloat(input.value || 0);
     });
 
+    // Calculate online platform revenue
+    let onlinePlatformRevenue = 0;
+    document.querySelectorAll('#revenueTable tbody tr').forEach(row => {
+        const amountInput = row.querySelector('.revenue-amount');
+        const selectElement = row.querySelector('select[name*="revenue_income_type_id"]');
+        
+        if (amountInput && selectElement) {
+            const amount = parseFloat(amountInput.value || 0);
+            const selectedOption = selectElement.options[selectElement.selectedIndex];
+            
+            if (amount > 0) {
+                // Check if this is an online platform
+                const revenueTypeName = selectedOption.text;
+                if (revenueTypeName.includes('Uber') || revenueTypeName.includes('DoorDash') || 
+                    revenueTypeName.includes('Grubhub') || revenueTypeName.includes('EZ Catering') || 
+                    revenueTypeName.includes('Relish')) {
+                    onlinePlatformRevenue += amount;
+                }
+            }
+        }
+    });
+
     // Calculate derived values
     const netSales = grossSales - couponsReceived - adjustmentsOverrings;
     const tax = netSales - (netSales / 1.0825); // Texas tax rate 8.25%
     const salesPreTax = netSales - tax;
-    const cashToAccountFor = netSales - totalPaidOuts - creditCards;
+    const cashToAccountFor = netSales - totalPaidOuts - creditCards - onlinePlatformRevenue;
     
     let short = 0;
     let over = 0;
@@ -717,6 +790,101 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initial calculation
     calculateTotals();
+    calculateRevenueTotals();
+});
+
+// Revenue Functions
+let revenueCount = 1;
+
+function addRevenueRow() {
+    const tbody = document.querySelector('#revenueTable tbody');
+    
+    // Get revenue type options from the first row
+    const firstSelect = tbody.querySelector('select[name*="revenue_income_type_id"]');
+    const optionsHtml = firstSelect ? firstSelect.innerHTML : '';
+    
+    const newRow = document.createElement('tr');
+    newRow.innerHTML = `
+        <td>
+            <select class="form-input" name="revenues[${revenueCount}][revenue_income_type_id]">
+                ${optionsHtml}
+            </select>
+        </td>
+        <td>
+            <input type="number" class="form-input revenue-amount" name="revenues[${revenueCount}][amount]" step="0.01" min="0" placeholder="0.00">
+        </td>
+        <td>
+            <input type="text" class="form-input" name="revenues[${revenueCount}][notes]" placeholder="Optional notes">
+        </td>
+        <td>
+            <button type="button" class="btn-remove" onclick="removeRevenueRow(this)">×</button>
+        </td>
+    `;
+    
+    tbody.appendChild(newRow);
+    revenueCount++;
+    
+    // Attach event listeners
+    newRow.querySelector('.revenue-amount').addEventListener('input', calculateRevenueTotals);
+    newRow.querySelector('select').addEventListener('change', calculateRevenueTotals);
+}
+
+function removeRevenueRow(button) {
+    if (document.querySelectorAll('#revenueTable tbody tr').length > 1) {
+        button.closest('tr').remove();
+        calculateRevenueTotals();
+    }
+}
+
+function calculateRevenueTotals() {
+    let totalRevenue = 0;
+    let onlineRevenue = 0;
+    
+    // Get all revenue rows
+    document.querySelectorAll('#revenueTable tbody tr').forEach(row => {
+        const amountInput = row.querySelector('.revenue-amount');
+        const selectElement = row.querySelector('select[name*="revenue_income_type_id"]');
+        
+        if (amountInput && selectElement) {
+            const amount = parseFloat(amountInput.value || 0);
+            const selectedOption = selectElement.options[selectElement.selectedIndex];
+            
+            if (amount > 0) {
+                totalRevenue += amount;
+                
+                // Check if this is an online platform (you may need to adjust this based on your categories)
+                const revenueTypeName = selectedOption.text;
+                if (revenueTypeName.includes('Uber') || revenueTypeName.includes('DoorDash') || 
+                    revenueTypeName.includes('Grubhub') || revenueTypeName.includes('EZ Catering') || 
+                    revenueTypeName.includes('Relish')) {
+                    onlineRevenue += amount;
+                }
+            }
+        }
+    });
+    
+    // Update display
+    document.getElementById('totalRevenue').textContent = `$${totalRevenue.toFixed(2)}`;
+    document.getElementById('onlineRevenue').textContent = `$${onlineRevenue.toFixed(2)}`;
+    
+    // Recalculate cash totals when revenue changes
+    calculateTotals();
+}
+
+// Event listeners for revenue functionality
+document.addEventListener('DOMContentLoaded', function() {
+    // Add revenue row button
+    document.getElementById('addRevenueRow').addEventListener('click', addRevenueRow);
+    
+    // Initial revenue amount listeners
+    document.querySelectorAll('.revenue-amount').forEach(input => {
+        input.addEventListener('input', calculateRevenueTotals);
+    });
+    
+    // Initial revenue type change listeners  
+    document.querySelectorAll('select[name*="revenue_income_type_id"]').forEach(select => {
+        select.addEventListener('change', calculateRevenueTotals);
+    });
 });
 </script>
 

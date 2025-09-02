@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(php artisan migrate:*)",
+      "Bash(php artisan:*)",
+      "Bash(composer:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

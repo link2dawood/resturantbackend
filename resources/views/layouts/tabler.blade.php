@@ -228,6 +228,21 @@
                                         </span>
                                     </a>
                                 </li>
+                                <li class="nav-item {{ request()->routeIs('revenue-income-types.*') ? 'active' : '' }}">
+                                    <a class="nav-link" href="{{ route('revenue-income-types.index') }}">
+                                        <span class="nav-link-icon d-md-none d-lg-inline-block">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                                <path d="M12 5l0 14"/>
+                                                <path d="M5 12l14 0"/>
+                                                <path d="M16.5 9.5a5 5 0 1 0 0 5"/>
+                                            </svg>
+                                        </span>
+                                        <span class="nav-link-title">
+                                            Revenue Income Types
+                                        </span>
+                                    </a>
+                                </li>
                                 @endif
                                  @if(Auth::user()->role == 'owner' || Auth::user()->role == 'manager')
                                 <li class="nav-item {{ request()->routeIs('daily-reports.*') ? 'active' : '' }}">

@@ -17,9 +17,26 @@ class OwnerController extends Controller
     {
         if ($request->isMethod('post')) {
             $validatedData = $request->validate([
+                // Basic Information
                 'name' => 'required|string|max:255',
                 'email' => 'required|email|unique:users,email',
                 'password' => 'required|string|min:8',
+                'avatar' => 'nullable|image|max:2048',
+                
+                // Personal Information
+                'home_address' => 'nullable|string|max:1000',
+                'personal_phone' => 'nullable|string|max:50',
+                'personal_email' => 'nullable|email|max:255',
+                
+                // Corporate Information
+                'corporate_address' => 'nullable|string|max:1000',
+                'corporate_phone' => 'nullable|string|max:50',
+                'corporate_email' => 'nullable|email|max:255',
+                'fanns_philly_email' => 'nullable|email|max:255',
+                
+                // Business Details
+                'corporate_ein' => 'nullable|string|max:20',
+                'corporate_creation_date' => 'nullable|date',
             ]);
 
             $validatedData['email_verified_at'] = now();
@@ -28,12 +45,12 @@ class OwnerController extends Controller
 
             if ($request->hasFile('avatar')) {
                 $avatarPath = $request->file('avatar')->store('avatars', 'public');
-                $validatedData['avatar'] = $avatarPath;
+                $validatedData['avatar'] = basename($avatarPath);
             }
 
             User::create($validatedData);
 
-            return redirect()->route('owners.index')->with('success', 'Owner created successfully.');
+            return redirect()->route('owners.index')->with('success', 'Owner created successfully with complete profile information.');
         }
 
         return view('owners.create');
@@ -47,15 +64,31 @@ class OwnerController extends Controller
     public function update(Request $request, User $owner)
     {
         $validatedData = $request->validate([
+            // Basic Information
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,' . $owner->id,
             'password' => 'nullable|string|min:8',
-            'avatar' => 'nullable|image',
+            'avatar' => 'nullable|image|max:2048',
+            
+            // Personal Information
+            'home_address' => 'nullable|string|max:1000',
+            'personal_phone' => 'nullable|string|max:50',
+            'personal_email' => 'nullable|email|max:255',
+            
+            // Corporate Information
+            'corporate_address' => 'nullable|string|max:1000',
+            'corporate_phone' => 'nullable|string|max:50',
+            'corporate_email' => 'nullable|email|max:255',
+            'fanns_philly_email' => 'nullable|email|max:255',
+            
+            // Business Details
+            'corporate_ein' => 'nullable|string|max:20',
+            'corporate_creation_date' => 'nullable|date',
         ]);
 
         if ($request->hasFile('avatar')) {
             $avatarPath = $request->file('avatar')->store('avatars', 'public');
-            $validatedData['avatar'] = $avatarPath;
+            $validatedData['avatar'] = basename($avatarPath);
         }
 
         if (!empty($validatedData['password'])) {
@@ -66,7 +99,7 @@ class OwnerController extends Controller
 
         $owner->update($validatedData);
 
-        return redirect()->route('owners.index')->with('success', 'Owner updated successfully.');
+        return redirect()->route('owners.index')->with('success', 'Owner updated successfully with complete profile information.');
     }
 
     public function destroy(User $owner)

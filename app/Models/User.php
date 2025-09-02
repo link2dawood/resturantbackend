@@ -28,6 +28,18 @@ class User extends Authenticatable implements MustVerifyEmail
         'username',
         'assigned_stores',
         'last_online',
+        // Personal Information
+        'home_address',
+        'personal_phone',
+        'personal_email',
+        // Corporate Information
+        'corporate_address',
+        'corporate_phone',
+        'corporate_email',
+        'fanns_philly_email',
+        // Business Details
+        'corporate_ein',
+        'corporate_creation_date',
     ];
 
     /**
@@ -50,6 +62,7 @@ class User extends Authenticatable implements MustVerifyEmail
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'corporate_creation_date' => 'date',
         ];
     }
 

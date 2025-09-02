@@ -7,6 +7,7 @@ use App\Http\Controllers\OwnerController;
 use App\Http\Controllers\StoreController;
 use App\Http\Controllers\ManagerController;
 use App\Http\Controllers\TransactionTypeController;
+use App\Http\Controllers\RevenueIncomeTypeController;
 use App\Http\Controllers\DailyReportController;
 use App\Http\Controllers\AuditLogController;
 
@@ -83,6 +84,17 @@ Route::middleware('auth')->group(function () {
     Route::put('/transaction-types/{transactionType}', [TransactionTypeController::class, 'update'])->name('transaction-types.update');
     Route::delete('/transaction-types/{transactionType}', [TransactionTypeController::class, 'destroy'])->name('transaction-types.destroy');
     Route::post('transaction-types/{transactionType}/assign-stores', [TransactionTypeController::class, 'assignStores'])->name('transaction-types.assign.stores');
+
+    // Revenue Income Types Routes (Admin only)
+
+        Route::get('/revenue-income-types', [RevenueIncomeTypeController::class, 'index'])->name('revenue-income-types.index');
+        Route::get('/revenue-income-types/create', [RevenueIncomeTypeController::class, 'create'])->name('revenue-income-types.create');
+        Route::post('/revenue-income-types', [RevenueIncomeTypeController::class, 'store'])->name('revenue-income-types.store');
+        Route::get('/revenue-income-types/{revenueIncomeType}', [RevenueIncomeTypeController::class, 'show'])->name('revenue-income-types.show');
+        Route::get('/revenue-income-types/{revenueIncomeType}/edit', [RevenueIncomeTypeController::class, 'edit'])->name('revenue-income-types.edit');
+        Route::put('/revenue-income-types/{revenueIncomeType}', [RevenueIncomeTypeController::class, 'update'])->name('revenue-income-types.update');
+        Route::delete('/revenue-income-types/{revenueIncomeType}', [RevenueIncomeTypeController::class, 'destroy'])->name('revenue-income-types.destroy');
+
 
     // Audit Log Routes (Admin and Owner only)
     Route::middleware('admin_or_owner')->group(function () {

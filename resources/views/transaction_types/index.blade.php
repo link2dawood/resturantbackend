@@ -17,8 +17,8 @@
         <thead>
             <tr>
                 <th>ID</th>
-                <th>Name</th>
-                <th>Parent</th>
+                <th>Description Name</th>
+                <th>Category Transaction Type</th>
                 <th>Actions</th>
             </tr>
         </thead>

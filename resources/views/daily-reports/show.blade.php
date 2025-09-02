@@ -268,11 +268,52 @@
                         <tr>
                             <td>{{ $transaction->transaction_id }}</td>
                             <td>{{ $transaction->company }}</td>
-                            <td>{{ $transaction->transaction_type }}</td>
+                            <td>{{ $transaction->transactionType->description_name ?? 'N/A' }}</td>
                             <td>${{ number_format($transaction->amount, 2) }}</td>
                         </tr>
                     @endforeach
                 </tbody>
+            </table>
+        </div>
+    @endif
+
+    <!-- Revenue Income Types -->
+    @if($dailyReport->revenues->count() > 0)
+        <div class="section-title">Revenue Income Tracking</div>
+        <div class="content-section">
+            <table class="transaction-table">
+                <thead>
+                    <tr>
+                        <th>Revenue Type</th>
+                        <th>Amount</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($dailyReport->revenues as $revenue)
+                        <tr>
+                            <td>
+                                <span class="badge badge-outline text-{{ $revenue->revenueIncomeType->category == 'online' ? 'info' : ($revenue->revenueIncomeType->category == 'cash' ? 'success' : 'secondary') }}">
+                                    {{ $revenue->revenueIncomeType->name }}
+                                </span>
+                            </td>
+                            <td>${{ number_format($revenue->amount, 2) }}</td>
+                            <td>{{ $revenue->notes ?? '-' }}</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+                <tfoot>
+                    <tr style="background-color: #f8f9fa; font-weight: 600;">
+                        <td>Total Revenue Entries</td>
+                        <td>${{ number_format($dailyReport->total_revenue_entries, 2) }}</td>
+                        <td>-</td>
+                    </tr>
+                    <tr style="background-color: #e9ecef; font-weight: 600;">
+                        <td>Online Platform Revenue</td>
+                        <td>${{ number_format($dailyReport->online_platform_revenue, 2) }}</td>
+                        <td>-</td>
+                    </tr>
+                </tfoot>
             </table>
         </div>
     @endif

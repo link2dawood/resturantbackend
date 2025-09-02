@@ -5,7 +5,13 @@
 <select id="transactionTypeTemplate" style="display:none;">
     <option value="">Select Type</option>
     @foreach($types as $type)
-        <option value="{{ $type->name }}">{{ $type->name }}</option>
+        <option value="{{ $type->id }}">{{ $type->description_name }}</option>
+    @endforeach
+</select>
+
+<select id="revenueTypeTemplate" style="display:none;">
+    @foreach($revenueTypes as $revenueType)
+        <option value="{{ $revenueType->id }}" data-category="{{ $revenueType->category }}">{{ $revenueType->name }}</option>
     @endforeach
 </select>
 
@@ -312,10 +318,10 @@
                                             <input type="text" class="form-input" name="transactions[{{ $index }}][company]" value="{{ $transaction->company }}">
                                         </td>
                                         <td>
-                                            <select class="form-input" name="transactions[{{ $index }}][transaction_type]">
+                                            <select class="form-input" name="transactions[{{ $index }}][transaction_type_id]">
                                                 <option value="">Select Type</option>
                                                 @foreach($types as $type)
-                                                    <option value="{{ $type->name }}" {{ $transaction->transaction_type === $type->name ? 'selected' : '' }}>{{ $type->name }}</option>
+                                                    <option value="{{ $type->id }}" {{ $transaction->transaction_type_id == $type->id ? 'selected' : '' }}>{{ $type->description_name }}</option>
                                                 @endforeach
                                             </select>
                                         </td>
@@ -341,10 +347,10 @@
                                             <input type="text" class="form-input" name="transactions[0][company]" placeholder="Company name">
                                         </td>
                                         <td>
-                                            <select class="form-input" name="transactions[0][transaction_type]">
+                                            <select class="form-input" name="transactions[0][transaction_type_id]">
                                                 <option value="">Select Type</option>
                                                 @foreach($types as $type)
-                                                    <option value="{{ $type->name }}">{{ $type->name }}</option>
+                                                    <option value="{{ $type->id }}">{{ $type->description_name }}</option>
                                                 @endforeach
                                             </select>
                                         </td>
@@ -387,6 +393,84 @@
                             <div class="category">Food Cost</div>
                             <div class="category">Rent</div>
                             <div class="category">Taxes</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Revenue Types Section -->
+            <div class="section-title">Revenue Income Tracking</div>
+            <div class="form-section">
+                <div class="row">
+                    <div class="col-lg-12">
+                        <table class="transaction-table" id="revenueTable">
+                            <thead>
+                                <tr>
+                                    <th style="width: 30%;">Revenue Type</th>
+                                    <th style="width: 20%;">Amount ($)</th>
+                                    <th style="width: 35%;">Notes</th>
+                                    <th style="width: 15%;">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($dailyReport->revenues as $index => $revenue)
+                                    <tr>
+                                        <td>
+                                            <select class="form-input" name="revenues[{{ $index }}][revenue_income_type_id]">
+                                                <option value="">Select Revenue Type</option>
+                                                @foreach($revenueTypes as $revenueType)
+                                                    <option value="{{ $revenueType->id }}" data-category="{{ $revenueType->category }}" {{ $revenue->revenue_income_type_id == $revenueType->id ? 'selected' : '' }}>{{ $revenueType->name }}</option>
+                                                @endforeach
+                                            </select>
+                                        </td>
+                                        <td>
+                                            <input type="number" class="form-input revenue-amount" name="revenues[{{ $index }}][amount]" step="0.01" min="0" value="{{ $revenue->amount }}">
+                                        </td>
+                                        <td>
+                                            <input type="text" class="form-input" name="revenues[{{ $index }}][notes]" value="{{ $revenue->notes }}" placeholder="Optional notes">
+                                        </td>
+                                        <td>
+                                            @if($loop->first)
+                                                <button type="button" class="btn-add-row" onclick="addRevenueRow()">+</button>
+                                            @else
+                                                <button type="button" class="btn-remove" onclick="removeRevenueRow(this)">×</button>
+                                            @endif
+                                        </td>
+                                    </tr>
+                                @endforeach
+                                
+                                @if($dailyReport->revenues->count() === 0)
+                                    <tr>
+                                        <td>
+                                            <select class="form-input" name="revenues[0][revenue_income_type_id]">
+                                                <option value="">Select Revenue Type</option>
+                                                @foreach($revenueTypes as $revenueType)
+                                                    <option value="{{ $revenueType->id }}" data-category="{{ $revenueType->category }}">{{ $revenueType->name }}</option>
+                                                @endforeach
+                                            </select>
+                                        </td>
+                                        <td>
+                                            <input type="number" class="form-input revenue-amount" name="revenues[0][amount]" step="0.01" min="0" placeholder="0.00">
+                                        </td>
+                                        <td>
+                                            <input type="text" class="form-input" name="revenues[0][notes]" placeholder="Optional notes">
+                                        </td>
+                                        <td>
+                                            <button type="button" class="btn-add-row" onclick="addRevenueRow()">+</button>
+                                        </td>
+                                    </tr>
+                                @endif
+                            </tbody>
+                        </table>
+                        <div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 4px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="font-weight: 600; color: #495057;">Total Revenue Entries:</span>
+                                <span id="totalRevenue" style="font-weight: 600; color: #28a745; font-size: 1.1rem;">$0.00</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 5px;">
+                                <span style="font-weight: 600; color: #495057;">Online Platform Revenue:</span>
+                                <span id="onlineRevenue" style="font-weight: 600; color: #17a2b8; font-size: 1.1rem;">$0.00</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -515,6 +599,7 @@
 
 <script>
 let transactionCount = {{ $dailyReport->transactions->count() }};
+let revenueCount = {{ $dailyReport->revenues->count() }};
 
 // Auto-calculation functions
 function calculateTotals() {
@@ -527,15 +612,32 @@ function calculateTotals() {
 
     // Calculate total paid outs from transactions
     let totalPaidOuts = 0;
-    document.querySelectorAll('input[name*="[amount]"]').forEach(input => {
+    document.querySelectorAll('input[name*="transactions"][name*="[amount]"]').forEach(input => {
         totalPaidOuts += parseFloat(input.value || 0);
+    });
+
+    // Calculate revenue totals
+    let totalRevenueEntries = 0;
+    let onlinePlatformRevenue = 0;
+    document.querySelectorAll('input[name*="revenues"][name*="[amount]"]').forEach(input => {
+        const amount = parseFloat(input.value || 0);
+        totalRevenueEntries += amount;
+        
+        // Check if this is an online platform revenue
+        const select = input.closest('tr').querySelector('select[name*="[revenue_income_type_id]"]');
+        if (select) {
+            const selectedOption = select.options[select.selectedIndex];
+            if (selectedOption && selectedOption.dataset.category === 'online') {
+                onlinePlatformRevenue += amount;
+            }
+        }
     });
 
     // Calculate derived values
     const netSales = grossSales - couponsReceived - adjustmentsOverrings;
     const tax = netSales - (netSales / 1.0825); // Texas tax rate 8.25%
     const salesPreTax = netSales - tax;
-    const cashToAccountFor = netSales - totalPaidOuts - creditCards;
+    const cashToAccountFor = netSales - totalPaidOuts - creditCards - onlinePlatformRevenue;
     
     let short = 0;
     let over = 0;
@@ -555,6 +657,14 @@ function calculateTotals() {
     document.getElementById('cashToAccountFor').textContent = `$${cashToAccountFor.toFixed(2)}`;
     document.getElementById('short').textContent = `$${short.toFixed(2)}`;
     document.getElementById('over').textContent = `$${over.toFixed(2)}`;
+    
+    // Update revenue totals
+    if (document.getElementById('totalRevenue')) {
+        document.getElementById('totalRevenue').textContent = `$${totalRevenueEntries.toFixed(2)}`;
+    }
+    if (document.getElementById('onlineRevenue')) {
+        document.getElementById('onlineRevenue').textContent = `$${onlinePlatformRevenue.toFixed(2)}`;
+    }
 
     // Update hidden fields
     document.querySelector('.NetSales').value = netSales.toFixed(2);
@@ -582,7 +692,7 @@ function addTransactionRow() {
             <input type="text" class="form-input" name="transactions[${transactionCount}][company]" placeholder="Company name">
         </td>
         <td>
-            <select class="form-input" name="transactions[${transactionCount}][transaction_type]">
+            <select class="form-input" name="transactions[${transactionCount}][transaction_type_id]">
                 ${optionsHtml}
             </select>
         </td>
@@ -608,6 +718,46 @@ function removeTransactionRow(button) {
     }
 }
 
+function addRevenueRow() {
+    const tbody = document.querySelector('#revenueTable tbody');
+    const totalRow = tbody.querySelector('.total-row');
+
+    // Get dynamic options from hidden select
+    const optionsHtml = document.getElementById('revenueTypeTemplate').innerHTML;
+    
+    const newRow = document.createElement('tr');
+    newRow.innerHTML = `
+        <td>
+            <select class="form-input" name="revenues[${revenueCount}][revenue_income_type_id]" onchange="calculateTotals()">
+                <option value="">Select Revenue Type</option>
+                ${optionsHtml}
+            </select>
+        </td>
+        <td>
+            <input type="number" class="form-input number-input" name="revenues[${revenueCount}][amount]" step="0.01" placeholder="0.00">
+        </td>
+        <td>
+            <input type="text" class="form-input" name="revenues[${revenueCount}][notes]" placeholder="Notes (optional)">
+        </td>
+        <td>
+            <button type="button" class="btn-remove-row" onclick="removeRevenueRow(this)">×</button>
+        </td>
+    `;
+    
+    tbody.insertBefore(newRow, totalRow);
+    revenueCount++;
+    
+    // Add event listener for the new amount input
+    newRow.querySelector('input[name*="[amount]"]').addEventListener('input', calculateTotals);
+}
+
+function removeRevenueRow(button) {
+    if (document.querySelectorAll('#revenueTable tbody tr:not(.total-row)').length > 1) {
+        button.closest('tr').remove();
+        calculateTotals();
+    }
+}
+
 // Event listeners
 document.addEventListener('DOMContentLoaded', function() {
     // Add event listeners for all inputs that affect calculations
@@ -617,7 +767,8 @@ document.addEventListener('DOMContentLoaded', function() {
         'input[name="adjustments_overrings"]',
         'input[name="credit_cards"]',
         'input[name="actual_deposit"]',
-        'input[name*="[amount]"]'
+        'input[name*="transactions"][name*="[amount]"]',
+        'input[name*="revenues"][name*="[amount]"]'
     ];
     
     inputs.forEach(selector => {
@@ -625,6 +776,11 @@ document.addEventListener('DOMContentLoaded', function() {
         elements.forEach(element => {
             element.addEventListener('input', calculateTotals);
         });
+    });
+
+    // Add event listeners for revenue type selects
+    document.querySelectorAll('select[name*="revenues"][name*="[revenue_income_type_id]"]').forEach(select => {
+        select.addEventListener('change', calculateTotals);
     });
     
     // Initial calculation

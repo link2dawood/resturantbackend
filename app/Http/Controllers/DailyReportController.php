@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\AuditLog;
 use App\Models\DailyReport;
 use App\Models\DailyReportTransaction;
+use App\Models\DailyReportRevenue;
+use App\Models\RevenueIncomeType;
 use App\Models\Store;
 use App\Models\TransactionType;
 use Illuminate\Http\Request;
@@ -20,7 +22,7 @@ class DailyReportController extends Controller
     public function index(Request $request)
     {
         $user = auth()->user();
-        $query = DailyReport::with(['store', 'creator', 'approver', 'transactions']);
+        $query = DailyReport::with(['store', 'creator', 'approver', 'transactions', 'revenues.revenueIncomeType']);
         
         // Filter reports based on user role
         if ($user->role === 'owner') {
@@ -108,6 +110,7 @@ class DailyReportController extends Controller
         $user = auth()->user();
         $query = Store::query();
         $types = TransactionType::all();
+        $revenueTypes = RevenueIncomeType::where('is_active', 1)->orderBy('sort_order')->orderBy('name')->get();
 
         // Filter stores based on user role
         if ($user->role === 'owner') {
@@ -118,7 +121,7 @@ class DailyReportController extends Controller
         $stores = $query->get();
         $store = $stores->first(); // Select the first store as default
 
-        return view('daily-reports.create', compact('stores', 'types', 'store'));
+        return view('daily-reports.create', compact('stores', 'types', 'revenueTypes', 'store'));
     }
 
     /**
@@ -183,6 +186,12 @@ class DailyReportController extends Controller
         
             // approval workflow
             'approval_notes'      => 'nullable|string|max:1000',
+            
+            // revenue entries
+            'revenues'            => 'nullable|array',
+            'revenues.*.revenue_income_type_id' => 'required_with:revenues|exists:revenue_income_types,id',
+            'revenues.*.amount'   => 'required_with:revenues|numeric|min:0',
+            'revenues.*.notes'    => 'nullable|string|max:500',
         ]);
 
         // Check for duplicate reports (same store, same date)
@@ -238,6 +247,23 @@ class DailyReportController extends Controller
                 }
             }
             
+            // Process revenue entries
+            if ($request->has('revenues')) {
+                foreach ($request->revenues as $revenueData) {
+                    if (empty($revenueData['revenue_income_type_id']) || empty($revenueData['amount'])) {
+                        continue; // Skip empty revenue rows
+                    }
+
+                    DailyReportRevenue::create([
+                        'daily_report_id' => $dailyReport->id,
+                        'revenue_income_type_id' => $revenueData['revenue_income_type_id'],
+                        'amount' => (float) $revenueData['amount'],
+                        'notes' => $revenueData['notes'] ?? null,
+                        'metadata' => isset($revenueData['metadata']) ? $revenueData['metadata'] : null,
+                    ]);
+                }
+            }
+            
             DB::commit();
             
             Log::info('Daily report created successfully', [
@@ -270,7 +296,7 @@ class DailyReportController extends Controller
      */
     public function show(DailyReport $dailyReport)
     {
-        $dailyReport->load(['store', 'creator', 'transactions']);
+        $dailyReport->load(['store', 'creator', 'transactions', 'revenues.revenueIncomeType']);
         return view('daily-reports.show', compact('dailyReport'));
     }
 
@@ -294,8 +320,9 @@ class DailyReportController extends Controller
         
         $stores = $query->get();
         $types = TransactionType::all();
-        $dailyReport->load('transactions');
-        return view('daily-reports.edit', compact('dailyReport', 'stores', 'types'));
+        $revenueTypes = RevenueIncomeType::active()->ordered()->get();
+        $dailyReport->load(['transactions', 'revenues.revenueIncomeType']);
+        return view('daily-reports.edit', compact('dailyReport', 'stores', 'types', 'revenueTypes'));
     }
 
     /**
@@ -431,7 +458,8 @@ class DailyReportController extends Controller
     {
         $store = Store::find($id);
         $types = TransactionType::all();
-        return view('daily-reports.form', compact('store','types'));
+        $revenueTypes = RevenueIncomeType::where('is_active', 1)->orderBy('sort_order')->orderBy('name')->get();
+        return view('daily-reports.form', compact('store','types', 'revenueTypes'));
     }
 
     /**
@@ -439,7 +467,7 @@ class DailyReportController extends Controller
      */
     public function exportPdf(DailyReport $dailyReport)
     {
-        $dailyReport->load(['store', 'creator', 'transactions']);
+        $dailyReport->load(['store', 'creator', 'transactions.transactionType', 'revenues.revenueIncomeType']);
         
         $html = view('daily-reports.pdf', compact('dailyReport'))->render();
         

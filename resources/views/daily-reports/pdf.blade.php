@@ -221,11 +221,57 @@
                     <tr>
                         <td>{{ $transaction->transaction_id }}</td>
                         <td>{{ $transaction->company }}</td>
-                        <td>{{ $transaction->transaction_type }}</td>
+                        <td>{{ $transaction->transactionType->description_name ?? 'N/A' }}</td>
                         <td>${{ number_format($transaction->amount, 2) }}</td>
                     </tr>
                 @endforeach
             </tbody>
+        </table>
+    @endif
+
+    <!-- Revenue Income Types -->
+    @if($dailyReport->revenues->count() > 0)
+        <div class="section-title">Revenue Income Tracking</div>
+        <table class="transaction-table">
+            <thead>
+                <tr>
+                    <th>Revenue Type</th>
+                    <th>Amount</th>
+                    <th>Notes</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($dailyReport->revenues as $revenue)
+                    <tr>
+                        <td>
+                            <strong>{{ $revenue->revenueIncomeType->name }}</strong>
+                            @if($revenue->revenueIncomeType->category == 'online')
+                                <span style="color: #007bff; font-size: 11px;"> (Online)</span>
+                            @elseif($revenue->revenueIncomeType->category == 'cash')
+                                <span style="color: #28a745; font-size: 11px;"> (Cash)</span>
+                            @elseif($revenue->revenueIncomeType->category == 'card')
+                                <span style="color: #6c757d; font-size: 11px;"> (Card)</span>
+                            @elseif($revenue->revenueIncomeType->category == 'check')
+                                <span style="color: #fd7e14; font-size: 11px;"> (Check)</span>
+                            @endif
+                        </td>
+                        <td>${{ number_format($revenue->amount, 2) }}</td>
+                        <td>{{ $revenue->notes ?? '-' }}</td>
+                    </tr>
+                @endforeach
+            </tbody>
+            <tfoot style="background-color: #f8f9fa; font-weight: bold;">
+                <tr>
+                    <td>Total Revenue Entries</td>
+                    <td>${{ number_format($dailyReport->total_revenue_entries, 2) }}</td>
+                    <td>-</td>
+                </tr>
+                <tr style="background-color: #e9ecef;">
+                    <td>Online Platform Revenue</td>
+                    <td>${{ number_format($dailyReport->online_platform_revenue, 2) }}</td>
+                    <td>-</td>
+                </tr>
+            </tfoot>
         </table>
     @endif
 
@@ -277,6 +323,16 @@
                 <div class="calc-cell"><strong>Average Ticket:</strong></div>
                 <div class="calc-cell">${{ number_format($dailyReport->average_ticket, 2) }}</div>
             </div>
+            @if($dailyReport->revenues->count() > 0)
+            <div class="calc-row">
+                <div class="calc-cell"><strong>Total Revenue Entries:</strong></div>
+                <div class="calc-cell">${{ number_format($dailyReport->total_revenue_entries, 2) }}</div>
+            </div>
+            <div class="calc-row">
+                <div class="calc-cell"><strong>Online Platform Revenue:</strong></div>
+                <div class="calc-cell">${{ number_format($dailyReport->online_platform_revenue, 2) }}</div>
+            </div>
+            @endif
         </div>
     </div>
 

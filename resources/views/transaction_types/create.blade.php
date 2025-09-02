@@ -9,12 +9,12 @@
     <form action="{{ route('transaction-types.store') }}" method="POST">
         @csrf
         <div class="form-group">
-            <label for="name">Name</label>
+            <label for="name">Description Name</label>
             <input type="text" name="name" id="name" class="form-control" required>
         </div>
 
         <div class="form-group">
-            <label for="p_id">Parent Transaction Type</label>
+            <label for="p_id">Category Transaction Type</label>
             <select name="p_id" id="p_id" class="form-control">
                 <option value="">None</option>
                 @foreach ($parentTransactionTypes as $parent)
