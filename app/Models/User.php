@@ -23,10 +23,8 @@ class User extends Authenticatable implements MustVerifyEmail
         'password',
         'google_id',
         'avatar',
-        'role',
         'email_verified_at',
         'username',
-        'assigned_stores',
         'last_online',
         // Personal Information
         'home_address',
@@ -40,6 +38,17 @@ class User extends Authenticatable implements MustVerifyEmail
         // Business Details
         'corporate_ein',
         'corporate_creation_date',
+    ];
+
+    /**
+     * The attributes that should be guarded from mass assignment.
+     *
+     * @var list<string>
+     */
+    protected $guarded = [
+        'role',
+        'assigned_stores',
+        'created_by',
     ];
 
     /**

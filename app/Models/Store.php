@@ -19,6 +19,14 @@ class Store extends Model
         'zip',
         'sales_tax_rate',
         'medicare_tax_rate',
+    ];
+
+    /**
+     * The attributes that should be guarded from mass assignment.
+     *
+     * @var list<string>
+     */
+    protected $guarded = [
         'created_by',
     ];
 
