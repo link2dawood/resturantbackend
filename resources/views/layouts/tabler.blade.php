@@ -167,7 +167,7 @@
                                         </span>
                                     </a>
                                 </li> --}}
-                                @if(Auth::user()->role == 'admin')
+                                @if(Auth::user()->hasPermission('manage_owners'))
                                 <li class="nav-item {{ request()->routeIs('owners.*') ? 'active' : '' }}">
                                     <a class="nav-link" href="{{ route('owners.index') }}">
                                         <span class="nav-link-icon d-md-none d-lg-inline-block">
@@ -195,7 +195,7 @@
                                         </span>
                                     </a>
                                 </li>
-                                  @if(Auth::user()->role == 'owner' || Auth::user()->role == 'admin')
+                                  @if(Auth::user()->hasPermission('manage_managers'))
                                 <li class="nav-item {{ request()->routeIs('managers.*') ? 'active' : '' }}">
                                     <a class="nav-link" href="{{ route('managers.index') }}">
                                         <span class="nav-link-icon d-md-none d-lg-inline-block">
@@ -212,7 +212,7 @@
                                 </li>
                                 @endif
 
-                                @if(Auth::user()->role == 'admin')
+                                @if(Auth::user()->hasPermission('manage_transaction_types'))
                                 <li class="nav-item {{ request()->routeIs('transaction-types.*') ? 'active' : '' }}">
                                     <a class="nav-link" href="{{ route('transaction-types.index') }}">
                                         <span class="nav-link-icon d-md-none d-lg-inline-block">
@@ -244,7 +244,7 @@
                                     </a>
                                 </li>
                                 @endif
-                                 @if(Auth::user()->role == 'owner' || Auth::user()->role == 'manager')
+                                 @if(Auth::user()->hasPermission('create_reports'))
                                 <li class="nav-item {{ request()->routeIs('daily-reports.*') ? 'active' : '' }}">
                                     <a class="nav-link" href="{{ route('daily-reports.index') }}">
                                         <span class="nav-link-icon d-md-none d-lg-inline-block">

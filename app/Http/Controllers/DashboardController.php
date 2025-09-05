@@ -25,11 +25,11 @@ class DashboardController extends Controller
         $query = DailyReport::with(['store', 'creator']);
         
         // Filter based on user role
-        if ($user->role === 'owner') {
+        if ($user->hasPermission('view_reports')) {
             $query->whereHas('store', function ($q) use ($user) {
                 $q->where('created_by', $user->id);
             });
-        } elseif ($user->role === 'manager') {
+        } elseif ($user->hasPermission('view_stores')) {
             $query->whereHas('store', function ($q) use ($user) {
                 $q->whereHas('managers', function ($subQ) use ($user) {
                     $subQ->where('users.id', $user->id);

@@ -43,7 +43,7 @@ class ManagerController extends Controller
         ]);
 
         // Use secure role assignment - only admins or owners can create managers
-        if (!auth()->user()->role->canManageRole(UserRole::MANAGER)) {
+        if (!auth()->user()->hasPermission('manage_managers')) {
             abort(403, 'Insufficient permissions to create managers');
         }
         

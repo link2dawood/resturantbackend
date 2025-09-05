@@ -10,7 +10,7 @@
     <form action="{{ route('stores.update', $store->id) }}" method="POST">
         @csrf
         @method('PUT')
-         @if(Auth::user()->role == 'admin')
+         @if(Auth::user()->hasPermission('manage_owners'))
         <div class="mb-3">
             <label for="store_info" class="form-label">Owners</label>
             <select class="form-control"  name="created_by"  required>

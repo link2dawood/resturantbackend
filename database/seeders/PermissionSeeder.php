@@ -59,17 +59,24 @@ class PermissionSeeder extends Seeder
         // Set up role-permission relationships
         $rolePermissions = [
             UserRole::ADMIN->value => [
-                // Admins get all permissions by default (handled in UserRole enum)
-            ],
-            UserRole::OWNER->value => [
-                'manage_stores', 'view_stores', 'view_users', 'manage_managers',
-                'view_reports', 'edit_reports', 'approve_reports', 'export_reports',
-                'view_audit_logs', 'manage_transaction_types', 'view_transaction_types',
+                // Admin can do everything: owners, stores, transaction types, revenue types
+                'manage_users', 'view_users', 'manage_owners', 'manage_managers', 'change_user_roles',
+                'manage_stores', 'view_stores', 
+                'create_reports', 'view_reports', 'edit_reports', 'delete_reports', 'approve_reports', 'export_reports',
+                'view_audit_logs', 'manage_permissions',
+                'manage_transaction_types', 'view_transaction_types',
                 'manage_revenue_types', 'view_revenue_types'
             ],
+            UserRole::OWNER->value => [
+                // Owner can: manage stores, manage managers, assign managers to stores, create daily reports
+                'manage_stores', 'view_stores', 
+                'manage_managers', 'view_users',
+                'create_reports', 'view_reports', 'edit_reports', 'approve_reports', 'export_reports'
+            ],
             UserRole::MANAGER->value => [
-                'view_assigned_stores', 'create_reports', 'view_reports', 'edit_reports',
-                'view_transaction_types', 'view_revenue_types'
+                // Manager can only: view assigned stores and create daily reports
+                'view_assigned_stores', 
+                'create_reports', 'view_reports', 'edit_reports'
             ],
         ];
 

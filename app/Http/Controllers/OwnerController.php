@@ -41,7 +41,7 @@ class OwnerController extends Controller
             ]);
 
             // Only admins can create owners
-            if (!auth()->user()->role->canManageRole(UserRole::OWNER)) {
+            if (!auth()->user()->hasPermission('manage_owners')) {
                 abort(403, 'Insufficient permissions to create owners');
             }
 

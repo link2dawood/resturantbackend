@@ -7,7 +7,7 @@
     <h1 class="mb-4">Create Store</h1>
     <form action="{{ route('stores.store') }}" method="POST">
         @csrf
-          @if(Auth::user()->role == 'admin')
+          @if(Auth::user()->hasPermission('manage_owners'))
         <div class="mb-3">
             <label for="store_info" class="form-label">Owners</label>
             <select class="form-control"  name="created_by"  required>

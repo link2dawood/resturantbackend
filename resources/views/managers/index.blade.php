@@ -6,7 +6,7 @@
 <div class="container mt-5">
    <div style="display:flex;justify-content: space-between;">
     <h1 class="mb-4">Managers</h1>
-    @if(Auth::user()->role == 'owner')
+    @if(Auth::user()->hasPermission('manage_managers'))
     <a href="{{ route('managers.create') }}" class="btn btn-primary mb-3">Create Manager</a>
     @endif
     </div>
@@ -20,7 +20,7 @@
                         <th>Email</th>
                         <th>Username</th>
                         <th>Assigned Stores</th>
-                          @if(Auth::user()->role == 'owner')
+                          @if(Auth::user()->hasPermission('manage_managers'))
                         <th>Actions</th>
                         @endif
                     </tr>
@@ -41,7 +41,7 @@
                                     <span class="text-muted">No stores assigned</span>
                                 @endif
                             </td>
-                             @if(Auth::user()->role == 'owner')
+                             @if(Auth::user()->hasPermission('manage_managers'))
                             <td>
                                 <a href="{{ route('managers.edit', $manager->id) }}" class="btn btn-warning btn-sm">Edit</a>
                                 <form action="{{ route('managers.destroy', $manager->id) }}" method="POST" style="display:inline;">

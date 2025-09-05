@@ -14,7 +14,7 @@
                 <thead>
                     <tr>
                         <th>ID</th>
-                        @if(Auth::user()->role == 'admin')
+                        @if(Auth::user()->hasPermission('manage_owners'))
                         <th>Owner</th>
                         @endif
                         <th>Store Info</th>    
@@ -31,7 +31,7 @@
                     @endphp
                     <tr>
                         <td>{{ $store->id }}</td>
-                        @if(Auth::user()->role == 'admin')
+                        @if(Auth::user()->hasPermission('manage_owners'))
                         <td>
                             {{@$owner->name}}
                         </td>
@@ -50,7 +50,7 @@
                                     <li>
                                         <a class="dropdown-item" href="{{ route('stores.edit', $store->id) }}">Edit</a>
                                     </li>
-                                    @if(Auth::user()->role != 'admin')
+                                    @if(!Auth::user()->hasPermission('manage_owners'))
                                     <li>
                                         <a class="dropdown-item" href="{{url('/stores/'.$store->id.'/daily-reports')}}">Daily Report</a>
                                     </li>

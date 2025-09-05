@@ -10,7 +10,7 @@ class AuditLogController extends Controller
     public function index(Request $request)
     {
         // Only admins and owners can view audit logs
-        if (!in_array(auth()->user()->role, ['admin', 'owner'])) {
+        if (!auth()->user()->hasPermission('view_audit_logs')) {
             abort(403);
         }
 
@@ -74,7 +74,7 @@ class AuditLogController extends Controller
     public function show(AuditLog $auditLog)
     {
         // Only admins and owners can view audit logs
-        if (!in_array(auth()->user()->role, ['admin', 'owner'])) {
+        if (!auth()->user()->hasPermission('view_audit_logs')) {
             abort(403);
         }
 

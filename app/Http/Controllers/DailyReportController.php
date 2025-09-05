@@ -25,16 +25,18 @@ class DailyReportController extends Controller
         $query = DailyReport::with(['store', 'creator', 'approver', 'transactions', 'revenues.revenueIncomeType']);
         
         // Filter reports based on user role
-        if ($user->role === 'owner') {
-            $query->whereHas('store', function ($q) use ($user) {
-                $q->where('created_by', $user->id);
-            });
-        } elseif ($user->role === 'manager') {
-            $query->whereHas('store', function ($q) use ($user) {
-                $q->whereHas('managers', function ($subQ) use ($user) {
-                    $subQ->where('users.id', $user->id);
+        if ($user->hasPermission('view_reports')) {
+            if ($user->role === 'owner') {
+                $query->whereHas('store', function ($q) use ($user) {
+                    $q->where('created_by', $user->id);
                 });
-            });
+            } elseif ($user->role === 'manager') {
+                $query->whereHas('store', function ($q) use ($user) {
+                    $q->whereHas('managers', function ($subQ) use ($user) {
+                        $subQ->where('users.id', $user->id);
+                    });
+                });
+            }
         }
         
         // Apply search filters
@@ -90,12 +92,14 @@ class DailyReportController extends Controller
         
         // Get available stores for filter dropdown (based on user role)
         $storesQuery = Store::query();
-        if ($user->role === 'owner') {
-            $storesQuery->where('created_by', $user->id);
-        } elseif ($user->role === 'manager') {
-            $storesQuery->whereHas('managers', function ($q) use ($user) {
-                $q->where('users.id', $user->id);
-            });
+        if ($user->hasPermission('view_reports')) {
+            if ($user->role === 'owner') {
+                $storesQuery->where('created_by', $user->id);
+            } elseif ($user->role === 'manager') {
+                $storesQuery->whereHas('managers', function ($q) use ($user) {
+                    $q->where('users.id', $user->id);
+                });
+            }
         }
         $stores = $storesQuery->get();
             
@@ -113,11 +117,13 @@ class DailyReportController extends Controller
         $revenueTypes = RevenueIncomeType::where('is_active', 1)->orderBy('sort_order')->orderBy('name')->get();
 
         // Filter stores based on user role
-        if ($user->role === 'owner') {
-            $query->where('created_by', $user->id);
+        if ($user->hasPermission('create_reports')) {
+            if ($user->role === 'owner') {
+                $query->where('created_by', $user->id);
+            }
+            // Admins see all stores
         }
-        // Admins see all stores
-
+        
         $stores = $query->get();
         $store = $stores->first(); // Select the first store as default
 
@@ -134,14 +140,16 @@ class DailyReportController extends Controller
         $types = TransactionType::all();
         
         // Filter stores based on user role
-        if ($user->role === 'owner') {
-            $query->where('created_by', $user->id);
-        } elseif ($user->role === 'manager') {
-            $query->whereHas('managers', function ($q) use ($user) {
-                $q->where('users.id', $user->id);
-            });
+        if ($user->hasPermission('create_reports')) {
+            if ($user->role === 'owner') {
+                $query->where('created_by', $user->id);
+            } elseif ($user->role === 'manager') {
+                $query->whereHas('managers', function ($q) use ($user) {
+                    $q->where('users.id', $user->id);
+                });
+            }
+            // Admins see all stores
         }
-        // Admins see all stores
         
         $stores = $query->get();
         return view('daily-reports.quick-entry', compact('stores', 'types'));
@@ -309,14 +317,16 @@ class DailyReportController extends Controller
         $query = Store::query();
         
         // Filter stores based on user role
-        if ($user->role === 'owner') {
-            $query->where('created_by', $user->id);
-        } elseif ($user->role === 'manager') {
-            $query->whereHas('managers', function ($q) use ($user) {
-                $q->where('users.id', $user->id);
-            });
+        if ($user->hasPermission('create_reports')) {
+            if ($user->role === 'owner') {
+                $query->where('created_by', $user->id);
+            } elseif ($user->role === 'manager') {
+                $query->whereHas('managers', function ($q) use ($user) {
+                    $q->where('users.id', $user->id);
+                });
+            }
+            // Admins see all stores
         }
-        // Admins see all stores
         
         $stores = $query->get();
         $types = TransactionType::all();
@@ -579,7 +589,7 @@ class DailyReportController extends Controller
     public function approve(Request $request, DailyReport $dailyReport)
     {
         // Only owners and admins can approve
-        if (!in_array(auth()->user()->role, ['owner', 'admin'])) {
+        if (!auth()->user()->hasPermission('approve_reports')) {
             abort(403);
         }
         
@@ -617,7 +627,7 @@ class DailyReportController extends Controller
     public function reject(Request $request, DailyReport $dailyReport)
     {
         // Only owners and admins can reject
-        if (!in_array(auth()->user()->role, ['owner', 'admin'])) {
+        if (!auth()->user()->hasPermission('approve_reports')) {
             abort(403);
         }
         
@@ -655,7 +665,7 @@ class DailyReportController extends Controller
     public function returnToDraft(DailyReport $dailyReport)
     {
         // Only owners and admins can return to draft
-        if (!in_array(auth()->user()->role, ['owner', 'admin'])) {
+        if (!auth()->user()->hasPermission('approve_reports')) {
             abort(403);
         }
         

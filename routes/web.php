@@ -86,8 +86,8 @@ Route::middleware('auth')->group(function () {
         Route::post('managers/{manager}/assign-stores', [ManagerController::class, 'assignStores'])->name('managers.assign-stores');
     });
 
-    // Transaction Types - Admin and Owner access
-    Route::middleware('role:admin,owner')->group(function () {
+    // Transaction Types - Admin only
+    Route::middleware('role:admin')->group(function () {
         Route::get('/transaction-types', [TransactionTypeController::class, 'index'])->name('transaction-types.index');
         Route::get('/transaction-types/create', [TransactionTypeController::class, 'create'])->name('transaction-types.create');
         Route::post('/transaction-types', [TransactionTypeController::class, 'store'])->name('transaction-types.store');
@@ -97,8 +97,8 @@ Route::middleware('auth')->group(function () {
         Route::post('transaction-types/{transactionType}/assign-stores', [TransactionTypeController::class, 'assignStores'])->name('transaction-types.assign.stores');
     });
 
-    // Revenue Income Types Routes - Admin and Owner access
-    Route::middleware('role:admin,owner')->group(function () {
+    // Revenue Income Types Routes - Admin only
+    Route::middleware('role:admin')->group(function () {
         Route::get('/revenue-income-types', [RevenueIncomeTypeController::class, 'index'])->name('revenue-income-types.index');
         Route::get('/revenue-income-types/create', [RevenueIncomeTypeController::class, 'create'])->name('revenue-income-types.create');
         Route::post('/revenue-income-types', [RevenueIncomeTypeController::class, 'store'])->name('revenue-income-types.store');
