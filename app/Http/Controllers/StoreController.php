@@ -15,9 +15,11 @@ class StoreController extends Controller
     public function index()
     {
         if (Gate::allows('manager-only')) {
-            $stores = Store::whereJsonContains('assigned_managers', auth()->id())->get();
+            $stores = Store::whereHas('managers', function ($query) {
+                $query->where('users.id', auth()->id());
+            })->get();
         } elseif (Gate::allows('owner-only')) {
-            $stores = Store::where('owner_id', auth()->id())->get();
+            $stores = Store::where('created_by', auth()->id())->get();
         } else {
             $stores = Store::all();
         }

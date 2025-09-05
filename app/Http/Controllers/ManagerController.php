@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\UserRole;
 use App\Models\User;
 use App\Models\Store;
 use Illuminate\Http\Request;
@@ -14,7 +15,7 @@ class ManagerController extends Controller
      */
     public function index()
     {
-        $managers = User::where('role', 'manager')->with('stores')->get();
+        $managers = User::where('role', UserRole::MANAGER)->with('stores')->get();
         return view('managers.index', compact('managers'));
     }
 
@@ -41,11 +42,16 @@ class ManagerController extends Controller
             'assigned_stores.*' => 'integer',
         ]);
 
-        $validatedData['role'] = 'manager';
+        // Use secure role assignment - only admins or owners can create managers
+        if (!auth()->user()->role->canManageRole(UserRole::MANAGER)) {
+            abort(403, 'Insufficient permissions to create managers');
+        }
+        
         $validatedData['password'] = bcrypt($validatedData['password']);
         $validatedData['assigned_stores'] = json_encode($validatedData['assigned_stores']);
 
-        User::create($validatedData);
+        $manager = User::create($validatedData);
+        $manager->changeRole(UserRole::MANAGER, auth()->user());
 
         return redirect()->route('managers.index')->with('success', 'Manager created successfully.');
     }

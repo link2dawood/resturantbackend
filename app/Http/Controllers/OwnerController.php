@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\UserRole;
 use Illuminate\Http\Request;
 use App\Models\User;
 
@@ -9,7 +10,7 @@ class OwnerController extends Controller
 {
     public function index()
     {
-        $owners = User::where('role', 'owner')->get();
+        $owners = User::where('role', UserRole::OWNER)->get();
         return view('owners.index', ['owners' => $owners]);
     }
 
@@ -39,8 +40,12 @@ class OwnerController extends Controller
                 'corporate_creation_date' => 'nullable|date',
             ]);
 
+            // Only admins can create owners
+            if (!auth()->user()->role->canManageRole(UserRole::OWNER)) {
+                abort(403, 'Insufficient permissions to create owners');
+            }
+
             $validatedData['email_verified_at'] = now();
-            $validatedData['role'] = 'owner';
             $validatedData['password'] = bcrypt($validatedData['password']);
 
             if ($request->hasFile('avatar')) {
@@ -48,7 +53,8 @@ class OwnerController extends Controller
                 $validatedData['avatar'] = basename($avatarPath);
             }
 
-            User::create($validatedData);
+            $owner = User::create($validatedData);
+            $owner->changeRole(UserRole::OWNER, auth()->user());
 
             return redirect()->route('owners.index')->with('success', 'Owner created successfully with complete profile information.');
         }

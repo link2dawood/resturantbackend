@@ -20,7 +20,7 @@ class CheckDailyReportAccess
         $user = auth()->user();
         
         // Admins have full access
-        if ($user->role === 'admin') {
+        if ($user->isAdmin()) {
             return $next($request);
         }
         
@@ -55,20 +55,6 @@ class CheckDailyReportAccess
      */
     private function hasStoreAccess($user, $storeId)
     {
-        if ($user->role === 'admin') {
-            return true;
-        }
-        
-        if ($user->role === 'owner') {
-            // Owners can access stores they created
-            return Store::where('id', $storeId)->where('created_by', $user->id)->exists();
-        }
-        
-        if ($user->role === 'manager') {
-            // Managers can access stores they are assigned to
-            return Store::whereIn('id', $user->getAssignedStoresAttribute())->exists();
-        }
-        
-        return false;
+        return $user->hasStoreAccess($storeId);
     }
 }

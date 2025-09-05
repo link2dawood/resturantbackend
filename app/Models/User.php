@@ -2,15 +2,18 @@
 
 namespace App\Models;
 
+use App\Enums\UserRole;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Log;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, SoftDeletes;
 
     /**
      * The attributes that are mass assignable.
@@ -72,6 +75,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'corporate_creation_date' => 'date',
+            'role' => UserRole::class,
         ];
     }
 
@@ -112,7 +116,115 @@ class User extends Authenticatable implements MustVerifyEmail
         return Store::whereIn('id', $storeIds)->get();
     }
 
+    /**
+     * Check if user is an admin
+     */
+    public function isAdmin(): bool
+    {
+        return $this->role === UserRole::ADMIN;
+    }
 
+    /**
+     * Check if user is an owner
+     */
+    public function isOwner(): bool
+    {
+        return $this->role === UserRole::OWNER;
+    }
 
+    /**
+     * Check if user is a manager
+     */
+    public function isManager(): bool
+    {
+        return $this->role === UserRole::MANAGER;
+    }
 
+    /**
+     * Check if user has a specific permission
+     */
+    public function hasPermission(string $permission): bool
+    {
+        return $this->role?->hasPermission($permission) ?? false;
+    }
+
+    /**
+     * Securely change user role with proper authorization and logging
+     */
+    public function changeRole(UserRole $newRole, User $changedBy): bool
+    {
+        // Check if the user making the change has permission
+        if (!$changedBy->role?->canManageRole($newRole)) {
+            Log::warning('Unauthorized role change attempt', [
+                'target_user' => $this->id,
+                'target_email' => $this->email,
+                'old_role' => $this->role?->value,
+                'new_role' => $newRole->value,
+                'changed_by' => $changedBy->id,
+                'changed_by_email' => $changedBy->email,
+            ]);
+            return false;
+        }
+
+        $oldRole = $this->role;
+        $this->role = $newRole;
+        
+        if ($this->save()) {
+            Log::info('User role changed successfully', [
+                'user_id' => $this->id,
+                'user_email' => $this->email,
+                'old_role' => $oldRole?->value,
+                'new_role' => $newRole->value,
+                'changed_by' => $changedBy->id,
+                'changed_by_email' => $changedBy->email,
+                'timestamp' => now(),
+            ]);
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Check if user has access to a specific store
+     */
+    public function hasStoreAccess(int $storeId): bool
+    {
+        if ($this->isAdmin()) {
+            return true;
+        }
+
+        if ($this->isOwner()) {
+            return Store::where('id', $storeId)
+                ->where('created_by', $this->id)
+                ->whereNull('deleted_at')
+                ->exists();
+        }
+
+        if ($this->isManager()) {
+            return $this->stores()->where('store_id', $storeId)->exists();
+        }
+
+        return false;
+    }
+
+    /**
+     * Get all accessible stores for the user
+     */
+    public function accessibleStores()
+    {
+        if ($this->isAdmin()) {
+            return Store::whereNull('deleted_at');
+        }
+
+        if ($this->isOwner()) {
+            return Store::where('created_by', $this->id)->whereNull('deleted_at');
+        }
+
+        if ($this->isManager()) {
+            return $this->stores()->whereNull('stores.deleted_at');
+        }
+
+        return Store::whereRaw('1 = 0'); // Return empty query
+    }
 }

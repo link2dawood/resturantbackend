@@ -4,10 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Store extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'store_info',
@@ -19,6 +20,7 @@ class Store extends Model
         'zip',
         'sales_tax_rate',
         'medicare_tax_rate',
+        'created_by',
     ];
 
     /**
@@ -26,9 +28,15 @@ class Store extends Model
      *
      * @var list<string>
      */
-    protected $guarded = [
-        'created_by',
-    ];
+    protected $guarded = [];
+
+    /**
+     * The owner who created the store.
+     */
+    public function owner()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
 
     /**
      * The managers assigned to the store.

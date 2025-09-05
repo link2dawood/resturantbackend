@@ -31,19 +31,25 @@ Route::middleware('auth')->group(function () {
     Route::post('/profile/avatar', [ProfileController::class, 'updateAvatar'])->name('profile.avatar.update');
     Route::delete('/profile/avatar', [ProfileController::class, 'removeAvatar'])->name('profile.avatar.remove');
 
-    Route::get('/owners', [OwnerController::class, 'index'])->name('owners.index');
-    Route::get('owners/create', [OwnerController::class, 'create'])->name('owners.create');
-    Route::post('owners/create', [OwnerController::class, 'create'])->name('owners.store');
-    Route::get('owners/{owner}/edit', [OwnerController::class, 'edit'])->name('owners.edit');
-    Route::put('owners/{owner}', [OwnerController::class, 'update'])->name('owners.update');
-    Route::delete('owners/{owner}', [OwnerController::class, 'destroy'])->name('owners.destroy');
+    // Owner management - Admin only
+    Route::middleware('role:admin')->group(function () {
+        Route::get('/owners', [OwnerController::class, 'index'])->name('owners.index');
+        Route::get('owners/create', [OwnerController::class, 'create'])->name('owners.create');
+        Route::post('owners/create', [OwnerController::class, 'create'])->name('owners.store');
+        Route::get('owners/{owner}/edit', [OwnerController::class, 'edit'])->name('owners.edit');
+        Route::put('owners/{owner}', [OwnerController::class, 'update'])->name('owners.update');
+        Route::delete('owners/{owner}', [OwnerController::class, 'destroy'])->name('owners.destroy');
+    });
 
-    Route::get('/stores', [StoreController::class, 'index'])->name('stores.index'); // Display all stores
-    Route::get('/stores/create', [StoreController::class, 'create'])->name('stores.create'); // Show form to create a store
-    Route::post('/stores', [StoreController::class, 'store'])->name('stores.store'); // Save a new store
-    Route::get('/stores/{store}/edit', [StoreController::class, 'edit'])->name('stores.edit'); // Show form to edit a store
-    Route::put('/stores/{store}', [StoreController::class, 'update'])->name('stores.update'); // Update a store
-    Route::delete('/stores/{store}', [StoreController::class, 'destroy'])->name('stores.destroy'); // Delete a store
+    // Store management - Admin and Owner access
+    Route::middleware('role:admin,owner')->group(function () {
+        Route::get('/stores', [StoreController::class, 'index'])->name('stores.index');
+        Route::get('/stores/create', [StoreController::class, 'create'])->name('stores.create');
+        Route::post('/stores', [StoreController::class, 'store'])->name('stores.store');
+        Route::get('/stores/{store}/edit', [StoreController::class, 'edit'])->name('stores.edit');
+        Route::put('/stores/{store}', [StoreController::class, 'update'])->name('stores.update');
+        Route::delete('/stores/{store}', [StoreController::class, 'destroy'])->name('stores.destroy');
+    });
     
     // Daily Reports Routes - with access control
     Route::middleware('daily_report_access')->group(function () {
@@ -68,25 +74,31 @@ Route::middleware('auth')->group(function () {
         Route::post('/daily-reports/{dailyReport}/return-to-draft', [DailyReportController::class, 'returnToDraft'])->name('daily-reports.return-to-draft');
     }); 
 
-    Route::get('/managers', [ManagerController::class, 'index'])->name('managers.index');
-    Route::get('/managers/create', [ManagerController::class, 'create'])->name('managers.create');
-    Route::post('/managers', [ManagerController::class, 'store'])->name('managers.store');
-    Route::get('/managers/{manager}/edit', [ManagerController::class, 'edit'])->name('managers.edit');
-    Route::put('/managers/{manager}', [ManagerController::class, 'update'])->name('managers.update');
-    Route::delete('/managers/{manager}', [ManagerController::class, 'destroy'])->name('managers.destroy');
-    Route::get('managers/{manager}/assign-stores', [ManagerController::class, 'assignStoresForm'])->name('managers.assign-stores.form');
-    Route::post('managers/{manager}/assign-stores', [ManagerController::class, 'assignStores'])->name('managers.assign-stores');
+    // Manager management - Admin and Owner access
+    Route::middleware('role:admin,owner')->group(function () {
+        Route::get('/managers', [ManagerController::class, 'index'])->name('managers.index');
+        Route::get('/managers/create', [ManagerController::class, 'create'])->name('managers.create');
+        Route::post('/managers', [ManagerController::class, 'store'])->name('managers.store');
+        Route::get('/managers/{manager}/edit', [ManagerController::class, 'edit'])->name('managers.edit');
+        Route::put('/managers/{manager}', [ManagerController::class, 'update'])->name('managers.update');
+        Route::delete('/managers/{manager}', [ManagerController::class, 'destroy'])->name('managers.destroy');
+        Route::get('managers/{manager}/assign-stores', [ManagerController::class, 'assignStoresForm'])->name('managers.assign-stores.form');
+        Route::post('managers/{manager}/assign-stores', [ManagerController::class, 'assignStores'])->name('managers.assign-stores');
+    });
 
-    Route::get('/transaction-types', [TransactionTypeController::class, 'index'])->name('transaction-types.index');
-    Route::get('/transaction-types/create', [TransactionTypeController::class, 'create'])->name('transaction-types.create');
-    Route::post('/transaction-types', [TransactionTypeController::class, 'store'])->name('transaction-types.store');
-    Route::get('/transaction-types/{transactionType}/edit', [TransactionTypeController::class, 'edit'])->name('transaction-types.edit');
-    Route::put('/transaction-types/{transactionType}', [TransactionTypeController::class, 'update'])->name('transaction-types.update');
-    Route::delete('/transaction-types/{transactionType}', [TransactionTypeController::class, 'destroy'])->name('transaction-types.destroy');
-    Route::post('transaction-types/{transactionType}/assign-stores', [TransactionTypeController::class, 'assignStores'])->name('transaction-types.assign.stores');
+    // Transaction Types - Admin and Owner access
+    Route::middleware('role:admin,owner')->group(function () {
+        Route::get('/transaction-types', [TransactionTypeController::class, 'index'])->name('transaction-types.index');
+        Route::get('/transaction-types/create', [TransactionTypeController::class, 'create'])->name('transaction-types.create');
+        Route::post('/transaction-types', [TransactionTypeController::class, 'store'])->name('transaction-types.store');
+        Route::get('/transaction-types/{transactionType}/edit', [TransactionTypeController::class, 'edit'])->name('transaction-types.edit');
+        Route::put('/transaction-types/{transactionType}', [TransactionTypeController::class, 'update'])->name('transaction-types.update');
+        Route::delete('/transaction-types/{transactionType}', [TransactionTypeController::class, 'destroy'])->name('transaction-types.destroy');
+        Route::post('transaction-types/{transactionType}/assign-stores', [TransactionTypeController::class, 'assignStores'])->name('transaction-types.assign.stores');
+    });
 
-    // Revenue Income Types Routes (Admin only)
-
+    // Revenue Income Types Routes - Admin and Owner access
+    Route::middleware('role:admin,owner')->group(function () {
         Route::get('/revenue-income-types', [RevenueIncomeTypeController::class, 'index'])->name('revenue-income-types.index');
         Route::get('/revenue-income-types/create', [RevenueIncomeTypeController::class, 'create'])->name('revenue-income-types.create');
         Route::post('/revenue-income-types', [RevenueIncomeTypeController::class, 'store'])->name('revenue-income-types.store');
@@ -94,6 +106,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/revenue-income-types/{revenueIncomeType}/edit', [RevenueIncomeTypeController::class, 'edit'])->name('revenue-income-types.edit');
         Route::put('/revenue-income-types/{revenueIncomeType}', [RevenueIncomeTypeController::class, 'update'])->name('revenue-income-types.update');
         Route::delete('/revenue-income-types/{revenueIncomeType}', [RevenueIncomeTypeController::class, 'destroy'])->name('revenue-income-types.destroy');
+    });
 
 
     // Audit Log Routes (Admin and Owner only)

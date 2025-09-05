@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(/D:\\xampp8.2\\htdocs\\resturantbackend\\app\\Models/**)",
+      "Read(/D:\\xampp8.2\\htdocs\\resturantbackend\\app\\Http\\Controllers/**)",
+      "Read(/D:\\xampp8.2\\htdocs\\resturantbackend\\app\\Http\\Controllers/**)",
+      "Read(/D:\\xampp8.2\\htdocs\\resturantbackend\\resources\\views\\stores/**)",
+      "Bash(php artisan tinker:*)",
+      "Bash(php artisan make:migration:*)",
+      "Bash(php artisan make:model:*)",
+      "Bash(php artisan make:seeder:*)",
+      "Bash(php artisan:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
