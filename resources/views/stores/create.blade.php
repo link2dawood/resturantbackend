@@ -54,8 +54,9 @@
             <input type="number" step="0.01" class="form-control" id="sales_tax_rate" name="sales_tax_rate" required>
         </div>
         <div class="mb-3">
-            <label for="medicare_tax_rate" class="form-label">Medicare Tax Rate</label>
-            <input type="number" step="0.01" class="form-control" id="medicare_tax_rate" name="medicare_tax_rate" required>
+            <label for="medicare_tax_rate" class="form-label">Medicare Tax Rate (Optional)</label>
+            <input type="number" step="0.01" class="form-control" id="medicare_tax_rate" name="medicare_tax_rate" placeholder="0.00">
+            <small class="form-text text-muted">Leave blank if not applicable to your business</small>
         </div>
         <button type="submit" class="btn btn-primary">Create Store</button>
     </form>

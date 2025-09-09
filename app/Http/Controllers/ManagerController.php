@@ -24,7 +24,20 @@ class ManagerController extends Controller
      */
     public function create()
     {
-        $stores = Store::all();
+        $user = auth()->user();
+        
+        // Filter stores based on current user's permissions
+        if ($user->isAdmin()) {
+            // Admins can assign managers to any store
+            $stores = Store::all();
+        } elseif ($user->isOwner()) {
+            // Owners can only assign managers to stores they own
+            $stores = Store::where('created_by', $user->id)->get();
+        } else {
+            // Managers shouldn't be able to create other managers, but just in case
+            $stores = collect();
+        }
+        
         return view('managers.create', compact('stores'));
     }
 
@@ -48,10 +61,18 @@ class ManagerController extends Controller
         }
         
         $validatedData['password'] = bcrypt($validatedData['password']);
-        $validatedData['assigned_stores'] = json_encode($validatedData['assigned_stores']);
+        
+        // Extract store assignments before creating user
+        $assignedStores = $validatedData['assigned_stores'] ?? [];
+        unset($validatedData['assigned_stores']); // Remove from user creation data
 
         $manager = User::create($validatedData);
         $manager->changeRole(UserRole::MANAGER, auth()->user());
+
+        // Assign stores using pivot table
+        if (!empty($assignedStores)) {
+            $manager->stores()->sync($assignedStores);
+        }
 
         return redirect()->route('managers.index')->with('success', 'Manager created successfully.');
     }
@@ -69,7 +90,21 @@ class ManagerController extends Controller
      */
     public function edit(User $manager)
     {
-        $stores = Store::all();
+        $user = auth()->user();
+        
+        // Filter stores based on current user's permissions
+        if ($user->isAdmin()) {
+            // Admins can assign managers to any store
+            $stores = Store::all();
+        } elseif ($user->isOwner()) {
+            // Owners can only assign managers to stores they own
+            $stores = Store::where('created_by', $user->id)->get();
+        } else {
+            // Managers shouldn't be able to edit other managers, but just in case
+            $stores = collect();
+        }
+        
+        $manager->load('stores'); // Load the pivot table relationship
         return view('managers.edit', compact('manager', 'stores'));
     }
 
@@ -93,9 +128,15 @@ class ManagerController extends Controller
             unset($validatedData['password']);
         }
 
-        $validatedData['assigned_stores'] = json_encode($validatedData['assigned_stores']);
+        // Extract store assignments before updating user
+        $assignedStores = $validatedData['assigned_stores'] ?? [];
+        unset($validatedData['assigned_stores']); // Remove from user update data
 
+        // Update user basic info
         $manager->update($validatedData);
+
+        // Update store assignments using pivot table
+        $manager->stores()->sync($assignedStores);
 
         return redirect()->route('managers.index')->with('success', 'Manager updated successfully.');
     }
@@ -115,7 +156,20 @@ class ManagerController extends Controller
      */
     public function assignStoresForm(User $manager)
     {
-        $stores = Store::all();
+        $user = auth()->user();
+        
+        // Filter stores based on current user's permissions
+        if ($user->isAdmin()) {
+            // Admins can assign managers to any store
+            $stores = Store::all();
+        } elseif ($user->isOwner()) {
+            // Owners can only assign managers to stores they own
+            $stores = Store::where('created_by', $user->id)->get();
+        } else {
+            // Managers shouldn't be able to assign stores to other managers
+            $stores = collect();
+        }
+        
         return view('managers.assign-stores', compact('manager', 'stores'));
     }
 

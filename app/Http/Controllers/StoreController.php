@@ -14,14 +14,21 @@ class StoreController extends Controller
      */
     public function index()
     {
-        if (Gate::allows('manager-only')) {
-            $stores = Store::whereHas('managers', function ($query) {
-                $query->where('users.id', auth()->id());
-            })->get();
-        } elseif (Gate::allows('owner-only')) {
-            $stores = Store::where('created_by', auth()->id())->get();
-        } else {
+        $user = auth()->user();
+        
+        // Filter stores based on user role and permissions
+        if ($user->isManager()) {
+            // Managers can only see stores they are assigned to via pivot table
+            $stores = $user->stores()->get();
+        } elseif ($user->isOwner()) {
+            // Owners can see stores they created
+            $stores = Store::where('created_by', $user->id)->get();
+        } elseif ($user->isAdmin()) {
+            // Admins can see all stores
             $stores = Store::all();
+        } else {
+            // Default: no stores (shouldn't happen with proper auth)
+            $stores = collect();
         }
         
         return view('stores.index', compact('stores'));
@@ -52,7 +59,7 @@ class StoreController extends Controller
             'zip' => 'required|string|max:20',
             'created_by' => 'required',
             'sales_tax_rate' => 'required|numeric|min:0',
-            'medicare_tax_rate' => 'required|numeric|min:0',
+            'medicare_tax_rate' => 'nullable|numeric|min:0',
         ]);
 
        
@@ -94,7 +101,7 @@ class StoreController extends Controller
             'state' => 'required|string|max:100',
             'zip' => 'required|string|max:20',
             'sales_tax_rate' => 'required|numeric|min:0',
-            'medicare_tax_rate' => 'required|numeric|min:0',
+            'medicare_tax_rate' => 'nullable|numeric|min:0',
             
         ]);
 

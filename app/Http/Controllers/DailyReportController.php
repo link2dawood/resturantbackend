@@ -112,6 +112,12 @@ class DailyReportController extends Controller
     public function create()
     {
         $user = auth()->user();
+        
+        // Critical security fix: Check permission before allowing access
+        if (!$user->hasPermission('create_reports')) {
+            abort(403, 'You do not have permission to create daily reports.');
+        }
+        
         $query = Store::query();
         $types = TransactionType::all();
         $revenueTypes = RevenueIncomeType::where('is_active', 1)->orderBy('sort_order')->orderBy('name')->get();
@@ -127,6 +133,13 @@ class DailyReportController extends Controller
         // Admins see all stores
         
         $stores = $query->get();
+        
+        // Business logic fix: Prevent unassigned managers from accessing create form
+        if ($user->isManager() && $stores->isEmpty()) {
+            return redirect()->route('daily-reports.index')
+                ->with('warning', 'You have not been assigned to any stores. Please contact an administrator to assign stores to your account.');
+        }
+        
         $store = $stores->first(); // Select the first store as default (may be null if no stores)
 
         return view('daily-reports.create', compact('stores', 'types', 'revenueTypes', 'store'));
