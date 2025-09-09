@@ -295,7 +295,7 @@
     <form id="dailyReportForm" method="POST" action="{{ route('daily-reports.store') }}">
         @csrf
 
-        <input type="hidden" name="store_id" value="{{$store->id}}">
+        <input type="hidden" name="store_id" value="{{$store->id ?? ''}}">
         <input type="hidden" class="NetSales" name="net_sales" value="">
         <input type="hidden" class="TaxInput" name="tax" value="">
         <input type="hidden" class="SalesInput" name="sales" value="">

@@ -26,11 +26,11 @@ class DailyReportController extends Controller
         
         // Filter reports based on user role
         if ($user->hasPermission('view_reports')) {
-            if ($user->role === 'owner') {
+            if ($user->role === \App\Enums\UserRole::OWNER) {
                 $query->whereHas('store', function ($q) use ($user) {
                     $q->where('created_by', $user->id);
                 });
-            } elseif ($user->role === 'manager') {
+            } elseif ($user->role === \App\Enums\UserRole::MANAGER) {
                 $query->whereHas('store', function ($q) use ($user) {
                     $q->whereHas('managers', function ($subQ) use ($user) {
                         $subQ->where('users.id', $user->id);
@@ -93,9 +93,9 @@ class DailyReportController extends Controller
         // Get available stores for filter dropdown (based on user role)
         $storesQuery = Store::query();
         if ($user->hasPermission('view_reports')) {
-            if ($user->role === 'owner') {
+            if ($user->role === \App\Enums\UserRole::OWNER) {
                 $storesQuery->where('created_by', $user->id);
-            } elseif ($user->role === 'manager') {
+            } elseif ($user->role === \App\Enums\UserRole::MANAGER) {
                 $storesQuery->whereHas('managers', function ($q) use ($user) {
                     $q->where('users.id', $user->id);
                 });
@@ -116,16 +116,18 @@ class DailyReportController extends Controller
         $types = TransactionType::all();
         $revenueTypes = RevenueIncomeType::where('is_active', 1)->orderBy('sort_order')->orderBy('name')->get();
 
-        // Filter stores based on user role
-        if ($user->hasPermission('create_reports')) {
-            if ($user->role === 'owner') {
-                $query->where('created_by', $user->id);
-            }
-            // Admins see all stores
+        // Filter stores based on user role (security critical)
+        if ($user->role === \App\Enums\UserRole::OWNER) {
+            $query->where('created_by', $user->id);
+        } elseif ($user->role === \App\Enums\UserRole::MANAGER) {
+            $query->whereHas('managers', function ($q) use ($user) {
+                $q->where('users.id', $user->id);
+            });
         }
+        // Admins see all stores
         
         $stores = $query->get();
-        $store = $stores->first(); // Select the first store as default
+        $store = $stores->first(); // Select the first store as default (may be null if no stores)
 
         return view('daily-reports.create', compact('stores', 'types', 'revenueTypes', 'store'));
     }
@@ -141,9 +143,9 @@ class DailyReportController extends Controller
         
         // Filter stores based on user role
         if ($user->hasPermission('create_reports')) {
-            if ($user->role === 'owner') {
+            if ($user->role === \App\Enums\UserRole::OWNER) {
                 $query->where('created_by', $user->id);
-            } elseif ($user->role === 'manager') {
+            } elseif ($user->role === \App\Enums\UserRole::MANAGER) {
                 $query->whereHas('managers', function ($q) use ($user) {
                     $q->where('users.id', $user->id);
                 });
@@ -201,6 +203,32 @@ class DailyReportController extends Controller
             'revenues.*.amount'   => 'required_with:revenues|numeric|min:0',
             'revenues.*.notes'    => 'nullable|string|max:500',
         ]);
+
+        // Validate manager can only create reports for assigned stores
+        $user = auth()->user();
+        if ($user->role === \App\Enums\UserRole::MANAGER) {
+            $allowedStore = Store::where('id', $validatedData['store_id'])
+                ->whereHas('managers', function ($q) use ($user) {
+                    $q->where('users.id', $user->id);
+                })
+                ->first();
+                
+            if (!$allowedStore) {
+                throw ValidationException::withMessages([
+                    'store_id' => ['You are not authorized to create reports for this store.']
+                ]);
+            }
+        } elseif ($user->role === \App\Enums\UserRole::OWNER) {
+            $allowedStore = Store::where('id', $validatedData['store_id'])
+                ->where('created_by', $user->id)
+                ->first();
+                
+            if (!$allowedStore) {
+                throw ValidationException::withMessages([
+                    'store_id' => ['You are not authorized to create reports for this store.']
+                ]);
+            }
+        }
 
         // Check for duplicate reports (same store, same date)
         $existingReport = DailyReport::where('store_id', $validatedData['store_id'])
@@ -318,9 +346,9 @@ class DailyReportController extends Controller
         
         // Filter stores based on user role
         if ($user->hasPermission('create_reports')) {
-            if ($user->role === 'owner') {
+            if ($user->role === \App\Enums\UserRole::OWNER) {
                 $query->where('created_by', $user->id);
-            } elseif ($user->role === 'manager') {
+            } elseif ($user->role === \App\Enums\UserRole::MANAGER) {
                 $query->whereHas('managers', function ($q) use ($user) {
                     $q->where('users.id', $user->id);
                 });
@@ -379,6 +407,32 @@ class DailyReportController extends Controller
             'transactions.*.transaction_type' => 'required|in:Food Cost,Rent,Accounting,Taxes,Other',
             'transactions.*.amount' => 'required|numeric|min:0'
         ]);
+
+        // Validate manager can only update reports for assigned stores
+        $user = auth()->user();
+        if ($user->role === \App\Enums\UserRole::MANAGER) {
+            $allowedStore = Store::where('id', $validatedData['store_id'])
+                ->whereHas('managers', function ($q) use ($user) {
+                    $q->where('users.id', $user->id);
+                })
+                ->first();
+                
+            if (!$allowedStore) {
+                throw ValidationException::withMessages([
+                    'store_id' => ['You are not authorized to update reports for this store.']
+                ]);
+            }
+        } elseif ($user->role === \App\Enums\UserRole::OWNER) {
+            $allowedStore = Store::where('id', $validatedData['store_id'])
+                ->where('created_by', $user->id)
+                ->first();
+                
+            if (!$allowedStore) {
+                throw ValidationException::withMessages([
+                    'store_id' => ['You are not authorized to update reports for this store.']
+                ]);
+            }
+        }
 
         // Check for duplicate reports (same store, same date) - excluding current report
         $existingReport = DailyReport::where('store_id', $validatedData['store_id'])
@@ -466,7 +520,25 @@ class DailyReportController extends Controller
      */
     public function reports($id)
     {
-        $store = Store::find($id);
+        $user = auth()->user();
+        $query = Store::query();
+        
+        // Filter stores based on user role for security
+        if ($user->role === 'owner') {
+            $query->where('created_by', $user->id);
+        } elseif ($user->role === \App\Enums\UserRole::MANAGER) {
+            $query->whereHas('managers', function ($q) use ($user) {
+                $q->where('users.id', $user->id);
+            });
+        }
+        // Admins can access all stores
+        
+        $store = $query->find($id);
+        
+        if (!$store) {
+            abort(403, 'You are not authorized to access this store.');
+        }
+        
         $types = TransactionType::all();
         $revenueTypes = RevenueIncomeType::where('is_active', 1)->orderBy('sort_order')->orderBy('name')->get();
         return view('daily-reports.form', compact('store','types', 'revenueTypes'));
