@@ -2,8 +2,11 @@
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
     <meta charset="utf-8"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no"/>
     <meta http-equiv="X-UA-Compatible" content="ie=edge"/>
+    <meta name="mobile-web-app-capable" content="yes"/>
+    <meta name="apple-mobile-web-app-capable" content="yes"/>
+    <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
     
     <!-- CSRF Token -->
     <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -32,99 +35,152 @@
             --tblr-font-sans-serif: Inter, -apple-system, BlinkMacSystemFont, San Francisco, Segoe UI, Roboto, Helvetica Neue, sans-serif;
         }
         
-        /* Modern Tabler Integration */
+        /* Clean Modern Navbar Design */
         .navbar {
-            background: var(--bg-primary) !important;
-            backdrop-filter: blur(10px);
-            border-bottom: 1px solid var(--border-color);
-            z-index: 1050;
-        }
-        
-        .navbar-toggler {
-            border: none;
+            background: #ffffff !important;
+            border-bottom: 1px solid #e5e5e5;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+            padding: 0.75rem 0;
         }
         
         .navbar-brand {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #1e293b !important;
+        }
+        
+        .navbar-brand svg {
+            color: #0ea5e9;
+        }
+        
+        /* Navigation styling - Clean and simple */
+        .navbar-nav {
+            gap: 0.25rem;
+        }
+        
+        .nav-link {
+            display: flex !important;
+            align-items: center;
+            padding: 0.5rem 0.75rem !important;
+            border-radius: 0.375rem;
+            transition: all 0.15s ease-in-out;
+            color: #64748b !important;
+            font-weight: 500;
+            font-size: 0.875rem;
+        }
+        
+        .nav-link:hover {
+            background-color: #f1f5f9 !important;
+            color: #0ea5e9 !important;
+        }
+        
+        .nav-link.active,
+        .nav-item.active .nav-link {
+            background-color: #0ea5e9 !important;
+            color: white !important;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        }
+        
+        .nav-link-icon {
+            margin-right: 0.5rem;
+            width: 16px;
+            height: 16px;
+            opacity: 0.8;
+        }
+        
+        .nav-link-title {
+            font-size: 0.875rem;
+        }
+        
+        /* Dropdown styling - Clean and minimal */
+        .dropdown-menu {
+            z-index: 1060 !important;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border-radius: 0.375rem;
+            border: 1px solid #e5e5e5;
+            padding: 0.25rem 0;
+            margin-top: 0.25rem;
+        }
+        
+        .dropdown-item {
+            padding: 0.5rem 0.75rem;
+            font-size: 0.875rem;
+            font-weight: 500;
             display: flex;
             align-items: center;
-            gap: 10px;
+            transition: all 0.15s ease-in-out;
+            color: #374151;
         }
         
-        .navbar-nav .nav-item {
-            margin: 0 10px;
+        .dropdown-item:hover {
+            background-color: #f9fafb;
+            color: #0ea5e9;
         }
         
+        .dropdown-item.text-danger:hover {
+            background-color: #fef2f2;
+            color: #dc2626 !important;
+        }
+        
+        /* Avatar styling - Clean and simple */
+        .avatar {
+            border: 1px solid #e5e5e5 !important;
+            transition: all 0.15s ease-in-out !important;
+        }
+        
+        /* Page wrapper - Clean background */
         .page {
-            background: var(--bg-secondary);
+            background: #f8fafc;
             min-height: 100vh;
         }
         
+        .page-wrapper {
+            padding-top: 1.5rem;
+        }
+        
+        /* Card styling - Minimal and clean */
         .card {
-            background: var(--bg-primary);
-            border: 1px solid var(--border-color);
-            border-radius: var(--border-radius);
-            transition: var(--transition);
+            background: #ffffff;
+            border: 1px solid #e5e5e5;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
         }
         
-        .card:hover {
-            border-color: var(--accent-color);
-        }
-        
+        /* Form controls - Clean and minimal */
         .btn-primary {
-            background: var(--accent-color) !important;
-            border-color: var(--accent-color) !important;
-            border-radius: var(--border-radius-sm) !important;
-            transition: var(--transition) !important;
+            background: #0ea5e9 !important;
+            border-color: #0ea5e9 !important;
+            border-radius: 0.375rem !important;
+            font-weight: 500 !important;
+            font-size: 0.875rem !important;
+            padding: 0.5rem 1rem !important;
         }
         
         .btn-primary:hover {
-            background: var(--accent-dark) !important;
-            border-color: var(--accent-dark) !important;
+            background: #0284c7 !important;
+            border-color: #0284c7 !important;
         }
         
         .form-control {
-            background: var(--bg-primary) !important;
-            border: 1px solid var(--border-color) !important;
-            border-radius: var(--border-radius-sm) !important;
-            transition: var(--transition) !important;
+            border: 1px solid #d1d5db !important;
+            border-radius: 0.375rem !important;
+            font-size: 0.875rem !important;
         }
         
         .form-control:focus {
-            border-color: var(--accent-color) !important;
-            box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1) !important;
+            border-color: #0ea5e9 !important;
+            box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.1) !important;
         }
         
-        .avatar {
-            border: 2px solid var(--border-color) !important;
-            transition: var(--transition) !important;
-        }
-        
-        .avatar:hover {
-            border-color: var(--accent-color) !important;
-        }
-        
-        .badge {
-            border-radius: var(--border-radius-sm) !important;
-        }
-        
-        .alert {
-            border-radius: var(--border-radius-sm) !important;
-            border: 1px solid var(--border-color) !important;
-        }
-        
-        .dropdown-menu {
-            z-index: 1060 !important;
-            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
-            border-radius: 0.25rem;
-        }
-        
-        .dropdown-menu .dropdown-item {
-            padding: 10px 15px;
-            font-size: 0.9rem;
-        }
-        
-        .dropdown-menu .dropdown-divider {
-            margin: 0.5rem 0;
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .navbar-brand span {
+                display: none;
+            }
+            
+            .nav-link {
+                padding: 0.5rem !important;
+            }
         }
     </style>
 </head>
@@ -133,156 +189,51 @@
     
     <div class="page">
         @auth
-        <!-- Navbar -->
-        <header class="navbar navbar-expand-md navbar-light d-print-none">
-                <div class="container-xl">
-                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar-menu">
-                        <span class="navbar-toggler-icon"></span>
-                    </button>
-                    <h1 class="navbar-brand navbar-brand-autodark d-none-navbar-horizontal pe-0 pe-md-3">
-                        <a href="{{ url('/home') }}">
-                            <img src="https://tabler.io/static/logo-white.svg" width="110" height="32" alt="Tabler" class="navbar-brand-image">
-                        </a>
-                    </h1>
-            </div>
-    </header>
-    <div class="row">
-        <!-- Navbar -->
-        <div class="navbar-expand-md">
-            <div class="collapse navbar-collapse" id="navbar-menu">
-                <div class="navbar navbar-light">
-                    <div class="container-xl">
-                        <ul class="navbar-nav">
-                            <li class="nav-item {{ request()->routeIs('home') ? 'active' : '' }}">
-                                <a class="nav-link" href="{{ route('home') }}">
-                                    <span class="nav-link-icon d-md-none d-lg-inline-block">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="m0 0h24v24H0z" fill="none"/><polyline points="5 12 3 12 12 3 21 12 19 12"/><path d="m5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7"/><path d="m9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6"/></svg>
-                                    </span>
-                                    <span class="nav-link-title">
-                                        Home
-                                    </span>
-                                </a>
-                            </li>
-                                {{-- <li class="nav-item {{ request()->routeIs('profile.*') ? 'active' : '' }}">
-                                    <a class="nav-link" href="{{ route('profile.show') }}">
-                                        <span class="nav-link-icon d-md-none d-lg-inline-block">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="m0 0h24v24H0z" fill="none"/><circle cx="12" cy="7" r="4"/><path d="m6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2"/></svg>
-                                        </span>
-                                        <span class="nav-link-title">
-                                            Profile
-                                        </span>
-                                    </a>
-                                </li> --}}
-                                @if(Auth::user()->hasPermission('manage_owners'))
-                                <li class="nav-item {{ request()->routeIs('owners.*') ? 'active' : '' }}">
-                                    <a class="nav-link" href="{{ route('owners.index') }}">
-                                        <span class="nav-link-icon d-md-none d-lg-inline-block">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="m0 0h24v24H0z" fill="none"/><circle cx="12" cy="7" r="4"/><path d="m6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2"/></svg>
-                                        </span>
-                                        <span class="nav-link-title">
-                                            Owners
-                                        </span>
-                                    </a>
-                                </li>
-                                @endif
-                                <li class="nav-item {{ request()->routeIs('stores.*') ? 'active' : '' }}">
-                                    <a class="nav-link" href="{{ route('stores.index') }}">
-                                        <span class="nav-link-icon d-md-none d-lg-inline-block">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                                <rect x="3" y="4" width="18" height="12" rx="1" />
-                                                <line x1="7" y1="20" x2="17" y2="20" />
-                                                <line x1="9" y1="16" x2="9" y2="20" />
-                                                <line x1="15" y1="16" x2="15" y2="20" />
-                                            </svg>
-                                        </span>
-                                        <span class="nav-link-title">
-                                            Stores
-                                        </span>
-                                    </a>
-                                </li>
-                                  @if(Auth::user()->hasPermission('manage_managers'))
-                                <li class="nav-item {{ request()->routeIs('managers.*') ? 'active' : '' }}">
-                                    <a class="nav-link" href="{{ route('managers.index') }}">
-                                        <span class="nav-link-icon d-md-none d-lg-inline-block">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                                <circle cx="12" cy="7" r="4" />
-                                                <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
-                                            </svg>
-                                        </span>
-                                        <span class="nav-link-title">
-                                            Managers
-                                        </span>
-                                    </a>
-                                </li>
-                                @endif
+        <!-- Main Navigation Header -->
+        <header class="navbar navbar-expand-md navbar-light sticky-top d-print-none">
+            <div class="container-xl">
+                <!-- Brand -->
+                <h1 class="navbar-brand navbar-brand-autodark pe-0 pe-md-3">
+                    <a href="{{ url('/home') }}" class="d-flex align-items-center text-decoration-none">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+                            <polyline points="9,22 9,12 15,12 15,22"/>
+                        </svg>
+                        <span class="fw-bold">Restaurant Manager</span>
+                    </a>
+                </h1>
 
-                                @if(Auth::user()->hasPermission('manage_transaction_types'))
-                                <li class="nav-item {{ request()->routeIs('transaction-types.*') ? 'active' : '' }}">
-                                    <a class="nav-link" href="{{ route('transaction-types.index') }}">
-                                        <span class="nav-link-icon d-md-none d-lg-inline-block">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                                <rect x="5" y="11" width="14" height="10" rx="2" />
-                                                <circle cx="12" cy="16" r="1" />
-                                                <path d="M8 11v-4a4 4 0 0 1 8 0v4" />
-                                            </svg>
-                                        </span>
-                                        <span class="nav-link-title">
-                                            Transaction Types
-                                        </span>
-                                    </a>
-                                </li>
-                                <li class="nav-item {{ request()->routeIs('revenue-income-types.*') ? 'active' : '' }}">
-                                    <a class="nav-link" href="{{ route('revenue-income-types.index') }}">
-                                        <span class="nav-link-icon d-md-none d-lg-inline-block">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                                <path d="M12 5l0 14"/>
-                                                <path d="M5 12l14 0"/>
-                                                <path d="M16.5 9.5a5 5 0 1 0 0 5"/>
-                                            </svg>
-                                        </span>
-                                        <span class="nav-link-title">
-                                            Revenue Income Types
-                                        </span>
-                                    </a>
-                                </li>
-                                @endif
-                                 @if(Auth::user()->hasPermission('create_reports'))
-                                <li class="nav-item {{ request()->routeIs('daily-reports.*') ? 'active' : '' }}">
-                                    <a class="nav-link" href="{{ route('daily-reports.index') }}">
-                                        <span class="nav-link-icon d-md-none d-lg-inline-block">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                                <circle cx="12" cy="7" r="4" />
-                                                <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
-                                            </svg>
-                                        </span>
-                                        <span class="nav-link-title">
-                                            Daily Reports
-                                        </span>
-                                    </a>
-                                </li>
-                                @endif
-                            </ul>
-                             <div class="navbar-nav flex-row order-md-last">
-                        <div class="nav-item dropdown">
-                            @if(Auth::user()->avatar_url && Auth::user()->name && Auth::user()->email)
-                            <a href="#" class="nav-link d-flex lh-1 text-reset p-0" data-bs-toggle="dropdown" aria-label="Open user menu">
-                                <span class="avatar avatar-sm" style="background-image: url({{ Auth::user()->avatar_url }})"></span>
-                                <div class="d-none d-xl-block ps-2">
-                                    <div>{{ Auth::user()->name }}</div>
-                                    <div class="mt-1 small text-muted">{{ Auth::user()->email }}</div>
-                                </div>
+                <!-- Mobile Toggle -->
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar-menu">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <!-- User Menu -->
+                <div class="navbar-nav flex-row order-md-last">
+                    <div class="nav-item dropdown">
+                        @if(Auth::user()->avatar_url && Auth::user()->name && Auth::user()->email)
+                        <a href="#" class="nav-link d-flex lh-1 text-reset p-0" data-bs-toggle="dropdown">
+                            <span class="avatar avatar-sm" style="background-image: url({{ Auth::user()->avatar_url }})"></span>
+                            <div class="d-none d-xl-block ps-2">
+                                <div class="fw-medium">{{ Auth::user()->name }}</div>
+                                <div class="mt-1 small text-muted">{{ Auth::user()->email }}</div>
+                            </div>
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-end dropdown-menu-arrow">
+                            <a href="{{ route('profile.show') }}" class="dropdown-item">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
+                                    <circle cx="12" cy="7" r="4"/>
+                                    <path d="M6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/>
+                                </svg>
+                                Profile
                             </a>
-                            <div class="dropdown-menu dropdown-menu-end dropdown-menu-arrow">
-                                <a href="{{ route('profile.show') }}" class="dropdown-item">Profile</a>
-                                <a href="#" class="dropdown-item">Settings</a>
-                                <div class="dropdown-divider"></div>
-                                <a href="{{ route('logout') }}" class="dropdown-item"
-                                onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
+                            <div class="dropdown-divider"></div>
+                            <a href="{{ route('logout') }}" class="dropdown-item text-danger" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
+                                    <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
+                                    <polyline points="16,17 21,12 16,7"/>
+                                    <line x1="21" y1="12" x2="9" y2="12"/>
+                                </svg>
                                 Logout
                             </a>
                             <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
@@ -290,15 +241,136 @@
                             </form>
                         </div>
                         @else
-                        <span class="text-danger">User data is incomplete.</span>
+                        <span class="badge badge-outline text-red">User data incomplete</span>
                         @endif
                     </div>
                 </div>
-                        </div>
+            </div>
+        </header>
+
+        <!-- Navigation Menu -->
+        <header class="navbar-expand-md">
+            <div class="collapse navbar-collapse" id="navbar-menu">
+                <div class="navbar navbar-light border-bottom">
+                    <div class="container-xl">
+                        <ul class="navbar-nav">
+                            <!-- Home -->
+                            <li class="nav-item {{ request()->routeIs('home') ? 'active' : '' }}">
+                                <a class="nav-link" href="{{ route('home') }}">
+                                    <span class="nav-link-icon d-md-none d-lg-inline-block">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+                                            <polyline points="9,22 9,12 15,12 15,22"/>
+                                        </svg>
+                                    </span>
+                                    <span class="nav-link-title">Dashboard</span>
+                                </a>
+                            </li>
+
+                            <!-- Stores -->
+                            <li class="nav-item {{ request()->routeIs('stores.*') ? 'active' : '' }}">
+                                <a class="nav-link" href="{{ route('stores.index') }}">
+                                    <span class="nav-link-icon d-md-none d-lg-inline-block">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/>
+                                            <path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/>
+                                        </svg>
+                                    </span>
+                                    <span class="nav-link-title">Stores</span>
+                                </a>
+                            </li>
+
+                            <!-- Owners -->
+                            @if(Auth::user()->hasPermission('manage_owners'))
+                            <li class="nav-item {{ request()->routeIs('owners.*') ? 'active' : '' }}">
+                                <a class="nav-link" href="{{ route('owners.index') }}">
+                                    <span class="nav-link-icon d-md-none d-lg-inline-block">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <circle cx="12" cy="7" r="4"/>
+                                            <path d="M6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/>
+                                        </svg>
+                                    </span>
+                                    <span class="nav-link-title">Owners</span>
+                                </a>
+                            </li>
+                            @endif
+
+                            <!-- Managers -->
+                            @if(Auth::user()->hasPermission('manage_managers'))
+                            <li class="nav-item {{ request()->routeIs('managers.*') ? 'active' : '' }}">
+                                <a class="nav-link" href="{{ route('managers.index') }}">
+                                    <span class="nav-link-icon d-md-none d-lg-inline-block">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+                                            <circle cx="9" cy="7" r="4"/>
+                                            <path d="M23 21v-2a4 4 0 00-3-3.87"/>
+                                            <path d="M16 3.13a4 4 0 010 7.75"/>
+                                        </svg>
+                                    </span>
+                                    <span class="nav-link-title">Managers</span>
+                                </a>
+                            </li>
+                            @endif
+
+                            <!-- Transaction Management -->
+                            @if(Auth::user()->hasPermission('manage_transaction_types'))
+                            <li class="nav-item dropdown {{ request()->routeIs('transaction-types.*') || request()->routeIs('revenue-income-types.*') ? 'active' : '' }}">
+                                <a class="nav-link dropdown-toggle" href="#navbar-extra" data-bs-toggle="dropdown" role="button" aria-expanded="false">
+                                    <span class="nav-link-icon d-md-none d-lg-inline-block">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
+                                            <line x1="1" y1="10" x2="23" y2="10"/>
+                                        </svg>
+                                    </span>
+                                    <span class="nav-link-title">Transactions</span>
+                                </a>
+                                <div class="dropdown-menu">
+                                    <a class="dropdown-item" href="{{ route('transaction-types.index') }}">
+                                        Transaction Types
+                                    </a>
+                                    <a class="dropdown-item" href="{{ route('revenue-income-types.index') }}">
+                                        Revenue Income Types
+                                    </a>
+                                </div>
+                            </li>
+                            @endif
+
+                            <!-- Reports -->
+                            @if(Auth::user()->hasPermission('create_reports'))
+                            <li class="nav-item {{ request()->routeIs('daily-reports.*') ? 'active' : '' }}">
+                                <a class="nav-link" href="{{ route('daily-reports.index') }}">
+                                    <span class="nav-link-icon d-md-none d-lg-inline-block">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                                            <polyline points="14,2 14,8 20,8"/>
+                                            <line x1="16" y1="13" x2="8" y2="13"/>
+                                            <line x1="16" y1="17" x2="8" y2="17"/>
+                                            <polyline points="10,9 9,9 8,9"/>
+                                        </svg>
+                                    </span>
+                                    <span class="nav-link-title">Daily Reports</span>
+                                </a>
+                            </li>
+                            @endif
+
+                            <!-- US States -->
+                            <li class="nav-item {{ request()->routeIs('states.*') ? 'active' : '' }}">
+                                <a class="nav-link" href="{{ route('states.index') }}">
+                                    <span class="nav-link-icon d-md-none d-lg-inline-block">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <circle cx="12" cy="12" r="10"/>
+                                            <line x1="2" y1="12" x2="22" y2="12"/>
+                                            <path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/>
+                                        </svg>
+                                    </span>
+                                    <span class="nav-link-title">US States</span>
+                                </a>
+                            </li>
+                        </ul>
                     </div>
                 </div>
             </div>
-        </div>
+        </header>
         @endauth
         
         <div class="page-wrapper">
@@ -342,6 +414,9 @@
             }
         });
     </script>
+    
+    <!-- Responsive JavaScript -->
+    <script src="{{ asset('js/responsive.js') }}"></script>
     
     <!-- Additional scripts -->
     @stack('scripts')

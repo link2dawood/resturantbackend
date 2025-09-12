@@ -117,14 +117,22 @@ class OwnerController extends Controller
         return redirect()->route('owners.index')->with('success', 'Owner deleted successfully.');
     }
 
-    public function assignStores(Request $request, User $manager)
+    public function assignStoresForm(User $owner)
+    {
+        $stores = \App\Models\Store::all();
+        $assignedStores = $owner->stores()->pluck('store_id')->toArray();
+        
+        return view('owners.assign-stores', compact('owner', 'stores', 'assignedStores'));
+    }
+
+    public function assignStores(Request $request, User $owner)
     {
         $validatedData = $request->validate([
             'store_ids' => 'required|array',
             'store_ids.*' => 'exists:stores,id',
         ]);
 
-        $manager->stores()->sync($validatedData['store_ids']);
+        $owner->stores()->sync($validatedData['store_ids']);
 
         return redirect()->back()->with('success', 'Stores assigned successfully.');
     }

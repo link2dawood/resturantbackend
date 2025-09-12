@@ -110,4 +110,24 @@ class USStates
         
         return $options;
     }
+
+    /**
+     * Get states from database formatted for select options
+     */
+    public static function getStatesFromDatabaseForSelect(): array
+    {
+        try {
+            $states = \App\Models\State::orderBy('name')->get();
+            $options = ['' => 'Select State'];
+            
+            foreach ($states as $state) {
+                $options[$state->code] = $state->name . ' (' . $state->code . ')';
+            }
+            
+            return $options;
+        } catch (\Exception $e) {
+            // Fallback to hardcoded states if database is not available
+            return self::getStatesForSelect();
+        }
+    }
 }

@@ -13,9 +13,12 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->web([
             \App\Http\Middleware\SecurityHeaders::class,
+            \App\Http\Middleware\UpdateLastOnline::class,
         ]);
         
         $middleware->alias([
+            'role' => \App\Http\Middleware\RoleMiddleware::class,
+            'admin_or_owner' => \App\Http\Middleware\AdminOrOwnerMiddleware::class,
             'daily_report_access' => \App\Http\Middleware\CheckDailyReportAccess::class,
             'convert_date_format' => \App\Http\Middleware\ConvertDateFormat::class,
         ]);

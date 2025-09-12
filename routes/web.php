@@ -17,6 +17,7 @@ Route::get('/', [App\Http\Controllers\WelcomeController::class, 'index'])->name(
 Auth::routes();
 
 Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
+Route::get('/states', [App\Http\Controllers\HomeController::class, 'states'])->name('states.index');
 
 // Google OAuth Routes
 Route::get('google-signin', [GoogleController::class, 'redirectToGoogle'])->name('google.signin');
@@ -39,6 +40,8 @@ Route::middleware('auth')->group(function () {
         Route::get('owners/{owner}/edit', [OwnerController::class, 'edit'])->name('owners.edit');
         Route::put('owners/{owner}', [OwnerController::class, 'update'])->name('owners.update');
         Route::delete('owners/{owner}', [OwnerController::class, 'destroy'])->name('owners.destroy');
+        Route::get('owners/{owner}/assign-stores', [OwnerController::class, 'assignStoresForm'])->name('owners.assign-stores.form');
+        Route::post('owners/{owner}/assign-stores', [OwnerController::class, 'assignStores'])->name('owners.assign-stores');
     });
 
     // Store management - Admin and Owner access

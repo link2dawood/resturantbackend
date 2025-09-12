@@ -114,7 +114,7 @@
                                     <div class="mb-3">
                                         <label class="form-label required">State</label>
                                         <select name="state" class="form-control @error('state') is-invalid @enderror" required>
-                                            @foreach(\App\Helpers\USStates::getStatesForSelect() as $abbr => $name)
+                                            @foreach(\App\Helpers\USStates::getStatesFromDatabaseForSelect() as $abbr => $name)
                                                 <option value="{{ $abbr }}" {{ old('state', $owner->state) == $abbr ? 'selected' : '' }}>{{ $name }}</option>
                                             @endforeach
                                         </select>

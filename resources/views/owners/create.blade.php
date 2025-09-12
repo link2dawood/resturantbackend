@@ -21,7 +21,7 @@
     <form action="{{ route('owners.create') }}" method="POST" enctype="multipart/form-data">
         @csrf
         <div class="row">
-            <div class="col-md-8">
+            <div class="col-lg-8 col-md-12">
                 <!-- Basic Information -->
                 <div class="card mb-3">
                     <div class="card-header">
@@ -29,7 +29,7 @@
                     </div>
                     <div class="card-body">
                         <div class="row">
-                            <div class="col-md-6">
+                            <div class="col-lg-6 col-md-12">
                                 <div class="mb-3">
                                     <label class="form-label required">Name</label>
                                     <input type="text" name="name" class="form-control @error('name') is-invalid @enderror" 
@@ -39,7 +39,7 @@
                                     @enderror
                                 </div>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-lg-6 col-md-12">
                                 <div class="mb-3">
                                     <label class="form-label required">Email</label>
                                     <input type="email" name="email" class="form-control @error('email') is-invalid @enderror" 
@@ -51,7 +51,7 @@
                             </div>
                         </div>
                         <div class="row">
-                            <div class="col-md-6">
+                            <div class="col-lg-6 col-md-12">
                                 <div class="mb-3">
                                     <label class="form-label required">Password</label>
                                     <input type="password" name="password" class="form-control @error('password') is-invalid @enderror" required>
@@ -60,7 +60,7 @@
                                     @enderror
                                 </div>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-lg-6 col-md-12">
                                 <div class="mb-3">
                                     <label class="form-label">Picture</label>
                                     <input type="file" name="avatar" class="form-control @error('avatar') is-invalid @enderror" accept="image/*">
@@ -75,7 +75,7 @@
                                 <div class="mb-3">
                                     <label class="form-label required">State</label>
                                     <select name="state" class="form-control @error('state') is-invalid @enderror" required>
-                                        @foreach(\App\Helpers\USStates::getStatesForSelect() as $abbr => $name)
+                                        @foreach(\App\Helpers\USStates::getStatesFromDatabaseForSelect() as $abbr => $name)
                                             <option value="{{ $abbr }}" {{ old('state') == $abbr ? 'selected' : '' }}>{{ $name }}</option>
                                         @endforeach
                                     </select>
@@ -206,7 +206,7 @@
                 </div>
             </div>
 
-            <div class="col-md-4">
+            <div class="col-lg-4 col-md-12">
                 <div class="card">
                     <div class="card-header">
                         <h3 class="card-title">Actions</h3>

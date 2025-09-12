@@ -447,9 +447,11 @@ body {
     color: var(--accent-color) !important;
 }
 
+.nav-link.active,
 .nav-item.active .nav-link {
-    color: var(--accent-color) !important;
-    font-weight: 600;
+    color: white !important;
+    font-weight: 500;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
 }
 
 /* Badge improvements */
@@ -493,19 +495,117 @@ body {
     }
 }
 
-/* Responsive improvements */
-@media (max-width: 768px) {
-    .neuro-card {
-        padding: 1.5rem;
-        margin: 1rem;
+/* ==================== TABLER RESPONSIVE ENHANCEMENTS ==================== */
+
+/* Desktop-first responsive design using Tabler's system */
+/* Enhance Tabler's existing responsive capabilities */
+
+/* Desktop optimizations (default) */
+.page-wrapper {
+    transition: var(--transition);
+}
+
+.card {
+    transition: var(--transition);
+}
+
+.card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+/* Enhanced form styling */
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 0.125rem rgba(14, 165, 233, 0.25);
+}
+
+/* Tablet responsive adjustments */
+@media (max-width: 991.98px) {
+    .page-header .col-auto {
+        margin-top: 1rem;
     }
     
+    .btn-list {
+        gap: 0.5rem;
+    }
+    
+    .btn-list .btn {
+        font-size: 0.875rem;
+    }
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 767.98px) {
     .page-header {
-        padding: 1rem 0;
+        text-align: center;
     }
     
-    .container-xl {
-        padding-left: 1rem;
-        padding-right: 1rem;
+    .page-header .row {
+        text-align: left;
+    }
+    
+    .navbar-brand {
+        font-size: 1.125rem;
+    }
+    
+    .navbar-nav {
+        padding-top: 0.5rem;
+    }
+    
+    .navbar-nav .nav-link {
+        padding: 0.75rem 1rem;
+    }
+}
+
+/* Enhanced responsive table support */
+@media (max-width: 767.98px) {
+    .table-responsive .table th,
+    .table-responsive .table td {
+        white-space: nowrap;
+    }
+    
+    .table-mobile th.d-none,
+    .table-mobile td.d-none {
+        display: none !important;
+    }
+}
+
+/* ==================== TABLER RESPONSIVE UTILITIES ==================== */
+
+/* Subtle enhancements to Tabler's responsive system */
+.table-responsive {
+    border-radius: var(--border-radius-sm);
+}
+
+/* Better focus states */
+.form-control:focus,
+.form-select:focus {
+    box-shadow: 0 0 0 0.125rem rgba(14, 165, 233, 0.25);
+}
+
+/* Enhanced dropdown styling */
+.dropdown-menu {
+    border-radius: var(--border-radius-sm);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+/* Smooth transitions for interactive elements */
+.btn,
+.nav-link,
+.dropdown-item {
+    transition: var(--transition);
+}
+
+/* Card hover effects (desktop only) */
+@media (min-width: 768px) {
+    .card {
+        transition: var(--transition);
+    }
+    
+    .card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
     }
 }

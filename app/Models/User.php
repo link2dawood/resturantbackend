@@ -76,6 +76,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'corporate_creation_date' => 'date',
+            'last_online' => 'datetime',
             'role' => UserRole::class,
         ];
     }
@@ -227,5 +228,31 @@ class User extends Authenticatable implements MustVerifyEmail
         }
 
         return Store::whereRaw('1 = 0'); // Return empty query
+    }
+
+    /**
+     * Update the user's last online timestamp
+     */
+    public function updateLastOnline(): void
+    {
+        $this->update(['last_online' => now()]);
+    }
+
+    /**
+     * Get human readable last online time
+     */
+    public function getLastOnlineHumanAttribute(): string
+    {
+        if (!$this->last_online) {
+            return 'Never';
+        }
+
+        $now = now();
+        
+        if ($this->last_online->diffInMinutes($now) < 5) {
+            return 'Online';
+        }
+        
+        return $this->last_online->diffForHumans();
     }
 }

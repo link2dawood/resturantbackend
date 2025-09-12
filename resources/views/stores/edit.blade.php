@@ -46,7 +46,14 @@
         </div>
         <div class="mb-3">
             <label for="state" class="form-label">State</label>
-            <input type="text" class="form-control" id="state" name="state" value="{{ $store->state }}" required>
+            <select name="state" id="state" class="form-control @error('state') is-invalid @enderror" required>
+                @foreach(\App\Helpers\USStates::getStatesFromDatabaseForSelect() as $abbr => $name)
+                    <option value="{{ $abbr }}" {{ old('state', $store->state) == $abbr ? 'selected' : '' }}>{{ $name }}</option>
+                @endforeach
+            </select>
+            @error('state')
+                <div class="invalid-feedback">{{ $message }}</div>
+            @enderror
         </div>
         <div class="mb-3">
             <label for="zip" class="form-label">Zip</label>

@@ -14,6 +14,7 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call(TransactionTypeTableSeeder::class);
+        $this->call(StateSeeder::class);
 
         User::factory()->create([
             'name' => 'Admin',
