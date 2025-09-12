@@ -182,7 +182,7 @@
                 
                 <div class="form-group">
                     <label class="form-label">Date</label>
-                    <input type="date" name="report_date" class="form-control" value="{{ old('report_date', date('Y-m-d')) }}" required>
+                    <input type="text" name="report_date" class="form-control date-input" value="{{ old('report_date', date('m-d-Y')) }}" placeholder="MM-DD-YYYY" maxlength="10" required>
                 </div>
             </div>
         </div>

@@ -183,12 +183,12 @@
                 
                 <div class="col-md-2">
                     <label class="form-label">From Date</label>
-                    <input type="date" name="date_from" class="form-control" value="{{ request('date_from') }}">
+                    <input type="text" name="date_from" class="form-control date-input" value="{{ request('date_from') ? \Carbon\Carbon::parse(request('date_from'))->format('m-d-Y') : '' }}" placeholder="MM-DD-YYYY" maxlength="10">
                 </div>
                 
                 <div class="col-md-2">
                     <label class="form-label">To Date</label>
-                    <input type="date" name="date_to" class="form-control" value="{{ request('date_to') }}">
+                    <input type="text" name="date_to" class="form-control date-input" value="{{ request('date_to') ? \Carbon\Carbon::parse(request('date_to'))->format('m-d-Y') : '' }}" placeholder="MM-DD-YYYY" maxlength="10">
                 </div>
                 
                 <div class="col-md-2">
@@ -224,7 +224,7 @@
                         @foreach($logs as $log)
                         <tr>
                             <td>
-                                <div>{{ $log->created_at->format('M d, Y') }}</div>
+                                <div>{{ \App\Helpers\DateFormatter::toUSShort($log->created_at) }}</div>
                                 <small class="text-muted">{{ $log->created_at->format('h:i A') }}</small>
                             </td>
                             <td>

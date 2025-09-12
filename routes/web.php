@@ -31,8 +31,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/profile/avatar', [ProfileController::class, 'updateAvatar'])->name('profile.avatar.update');
     Route::delete('/profile/avatar', [ProfileController::class, 'removeAvatar'])->name('profile.avatar.remove');
 
-    // Owner management - Admin only
-    Route::middleware('role:admin')->group(function () {
+    // Owner management - Admin only with date conversion
+    Route::middleware(['role:admin', 'convert_date_format'])->group(function () {
         Route::get('/owners', [OwnerController::class, 'index'])->name('owners.index');
         Route::get('owners/create', [OwnerController::class, 'create'])->name('owners.create');
         Route::post('owners/create', [OwnerController::class, 'create'])->name('owners.store');
@@ -51,8 +51,8 @@ Route::middleware('auth')->group(function () {
         Route::delete('/stores/{store}', [StoreController::class, 'destroy'])->name('stores.destroy');
     });
     
-    // Daily Reports Routes - with access control
-    Route::middleware('daily_report_access')->group(function () {
+    // Daily Reports Routes - with access control and date conversion
+    Route::middleware(['daily_report_access', 'convert_date_format'])->group(function () {
         Route::get('/daily-reports', [DailyReportController::class, 'index'])->name('daily-reports.index');
         Route::get('/daily-reports/create', [DailyReportController::class, 'create'])->name('daily-reports.create');
         Route::get('/daily-reports/quick-entry', [DailyReportController::class, 'quickEntry'])->name('daily-reports.quick-entry');
@@ -109,8 +109,8 @@ Route::middleware('auth')->group(function () {
     });
 
 
-    // Audit Log Routes (Admin and Owner only)
-    Route::middleware('admin_or_owner')->group(function () {
+    // Audit Log Routes (Admin and Owner only) with date conversion
+    Route::middleware(['admin_or_owner', 'convert_date_format'])->group(function () {
         Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
         Route::get('/audit-logs/{auditLog}', [AuditLogController::class, 'show'])->name('audit-logs.show');
     });

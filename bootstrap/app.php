@@ -17,6 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
         
         $middleware->alias([
             'daily_report_access' => \App\Http\Middleware\CheckDailyReportAccess::class,
+            'convert_date_format' => \App\Http\Middleware\ConvertDateFormat::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

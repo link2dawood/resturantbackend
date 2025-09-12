@@ -79,7 +79,7 @@ class ProfileController extends Controller
     }
     
     /**
-    * Update the user's avatar securely without Intervention Image.
+    * Update the user's picture securely without Intervention Image.
     */
     public function updateAvatar(Request $request)
     {
@@ -123,15 +123,15 @@ class ProfileController extends Controller
             // Update user record
             $user->update(['avatar' => $avatarName]);
             
-            Log::info('Avatar uploaded successfully', [
+            Log::info('Picture uploaded successfully', [
                 'user_id' => $user->id,
                 'filename' => $avatarName
             ]);
             
-            return redirect()->route('profile.show')->with('success', 'Avatar updated successfully.');
+            return redirect()->route('profile.show')->with('success', 'Picture updated successfully.');
             
         } catch (\Exception $e) {
-            Log::error('Avatar upload failed', [
+            Log::error('Picture upload failed', [
                 'user_id' => auth()->id(),
                 'error' => $e->getMessage()
             ]);
@@ -230,7 +230,7 @@ class ProfileController extends Controller
     }
     
     /**
-    * Remove the user's avatar.
+    * Remove the user's picture.
     */
     public function removeAvatar()
     {
@@ -244,6 +244,6 @@ class ProfileController extends Controller
             'avatar' => null,
         ]);
         
-        return redirect()->route('profile.show')->with('success', 'Avatar removed successfully.');
+        return redirect()->route('profile.show')->with('success', 'Picture removed successfully.');
     }
 }

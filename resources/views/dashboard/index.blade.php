@@ -368,7 +368,7 @@
                         @foreach($analytics['topDays'] as $index => $day)
                             <div class="d-flex justify-content-between align-items-center mb-3 p-2 rounded" style="background: {{ $index === 0 ? '#fff3cd' : '#f8f9fa' }}">
                                 <div>
-                                    <strong>{{ $day->report_date->format('M j, Y') }}</strong>
+                                    <strong>{{ \App\Helpers\DateFormatter::toUSShort($day->report_date) }}</strong>
                                     <br>
                                     <small class="text-muted">{{ $day->store->store_info }}</small>
                                 </div>

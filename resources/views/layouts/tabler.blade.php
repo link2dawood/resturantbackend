@@ -17,6 +17,12 @@
     <!-- Modern Design System -->
     <link href="{{ asset('css/modern-design.css') }}" rel="stylesheet"/>
     
+    <!-- Phone Formatter Styles -->
+    <link href="{{ asset('css/phone-formatter.css') }}" rel="stylesheet"/>
+    
+    <!-- Date Formatter Styles -->
+    <link href="{{ asset('css/date-formatter.css') }}" rel="stylesheet"/>
+    
     <!-- Additional styles -->
     @stack('styles')
     
@@ -306,13 +312,19 @@
     <!-- Neumorphic Dropzone -->
     <script src="{{ asset('js/neumorphic-dropzone.js') }}"></script>
     
+    <!-- Phone Formatter -->
+    <script src="{{ asset('js/phone-formatter.js') }}"></script>
+    
+    <!-- Date Formatter -->
+    <script src="{{ asset('js/date-formatter.js') }}"></script>
+    
     <!-- Initialize dropzone -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // Initialize dropzone
-            const avatarDropzone = document.getElementById('avatarDropzone');
-            if (avatarDropzone) {
-                window.dropzone = new NeumorphicDropzone(avatarDropzone, {
+            const pictureDropzone = document.getElementById('avatarDropzone');
+            if (pictureDropzone) {
+                window.dropzone = new NeumorphicDropzone(pictureDropzone, {
                     uploadUrl: '{{ route("profile.avatar.update") }}',
                     maxFileSize: 2 * 1024 * 1024,
                     allowedTypes: ['image/jpeg', 'image/png', 'image/jpg', 'image/gif']

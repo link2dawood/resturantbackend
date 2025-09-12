@@ -95,17 +95,32 @@
                                 </div>
                                 <div class="col-md-6">
                                     <div class="mb-3">
-                                        <label class="form-label">Avatar</label>
+                                        <label class="form-label">Picture</label>
                                         <input type="file" name="avatar" class="form-control @error('avatar') is-invalid @enderror" accept="image/*">
                                         @error('avatar')
                                             <div class="invalid-feedback">{{ $message }}</div>
                                         @enderror
                                         @if ($owner->avatar)
                                             <div class="mt-2">
-                                                <img src="{{ asset('storage/avatars/' . $owner->avatar) }}" alt="Current Avatar" 
+                                                <img src="{{ asset('storage/avatars/' . $owner->avatar) }}" alt="Current Picture" 
                                                      class="avatar avatar-md">
                                             </div>
                                         @endif
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <div class="mb-3">
+                                        <label class="form-label required">State</label>
+                                        <select name="state" class="form-control @error('state') is-invalid @enderror" required>
+                                            @foreach(\App\Helpers\USStates::getStatesForSelect() as $abbr => $name)
+                                                <option value="{{ $abbr }}" {{ old('state', $owner->state) == $abbr ? 'selected' : '' }}>{{ $name }}</option>
+                                            @endforeach
+                                        </select>
+                                        @error('state')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
                                     </div>
                                 </div>
                             </div>
@@ -130,8 +145,8 @@
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         <label class="form-label">Personal Phone</label>
-                                        <input type="text" name="personal_phone" class="form-control @error('personal_phone') is-invalid @enderror" 
-                                               value="{{ old('personal_phone', $owner->personal_phone) }}" placeholder="Personal phone number">
+                                        <input type="tel" name="personal_phone" class="form-control phone-input @error('personal_phone') is-invalid @enderror" 
+                                               value="{{ old('personal_phone', $owner->personal_phone) }}" placeholder="(555) 123-4567" maxlength="14">
                                         @error('personal_phone')
                                             <div class="invalid-feedback">{{ $message }}</div>
                                         @enderror
@@ -158,9 +173,9 @@
                         </div>
                         <div class="card-body">
                             <div class="mb-3">
-                                <label class="form-label">Corporate Address</label>
+                                <label class="form-label required">Corporate Address</label>
                                 <textarea name="corporate_address" class="form-control @error('corporate_address') is-invalid @enderror" 
-                                          rows="3" placeholder="Full corporate address">{{ old('corporate_address', $owner->corporate_address) }}</textarea>
+                                          rows="3" placeholder="Full corporate address" required>{{ old('corporate_address', $owner->corporate_address) }}</textarea>
                                 @error('corporate_address')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
@@ -169,8 +184,8 @@
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         <label class="form-label">Corporate Phone</label>
-                                        <input type="text" name="corporate_phone" class="form-control @error('corporate_phone') is-invalid @enderror" 
-                                               value="{{ old('corporate_phone', $owner->corporate_phone) }}" placeholder="Corporate phone number">
+                                        <input type="tel" name="corporate_phone" class="form-control phone-input @error('corporate_phone') is-invalid @enderror" 
+                                               value="{{ old('corporate_phone', $owner->corporate_phone) }}" placeholder="(555) 123-4567" maxlength="14">
                                         @error('corporate_phone')
                                             <div class="invalid-feedback">{{ $message }}</div>
                                         @enderror
@@ -207,9 +222,9 @@
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="mb-3">
-                                        <label class="form-label">Corporate EIN Number</label>
+                                        <label class="form-label required">Corporate EIN Number</label>
                                         <input type="text" name="corporate_ein" class="form-control @error('corporate_ein') is-invalid @enderror" 
-                                               value="{{ old('corporate_ein', $owner->corporate_ein) }}" placeholder="XX-XXXXXXX">
+                                               value="{{ old('corporate_ein', $owner->corporate_ein) }}" placeholder="XX-XXXXXXX" required>
                                         @error('corporate_ein')
                                             <div class="invalid-feedback">{{ $message }}</div>
                                         @enderror
@@ -217,9 +232,9 @@
                                 </div>
                                 <div class="col-md-6">
                                     <div class="mb-3">
-                                        <label class="form-label">Corporate Creation Date</label>
-                                        <input type="date" name="corporate_creation_date" class="form-control @error('corporate_creation_date') is-invalid @enderror" 
-                                               value="{{ old('corporate_creation_date', $owner->corporate_creation_date?->format('Y-m-d')) }}">
+                                        <label class="form-label required">Corporate Creation Date</label>
+                                        <input type="text" name="corporate_creation_date" required class="form-control date-input @error('corporate_creation_date') is-invalid @enderror" 
+                                               value="{{ old('corporate_creation_date', $owner->corporate_creation_date?->format('m-d-Y')) }}" placeholder="MM-DD-YYYY" maxlength="10">
                                         @error('corporate_creation_date')
                                             <div class="invalid-feedback">{{ $message }}</div>
                                         @enderror

@@ -24,10 +24,10 @@
                     <input type="text" name="search" class="form-control" placeholder="Search..." value="{{ request('search') }}">
                 </div>
                 <div class="col-md-2">
-                    <input type="date" name="date_from" class="form-control" value="{{ request('date_from') }}">
+                    <input type="text" name="date_from" class="form-control date-input" value="{{ request('date_from') ? \Carbon\Carbon::parse(request('date_from'))->format('m-d-Y') : '' }}" placeholder="MM-DD-YYYY" maxlength="10">
                 </div>
                 <div class="col-md-2">
-                    <input type="date" name="date_to" class="form-control" value="{{ request('date_to') }}">
+                    <input type="text" name="date_to" class="form-control date-input" value="{{ request('date_to') ? \Carbon\Carbon::parse(request('date_to'))->format('m-d-Y') : '' }}" placeholder="MM-DD-YYYY" maxlength="10">
                 </div>
                 <div class="col-md-2">
                     <select name="store_id" class="form-select">

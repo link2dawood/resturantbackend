@@ -1,5 +1,5 @@
 @extends('layouts.tabler')
-@section('title', 'Daily Report - ' . $dailyReport->report_date->format('M d, Y'))
+@section('title', 'Daily Report - ' . \App\Helpers\DateFormatter::toUSShort($dailyReport->report_date))
 @section('content')
 
 <style>
@@ -182,7 +182,7 @@
 <div class="container-xl mt-5">
     <div class="page-header">
         <div class="page-title">
-            <h1>Daily Report - {{ $dailyReport->report_date->format('M d, Y') }}</h1>
+            <h1>Daily Report - {{ \App\Helpers\DateFormatter::toUSShort($dailyReport->report_date) }}</h1>
         </div>
         <div class="page-actions">
         <a href="{{ route('daily-reports.edit', $dailyReport) }}" class="btn btn-warning">✏️ Edit Report</a>
@@ -206,13 +206,13 @@
     
     <div class="report-meta">
         <div>
-            <strong>Report Date:</strong> {{ $dailyReport->report_date->format('F d, Y') }}
+            <strong>Report Date:</strong> {{ \App\Helpers\DateFormatter::toUSDisplay($dailyReport->report_date) }}
         </div>
         <div>
             <strong>Created by:</strong> {{ $dailyReport->creator->name }}
         </div>
         <div>
-            <strong>Created:</strong> {{ $dailyReport->created_at->format('M d, Y h:i A') }}
+            <strong>Created:</strong> {{ \App\Helpers\DateFormatter::toUSWithTime($dailyReport->created_at) }}
         </div>
     </div>
 

@@ -171,7 +171,7 @@
     <div class="audit-detail-card">
         <div class="audit-header">
             <h1>🔍 Audit Log Details</h1>
-            <p>{{ $auditLog->action_description }} - {{ $auditLog->created_at->format('M d, Y h:i A') }}</p>
+            <p>{{ $auditLog->action_description }} - {{ \App\Helpers\DateFormatter::toUSWithTime($auditLog->created_at) }}</p>
         </div>
         
         <!-- Basic Information -->
@@ -190,7 +190,7 @@
                 </div>
                 <div class="info-item">
                     <div class="info-label">Date & Time</div>
-                    <div class="info-value">{{ $auditLog->created_at->format('F d, Y h:i:s A') }}</div>
+                    <div class="info-value">{{ \App\Helpers\DateFormatter::toUSWithTime($auditLog->created_at) }}</div>
                 </div>
                 <div class="info-item">
                     <div class="info-label">Model Type</div>

@@ -52,7 +52,7 @@ class StoreController extends Controller
         $validatedData = $request->validate([
             'store_info' => 'required|string|max:255',
             'contact_name' => 'required|string|max:255',
-            'phone' => 'required|string|max:20',
+            'phone' => 'required|string|regex:/^\(\d{3}\)\s\d{3}-\d{4}$/',
             'address' => 'required|string|max:255',
             'city' => 'required|string|max:100',
             'state' => 'required|string|max:100',
@@ -94,7 +94,7 @@ class StoreController extends Controller
         $validatedData = $request->validate([
             'store_info' => 'required|string|max:255',
             'contact_name' => 'required|string|max:255',
-            'phone' => 'required|string|max:20',
+            'phone' => 'required|string|regex:/^\(\d{3}\)\s\d{3}-\d{4}$/',
             'address' => 'required|string|max:255',
              'created_by' => 'required',
             'city' => 'required|string|max:100',

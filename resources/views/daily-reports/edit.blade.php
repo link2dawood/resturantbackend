@@ -376,7 +376,7 @@
                         <div class="side-panel">
                             <div class="form-group">
                                 <label>Date:</label>
-                                <input type="date" name="report_date" class="form-control" value="{{ $dailyReport->report_date->format('Y-m-d') }}" required>
+                                <input type="text" name="report_date" class="form-control date-input" value="{{ $dailyReport->report_date->format('m-d-Y') }}" placeholder="MM-DD-YYYY" maxlength="10" required>
                             </div>
                             <div class="form-group">
                                 <label>Weather:</label>

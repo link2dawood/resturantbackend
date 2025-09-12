@@ -129,7 +129,7 @@
                 <div class="side-info">
                     <div class="mb-3">
                         <label class="form-label">Date:</label>
-                        <input type="date" class="form-control">
+                        <input type="text" class="form-control date-input" placeholder="MM-DD-YYYY" maxlength="10">
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Weather:</label>

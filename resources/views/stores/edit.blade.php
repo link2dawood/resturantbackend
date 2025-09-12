@@ -34,7 +34,7 @@
         </div>
         <div class="mb-3">
             <label for="phone" class="form-label">Phone</label>
-            <input type="text" class="form-control" id="phone" name="phone" value="{{ $store->phone }}" required>
+            <input type="tel" class="form-control phone-input" id="phone" name="phone" value="{{ $store->phone }}" placeholder="(555) 123-4567" maxlength="14" required>
         </div>
         <div class="mb-3">
             <label for="address" class="form-label">Address</label>

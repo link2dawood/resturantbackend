@@ -212,8 +212,8 @@ class DailyReportController extends Controller
             
             // revenue entries
             'revenues'            => 'nullable|array',
-            'revenues.*.revenue_income_type_id' => 'required_with:revenues|exists:revenue_income_types,id',
-            'revenues.*.amount'   => 'required_with:revenues|numeric|min:0',
+            'revenues.*.revenue_income_type_id' => 'nullable|exists:revenue_income_types,id',
+            'revenues.*.amount'   => 'nullable|numeric|min:0',
             'revenues.*.notes'    => 'nullable|string|max:500',
         ]);
 
@@ -254,6 +254,20 @@ class DailyReportController extends Controller
             ]);
         }
         
+        // Validate revenue entries - if amount is provided, revenue_income_type_id is required
+        if ($request->has('revenues')) {
+            foreach ($request->revenues as $index => $revenueData) {
+                $amount = $revenueData['amount'] ?? null;
+                $typeId = $revenueData['revenue_income_type_id'] ?? null;
+                
+                // If amount is provided but no type ID, throw validation error
+                if (!empty($amount) && $amount > 0 && empty($typeId)) {
+                    throw ValidationException::withMessages([
+                        "revenues.{$index}.revenue_income_type_id" => ['The revenue income type is required when amount is provided.']
+                    ]);
+                }
+            }
+        }
 
         // Additional business logic validations
         $this->validateBusinessRules($validatedData);

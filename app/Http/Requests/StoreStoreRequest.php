@@ -24,7 +24,7 @@ class StoreStoreRequest extends FormRequest
         return [
             'store_info' => ['required', 'string', 'max:255', 'regex:/^[a-zA-Z0-9\s\-\.]+$/'],
             'contact_name' => ['required', 'string', 'max:100', 'regex:/^[a-zA-Z\s\-\.]+$/'],
-            'phone' => ['required', 'string', 'regex:/^[\+]?[1-9][\d]{0,15}$/'],
+            'phone' => ['required', 'string', 'regex:/^\(\d{3}\)\s\d{3}-\d{4}$/'],
             'address' => ['required', 'string', 'max:255'],
             'city' => ['required', 'string', 'max:100', 'regex:/^[a-zA-Z\s\-\.]+$/'],
             'state' => ['required', 'string', 'size:2', 'regex:/^[A-Z]{2}$/'],
@@ -42,7 +42,7 @@ class StoreStoreRequest extends FormRequest
         return [
             'store_info.regex' => 'Store info can only contain letters, numbers, spaces, hyphens, and dots.',
             'contact_name.regex' => 'Contact name can only contain letters, spaces, hyphens, and dots.',
-            'phone.regex' => 'Phone number format is invalid.',
+            'phone.regex' => 'Phone number must be in format (555) 123-4567.',
             'city.regex' => 'City name can only contain letters, spaces, hyphens, and dots.',
             'state.regex' => 'State must be a 2-letter uppercase abbreviation.',
             'zip.regex' => 'ZIP code must be in format 12345 or 12345-6789.',
@@ -57,7 +57,6 @@ class StoreStoreRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $this->merge([
-            'phone' => preg_replace('/[^\d\+]/', '', $this->phone),
             'state' => strtoupper($this->state),
             'zip' => trim($this->zip),
         ]);

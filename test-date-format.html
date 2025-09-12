@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>US Date Format Test (MM-DD-YYYY)</title>
+    <link href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta17/dist/css/tabler.min.css" rel="stylesheet"/>
+    <link href="css/date-formatter.css" rel="stylesheet"/>
+    <style>
+        body { padding: 2rem; }
+        .test-section { 
+            margin-bottom: 3rem; 
+            padding: 1.5rem;
+            border: 1px solid #e9ecef;
+            border-radius: 0.5rem;
+        }
+        .form-control { margin-bottom: 1rem; }
+        .test-result {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 0.25rem;
+            margin-top: 1rem;
+        }
+        .success { border-left: 4px solid #28a745; }
+        .warning { border-left: 4px solid #ffc107; }
+        .error { border-left: 4px solid #dc3545; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="text-center mb-4">
+            <h1>🗓️ US Date Format Test (MM-DD-YYYY)</h1>
+            <p class="text-muted">Test the comprehensive date formatting system</p>
+        </div>
+        
+        <!-- Date Input Tests -->
+        <div class="test-section">
+            <h3>📝 Date Input Tests</h3>
+            <p>All inputs should format to MM-DD-YYYY as you type:</p>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <label class="form-label">Report Date</label>
+                    <input type="text" name="report_date" class="form-control date-input" placeholder="MM-DD-YYYY">
+                    <div class="date-hint">Try: 12252024, 12/25/2024, 2024-12-25</div>
+                </div>
+                
+                <div class="col-md-6">
+                    <label class="form-label">Corporate Creation Date</label>
+                    <input type="text" name="corporate_creation_date" class="form-control date-input" placeholder="MM-DD-YYYY">
+                    <div class="date-hint">Try: 01152023</div>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <label class="form-label">Date From (Filter)</label>
+                    <input type="text" name="date_from" class="form-control date-input" placeholder="MM-DD-YYYY">
+                    <div class="date-hint">Try: 010124</div>
+                </div>
+                
+                <div class="col-md-6">
+                    <label class="form-label">Date To (Filter)</label>
+                    <input type="text" name="date_to" class="form-control date-input" placeholder="MM-DD-YYYY">
+                    <div class="date-hint">Try: 12/31/24</div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <label class="form-label">Pre-filled Date</label>
+                <input type="text" name="prefilled_date" class="form-control date-input" value="2024-03-15" placeholder="MM-DD-YYYY">
+                <div class="date-hint">Should auto-format existing YYYY-MM-DD value</div>
+            </div>
+        </div>
+
+        <!-- Date Display Tests -->
+        <div class="test-section">
+            <h3>👀 Date Display Tests</h3>
+            <p>These would normally show dates from the backend in MM-DD-YYYY format:</p>
+            
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title report-date">Daily Report</h5>
+                            <p class="date-display" data-date="2024-03-15">March 15, 2024</p>
+                            <small class="text-muted">Should format to MM/DD/YYYY</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Audit Log</h5>
+                            <p class="audit-date" data-date="2024-12-25T14:30:00">Dec 25, 2024 2:30 PM</p>
+                            <small class="text-muted">Should format to MM/DD/YYYY H:i A</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Dashboard</h5>
+                            <p class="dashboard-date date-today" data-date="2024-01-01">Jan 1, 2024</p>
+                            <small class="text-muted">Today's date highlight</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Validation Tests -->
+        <div class="test-section">
+            <h3>✅ Validation Tests</h3>
+            <p>Test different date formats and validation:</p>
+            
+            <div class="row">
+                <div class="col-md-4">
+                    <label class="form-label">Valid Date</label>
+                    <input type="text" class="form-control date-input" placeholder="Try: 03-15-2024">
+                </div>
+                
+                <div class="col-md-4">
+                    <label class="form-label">Invalid Date</label>
+                    <input type="text" class="form-control date-input" placeholder="Try: 13-32-2024">
+                </div>
+                
+                <div class="col-md-4">
+                    <label class="form-label">Partial Date</label>
+                    <input type="text" class="form-control date-input" placeholder="Try: 03-15">
+                </div>
+            </div>
+        </div>
+
+        <!-- Interactive Tests -->
+        <div class="test-section">
+            <h3>🧪 Interactive Tests</h3>
+            
+            <div class="mb-3">
+                <button onclick="testDateConversions()" class="btn btn-primary">Test Date Conversions</button>
+                <button onclick="testFormSubmission()" class="btn btn-secondary">Test Form Submission</button>
+                <button onclick="clearAllInputs()" class="btn btn-outline-danger">Clear All</button>
+            </div>
+            
+            <div id="testResults" class="test-result" style="display: none;"></div>
+        </div>
+
+        <!-- Format Examples -->
+        <div class="test-section">
+            <h3>📋 Format Examples</h3>
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>Input Formats (Auto-converts to MM-DD-YYYY):</h5>
+                    <ul>
+                        <li><code>12252024</code> → 12-25-2024</li>
+                        <li><code>12/25/2024</code> → 12-25-2024</li>
+                        <li><code>2024-12-25</code> → 12-25-2024</li>
+                        <li><code>Dec 25, 2024</code> → 12-25-2024</li>
+                    </ul>
+                </div>
+                
+                <div class="col-md-6">
+                    <h5>Display Formats:</h5>
+                    <ul>
+                        <li><strong>Input:</strong> MM-DD-YYYY (12-25-2024)</li>
+                        <li><strong>Display:</strong> MM/DD/YYYY (12/25/2024)</li>
+                        <li><strong>Short:</strong> M d, Y (Dec 25, 2024)</li>
+                        <li><strong>Backend:</strong> YYYY-MM-DD (2024-12-25)</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/date-formatter.js"></script>
+    
+    <script>
+        function testDateConversions() {
+            const results = document.getElementById('testResults');
+            results.style.display = 'block';
+            results.className = 'test-result success';
+            
+            let html = '<h4>Date Conversion Test Results:</h4>';
+            
+            const testCases = [
+                '12252024',
+                '12/25/2024',
+                '2024-12-25',
+                '03-15-2024',
+                '1-1-2024',
+                '13-32-2024', // Invalid
+                '12-25', // Incomplete
+            ];
+            
+            testCases.forEach(testCase => {
+                const formatted = window.dateFormatter ? window.dateFormatter.format(testCase) : 'Formatter not loaded';
+                const isValid = window.dateFormatter ? window.dateFormatter.validate(formatted) : false;
+                const iso = window.dateFormatter ? window.dateFormatter.toISO(formatted) : 'N/A';
+                
+                html += `
+                    <div class="mb-2 p-2 border rounded">
+                        <strong>Input:</strong> "${testCase}"<br>
+                        <strong>Formatted:</strong> "${formatted}"<br>
+                        <strong>ISO:</strong> "${iso}"<br>
+                        <strong>Valid:</strong> ${isValid ? '✅ Yes' : '❌ No'}
+                    </div>
+                `;
+            });
+            
+            results.innerHTML = html;
+        }
+        
+        function testFormSubmission() {
+            const form = document.createElement('form');
+            form.style.display = 'none';
+            
+            // Add date inputs to form
+            const dateInputs = document.querySelectorAll('.date-input');
+            dateInputs.forEach(input => {
+                if (input.value) {
+                    const hiddenInput = document.createElement('input');
+                    hiddenInput.type = 'hidden';
+                    hiddenInput.name = input.name;
+                    hiddenInput.value = input.value;
+                    form.appendChild(hiddenInput);
+                }
+            });
+            
+            document.body.appendChild(form);
+            
+            // Simulate form submission event
+            const submitEvent = new Event('submit', { bubbles: true });
+            form.dispatchEvent(submitEvent);
+            
+            const results = document.getElementById('testResults');
+            results.style.display = 'block';
+            results.className = 'test-result success';
+            results.innerHTML = '<h4>Form Submission Test:</h4><p>✅ Date conversion middleware would handle backend formatting automatically!</p>';
+            
+            document.body.removeChild(form);
+        }
+        
+        function clearAllInputs() {
+            document.querySelectorAll('input[type="text"]').forEach(input => {
+                input.value = '';
+                input.classList.remove('date-invalid', 'date-valid');
+            });
+            
+            document.querySelectorAll('.date-error, .phone-error').forEach(error => {
+                error.remove();
+            });
+            
+            const results = document.getElementById('testResults');
+            results.style.display = 'none';
+        }
+        
+        // Test auto-formatting on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Date formatter loaded!');
+            console.log('Available functions:', window.dateFormatter);
+            
+            // Demonstrate date display formatting
+            setTimeout(() => {
+                document.querySelectorAll('[data-date]').forEach(element => {
+                    const dateValue = element.getAttribute('data-date');
+                    const formatted = window.dateFormatter ? window.dateFormatter.displayFormat(dateValue) : dateValue;
+                    element.textContent = formatted;
+                });
+            }, 500);
+        });
+        
+        // Show today's date
+        document.addEventListener('DOMContentLoaded', function() {
+            const today = window.dateFormatter ? window.dateFormatter.today() : new Date().toLocaleDateString();
+            document.title += ' - ' + today;
+        });
+    </script>
+</body>
+</html>

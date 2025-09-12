@@ -19,7 +19,8 @@
                             <th>ID</th>
                             <th>Name</th>
                             <th>Email</th>
-                            <th>Avatar</th>
+                            <th>State</th>
+                            <th>Picture</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -30,10 +31,18 @@
                                 <td>{{ $owner->name }}</td>
                                 <td>{{ $owner->email }}</td>
                                 <td>
-                                    @if ($owner->avatar)
-                                        <img src="{{ asset('storage/' . $owner->avatar) }}" alt="Avatar" class="img-thumbnail" style="width: 50px; height: 50px;">
+                                    @if($owner->state)
+                                        <span class="badge bg-primary">{{ $owner->state }}</span>
+                                        <small class="text-muted d-block">{{ \App\Helpers\USStates::getStateName($owner->state) }}</small>
                                     @else
-                                        <img src="{{ asset('images/default-owner.png') }}" alt="Default Avatar" class="img-thumbnail" style="width: 50px; height: 50px;">
+                                        <span class="text-muted">No State</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    @if ($owner->avatar)
+                                        <img src="{{ asset('storage/' . $owner->avatar) }}" alt="Picture" class="img-thumbnail" style="width: 50px; height: 50px;">
+                                    @else
+                                        <img src="{{ asset('images/default-owner.png') }}" alt="Default Picture" class="img-thumbnail" style="width: 50px; height: 50px;">
                                     @endif
                                 </td>
                                 <td>

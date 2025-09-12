@@ -26,6 +26,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'password',
         'google_id',
         'avatar',
+        'state',
         'email_verified_at',
         'username',
         'last_online',
@@ -80,7 +81,7 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
-     * Get the user's avatar URL.
+     * Get the user's picture URL.
      */
     public function getAvatarUrlAttribute(): string
     {

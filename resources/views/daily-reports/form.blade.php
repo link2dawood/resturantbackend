@@ -371,7 +371,7 @@
                         <div class="side-panel">
                             <div class="form-group">
                                 <label>Date:</label>
-                                <input type="date" name="report_date" class="form-control" value="{{ date('Y-m-d') }}" required>
+                                <input type="text" name="report_date" class="form-control date-input" value="{{ date('m-d-Y') }}" placeholder="MM-DD-YYYY" maxlength="10" required>
                             </div>
                             <div class="form-group">
                                 <label>Weather:</label>

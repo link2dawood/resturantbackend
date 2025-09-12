@@ -79,10 +79,10 @@
                     </div>
                 </div>
                 
-                <!-- Avatar Management Card -->
+                <!-- Picture Management Card -->
                 <div class="card mt-3">
                     <div class="card-header">
-                        <h3 class="card-title">Avatar Management</h3>
+                        <h3 class="card-title">Picture Management</h3>
                     </div>
                     <div class="card-body">
                         <div class="row align-items-center mb-4">
@@ -93,7 +93,7 @@
                         </div>
                         <div class="col">
                             <h5 class="mb-1">{{ $user->name }}</h5>
-                            <p class="text-muted mb-0">Current avatar</p>
+                            <p class="text-muted mb-0">Current picture</p>
                         </div>
                     </div>
                     
@@ -102,7 +102,7 @@
                     <form action="{{ route('profile.avatar.update') }}" method="POST" enctype="multipart/form-data" id="avatarForm">
                         @csrf
                         <div class="mb-3">
-                            <label for="avatar" class="form-label">Choose new avatar</label>
+                            <label for="avatar" class="form-label">Choose new picture</label>
                             <input type="file" 
                             class="form-control" 
                             id="avatar" 
@@ -134,13 +134,13 @@
                                     <polyline points="9 15 12 12 15 15"/>
                                     <path d="m12 12l0 9"/>
                                 </svg>
-                                Upload Avatar
+                                Upload Picture
                             </button>
                             
                             @if($user->avatar)
                             <a href="{{ route('profile.avatar.remove') }}" 
                             class="btn btn-outline-danger"
-                            onclick="event.preventDefault(); if(confirm('Are you sure you want to remove your avatar?')) { document.getElementById('remove-avatar-form').submit(); }">
+                            onclick="event.preventDefault(); if(confirm('Are you sure you want to remove your picture?')) { document.getElementById('remove-avatar-form').submit(); }">
                             <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
                                 <path stroke="none" d="m0 0h24v24H0z" fill="none"/>
                                 <line x1="4" y1="7" x2="20" y2="7"/>
@@ -149,7 +149,7 @@
                                 <path d="m5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12"/>
                                 <path d="m9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3"/>
                             </svg>
-                            Remove Avatar
+                            Remove Picture
                         </a>
                         @endif
                     </div>

@@ -23,15 +23,16 @@ class OwnerController extends Controller
                 'email' => 'required|email|unique:users,email',
                 'password' => 'required|string|min:8',
                 'avatar' => 'nullable|image|max:2048',
+                'state' => 'required|string|size:2|in:' . implode(',', array_keys(\App\Helpers\USStates::getStates())),
                 
                 // Personal Information
                 'home_address' => 'nullable|string|max:1000',
-                'personal_phone' => 'nullable|string|max:50',
+                'personal_phone' => 'nullable|string|regex:/^\(\d{3}\)\s\d{3}-\d{4}$/',
                 'personal_email' => 'nullable|email|max:255',
                 
                 // Corporate Information
                 'corporate_address' => 'nullable|string|max:1000',
-                'corporate_phone' => 'nullable|string|max:50',
+                'corporate_phone' => 'nullable|string|regex:/^\(\d{3}\)\s\d{3}-\d{4}$/',
                 'corporate_email' => 'nullable|email|max:255',
                 'fanns_philly_email' => 'nullable|email|max:255',
                 
@@ -75,6 +76,7 @@ class OwnerController extends Controller
             'email' => 'required|email|unique:users,email,' . $owner->id,
             'password' => 'nullable|string|min:8',
             'avatar' => 'nullable|image|max:2048',
+            'state' => 'required|string|size:2|in:' . implode(',', array_keys(\App\Helpers\USStates::getStates())),
             
             // Personal Information
             'home_address' => 'nullable|string|max:1000',
