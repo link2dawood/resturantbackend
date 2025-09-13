@@ -36,6 +36,11 @@ class DailyReport extends Model
         'approval_notes'
     ];
 
+    /**
+     * Default relationships to eager load to prevent N+1 queries
+     */
+    protected $with = ['store', 'creator'];
+
     protected $casts = [
         'report_date' => 'date',
         'approved_at' => 'datetime',
@@ -94,7 +99,8 @@ class DailyReport extends Model
 
     public function getTotalPaidOutsAttribute(): float
     {
-        return $this->transactions->sum('amount');
+        // Use cached sum if available to avoid N+1 queries
+        return $this->transactions_sum_amount ?? $this->transactions()->sum('amount');
     }
 
     public function getNetSalesAttribute(): float
@@ -140,7 +146,8 @@ class DailyReport extends Model
 
     public function getTotalRevenueEntriesAttribute(): float
     {
-        return $this->revenues->sum('amount');
+        // Use cached sum if available to avoid N+1 queries
+        return $this->revenues_sum_amount ?? $this->revenues()->sum('amount');
     }
 
     public function getOnlinePlatformRevenueAttribute(): float

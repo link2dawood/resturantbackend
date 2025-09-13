@@ -3,13 +3,21 @@
 namespace App\Http\Controllers;
 
 use App\Enums\UserRole;
+use App\Events\ManagerAssignedToStores;
 use App\Models\User;
 use App\Models\Store;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\DB;
 
 class ManagerController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('auth');
+        $this->middleware('permission:manage_managers');
+    }
+
     /**
      * Display a listing of the resource.
      */
@@ -25,18 +33,7 @@ class ManagerController extends Controller
     public function create()
     {
         $user = auth()->user();
-        
-        // Filter stores based on current user's permissions
-        if ($user->isAdmin()) {
-            // Admins can assign managers to any store
-            $stores = Store::all();
-        } elseif ($user->isOwner()) {
-            // Owners can only assign managers to stores they own
-            $stores = Store::where('created_by', $user->id)->get();
-        } else {
-            // Managers shouldn't be able to create other managers, but just in case
-            $stores = collect();
-        }
+        $stores = $user->accessibleStores()->get();
         
         return view('managers.create', compact('stores'));
     }
@@ -46,35 +43,109 @@ class ManagerController extends Controller
      */
     public function store(Request $request)
     {
-        $validatedData = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
-            'password' => 'required|string|min:8',
-            'username' => 'nullable|string|max:255',
-            'assigned_stores' => 'nullable|array',
-            'assigned_stores.*' => 'integer',
+        \Log::info('Manager creation started', [
+            'user_id' => auth()->id(),
+            'user_role' => auth()->user()->role?->value,
+            'request_data' => $request->except(['password'])
         ]);
+
+        try {
+            $validatedData = $request->validate([
+                'name' => 'required|string|max:255',
+                'email' => 'required|email|unique:users,email',
+                'password' => 'required|string|min:8',
+                'username' => 'nullable|string|max:255',
+                'assigned_stores' => 'nullable|array',
+                'assigned_stores.*' => 'integer',
+            ]);
+
+            \Log::info('Validation passed', ['validated_fields' => array_keys($validatedData)]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            \Log::error('Validation failed', [
+                'errors' => $e->errors(),
+                'input' => $request->except(['password'])
+            ]);
+            throw $e;
+        }
 
         // Use secure role assignment - only admins or owners can create managers
         if (!auth()->user()->hasPermission('manage_managers')) {
+            \Log::error('Permission denied for manager creation', [
+                'user_id' => auth()->id(),
+                'user_role' => auth()->user()->role?->value,
+                'user_permissions' => auth()->user()->getAllPermissions()
+            ]);
             abort(403, 'Insufficient permissions to create managers');
         }
+
+        \Log::info('Permission check passed');
         
+        // Store the plain password for email before hashing
+        $temporaryPassword = $validatedData['password'];
         $validatedData['password'] = bcrypt($validatedData['password']);
         
         // Extract store assignments before creating user
         $assignedStores = $validatedData['assigned_stores'] ?? [];
         unset($validatedData['assigned_stores']); // Remove from user creation data
 
-        $manager = User::create($validatedData);
-        $manager->changeRole(UserRole::MANAGER, auth()->user());
+        \Log::info('Creating manager user', [
+            'user_data' => array_keys($validatedData),
+            'assigned_stores' => $assignedStores
+        ]);
 
-        // Assign stores using pivot table
-        if (!empty($assignedStores)) {
-            $manager->stores()->sync($assignedStores);
+        try {
+            DB::beginTransaction();
+
+            $manager = User::create($validatedData);
+            \Log::info('Manager user created', ['manager_id' => $manager->id]);
+
+            $manager->changeRole(UserRole::MANAGER, auth()->user());
+            \Log::info('Manager role assigned', ['manager_id' => $manager->id]);
+
+            // Assign stores using pivot table
+            $assignedStoresCollection = collect();
+            if (!empty($assignedStores)) {
+                $manager->stores()->sync($assignedStores);
+                $assignedStoresCollection = Store::whereIn('id', $assignedStores)->get();
+                \Log::info('Stores assigned to manager', [
+                    'manager_id' => $manager->id,
+                    'store_count' => $assignedStoresCollection->count()
+                ]);
+            }
+
+            // Send welcome email directly
+            try {
+                \Mail::to($manager->email)->send(new \App\Mail\WelcomeNewManagerWithPassword(
+                    $manager,
+                    $assignedStoresCollection,
+                    auth()->user(),
+                    $temporaryPassword
+                ));
+                \Log::info('Welcome email sent successfully', ['manager_id' => $manager->id]);
+            } catch (\Exception $emailError) {
+                \Log::error('Failed to send welcome email', [
+                    'manager_id' => $manager->id,
+                    'error' => $emailError->getMessage()
+                ]);
+            }
+
+            DB::commit();
+            \Log::info('Manager creation completed successfully', ['manager_id' => $manager->id]);
+
+            return redirect()->route('managers.index')->with('success', 'Manager created successfully. Welcome email has been sent.');
+
+        } catch (\Exception $e) {
+            DB::rollback();
+            \Log::error('Manager creation failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'input' => $request->except(['password'])
+            ]);
+
+            return redirect()->back()
+                ->withInput($request->except(['password']))
+                ->withErrors(['error' => 'Failed to create manager: ' . $e->getMessage()]);
         }
-
-        return redirect()->route('managers.index')->with('success', 'Manager created successfully.');
     }
 
     /**
@@ -132,11 +203,28 @@ class ManagerController extends Controller
         $assignedStores = $validatedData['assigned_stores'] ?? [];
         unset($validatedData['assigned_stores']); // Remove from user update data
 
+        // Get current store assignments before update
+        $previousStores = $manager->stores;
+
         // Update user basic info
         $manager->update($validatedData);
 
         // Update store assignments using pivot table
         $manager->stores()->sync($assignedStores);
+
+        // Get updated store assignments
+        $currentStores = Store::whereIn('id', $assignedStores)->get();
+
+        // Dispatch event for email notification if there are changes
+        if ($currentStores->isNotEmpty()) {
+            event(new ManagerAssignedToStores(
+                $manager,
+                $currentStores,
+                auth()->user(),
+                false, // isNewManager
+                $previousStores
+            ));
+        }
 
         return redirect()->route('managers.index')->with('success', 'Manager updated successfully.');
     }
@@ -183,7 +271,22 @@ class ManagerController extends Controller
             'store_ids.*' => 'exists:stores,id',
         ]);
 
+        // Get current store assignments before update
+        $previousStores = $manager->stores;
+
         $manager->stores()->sync($validatedData['store_ids']);
+
+        // Get updated store assignments
+        $currentStores = Store::whereIn('id', $validatedData['store_ids'])->get();
+
+        // Dispatch event for email notification
+        event(new ManagerAssignedToStores(
+            $manager,
+            $currentStores,
+            auth()->user(),
+            false, // isNewManager
+            $previousStores
+        ));
 
         return redirect()->route('managers.index')->with('success', 'Stores assigned successfully.');
     }

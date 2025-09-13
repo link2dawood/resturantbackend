@@ -10,6 +10,9 @@ use Illuminate\Auth\AuthenticationException;
 use Illuminate\Auth\Access\AuthorizationException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
+use App\Exceptions\Business\StoreException;
+use App\Exceptions\Business\ReportException;
+use App\Exceptions\Business\PermissionException;
 use Throwable;
 
 class Handler extends ExceptionHandler
@@ -80,6 +83,13 @@ class Handler extends ExceptionHandler
     private function renderProductionException(Request $request, Throwable $e)
     {
         $isApiRequest = $request->expectsJson() || $request->is('api/*');
+
+        // Business logic exceptions
+        if ($e instanceof StoreException || $e instanceof ReportException || $e instanceof PermissionException) {
+            return $isApiRequest
+                ? response()->json(['error' => $e->getMessage()], $e->getCode() ?: 400)
+                : redirect()->back()->with('error', $e->getMessage());
+        }
 
         if ($e instanceof ValidationException) {
             return $isApiRequest 

@@ -40,12 +40,16 @@ enum UserRole: string
             self::ADMIN => true, // Admins have all permissions
             self::OWNER => in_array($permission, [
                 'manage_stores',
+                'view_stores',
                 'view_reports',
                 'create_reports',
+                'manage_reports',
                 'manage_managers',
                 'view_audit_logs',
+                'manage_owners',
             ]),
             self::MANAGER => in_array($permission, [
+                'view_stores',
                 'view_assigned_stores',
                 'create_reports',
                 'view_reports',

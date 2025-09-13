@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Middleware\CheckDailyReportAccess;
 use App\Models\AuditLog;
 use App\Models\DailyReport;
 use App\Models\DailyReportTransaction;
@@ -9,6 +10,10 @@ use App\Models\DailyReportRevenue;
 use App\Models\RevenueIncomeType;
 use App\Models\Store;
 use App\Models\TransactionType;
+use App\Services\DailyReportService;
+use App\Exceptions\Business\ReportException;
+use App\Exceptions\Business\StoreException;
+use App\Exceptions\Business\PermissionException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -16,27 +21,32 @@ use Illuminate\Support\Facades\Log;
 
 class DailyReportController extends Controller
 {
+    protected DailyReportService $reportService;
+
+    public function __construct(DailyReportService $reportService)
+    {
+        $this->reportService = $reportService;
+        $this->middleware('auth');
+        $this->middleware('permission:view_reports')->only(['index', 'show']);
+        $this->middleware('permission:create_reports')->only(['create', 'store']);
+        $this->middleware('permission:manage_reports')->only(['edit', 'update', 'destroy', 'approve']);
+        $this->middleware(CheckDailyReportAccess::class)->except(['index', 'create']);
+    }
+
     /**
      * Display a listing of the resource.
      */
     public function index(Request $request)
     {
         $user = auth()->user();
-        $query = DailyReport::with(['store', 'creator', 'approver', 'transactions', 'revenues.revenueIncomeType']);
+        $query = DailyReport::with(['store', 'creator', 'approver', 'transactions', 'revenues.revenueIncomeType'])
+            ->withSum('transactions', 'amount')
+            ->withSum('revenues', 'amount');
         
-        // Filter reports based on user role
-        if ($user->hasPermission('view_reports')) {
-            if ($user->role === \App\Enums\UserRole::OWNER) {
-                $query->whereHas('store', function ($q) use ($user) {
-                    $q->where('created_by', $user->id);
-                });
-            } elseif ($user->role === \App\Enums\UserRole::MANAGER) {
-                $query->whereHas('store', function ($q) use ($user) {
-                    $q->whereHas('managers', function ($subQ) use ($user) {
-                        $subQ->where('users.id', $user->id);
-                    });
-                });
-            }
+        // Filter reports based on user accessible stores
+        if (!$user->isAdmin()) {
+            $accessibleStoreIds = $user->accessibleStores()->pluck('id');
+            $query->whereIn('store_id', $accessibleStoreIds);
         }
         
         // Apply search filters
@@ -113,36 +123,38 @@ class DailyReportController extends Controller
     {
         $user = auth()->user();
         
-        // Critical security fix: Check permission before allowing access
-        if (!$user->hasPermission('create_reports')) {
-            abort(403, 'You do not have permission to create daily reports.');
-        }
-        
-        $query = Store::query();
-        $types = TransactionType::all();
-        $revenueTypes = RevenueIncomeType::where('is_active', 1)->orderBy('sort_order')->orderBy('name')->get();
+        try {
+            // Use service to get accessible stores with proper validation
+            $stores = $this->reportService->getUserAccessibleStores($user);
+            
+            // Business logic fix: Prevent unassigned managers from accessing create form
+            if ($user->isManager() && $stores->isEmpty()) {
+                return redirect()->route('daily-reports.index')
+                    ->with('warning', 'You have not been assigned to any stores. Please contact an administrator to assign stores to your account.');
+            }
+            
+            $types = TransactionType::all();
+            $revenueTypes = RevenueIncomeType::where('is_active', 1)
+                ->orderBy('sort_order')
+                ->orderBy('name')
+                ->get();
+                
+            $store = $stores->first(); // Select the first store as default
 
-        // Filter stores based on user role (security critical)
-        if ($user->role === \App\Enums\UserRole::OWNER) {
-            $query->where('created_by', $user->id);
-        } elseif ($user->role === \App\Enums\UserRole::MANAGER) {
-            $query->whereHas('managers', function ($q) use ($user) {
-                $q->where('users.id', $user->id);
-            });
-        }
-        // Admins see all stores
-        
-        $stores = $query->get();
-        
-        // Business logic fix: Prevent unassigned managers from accessing create form
-        if ($user->isManager() && $stores->isEmpty()) {
+            return view('daily-reports.create', compact('stores', 'types', 'revenueTypes', 'store'));
+            
+        } catch (PermissionException $e) {
             return redirect()->route('daily-reports.index')
-                ->with('warning', 'You have not been assigned to any stores. Please contact an administrator to assign stores to your account.');
+                ->with('error', $e->getMessage());
+        } catch (\Exception $e) {
+            Log::error('Error loading daily report create form', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+            
+            return redirect()->route('daily-reports.index')
+                ->with('error', 'Unable to load report creation form. Please try again.');
         }
-        
-        $store = $stores->first(); // Select the first store as default (may be null if no stores)
-
-        return view('daily-reports.create', compact('stores', 'types', 'revenueTypes', 'store'));
     }
 
     /**
@@ -175,181 +187,102 @@ class DailyReportController extends Controller
      */
     public function store(Request $request)
     {
-        $validatedData = $request->validate([
-            'report_date'         => 'required|date',
-            'page_number'         => 'nullable|integer|min:1',
-            'weather'             => 'nullable|string|max:50',
-            'holiday_event'       => 'nullable|string|max:100',
-        
-            // decimals
-            'projected_sales'     => 'required|numeric',
-            'gross_sales'         => 'required|numeric',
-            'amount_of_cancels'   => 'nullable|numeric',
-            'amount_of_voids'     => 'nullable|numeric',
-            'coupons_received'    => 'nullable|numeric',
-            'adjustments_overrings' => 'nullable|numeric',
-            'net_sales'           => 'nullable|numeric',
-            'tax'                 => 'nullable|numeric',
-            'average_ticket'      => 'nullable|numeric',
-            'sales'               => 'nullable|numeric',
-            'total_paid_outs'     => 'required|numeric',
-            'credit_cards'        => 'nullable|numeric',
-            'cash_to_account'     => 'nullable|numeric',
-            'actual_deposit'      => 'nullable|numeric',
-            'short'               => 'nullable|numeric',
-            'over'                => 'nullable|numeric',
-        
-            // integers
-            'number_of_no_sales'  => 'nullable|integer',
-            'total_coupons'       => 'nullable|integer',
-            'total_customers'     => 'nullable|integer',
-        
-            // relationships
-            'store_id'            => 'required|exists:stores,id',
-        
-            // approval workflow
-            'approval_notes'      => 'nullable|string|max:1000',
-            
-            // revenue entries
-            'revenues'            => 'nullable|array',
-            'revenues.*.revenue_income_type_id' => 'nullable|exists:revenue_income_types,id',
-            'revenues.*.amount'   => 'nullable|numeric|min:0',
-            'revenues.*.notes'    => 'nullable|string|max:500',
-        ]);
-
-        // Validate manager can only create reports for assigned stores
         $user = auth()->user();
-        if ($user->role === \App\Enums\UserRole::MANAGER) {
-            $allowedStore = Store::where('id', $validatedData['store_id'])
-                ->whereHas('managers', function ($q) use ($user) {
-                    $q->where('users.id', $user->id);
-                })
-                ->first();
-                
-            if (!$allowedStore) {
-                throw ValidationException::withMessages([
-                    'store_id' => ['You are not authorized to create reports for this store.']
-                ]);
-            }
-        } elseif ($user->role === \App\Enums\UserRole::OWNER) {
-            $allowedStore = Store::where('id', $validatedData['store_id'])
-                ->where('created_by', $user->id)
-                ->first();
-                
-            if (!$allowedStore) {
-                throw ValidationException::withMessages([
-                    'store_id' => ['You are not authorized to create reports for this store.']
-                ]);
-            }
-        }
-
-        // Check for duplicate reports (same store, same date)
-        $existingReport = DailyReport::where('store_id', $validatedData['store_id'])
-                                   ->where('report_date', $validatedData['report_date'])
-                                   ->first();
-                                   
-        if ($existingReport) {
-            throw ValidationException::withMessages([
-                'report_date' => ['A daily report for this store already exists for the selected date. Please edit the existing report or choose a different date.']
-            ]);
-        }
         
-        // Validate revenue entries - if amount is provided, revenue_income_type_id is required
-        if ($request->has('revenues')) {
-            foreach ($request->revenues as $index => $revenueData) {
-                $amount = $revenueData['amount'] ?? null;
-                $typeId = $revenueData['revenue_income_type_id'] ?? null;
-                
-                // If amount is provided but no type ID, throw validation error
-                if (!empty($amount) && $amount > 0 && empty($typeId)) {
-                    throw ValidationException::withMessages([
-                        "revenues.{$index}.revenue_income_type_id" => ['The revenue income type is required when amount is provided.']
-                    ]);
-                }
-            }
-        }
-
-        // Additional business logic validations
-        $this->validateBusinessRules($validatedData);
-
         try {
-            DB::beginTransaction();
+            // Validate request data
+            $validatedData = $request->validate([
+                'report_date'         => 'required|date',
+                'page_number'         => 'nullable|integer|min:1',
+                'weather'             => 'nullable|string|max:50',
+                'holiday_event'       => 'nullable|string|max:100',
             
-            $validatedData['created_by'] = auth()->id();
+                // decimals
+                'projected_sales'     => 'required|numeric',
+                'gross_sales'         => 'required|numeric',
+                'amount_of_cancels'   => 'nullable|numeric',
+                'amount_of_voids'     => 'nullable|numeric',
+                'coupons_received'    => 'nullable|numeric',
+                'adjustments_overrings' => 'nullable|numeric',
+                'net_sales'           => 'nullable|numeric',
+                'tax'                 => 'nullable|numeric',
+                'average_ticket'      => 'nullable|numeric',
+                'sales'               => 'nullable|numeric',
+                'total_paid_outs'     => 'required|numeric',
+                'credit_cards'        => 'nullable|numeric',
+                'cash_to_account'     => 'nullable|numeric',
+                'actual_deposit'      => 'nullable|numeric',
+                'short'               => 'nullable|numeric',
+                'over'                => 'nullable|numeric',
+            
+                // integers
+                'number_of_no_sales'  => 'nullable|integer',
+                'total_coupons'       => 'nullable|integer',
+                'total_customers'     => 'nullable|integer',
+            
+                // relationships
+                'store_id'            => 'required|exists:stores,id',
+            
+                // approval workflow
+                'approval_notes'      => 'nullable|string|max:1000',
+                
+                // revenue entries
+                'revenues'            => 'nullable|array',
+                'revenues.*.revenue_income_type_id' => 'nullable|exists:revenue_income_types,id',
+                'revenues.*.amount'   => 'nullable|numeric|min:0',
+                'revenues.*.notes'    => 'nullable|string|max:500',
+            ]);
+
+            // Use service for comprehensive validation and business rule checking
+            $this->reportService->validateReportData($validatedData);
+            
+            // Validate revenue entries
+            $this->validateRevenueEntries($request);
             
             // Calculate derived fields
             $validatedData = $this->calculateDerivedFields($validatedData);
+
+            // Use service to create report with proper validation and audit logging
+            $dailyReport = $this->reportService->createDailyReport($user, $validatedData);
             
-            $dailyReport = DailyReport::create($validatedData);
-            
-            // Log the creation
-            AuditLog::log('created', $dailyReport, null, $dailyReport->toArray(), [
-                'store_name' => $dailyReport->store->store_info ?? 'Unknown',
-                'report_date' => $dailyReport->report_date->format('Y-m-d')
-            ]);
-            
+            // Process transactions if provided
             if ($request->has('transactions')) {
-                foreach ($request->transactions as $transactionData) {
-                    if (empty($transactionData['company']) || empty($transactionData['amount'])) {
-                        continue; // Skip empty transaction rows
-                    }
-
-                    // Validate transaction_type_id
-                    if (!empty($transactionData['transaction_id']) && !TransactionType::find($transactionData['transaction_id'])) {
-                        throw ValidationException::withMessages([
-                            'transactions' => "Invalid transaction type ID: {$transactionData['transaction_id']}"
-                        ]);
-                    }
-
-                    DailyReportTransaction::create([
-                        'daily_report_id' => $dailyReport->id,
-                        'transaction_type_id' => $transactionData['transaction_id'] ?? null,
-                        'company' => $transactionData['company'],
-                        'amount' => (float) $transactionData['amount'],
-                    ]);
-                }
+                $this->processTransactions($request, $dailyReport);
             }
             
-            // Process revenue entries
+            // Process revenue entries if provided
             if ($request->has('revenues')) {
-                foreach ($request->revenues as $revenueData) {
-                    if (empty($revenueData['revenue_income_type_id']) || empty($revenueData['amount'])) {
-                        continue; // Skip empty revenue rows
-                    }
-
-                    DailyReportRevenue::create([
-                        'daily_report_id' => $dailyReport->id,
-                        'revenue_income_type_id' => $revenueData['revenue_income_type_id'],
-                        'amount' => (float) $revenueData['amount'],
-                        'notes' => $revenueData['notes'] ?? null,
-                        'metadata' => isset($revenueData['metadata']) ? $revenueData['metadata'] : null,
-                    ]);
-                }
+                $this->processRevenueEntries($request, $dailyReport);
             }
-            
-            DB::commit();
-            
-            Log::info('Daily report created successfully', [
-                'report_id' => $dailyReport->id,
-                'store_id' => $dailyReport->store_id,
-                'user_id' => auth()->id(),
-                'report_date' => $dailyReport->report_date
-            ]);
             
             return redirect()->route('daily-reports.show', $dailyReport)
                 ->with('success', '✅ Daily report created successfully! All calculations have been verified.');
                 
-        } catch (\Exception $e) {
-            DB::rollback();
-            
-            Log::error('Failed to create daily report', [
+        } catch (ReportException | StoreException | PermissionException $e) {
+            Log::warning('Business rule validation failed for daily report creation', [
+                'user_id' => $user->id,
                 'error' => $e->getMessage(),
-                'user_id' => auth()->id(),
-                'data' => $validatedData
+                'store_id' => $request->input('store_id'),
+                'report_date' => $request->input('report_date'),
             ]);
             
             return back()->withInput()->withErrors([
-                'error' => 'Failed to create daily report: ' . $e->getMessage()
+                'business_error' => $e->getMessage()
+            ]);
+            
+        } catch (ValidationException $e) {
+            return back()->withInput()->withErrors($e->errors());
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to create daily report', [
+                'error' => $e->getMessage(),
+                'user_id' => $user->id,
+                'store_id' => $request->input('store_id'),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            
+            return back()->withInput()->withErrors([
+                'error' => 'An unexpected error occurred while creating the daily report. Please try again.'
             ]);
         }
     }
@@ -790,5 +723,71 @@ class DailyReportController extends Controller
         ]);
         
         return redirect()->route('daily-reports.index')->with('success', 'Report returned to draft.');
+    }
+    
+    /**
+     * Validate revenue entries - if amount is provided, revenue_income_type_id is required
+     */
+    private function validateRevenueEntries(Request $request): void
+    {
+        if ($request->has('revenues')) {
+            foreach ($request->revenues as $index => $revenueData) {
+                $amount = $revenueData['amount'] ?? null;
+                $typeId = $revenueData['revenue_income_type_id'] ?? null;
+                
+                // If amount is provided but no type ID, throw validation error
+                if (!empty($amount) && $amount > 0 && empty($typeId)) {
+                    throw ValidationException::withMessages([
+                        "revenues.{$index}.revenue_income_type_id" => ['The revenue income type is required when amount is provided.']
+                    ]);
+                }
+            }
+        }
+    }
+    
+    /**
+     * Process transaction entries for the daily report
+     */
+    private function processTransactions(Request $request, DailyReport $dailyReport): void
+    {
+        foreach ($request->transactions as $transactionData) {
+            if (empty($transactionData['company']) || empty($transactionData['amount'])) {
+                continue; // Skip empty transaction rows
+            }
+
+            // Validate transaction_type_id
+            if (!empty($transactionData['transaction_id']) && !TransactionType::find($transactionData['transaction_id'])) {
+                throw ValidationException::withMessages([
+                    'transactions' => "Invalid transaction type ID: {$transactionData['transaction_id']}"
+                ]);
+            }
+
+            DailyReportTransaction::create([
+                'daily_report_id' => $dailyReport->id,
+                'transaction_type_id' => $transactionData['transaction_id'] ?? null,
+                'company' => $transactionData['company'],
+                'amount' => (float) $transactionData['amount'],
+            ]);
+        }
+    }
+    
+    /**
+     * Process revenue entries for the daily report
+     */
+    private function processRevenueEntries(Request $request, DailyReport $dailyReport): void
+    {
+        foreach ($request->revenues as $revenueData) {
+            if (empty($revenueData['revenue_income_type_id']) || empty($revenueData['amount'])) {
+                continue; // Skip empty revenue rows
+            }
+
+            DailyReportRevenue::create([
+                'daily_report_id' => $dailyReport->id,
+                'revenue_income_type_id' => $revenueData['revenue_income_type_id'],
+                'amount' => (float) $revenueData['amount'],
+                'notes' => $revenueData['notes'] ?? null,
+                'metadata' => isset($revenueData['metadata']) ? $revenueData['metadata'] : null,
+            ]);
+        }
     }
 }

@@ -16,6 +16,11 @@ class User extends Authenticatable implements MustVerifyEmail
     use HasFactory, Notifiable, SoftDeletes;
 
     /**
+     * Default relationships to eager load to prevent N+1 queries
+     */
+    protected $with = [];
+
+    /**
      * The attributes that are mass assignable.
      *
      * @var list<string>
@@ -114,8 +119,8 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function getAssignedStoresAttribute()
     {
-        $storeIds = json_decode($this->attributes['assigned_stores'], true);
-        return Store::whereIn('id', $storeIds)->get();
+        $storeIds = json_decode($this->attributes['assigned_stores'] ?? '[]', true);
+        return $storeIds ? Store::whereIn('id', $storeIds)->get() : collect();
     }
 
     /**

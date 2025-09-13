@@ -22,7 +22,9 @@ class DashboardController extends Controller
 
     public function getAnalyticsData($user)
     {
-        $query = DailyReport::with(['store', 'creator']);
+        $query = DailyReport::with(['store', 'creator'])
+            ->withSum('transactions', 'amount')
+            ->withSum('revenues', 'amount');
         
         // Filter based on user role
         if ($user->hasPermission('view_reports')) {

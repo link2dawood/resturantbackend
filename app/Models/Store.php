@@ -24,6 +24,11 @@ class Store extends Model
     ];
 
     /**
+     * Default relationships to eager load to prevent N+1 queries
+     */
+    protected $with = ['owner'];
+
+    /**
      * The attributes that should be guarded from mass assignment.
      *
      * @var list<string>

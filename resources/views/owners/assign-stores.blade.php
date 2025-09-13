@@ -4,15 +4,15 @@
 
 @section('content')
 <div class="container-xl">
-    <h2>Assign Stores to {{ $manager->name }}</h2>
+    <h2>Assign Stores to {{ $owner->name }}</h2>
 
-    <form action="{{ route('managers.assign.stores', $manager->id) }}" method="POST">
+    <form action="{{ route('owners.assign-stores', $owner) }}" method="POST">
         @csrf
         <div class="form-group">
             <label for="store_ids">Select Stores</label>
             <select name="store_ids[]" id="store_ids" class="form-control" multiple>
                 @foreach($stores as $store)
-                    <option value="{{ $store->id }}" {{ $manager->stores->contains($store->id) ? 'selected' : '' }}>
+                    <option value="{{ $store->id }}" {{ in_array($store->id, $assignedStores) ? 'selected' : '' }}>
                         {{ $store->store_info }}
                     </option>
                 @endforeach
