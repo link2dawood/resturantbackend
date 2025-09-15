@@ -209,7 +209,7 @@ class User extends Authenticatable implements MustVerifyEmail
         }
 
         if ($this->isManager()) {
-            return $this->stores()->where('store_id', $storeId)->exists();
+            return $this->stores()->where('stores.id', $storeId)->exists();
         }
 
         return false;
@@ -229,7 +229,7 @@ class User extends Authenticatable implements MustVerifyEmail
         }
 
         if ($this->isManager()) {
-            return $this->stores()->whereNull('stores.deleted_at');
+            return $this->stores()->whereNull('stores.deleted_at')->select('stores.*');
         }
 
         return Store::whereRaw('1 = 0'); // Return empty query

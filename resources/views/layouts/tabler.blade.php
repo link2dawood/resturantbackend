@@ -16,13 +16,16 @@
     <!-- CSS files -->
     <link href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta17/dist/css/tabler.min.css" rel="stylesheet"/>
     <link href="https://cdn.jsdelivr.net/npm/@tabler/icons@1.39.1/icons-sprite.svg" rel="stylesheet"/>
-    
-    <!-- Modern Design System -->
+
+    <!-- Google Material Design 3 (Primary Design System) -->
+    <link href="{{ asset('css/google-material-design.css') }}" rel="stylesheet"/>
+
+    <!-- Legacy Design System (Lower Priority) -->
     <link href="{{ asset('css/modern-design.css') }}" rel="stylesheet"/>
-    
+
     <!-- Phone Formatter Styles -->
     <link href="{{ asset('css/phone-formatter.css') }}" rel="stylesheet"/>
-    
+
     <!-- Date Formatter Styles -->
     <link href="{{ asset('css/date-formatter.css') }}" rel="stylesheet"/>
     

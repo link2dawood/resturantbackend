@@ -117,44 +117,116 @@ class DailyReportController extends Controller
     }
 
     /**
-     * Show the form for creating a new resource.
+     * Step 1: Show store selection for creating a new daily report
      */
-    public function create()
+    public function selectStore()
     {
         $user = auth()->user();
-        
+
         try {
             // Use service to get accessible stores with proper validation
             $stores = $this->reportService->getUserAccessibleStores($user);
-            
+
             // Business logic fix: Prevent unassigned managers from accessing create form
             if ($user->isManager() && $stores->isEmpty()) {
                 return redirect()->route('daily-reports.index')
                     ->with('warning', 'You have not been assigned to any stores. Please contact an administrator to assign stores to your account.');
             }
-            
-            $types = TransactionType::all();
-            $revenueTypes = RevenueIncomeType::where('is_active', 1)
-                ->orderBy('sort_order')
-                ->orderBy('name')
-                ->get();
-                
-            $store = $stores->first(); // Select the first store as default
 
-            return view('daily-reports.create', compact('stores', 'types', 'revenueTypes', 'store'));
-            
+            return view('daily-reports.select-store', compact('stores'));
+
         } catch (PermissionException $e) {
             return redirect()->route('daily-reports.index')
                 ->with('error', $e->getMessage());
         } catch (\Exception $e) {
-            Log::error('Error loading daily report create form', [
+            Log::error('Error loading store selection for daily report', [
                 'user_id' => $user->id,
                 'error' => $e->getMessage(),
             ]);
-            
+
             return redirect()->route('daily-reports.index')
-                ->with('error', 'Unable to load report creation form. Please try again.');
+                ->with('error', 'Unable to load store selection. Please try again.');
         }
+    }
+
+    /**
+     * Step 2: Show date selection after store is selected
+     */
+    public function selectDate(Request $request)
+    {
+        $request->validate([
+            'store_id' => 'required|exists:stores,id'
+        ]);
+
+        $user = auth()->user();
+        $storeId = $request->get('store_id');
+
+        // Verify user has access to this store
+        if (!$user->hasStoreAccess($storeId)) {
+            return redirect()->route('daily-reports.create')
+                ->with('error', 'You do not have access to the selected store.');
+        }
+
+        $store = Store::find($storeId);
+
+        // Get existing report dates for this store to prevent duplicates
+        $existingDates = DailyReport::where('store_id', $storeId)
+            ->pluck('report_date')
+            ->map(function ($date) {
+                return \Carbon\Carbon::parse($date)->format('Y-m-d');
+            })
+            ->toArray();
+
+        return view('daily-reports.select-date', compact('store', 'existingDates'));
+    }
+
+    /**
+     * Step 3: Show the actual report creation form with pre-selected store and date
+     */
+    public function createForm(Request $request)
+    {
+        $request->validate([
+            'store_id' => 'required|exists:stores,id',
+            'report_date' => 'required|date'
+        ]);
+
+        $user = auth()->user();
+        $storeId = $request->get('store_id');
+        $reportDate = $request->get('report_date');
+
+        // Verify user has access to this store
+        if (!$user->hasStoreAccess($storeId)) {
+            return redirect()->route('daily-reports.create')
+                ->with('error', 'You do not have access to the selected store.');
+        }
+
+        // Check if report already exists for this store and date
+        $existingReport = DailyReport::where('store_id', $storeId)
+            ->whereDate('report_date', $reportDate)
+            ->first();
+
+        if ($existingReport) {
+            return redirect()->route('daily-reports.select-date', ['store_id' => $storeId])
+                ->with('error', 'A daily report for this store already exists for the selected date. Please choose a different date.');
+        }
+
+        $store = Store::find($storeId);
+        $types = TransactionType::all();
+        $revenueTypes = RevenueIncomeType::where('is_active', 1)
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get();
+
+        return view('daily-reports.create', compact('store', 'types', 'revenueTypes', 'reportDate'));
+    }
+
+    /**
+     * Legacy method for backward compatibility (if needed)
+     * Show the form for creating a new resource.
+     */
+    public function create()
+    {
+        return redirect()->route('daily-reports.create');
     }
 
     /**
@@ -502,6 +574,102 @@ class DailyReportController extends Controller
         $types = TransactionType::all();
         $revenueTypes = RevenueIncomeType::where('is_active', 1)->orderBy('sort_order')->orderBy('name')->get();
         return view('daily-reports.form', compact('store','types', 'revenueTypes'));
+    }
+
+    /**
+     * Export all daily reports as CSV
+     */
+    public function exportCsv(Request $request)
+    {
+        $user = auth()->user();
+        $query = DailyReport::with(['store', 'creator']);
+
+        // Filter reports based on user accessible stores
+        if (!$user->isAdmin()) {
+            $accessibleStoreIds = $user->accessibleStores()->pluck('stores.id');
+            $query->whereIn('store_id', $accessibleStoreIds);
+        }
+
+        // Apply same filters as index method
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->whereHas('store', function ($storeQ) use ($search) {
+                    $storeQ->where('store_info', 'LIKE', "%{$search}%");
+                })
+                ->orWhereHas('creator', function ($userQ) use ($search) {
+                    $userQ->where('name', 'LIKE', "%{$search}%");
+                })
+                ->orWhere('gross_sales', 'LIKE', "%{$search}%")
+                ->orWhere('net_sales', 'LIKE', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('date_from')) {
+            $query->whereDate('report_date', '>=', $request->date_from);
+        }
+
+        if ($request->filled('date_to')) {
+            $query->whereDate('report_date', '<=', $request->date_to);
+        }
+
+        if ($request->filled('store_id')) {
+            $query->where('store_id', $request->store_id);
+        }
+
+        $reports = $query->orderBy('report_date', 'desc')->get();
+
+        $filename = 'daily_reports_' . date('Y-m-d_H-i-s') . '.csv';
+
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            'Pragma' => 'no-cache',
+            'Cache-Control' => 'must-revalidate, post-check=0, pre-check=0',
+            'Expires' => '0'
+        ];
+
+        $callback = function() use ($reports) {
+            $file = fopen('php://output', 'w');
+
+            // Add CSV headers
+            fputcsv($file, [
+                'Date',
+                'Store',
+                'Status',
+                'Gross Sales',
+                'Net Sales',
+                'Projected Sales',
+                'Total Customers',
+                'Average Ticket',
+                'Credit Cards',
+                'Actual Deposit',
+                'Created By',
+                'Created At'
+            ]);
+
+            // Add data rows
+            foreach ($reports as $report) {
+                fputcsv($file, [
+                    $report->report_date->format('Y-m-d'),
+                    $report->store->store_info ?? 'N/A',
+                    ucfirst($report->status),
+                    number_format($report->gross_sales, 2),
+                    number_format($report->net_sales, 2),
+                    number_format($report->projected_sales, 2),
+                    $report->total_customers,
+                    number_format($report->average_ticket, 2),
+                    number_format($report->credit_cards, 2),
+                    number_format($report->actual_deposit, 2),
+                    $report->creator->name ?? 'N/A',
+                    $report->created_at->format('Y-m-d H:i:s')
+                ]);
+            }
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
     }
 
     /**

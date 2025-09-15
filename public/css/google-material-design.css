@@ -1,0 +1,641 @@
+/* Google Material Design 3 (Pixel UI) Global Styles */
+@import url('https://fonts.googleapis.com/css2?family=Google+Sans:ital,wght@0,100;0,300;0,400;0,500;0,600;0,700;1,400;1,500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap');
+
+/* ========== CSS CUSTOM PROPERTIES (GOOGLE'S COLOR SYSTEM) ========== */
+:root {
+  /* Primary Colors */
+  --google-blue: #4285f4;
+  --google-blue-50: #e8f0fe;
+  --google-blue-100: #d2e3fc;
+  --google-blue-200: #aecbfa;
+  --google-blue-300: #8ab4f8;
+  --google-blue-400: #669df6;
+  --google-blue-500: #4285f4;
+  --google-blue-600: #1a73e8;
+  --google-blue-700: #1967d2;
+  --google-blue-800: #185abc;
+  --google-blue-900: #174ea6;
+
+  /* Secondary Colors */
+  --google-green: #34a853;
+  --google-green-50: #e6f4ea;
+  --google-green-100: #ceead6;
+  --google-green-600: #137333;
+  --google-green-700: #0d652d;
+
+  --google-yellow: #fbbc04;
+  --google-yellow-50: #fef7e0;
+  --google-yellow-100: #feefc3;
+  --google-yellow-700: #f29900;
+
+  --google-red: #ea4335;
+  --google-red-50: #fce8e6;
+  --google-red-100: #f9dedc;
+  --google-red-600: #d93025;
+  --google-red-700: #c5221f;
+
+  /* Neutral Colors (Google's Gray Palette) */
+  --google-grey-50: #f8f9fa;
+  --google-grey-100: #f1f3f4;
+  --google-grey-200: #e8eaed;
+  --google-grey-300: #dadce0;
+  --google-grey-400: #bdc1c6;
+  --google-grey-500: #9aa0a6;
+  --google-grey-600: #5f6368;
+  --google-grey-700: #3c4043;
+  --google-grey-800: #2d3134;
+  --google-grey-900: #202124;
+
+  /* Surface Colors */
+  --surface: #ffffff;
+  --surface-variant: #f8f9fa;
+  --on-surface: #202124;
+  --on-surface-variant: #5f6368;
+
+  /* Semantic Colors */
+  --success: var(--google-green);
+  --warning: var(--google-yellow);
+  --error: var(--google-red);
+  --info: var(--google-blue);
+
+  /* Shadows (Google's Elevation System) */
+  --elevation-1: 0 1px 2px 0 rgba(60, 64, 67, 0.08), 0 1px 3px 1px rgba(60, 64, 67, 0.04);
+  --elevation-2: 0 1px 3px 0 rgba(60, 64, 67, 0.08), 0 4px 8px 3px rgba(60, 64, 67, 0.04);
+  --elevation-3: 0 2px 6px 2px rgba(60, 64, 67, 0.15), 0 8px 24px 4px rgba(60, 64, 67, 0.12);
+  --elevation-4: 0 4px 8px 3px rgba(60, 64, 67, 0.15), 0 8px 10px 1px rgba(60, 64, 67, 0.06);
+
+  /* Transitions */
+  --transition-standard: all 0.2s cubic-bezier(0.2, 0, 0, 1);
+  --transition-emphasized: all 0.3s cubic-bezier(0.05, 0.7, 0.1, 1);
+}
+
+/* ========== TYPOGRAPHY ========== */
+* {
+  font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  box-sizing: border-box;
+}
+
+body {
+  background-color: var(--google-grey-50);
+  color: var(--on-surface);
+  line-height: 1.5;
+  margin: 0;
+  padding: 0;
+}
+
+/* Headings */
+h1, .google-display {
+  font-size: 2.25rem; /* 36px */
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: -0.25px;
+  margin: 0 0 1rem 0;
+}
+
+h2, .google-headline {
+  font-size: 1.75rem; /* 28px */
+  font-weight: 400;
+  line-height: 1.25;
+  letter-spacing: -0.25px;
+  margin: 0 0 0.75rem 0;
+}
+
+h3, .google-title {
+  font-size: 1.375rem; /* 22px */
+  font-weight: 400;
+  line-height: 1.3;
+  margin: 0 0 0.5rem 0;
+}
+
+h4, .google-title-medium {
+  font-size: 1.125rem; /* 18px */
+  font-weight: 500;
+  line-height: 1.4;
+  margin: 0 0 0.5rem 0;
+}
+
+h5, .google-title-small {
+  font-size: 1rem; /* 16px */
+  font-weight: 500;
+  line-height: 1.5;
+  margin: 0 0 0.25rem 0;
+}
+
+h6, .google-label {
+  font-size: 0.875rem; /* 14px */
+  font-weight: 500;
+  line-height: 1.5;
+  letter-spacing: 0.1px;
+  margin: 0 0 0.25rem 0;
+}
+
+p, .google-body {
+  font-size: 1rem; /* 16px */
+  font-weight: 400;
+  line-height: 1.5;
+  margin: 0 0 1rem 0;
+}
+
+.google-body-small {
+  font-size: 0.875rem; /* 14px */
+  font-weight: 400;
+  line-height: 1.4;
+}
+
+.google-caption {
+  font-size: 0.75rem; /* 12px */
+  font-weight: 400;
+  line-height: 1.3;
+  letter-spacing: 0.4px;
+}
+
+/* ========== BUTTONS ========== */
+.google-btn {
+  font-family: 'Google Sans', sans-serif;
+  font-weight: 500;
+  font-size: 0.875rem; /* 14px */
+  line-height: 1.25;
+  letter-spacing: 0.1px;
+  border-radius: 1.25rem; /* 20px - Google's pill buttons */
+  padding: 0.625rem 1.5rem; /* 10px 24px */
+  border: none;
+  cursor: pointer;
+  transition: var(--transition-standard);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem; /* 8px */
+  text-decoration: none;
+  min-height: 2.5rem; /* 40px */
+  position: relative;
+  overflow: hidden;
+}
+
+.google-btn:focus {
+  outline: none;
+}
+
+/* Primary Button */
+.google-btn-primary {
+  background: var(--google-blue);
+  color: white;
+}
+
+.google-btn-primary:hover {
+  background: var(--google-blue-700);
+  box-shadow: var(--elevation-2);
+  color: white;
+}
+
+.google-btn-primary:active {
+  background: var(--google-blue-800);
+  box-shadow: var(--elevation-1);
+}
+
+/* Secondary/Outlined Button */
+.google-btn-outlined {
+  background: transparent;
+  color: var(--google-blue);
+  border: 1px solid var(--google-grey-300);
+}
+
+.google-btn-outlined:hover {
+  background: var(--google-blue-50);
+  border-color: var(--google-blue);
+  color: var(--google-blue-700);
+}
+
+.google-btn-outlined:active {
+  background: var(--google-blue-100);
+}
+
+/* Text Button */
+.google-btn-text {
+  background: transparent;
+  color: var(--google-blue);
+  border: none;
+  padding: 0.625rem 0.75rem; /* 10px 12px */
+}
+
+.google-btn-text:hover {
+  background: var(--google-blue-50);
+  color: var(--google-blue-700);
+}
+
+/* Danger/Error Button */
+.google-btn-danger {
+  background: var(--google-red);
+  color: white;
+}
+
+.google-btn-danger:hover {
+  background: var(--google-red-700);
+  box-shadow: var(--elevation-2);
+  color: white;
+}
+
+/* Success Button */
+.google-btn-success {
+  background: var(--google-green);
+  color: white;
+}
+
+.google-btn-success:hover {
+  background: var(--google-green-700);
+  box-shadow: var(--elevation-2);
+  color: white;
+}
+
+/* Button Sizes */
+.google-btn-small {
+  padding: 0.5rem 1rem; /* 8px 16px */
+  font-size: 0.75rem; /* 12px */
+  min-height: 2rem; /* 32px */
+}
+
+.google-btn-large {
+  padding: 0.875rem 2rem; /* 14px 32px */
+  font-size: 1rem; /* 16px */
+  min-height: 3rem; /* 48px */
+}
+
+/* Icon Button */
+.google-btn-icon {
+  padding: 0.5rem; /* 8px */
+  border-radius: 50%;
+  min-height: 2.5rem; /* 40px */
+  width: 2.5rem; /* 40px */
+  background: transparent;
+  color: var(--google-grey-600);
+}
+
+.google-btn-icon:hover {
+  background: var(--google-grey-100);
+  color: var(--google-grey-900);
+}
+
+/* ========== CARDS ========== */
+.google-card {
+  background: var(--surface);
+  border-radius: 0.75rem; /* 12px */
+  box-shadow: var(--elevation-2);
+  border: none;
+  transition: var(--transition-standard);
+  overflow: hidden;
+}
+
+.google-card:hover {
+  box-shadow: var(--elevation-3);
+}
+
+.google-card-outlined {
+  background: var(--surface);
+  border: 1px solid var(--google-grey-200);
+  border-radius: 0.75rem;
+  box-shadow: none;
+}
+
+.google-card-elevated {
+  box-shadow: var(--elevation-3);
+}
+
+.google-card-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--google-grey-200);
+}
+
+.google-card-body {
+  padding: 1.5rem;
+}
+
+.google-card-footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--google-grey-200);
+  background: var(--surface-variant);
+}
+
+/* ========== FORM INPUTS ========== */
+.google-input {
+  width: 100%;
+  padding: 0.75rem 1rem; /* 12px 16px */
+  border: 1px solid var(--google-grey-300);
+  border-radius: 0.5rem; /* 8px */
+  font-size: 0.875rem; /* 14px */
+  font-family: 'Google Sans', sans-serif;
+  transition: var(--transition-standard);
+  background: var(--surface);
+  color: var(--on-surface);
+}
+
+.google-input:focus {
+  outline: none;
+  border-color: var(--google-blue);
+  box-shadow: 0 0 0 1px var(--google-blue);
+}
+
+.google-input:hover {
+  border-color: var(--google-grey-600);
+}
+
+.google-input::placeholder {
+  color: var(--google-grey-500);
+}
+
+/* Input Label */
+.google-label {
+  font-size: 0.875rem; /* 14px */
+  font-weight: 500;
+  color: var(--google-grey-700);
+  margin-bottom: 0.375rem; /* 6px */
+  display: block;
+}
+
+.google-label.required::after {
+  content: ' *';
+  color: var(--google-red);
+}
+
+/* Select */
+.google-select {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--google-grey-300);
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-family: 'Google Sans', sans-serif;
+  background: var(--surface);
+  transition: var(--transition-standard);
+}
+
+.google-select:focus {
+  outline: none;
+  border-color: var(--google-blue);
+  box-shadow: 0 0 0 1px var(--google-blue);
+}
+
+/* ========== ALERTS ========== */
+.google-alert {
+  padding: 1rem;
+  border-radius: 0.75rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border-left: 4px solid;
+}
+
+.google-alert-success {
+  background: var(--google-green-50);
+  border-left-color: var(--google-green);
+  color: var(--google-green-700);
+}
+
+.google-alert-error {
+  background: var(--google-red-50);
+  border-left-color: var(--google-red);
+  color: var(--google-red-700);
+}
+
+.google-alert-warning {
+  background: var(--google-yellow-50);
+  border-left-color: var(--google-yellow);
+  color: #f57c00;
+}
+
+.google-alert-info {
+  background: var(--google-blue-50);
+  border-left-color: var(--google-blue);
+  color: var(--google-blue-700);
+}
+
+/* ========== MATERIAL SYMBOLS ========== */
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 1.25rem; /* 20px */
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+}
+
+/* ========== LAYOUT UTILITIES ========== */
+.google-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+.google-container-fluid {
+  width: 100%;
+  padding: 1.5rem;
+}
+
+.google-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.google-grid-2 { grid-template-columns: repeat(2, 1fr); }
+.google-grid-3 { grid-template-columns: repeat(3, 1fr); }
+.google-grid-4 { grid-template-columns: repeat(4, 1fr); }
+
+.google-flex {
+  display: flex;
+  gap: 1rem;
+}
+
+.google-flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.google-flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* ========== SPACING UTILITIES ========== */
+.google-m-0 { margin: 0; }
+.google-m-1 { margin: 0.25rem; }
+.google-m-2 { margin: 0.5rem; }
+.google-m-3 { margin: 0.75rem; }
+.google-m-4 { margin: 1rem; }
+.google-m-5 { margin: 1.25rem; }
+.google-m-6 { margin: 1.5rem; }
+
+.google-p-0 { padding: 0; }
+.google-p-1 { padding: 0.25rem; }
+.google-p-2 { padding: 0.5rem; }
+.google-p-3 { padding: 0.75rem; }
+.google-p-4 { padding: 1rem; }
+.google-p-5 { padding: 1.25rem; }
+.google-p-6 { padding: 1.5rem; }
+
+/* ========== RESPONSIVE DESIGN ========== */
+@media (max-width: 768px) {
+  .google-container {
+    padding: 1rem;
+  }
+
+  .google-grid-2,
+  .google-grid-3,
+  .google-grid-4 {
+    grid-template-columns: 1fr;
+  }
+
+  .google-btn {
+    padding: 0.75rem 1.25rem;
+  }
+}
+
+/* ========== TABLE STYLES ========== */
+.google-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  background: var(--surface);
+}
+
+.google-table th {
+  background: var(--google-grey-50);
+  padding: 1rem 1.5rem;
+  text-align: left;
+  font-weight: 500;
+  color: var(--google-grey-700);
+  font-size: 0.8125rem;
+  letter-spacing: 0.3px;
+  border-bottom: 1px solid var(--google-grey-200);
+}
+
+.google-table td {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--google-grey-100);
+  color: var(--on-surface);
+  transition: background-color 0.2s;
+}
+
+.google-table tbody tr:hover {
+  background-color: var(--google-grey-50);
+}
+
+/* ========== NAVIGATION ========== */
+.google-nav {
+  background: var(--surface);
+  border-bottom: 1px solid var(--google-grey-200);
+  padding: 1rem 0;
+}
+
+.google-nav-brand {
+  font-size: 1.375rem;
+  font-weight: 400;
+  color: var(--google-blue);
+  text-decoration: none;
+}
+
+.google-nav-link {
+  color: var(--google-grey-700);
+  text-decoration: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  transition: var(--transition-standard);
+  font-weight: 400;
+}
+
+.google-nav-link:hover {
+  background: var(--google-grey-100);
+  color: var(--google-grey-900);
+}
+
+.google-nav-link.active {
+  background: var(--google-blue-50);
+  color: var(--google-blue-700);
+  font-weight: 500;
+}
+
+/* ========== PROGRESS BARS ========== */
+.google-progress {
+  height: 4px;
+  background: var(--google-grey-200);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.google-progress-bar {
+  height: 100%;
+  background: var(--google-blue);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+/* ========== STATUS BADGES ========== */
+.google-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.google-badge-success {
+  background: var(--google-green-50);
+  color: var(--google-green-700);
+}
+
+.google-badge-warning {
+  background: var(--google-yellow-50);
+  color: #f57c00;
+}
+
+.google-badge-error {
+  background: var(--google-red-50);
+  color: var(--google-red-700);
+}
+
+.google-badge-info {
+  background: var(--google-blue-50);
+  color: var(--google-blue-700);
+}
+
+.google-badge-secondary {
+  background: var(--google-grey-100);
+  color: var(--google-grey-700);
+}
+
+/* ========== EMPTY STATES ========== */
+.google-empty-state {
+  text-align: center;
+  padding: 5rem 2rem;
+}
+
+.google-empty-state-icon {
+  display: inline-flex;
+  padding: 1.5rem;
+  background: var(--google-grey-50);
+  border-radius: 50%;
+  margin-bottom: 1.5rem;
+}
+
+.google-empty-state-icon .material-symbols-outlined {
+  font-size: 3rem;
+  color: var(--google-grey-400);
+}
+
+.google-empty-state h2 {
+  color: var(--google-grey-900);
+  margin-bottom: 0.5rem;
+}
+
+.google-empty-state p {
+  color: var(--google-grey-600);
+  max-width: 400px;
+  margin: 0 auto 2rem auto;
+}

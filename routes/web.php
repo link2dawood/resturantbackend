@@ -10,14 +10,22 @@ use App\Http\Controllers\TransactionTypeController;
 use App\Http\Controllers\RevenueIncomeTypeController;
 use App\Http\Controllers\DailyReportController;
 use App\Http\Controllers\AuditLogController;
+use App\Http\Controllers\DashboardController;
 
 
 Route::get('/', [App\Http\Controllers\WelcomeController::class, 'index'])->name('index');
 
 Auth::routes();
 
-Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
+// Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
 Route::get('/states', [App\Http\Controllers\HomeController::class, 'states'])->name('states.index');
+
+// Dashboard Analytics Routes
+Route::middleware('auth')->group(function () {
+    Route::get('/home', [DashboardController::class, 'index'])->name('home');
+    Route::get('/dashboard/chart-data', [DashboardController::class, 'getChartData'])->name('dashboard.chart-data');
+    Route::get('/dashboard/export', [DashboardController::class, 'exportData'])->name('dashboard.export');
+});
 
 // Google OAuth Routes
 Route::get('google-signin', [GoogleController::class, 'redirectToGoogle'])->name('google.signin');
@@ -57,7 +65,12 @@ Route::middleware('auth')->group(function () {
     // Daily Reports Routes - with access control and date conversion
     Route::middleware(['daily_report_access', 'convert_date_format'])->group(function () {
         Route::get('/daily-reports', [DailyReportController::class, 'index'])->name('daily-reports.index');
-        Route::get('/daily-reports/create', [DailyReportController::class, 'create'])->name('daily-reports.create');
+
+        // Multi-step creation process
+        Route::get('/daily-reports/create', [DailyReportController::class, 'selectStore'])->name('daily-reports.create');
+        Route::get('/daily-reports/create/step-2', [DailyReportController::class, 'selectDate'])->name('daily-reports.select-date');
+        Route::get('/daily-reports/create/form', [DailyReportController::class, 'createForm'])->name('daily-reports.create-form');
+
         Route::get('/daily-reports/quick-entry', [DailyReportController::class, 'quickEntry'])->name('daily-reports.quick-entry');
         Route::post('/daily-reports', [DailyReportController::class, 'store'])->name('daily-reports.store');
         Route::get('/daily-reports/{dailyReport}', [DailyReportController::class, 'show'])->name('daily-reports.show');
