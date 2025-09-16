@@ -4,30 +4,21 @@
 
 @section('content')
 <div class="container-xl mt-4">
-    <div class="page-header d-print-none">
-        <div class="container-xl">
-            <div class="row g-2 align-items-center">
-                <div class="col">
-                    <div class="page-pretitle">Management</div>
-                    <h2 class="page-title">Owners</h2>
-                </div>
-                <div class="col-auto ms-auto d-print-none">
-                    @if(Auth::user()->hasPermission('manage_owners'))
-                    <a href="{{ route('owners.create') }}" class="btn btn-primary">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-1">
-                            <line x1="12" y1="5" x2="12" y2="19"/>
-                            <line x1="5" y1="12" x2="19" y2="12"/>
-                        </svg>
-                        Add Owner
-                    </a>
-                    @endif
-                </div>
-            </div>
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="mb-0" style="font-family: 'Google Sans', sans-serif; font-size: 1.75rem; font-weight: 400; color: var(--on-surface, #202124);">Owners</h1>
+            <p class="text-muted mb-0" style="font-family: 'Google Sans', sans-serif; margin-top: 0.25rem;">Manage restaurant owners and their permissions</p>
         </div>
+        @if(Auth::user()->hasPermission('manage_owners'))
+        <a href="{{ route('owners.create') }}" class="btn btn-primary d-flex align-items-center" style="gap: 0.5rem;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 5v14M5 12h14"/>
+            </svg>
+            Add Owner
+        </a>
+        @endif
     </div>
-
-    <div class="page-body">
-        <div class="container-xl">
             <div class="row row-deck row-cards">
                 <div class="col-12">
                     <div class="card">
@@ -141,10 +132,9 @@
                                                     <div class="dropdown">
                                                         <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
                                                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                                <circle cx="12" cy="12" r="1"/>
-                                                                <circle cx="12" cy="5" r="1"/>
-                                                                <circle cx="12" cy="19" r="1"/>
+                                                                <path d="M12 1v6M12 17v6M4.22 4.22l4.24 4.24M15.54 15.54l4.24 4.24M1 12h6M17 12h6M4.22 19.78l4.24-4.24M15.54 8.46l4.24-4.24"/>
                                                             </svg>
+                                                            More
                                                         </button>
                                                         <div class="dropdown-menu">
                                                             <a href="{{ route('owners.assign-stores', $owner->id) }}" class="dropdown-item">

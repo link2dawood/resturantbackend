@@ -1,183 +1,46 @@
 @extends('layouts.tabler')
 @section('title', 'Daily Reports')
 
-@section('head')
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
-
-<style>
-:root {
-  --google-blue: #4285f4;
-  --google-blue-50: #e8f0fe;
-  --google-blue-100: #d2e3fc;
-  --google-blue-600: #1a73e8;
-  --google-blue-700: #1967d2;
-  --google-green: #34a853;
-  --google-green-50: #e6f4ea;
-  --google-yellow: #fbbc04;
-  --google-red: #ea4335;
-  --google-red-50: #fce8e6;
-  --google-grey-50: #f8f9fa;
-  --google-grey-100: #f1f3f4;
-  --google-grey-200: #e8eaed;
-  --google-grey-300: #dadce0;
-  --google-grey-600: #5f6368;
-  --google-grey-700: #3c4043;
-  --google-grey-900: #202124;
-  --surface: #ffffff;
-  --on-surface: #1f1f1f;
-  --surface-variant: #f8f9fa;
-}
-
-* {
-  font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-}
-
-.google-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 24px;
-}
-
-.google-header {
-  margin-bottom: 32px;
-}
-
-.google-title {
-  font-size: 28px;
-  font-weight: 400;
-  color: var(--google-grey-900);
-  margin: 0 0 8px 0;
-  letter-spacing: -0.25px;
-}
-
-.google-subtitle {
-  font-size: 16px;
-  font-weight: 400;
-  color: var(--google-grey-600);
-  margin: 0;
-}
-
-.google-card {
-  background: var(--surface);
-  border-radius: 12px;
-  box-shadow: 0 1px 3px 0 rgba(60, 64, 67, 0.08), 0 4px 8px 3px rgba(60, 64, 67, 0.04);
-  border: none;
-  transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
-}
-
-.google-card:hover {
-  box-shadow: 0 2px 6px 2px rgba(60, 64, 67, 0.15), 0 8px 24px 4px rgba(60, 64, 67, 0.12);
-}
-
-.google-btn {
-  font-family: 'Google Sans', sans-serif;
-  font-weight: 500;
-  font-size: 14px;
-  line-height: 20px;
-  letter-spacing: 0.25px;
-  border-radius: 20px;
-  padding: 10px 24px;
-  border: none;
-  transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.google-btn-primary {
-  background: var(--google-blue);
-  color: white;
-}
-
-.google-btn-primary:hover {
-  background: var(--google-blue-700);
-  box-shadow: 0 1px 3px 0 rgba(66, 133, 244, 0.3), 0 4px 8px 3px rgba(66, 133, 244, 0.15);
-  color: white;
-}
-
-.google-btn-outlined {
-  background: transparent;
-  color: var(--google-blue);
-  border: 1px solid var(--google-grey-300);
-}
-
-.google-btn-outlined:hover {
-  background: var(--google-blue-50);
-  border-color: var(--google-blue);
-  color: var(--google-blue);
-}
-
-.google-stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 16px;
-  margin-bottom: 32px;
-}
-
-.google-stat-card {
-  background: var(--surface);
-  border-radius: 12px;
-  padding: 20px;
-  border: 1px solid var(--google-grey-200);
-  transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
-}
-
-.google-stat-value {
-  font-size: 32px;
-  font-weight: 400;
-  color: var(--google-grey-900);
-  margin: 0 0 4px 0;
-}
-
-.google-stat-label {
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--google-grey-600);
-  margin: 0;
-}
-
-.material-symbols-outlined {
-  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
-  font-size: 20px;
-}
-</style>
-@endsection
 
 @section('content')
-
-<div class="google-container">
-    <div class="google-header">
-        <h1 class="google-title">Daily Reports</h1>
-        <p class="google-subtitle">Manage and view your restaurant's daily performance</p>
+<div class="container-xl mt-4">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="mb-0" style="font-family: 'Google Sans', sans-serif; font-size: 1.75rem; font-weight: 400; color: #202124;">Daily Reports</h1>
+            <p class="text-muted mb-0" style="font-family: 'Google Sans', sans-serif; margin-top: 0.25rem;">Manage and view your restaurant's daily performance</p>
+        </div>
     </div>
 
     @if(session('success'))
-        <div class="google-card" style="background: var(--google-green-50); border-left: 4px solid var(--google-green); margin-bottom: 24px; padding: 16px;">
-            <div style="display: flex; align-items: center; gap: 12px;">
-                <span class="material-symbols-outlined" style="color: var(--google-green);">check_circle</span>
-                <span style="color: var(--google-green); font-weight: 500;">{{ session('success') }}</span>
-            </div>
+        <div class="alert alert-success d-flex align-items-center mb-4" role="alert" style="border-radius: 0.75rem; border-left: 4px solid #34a853;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#34a853" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                <polyline points="22,4 12,14.01 9,11.01"/>
+            </svg>
+            {{ session('success') }}
         </div>
     @endif
 
     @if(session('error'))
-        <div class="google-card" style="background: var(--google-red-50); border-left: 4px solid var(--google-red); margin-bottom: 24px; padding: 16px;">
-            <div style="display: flex; align-items: center; gap: 12px;">
-                <span class="material-symbols-outlined" style="color: var(--google-red);">error</span>
-                <span style="color: var(--google-red); font-weight: 500;">{{ session('error') }}</span>
-            </div>
+        <div class="alert alert-danger d-flex align-items-center mb-4" role="alert" style="border-radius: 0.75rem; border-left: 4px solid #ea4335;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ea4335" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="15" y1="9" x2="9" y2="15"/>
+                <line x1="9" y1="9" x2="15" y2="15"/>
+            </svg>
+            {{ session('error') }}
         </div>
     @endif
 
     @if(session('warning'))
-        <div class="google-card" style="background: #fef7e0; border-left: 4px solid var(--google-yellow); margin-bottom: 24px; padding: 16px;">
-            <div style="display: flex; align-items: center; gap: 12px;">
-                <span class="material-symbols-outlined" style="color: var(--google-yellow);">warning</span>
-                <span style="color: #f57c00; font-weight: 500;">{{ session('warning') }}</span>
-            </div>
+        <div class="alert alert-warning d-flex align-items-center mb-4" role="alert" style="border-radius: 0.75rem; border-left: 4px solid #fbbc04;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fbbc04" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
+                <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+            {{ session('warning') }}
         </div>
     @endif
 
@@ -189,48 +52,69 @@
             $avgGross = $reports->avg('gross_sales');
             $totalCustomers = $reports->sum('total_customers');
         @endphp
-        <div class="google-stats-grid">
-            <div class="google-stat-card">
-                <div style="display: flex; align-items: center; gap: 12px;">
-                    <div style="background: var(--google-green-50); padding: 12px; border-radius: 12px;">
-                        <span class="material-symbols-outlined" style="color: var(--google-green); font-size: 24px;">trending_up</span>
-                    </div>
-                    <div>
-                        <p class="google-stat-value">${{ number_format($totalGross, 0) }}</p>
-                        <p class="google-stat-label">Total Gross Sales</p>
-                    </div>
-                </div>
-            </div>
-            <div class="google-stat-card">
-                <div style="display: flex; align-items: center; gap: 12px;">
-                    <div style="background: var(--google-blue-50); padding: 12px; border-radius: 12px;">
-                        <span class="material-symbols-outlined" style="color: var(--google-blue); font-size: 24px;">account_balance_wallet</span>
-                    </div>
-                    <div>
-                        <p class="google-stat-value">${{ number_format($totalNet, 0) }}</p>
-                        <p class="google-stat-label">Total Net Sales</p>
+        <div class="row g-3 mb-4">
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <div class="mb-2">
+                            <div class="d-inline-flex p-3 rounded-circle" style="background: #e6f4ea; color: #34a853;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="22,12 18,12 15,21 9,3 6,12 2,12"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <h3 class="mb-1" style="font-family: 'Google Sans', sans-serif; font-size: 1.75rem; font-weight: 400; color: #202124;">${{ number_format($totalGross, 0) }}</h3>
+                        <p class="text-muted mb-0" style="font-family: 'Google Sans', sans-serif; font-size: 0.875rem;">Total Gross Sales</p>
                     </div>
                 </div>
             </div>
-            <div class="google-stat-card">
-                <div style="display: flex; align-items: center; gap: 12px;">
-                    <div style="background: #fff3e0; padding: 12px; border-radius: 12px;">
-                        <span class="material-symbols-outlined" style="color: #f57c00; font-size: 24px;">analytics</span>
-                    </div>
-                    <div>
-                        <p class="google-stat-value">${{ number_format($avgGross, 0) }}</p>
-                        <p class="google-stat-label">Average Daily Sales</p>
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <div class="mb-2">
+                            <div class="d-inline-flex p-3 rounded-circle" style="background: #e8f0fe; color: #4285f4;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
+                                    <line x1="1" y1="10" x2="23" y2="10"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <h3 class="mb-1" style="font-family: 'Google Sans', sans-serif; font-size: 1.75rem; font-weight: 400; color: #202124;">${{ number_format($totalNet, 0) }}</h3>
+                        <p class="text-muted mb-0" style="font-family: 'Google Sans', sans-serif; font-size: 0.875rem;">Total Net Sales</p>
                     </div>
                 </div>
             </div>
-            <div class="google-stat-card">
-                <div style="display: flex; align-items: center; gap: 12px;">
-                    <div style="background: #f3e5f5; padding: 12px; border-radius: 12px;">
-                        <span class="material-symbols-outlined" style="color: #7b1fa2; font-size: 24px;">group</span>
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <div class="mb-2">
+                            <div class="d-inline-flex p-3 rounded-circle" style="background: #fff3e0; color: #f57c00;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M3 3v18h18"/>
+                                    <path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <h3 class="mb-1" style="font-family: 'Google Sans', sans-serif; font-size: 1.75rem; font-weight: 400; color: #202124;">${{ number_format($avgGross, 0) }}</h3>
+                        <p class="text-muted mb-0" style="font-family: 'Google Sans', sans-serif; font-size: 0.875rem;">Average Daily Sales</p>
                     </div>
-                    <div>
-                        <p class="google-stat-value">{{ number_format($totalCustomers) }}</p>
-                        <p class="google-stat-label">Total Customers</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <div class="mb-2">
+                            <div class="d-inline-flex p-3 rounded-circle" style="background: #f3e5f5; color: #7b1fa2;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+                                    <circle cx="9" cy="7" r="4"/>
+                                    <path d="M23 21v-2a4 4 0 00-3-3.87"/>
+                                    <path d="M16 3.13a4 4 0 010 7.75"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <h3 class="mb-1" style="font-family: 'Google Sans', sans-serif; font-size: 1.75rem; font-weight: 400; color: #202124;">{{ number_format($totalCustomers) }}</h3>
+                        <p class="text-muted mb-0" style="font-family: 'Google Sans', sans-serif; font-size: 0.875rem;">Total Customers</p>
                     </div>
                 </div>
             </div>
@@ -238,77 +122,91 @@
     @endif
 
     <!-- Action Buttons -->
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; flex-wrap: wrap; gap: 16px;">
-        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap" style="gap: 1rem;">
+        <div class="d-flex" style="gap: 0.75rem; flex-wrap: wrap;">
             @if(auth()->user()->hasPermission('create_reports'))
-                <a href="{{ route('daily-reports.create') }}" class="google-btn google-btn-primary">
-                    <span class="material-symbols-outlined">add</span>
+                <a href="{{ route('daily-reports.create') }}" class="btn btn-primary d-flex align-items-center" style="gap: 0.5rem;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 5v14M5 12h14"/>
+                    </svg>
                     Create Daily Report
                 </a>
-                <a href="{{ route('daily-reports.quick-entry') }}" class="google-btn google-btn-outlined">
-                    <span class="material-symbols-outlined">flash_on</span>
+                <a href="{{ route('daily-reports.quick-entry') }}" class="btn btn-outline-primary d-flex align-items-center" style="gap: 0.5rem;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="13,2 3,14 12,14 11,22 21,10 12,10 13,2"/>
+                    </svg>
                     Quick Entry
                 </a>
             @endif
         </div>
-        <div style="display: flex; gap: 12px;">
+        <div class="d-flex" style="gap: 0.75rem;">
             @if($reports->count() > 0)
-                <a href="{{ route('daily-reports.export-csv') }}" class="google-btn google-btn-outlined">
-                    <span class="material-symbols-outlined">download</span>
+                <a href="{{ route('daily-reports.export-csv') }}" class="btn btn-outline-secondary d-flex align-items-center" style="gap: 0.5rem;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                        <polyline points="7,10 12,15 17,10"/>
+                        <line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
                     Export
                 </a>
             @endif
         </div>
     </div>
 
-    <div class="google-card" style="margin-bottom: 24px; padding: 24px;">
-        <h3 style="font-size: 16px; font-weight: 500; color: var(--google-grey-900); margin: 0 0 20px 0;">Search & Filter</h3>
-        <form method="GET" action="{{ route('daily-reports.index') }}" style="display: grid; grid-template-columns: 2fr 1fr 1fr 1.5fr auto; gap: 16px; align-items: end;">
-            <div>
-                <label style="font-size: 14px; font-weight: 500; color: var(--google-grey-700); margin-bottom: 6px; display: block;">Search</label>
-                <input type="text" name="search" value="{{ request('search') }}" placeholder="Search reports, stores, creators..."
-                       style="width: 100%; padding: 12px 16px; border: 1px solid var(--google-grey-300); border-radius: 8px; font-size: 14px; font-family: 'Google Sans', sans-serif; transition: border-color 0.2s;">
+    <div class="card mb-4">
+        <div class="card-header border-0">
+            <h3 class="card-title" style="font-family: 'Google Sans', sans-serif; font-size: 1.125rem; font-weight: 500;">Search & Filter</h3>
+        </div>
+        <div class="card-body">
+        <form method="GET" action="{{ route('daily-reports.index') }}" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label" style="font-family: 'Google Sans', sans-serif; font-weight: 500;">Search</label>
+                <input type="text" name="search" value="{{ request('search') }}" placeholder="Search reports, stores, creators..." class="form-control">
             </div>
-            <div>
-                <label style="font-size: 14px; font-weight: 500; color: var(--google-grey-700); margin-bottom: 6px; display: block;">From Date</label>
-                <input type="date" name="date_from" value="{{ request('date_from') }}"
-                       style="width: 100%; padding: 12px 16px; border: 1px solid var(--google-grey-300); border-radius: 8px; font-size: 14px; font-family: 'Google Sans', sans-serif;">
+            <div class="col-md-2">
+                <label class="form-label" style="font-family: 'Google Sans', sans-serif; font-weight: 500;">From Date</label>
+                <input type="date" name="date_from" value="{{ request('date_from') }}" class="form-control">
             </div>
-            <div>
-                <label style="font-size: 14px; font-weight: 500; color: var(--google-grey-700); margin-bottom: 6px; display: block;">To Date</label>
-                <input type="date" name="date_to" value="{{ request('date_to') }}"
-                       style="width: 100%; padding: 12px 16px; border: 1px solid var(--google-grey-300); border-radius: 8px; font-size: 14px; font-family: 'Google Sans', sans-serif;">
+            <div class="col-md-2">
+                <label class="form-label" style="font-family: 'Google Sans', sans-serif; font-weight: 500;">To Date</label>
+                <input type="date" name="date_to" value="{{ request('date_to') }}" class="form-control">
             </div>
-            <div>
-                <label style="font-size: 14px; font-weight: 500; color: var(--google-grey-700); margin-bottom: 6px; display: block;">Store</label>
-                <select name="store_id" style="width: 100%; padding: 12px 16px; border: 1px solid var(--google-grey-300); border-radius: 8px; font-size: 14px; font-family: 'Google Sans', sans-serif; background: white;">
+            <div class="col-md-3">
+                <label class="form-label" style="font-family: 'Google Sans', sans-serif; font-weight: 500;">Store</label>
+                <select name="store_id" class="form-select">
                     <option value="">All Stores</option>
                     @foreach($stores as $store)
                         <option value="{{ $store->id }}" {{ request('store_id') == $store->id ? 'selected' : '' }}>{{ $store->store_info }}</option>
                     @endforeach
                 </select>
             </div>
-            <button type="submit" class="google-btn google-btn-primary" style="height: 44px;">
-                <span class="material-symbols-outlined">search</span>
-                Search
-            </button>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100 d-flex align-items-center justify-content-center" style="gap: 0.5rem;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"/>
+                        <path d="M21 21l-4.35-4.35"/>
+                    </svg>
+                    Search
+                </button>
+            </div>
         </form>
+        </div>
     </div>
 
     @if($reports->count() > 0)
-        <div class="google-card">
-            <div style="padding: 0; overflow: hidden;">
-                <div style="overflow-x: auto;">
-                    <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
-                        <thead>
-                            <tr style="background: var(--google-grey-50); border-bottom: 1px solid var(--google-grey-200);">
-                                <th style="padding: 16px 24px; text-align: left; font-weight: 500; color: var(--google-grey-700); font-size: 13px; letter-spacing: 0.3px;">Date</th>
-                                <th style="padding: 16px 24px; text-align: left; font-weight: 500; color: var(--google-grey-700); font-size: 13px; letter-spacing: 0.3px;">Store</th>
-                                <th style="padding: 16px 24px; text-align: left; font-weight: 500; color: var(--google-grey-700); font-size: 13px; letter-spacing: 0.3px;">Status</th>
-                                <th style="padding: 16px 24px; text-align: left; font-weight: 500; color: var(--google-grey-700); font-size: 13px; letter-spacing: 0.3px;">Gross Sales</th>
-                                <th style="padding: 16px 24px; text-align: left; font-weight: 500; color: var(--google-grey-700); font-size: 13px; letter-spacing: 0.3px;">Net Sales</th>
-                                <th style="padding: 16px 24px; text-align: left; font-weight: 500; color: var(--google-grey-700); font-size: 13px; letter-spacing: 0.3px;">Created By</th>
-                                <th style="padding: 16px 24px; text-align: left; font-weight: 500; color: var(--google-grey-700); font-size: 13px; letter-spacing: 0.3px;">Actions</th>
+        <div class="card">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0" style="font-size: 0.875rem;">
+                        <thead style="background-color: #f8f9fa; border-bottom: 2px solid #e0e0e0;">
+                            <tr>
+                                <th style="font-weight: 500; color: #3c4043; padding: 1rem; border: none; font-size: 0.813rem; letter-spacing: 0.3px; font-family: 'Google Sans', sans-serif;">Date</th>
+                                <th style="font-weight: 500; color: #3c4043; padding: 1rem; border: none; font-size: 0.813rem; letter-spacing: 0.3px; font-family: 'Google Sans', sans-serif;">Store</th>
+                                <th style="font-weight: 500; color: #3c4043; padding: 1rem; border: none; font-size: 0.813rem; letter-spacing: 0.3px; font-family: 'Google Sans', sans-serif;">Status</th>
+                                <th style="font-weight: 500; color: #3c4043; padding: 1rem; border: none; font-size: 0.813rem; letter-spacing: 0.3px; font-family: 'Google Sans', sans-serif;">Gross Sales</th>
+                                <th style="font-weight: 500; color: #3c4043; padding: 1rem; border: none; font-size: 0.813rem; letter-spacing: 0.3px; font-family: 'Google Sans', sans-serif;">Net Sales</th>
+                                <th style="font-weight: 500; color: #3c4043; padding: 1rem; border: none; font-size: 0.813rem; letter-spacing: 0.3px; font-family: 'Google Sans', sans-serif;">Created By</th>
+                                <th style="font-weight: 500; color: #3c4043; padding: 1rem; border: none; font-size: 0.813rem; letter-spacing: 0.3px; font-family: 'Google Sans', sans-serif; text-align: center;">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -389,9 +287,9 @@
                     </table>
                 </div>
             </div>
-            <div style="padding: 16px 24px; border-top: 1px solid var(--google-grey-200); background: var(--google-grey-50); display: flex; justify-content: space-between; align-items: center; font-size: 14px; color: var(--google-grey-600);">
+            <div class="card-footer bg-light d-flex justify-content-between align-items-center" style="font-size: 0.875rem; color: #5f6368; font-family: 'Google Sans', sans-serif;">
                 <div>Showing {{ $reports->firstItem() }} to {{ $reports->lastItem() }} of {{ $reports->total() }} reports</div>
-                <div style="color: var(--google-blue);">{{ $reports->links() }}</div>
+                <div>{{ $reports->links() }}</div>
             </div>
         </div>
     @else

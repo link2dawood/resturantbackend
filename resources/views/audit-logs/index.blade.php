@@ -3,26 +3,6 @@
 @section('content')
 
 <style>
-    .audit-header {
-        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-        color: white;
-        padding: 30px;
-        border-radius: 12px;
-        margin-bottom: 30px;
-        box-shadow: 0 10px 30px rgba(99, 102, 241, 0.3);
-    }
-    
-    .audit-header h1 {
-        margin: 0;
-        font-size: 2.5rem;
-        font-weight: 700;
-    }
-    
-    .audit-header p {
-        margin: 10px 0 0;
-        opacity: 0.9;
-        font-size: 1.1rem;
-    }
     
     .audit-card {
         background: white;
@@ -135,10 +115,13 @@
     }
 </style>
 
-<div class="container-xl">
-    <div class="audit-header">
-        <h1>🔍 Audit Logs</h1>
-        <p>Track all system activities and changes</p>
+<div class="container-xl mt-4">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="mb-0" style="font-family: 'Google Sans', sans-serif; font-size: 1.75rem; font-weight: 400; color: var(--on-surface, #202124);">Audit Logs</h1>
+            <p class="text-muted mb-0" style="font-family: 'Google Sans', sans-serif; margin-top: 0.25rem;">Track all system activities and changes</p>
+        </div>
     </div>
 
     <!-- Filters -->
@@ -198,8 +181,18 @@
             </div>
             
             <div class="mt-3">
-                <button type="submit" class="btn btn-filter">🔍 Filter</button>
-                <a href="{{ route('audit-logs.index') }}" class="btn btn-clear">🗑️ Clear</a>
+                <button type="submit" class="btn btn-filter d-flex align-items-center" style="gap: 0.5rem;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 6L9 18L3.5 12.5"/>
+                    </svg>
+                    Filter
+                </button>
+                <a href="{{ route('audit-logs.index') }}" class="btn btn-clear d-flex align-items-center" style="gap: 0.5rem;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
+                    </svg>
+                    Clear
+                </a>
             </div>
         </form>
     </div>
@@ -255,8 +248,12 @@
                                 <code>{{ $log->ip_address ?? 'N/A' }}</code>
                             </td>
                             <td>
-                                <a href="{{ route('audit-logs.show', $log) }}" class="btn btn-sm btn-outline-primary">
-                                    👁️ View
+                                <a href="{{ route('audit-logs.show', $log) }}" class="btn btn-sm btn-outline-primary d-flex align-items-center" style="gap: 0.25rem;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                        <path d="M12 13a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/>
+                                    </svg>
+                                    View
                                 </a>
                             </td>
                         </tr>
@@ -283,8 +280,12 @@
                 </div>
                 <h4 class="text-muted">No audit logs found</h4>
                 <p class="text-muted">No logs match your current filter criteria.</p>
-                <a href="{{ route('audit-logs.index') }}" class="btn btn-outline-primary">
-                    🔄 Clear Filters
+                <a href="{{ route('audit-logs.index') }}" class="btn btn-outline-primary d-flex align-items-center justify-content-center" style="gap: 0.5rem;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M1 4v6h6M23 20v-6h-6"/>
+                        <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/>
+                    </svg>
+                    Clear Filters
                 </a>
             </div>
         @endif

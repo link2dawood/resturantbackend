@@ -1,32 +1,35 @@
-/* Modern Clean Design System */
+/* Modern Clean Design System - Material Design 3 Integration */
+@import url('https://fonts.googleapis.com/css2?family=Google+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap');
 :root {
-    --bg-primary: #ffffff;
-    --bg-secondary: #f8fafc;
-    --bg-tertiary: #f1f5f9;
-    --text-primary: #1e293b;
-    --text-secondary: #64748b;
-    --text-muted: #94a3b8;
-    --accent-color: #0ea5e9;
-    --accent-light: #38bdf8;
-    --accent-dark: #0284c7;
-    --success-color: #10b981;
-    --danger-color: #ef4444;
-    --warning-color: #f59e0b;
-    --info-color: #8b5cf6;
-    --border-color: #e2e8f0;
-    --border-radius: 12px;
-    --border-radius-sm: 8px;
-    --border-radius-lg: 16px;
-    --transition: all 0.2s ease;
+    /* Material Design 3 Color Tokens */
+    --bg-primary: var(--surface, #ffffff);
+    --bg-secondary: var(--google-grey-50, #f8f9fa);
+    --bg-tertiary: var(--google-grey-100, #f1f3f4);
+    --text-primary: var(--on-surface, #202124);
+    --text-secondary: var(--google-grey-600, #5f6368);
+    --text-muted: var(--google-grey-500, #9aa0a6);
+    --accent-color: var(--google-blue, #4285f4);
+    --accent-light: var(--google-blue-400, #669df6);
+    --accent-dark: var(--google-blue-700, #1967d2);
+    --success-color: var(--google-green, #34a853);
+    --danger-color: var(--google-red, #ea4335);
+    --warning-color: var(--google-yellow, #fbbc04);
+    --info-color: var(--google-blue, #4285f4);
+    --border-color: var(--google-grey-300, #dadce0);
+    --border-radius: 0.75rem; /* 12px */
+    --border-radius-sm: 0.5rem; /* 8px */
+    --border-radius-lg: 1rem; /* 16px */
+    --transition: var(--transition-standard, all 0.2s cubic-bezier(0.2, 0, 0, 1));
 }
 
 /* Base styles */
 body {
     background: var(--bg-secondary);
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: 'Google Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     color: var(--text-primary);
     min-height: 100vh;
-    line-height: 1.6;
+    line-height: 1.5;
 }
 
 /* Modern card styles */
@@ -35,37 +38,44 @@ body {
     border-radius: var(--border-radius);
     border: 1px solid var(--border-color);
     transition: var(--transition);
-    padding: 2rem;
+    padding: 1.5rem;
+    box-shadow: var(--elevation-1);
 }
 
 .neuro-card:hover {
     border-color: var(--accent-color);
-    transform: translateY(-1px);
+    transform: translateY(-2px);
+    box-shadow: var(--elevation-2);
 }
 
 /* Modern button styles */
 .neuro-btn {
     background: var(--bg-primary);
     border: 1px solid var(--border-color);
-    border-radius: var(--border-radius-sm);
-    padding: 12px 24px;
+    border-radius: 1.25rem; /* Material Design pill button */
+    padding: 0.625rem 1.5rem;
     color: var(--text-primary);
-    font-weight: 600;
+    font-family: 'Google Sans', sans-serif;
+    font-weight: 500;
+    font-size: 0.875rem;
     text-decoration: none;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
+    gap: 0.5rem;
     transition: var(--transition);
     cursor: pointer;
-    font-size: 14px;
+    min-height: 2.5rem;
+    line-height: 1.25;
+    letter-spacing: 0.1px;
 }
 
 .neuro-btn:hover {
-    background: var(--bg-tertiary);
+    background: var(--google-grey-100);
     color: var(--text-primary);
     text-decoration: none;
     border-color: var(--accent-color);
+    box-shadow: var(--elevation-1);
 }
 
 .neuro-btn:active {
@@ -82,6 +92,7 @@ body {
     background: var(--accent-dark);
     border-color: var(--accent-dark);
     color: white;
+    box-shadow: var(--elevation-2);
 }
 
 .neuro-btn-success {
@@ -113,9 +124,10 @@ body {
     background: var(--bg-primary);
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius-sm);
-    padding: 12px 16px;
+    padding: 0.75rem 1rem;
     color: var(--text-primary);
-    font-size: 14px;
+    font-family: 'Google Sans', sans-serif;
+    font-size: 0.875rem;
     transition: var(--transition);
     width: 100%;
 }
@@ -123,7 +135,11 @@ body {
 .neuro-input:focus {
     outline: none;
     border-color: var(--accent-color);
-    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+    box-shadow: 0 0 0 1px var(--accent-color);
+}
+
+.neuro-input:hover {
+    border-color: var(--google-grey-600);
 }
 
 .neuro-input::placeholder {
@@ -206,10 +222,11 @@ body {
 
 .neuro-label {
     display: block;
-    margin-bottom: 0.5rem;
-    color: var(--text-primary);
-    font-weight: 600;
-    font-size: 14px;
+    margin-bottom: 0.375rem;
+    color: var(--google-grey-700);
+    font-family: 'Google Sans', sans-serif;
+    font-weight: 500;
+    font-size: 0.875rem;
 }
 
 /* Responsive adjustments */
@@ -225,12 +242,223 @@ body {
     }
 }
 
+/* Material Design 3 Micro-Animations */
+.md-animate-scale {
+    transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1);
+}
+
+.md-animate-scale:hover {
+    transform: scale(1.02);
+}
+
+.md-animate-lift {
+    transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.2s cubic-bezier(0.2, 0, 0, 1);
+}
+
+.md-animate-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--elevation-3);
+}
+
+.md-animate-ripple {
+    position: relative;
+    overflow: hidden;
+}
+
+.md-animate-ripple::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.3);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+}
+
+.md-animate-ripple:hover::before {
+    width: 200%;
+    height: 200%;
+}
+
+/* Enhanced hover animations for existing components */
+.neuro-card,
+.google-card {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.neuro-card:hover,
+.google-card:hover {
+    transform: translateY(-4px) scale(1.01);
+    box-shadow: var(--elevation-4, 0 4px 8px 3px rgba(60, 64, 67, 0.15));
+}
+
+.neuro-btn,
+.google-btn {
+    position: relative;
+    overflow: hidden;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.neuro-btn:hover,
+.google-btn:hover {
+    transform: translateY(-1px);
+}
+
+.neuro-btn:active,
+.google-btn:active {
+    transform: translateY(0) scale(0.98);
+}
+
+/* Ripple effect for buttons */
+.neuro-btn::before,
+.google-btn::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.3);
+    transform: translate(-50%, -50%);
+    transition: width 0.4s ease, height 0.4s ease;
+    z-index: 1;
+}
+
+.neuro-btn:active::before,
+.google-btn:active::before {
+    width: 200%;
+    height: 200%;
+}
+
+/* Icon animations */
+.material-symbols-outlined {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.nav-link:hover .material-symbols-outlined,
+.google-btn:hover .material-symbols-outlined,
+.neuro-btn:hover .material-symbols-outlined {
+    transform: scale(1.1) rotate(5deg);
+}
+
+/* Avatar hover animations */
+.avatar {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.avatar:hover {
+    transform: scale(1.1) rotate(3deg);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+}
+
+/* Dropdown animations */
+.dropdown-menu {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.95);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dropdown-menu.show {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
+
+.dropdown-item {
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dropdown-item:hover {
+    transform: translateX(4px);
+}
+
+/* Form input animations */
+.neuro-input,
+.google-input,
+.form-control {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.neuro-input:focus,
+.google-input:focus,
+.form-control:focus {
+    transform: translateY(-1px);
+}
+
+/* Table row animations */
+tr {
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+tr:hover {
+    transform: translateX(2px);
+}
+
+/* Stagger animation for lists */
+.md-stagger > * {
+    animation: fadeInUp 0.6s ease-out;
+    animation-fill-mode: both;
+}
+
+.md-stagger > *:nth-child(1) { animation-delay: 0.1s; }
+.md-stagger > *:nth-child(2) { animation-delay: 0.2s; }
+.md-stagger > *:nth-child(3) { animation-delay: 0.3s; }
+.md-stagger > *:nth-child(4) { animation-delay: 0.4s; }
+.md-stagger > *:nth-child(5) { animation-delay: 0.5s; }
+
 /* Animation classes */
 .neuro-fade-in {
     animation: neuroFadeIn 0.6s ease-out;
 }
 
 @keyframes neuroFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Pulse animation for loading states */
+@keyframes pulse {
+    0% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+.md-pulse {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Smooth page transitions */
+.page-transition {
+    animation: pageSlideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes pageSlideIn {
     from {
         opacity: 0;
         transform: translateY(20px);
@@ -495,30 +723,272 @@ body {
     }
 }
 
-/* ==================== TABLER RESPONSIVE ENHANCEMENTS ==================== */
+/* ==================== TABLER COMPATIBILITY & ENHANCEMENTS ==================== */
 
-/* Desktop-first responsive design using Tabler's system */
-/* Enhance Tabler's existing responsive capabilities */
-
-/* Desktop optimizations (default) */
-.page-wrapper {
-    transition: var(--transition);
-}
-
+/* Ensure backward compatibility with existing Tabler classes */
 .card {
-    transition: var(--transition);
+    background: var(--surface, #ffffff) !important;
+    border: 1px solid var(--google-grey-200, #e8eaed) !important;
+    border-radius: 0.75rem !important;
+    transition: var(--transition) !important;
 }
 
 .card:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    transform: translateY(-2px) !important;
+    box-shadow: var(--elevation-3, 0 2px 6px 2px rgba(60, 64, 67, 0.15)) !important;
 }
 
-/* Enhanced form styling */
+.page-wrapper {
+    background: var(--google-grey-50, #f8f9fa) !important;
+    transition: var(--transition);
+}
+
+/* Material Design 3 Table Styling */
+.md-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'Google Sans', sans-serif;
+    background: var(--surface);
+    border-radius: 0.75rem;
+    overflow: hidden;
+    box-shadow: var(--elevation-1);
+}
+
+.md-table thead {
+    background: var(--google-grey-50);
+}
+
+.md-table th {
+    padding: 1rem 1.5rem;
+    text-align: left;
+    font-weight: 500;
+    font-size: 0.8125rem;
+    color: var(--google-grey-700);
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    border-bottom: 2px solid var(--google-grey-200);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.md-table td {
+    padding: 1rem 1.5rem;
+    color: var(--on-surface);
+    border-bottom: 1px solid var(--google-grey-100);
+    font-size: 0.875rem;
+    vertical-align: middle;
+}
+
+.md-table tbody tr {
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.md-table tbody tr:hover {
+    background: var(--google-grey-50);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.md-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* Material Design 3 Table Actions */
+.md-table-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.md-table-action {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    background: var(--google-grey-100);
+    color: var(--google-grey-600);
+    text-decoration: none;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    border: none;
+    cursor: pointer;
+}
+
+.md-table-action:hover {
+    background: var(--accent-color);
+    color: white;
+    transform: scale(1.1);
+    text-decoration: none;
+}
+
+.md-table-action.danger:hover {
+    background: var(--danger-color);
+}
+
+.md-table-action.success:hover {
+    background: var(--success-color);
+}
+
+.md-table-action.warning:hover {
+    background: var(--warning-color);
+    color: var(--google-grey-900);
+}
+
+/* Material Design 3 Table Status Badges */
+.md-table-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.75rem;
+    border-radius: 1rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: capitalize;
+}
+
+.md-table-badge.success {
+    background: var(--google-green-50);
+    color: var(--google-green-700);
+}
+
+.md-table-badge.warning {
+    background: var(--google-yellow-50);
+    color: #f57c00;
+}
+
+.md-table-badge.error {
+    background: var(--google-red-50);
+    color: var(--google-red-700);
+}
+
+.md-table-badge.info {
+    background: var(--google-blue-50);
+    color: var(--google-blue-700);
+}
+
+.md-table-badge.secondary {
+    background: var(--google-grey-100);
+    color: var(--google-grey-700);
+}
+
+/* Material Design 3 Table Sorting */
+.md-table th.sortable {
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+}
+
+.md-table th.sortable:hover {
+    background: var(--google-grey-100);
+    color: var(--accent-color);
+}
+
+.md-table th.sortable::after {
+    content: '\2195';
+    position: absolute;
+    right: 0.5rem;
+    opacity: 0.3;
+    transition: opacity 0.2s;
+}
+
+.md-table th.sortable:hover::after {
+    opacity: 1;
+}
+
+.md-table th.sort-asc::after {
+    content: '\2191';
+    opacity: 1;
+    color: var(--accent-color);
+}
+
+.md-table th.sort-desc::after {
+    content: '\2193';
+    opacity: 1;
+    color: var(--accent-color);
+}
+
+/* Material Design 3 Table Pagination */
+.md-table-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.5rem;
+    background: var(--google-grey-50);
+    border-top: 1px solid var(--google-grey-200);
+    font-size: 0.875rem;
+    color: var(--google-grey-600);
+}
+
+.md-table-pagination .pagination-info {
+    font-weight: 500;
+}
+
+.md-table-pagination .pagination-controls {
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* Material Design 3 Table Responsive */
+@media (max-width: 768px) {
+    .md-table {
+        font-size: 0.75rem;
+    }
+
+    .md-table th,
+    .md-table td {
+        padding: 0.75rem 1rem;
+    }
+
+    .md-table th:not(:first-child),
+    .md-table td:not(:first-child) {
+        display: none;
+    }
+
+    .md-table th:first-child,
+    .md-table td:first-child {
+        width: 100%;
+    }
+}
+
+/* Enhanced Tabler form compatibility */
+.form-control,
+.form-select {
+    font-family: 'Google Sans', sans-serif !important;
+    border: 1px solid var(--google-grey-300, #dadce0) !important;
+    border-radius: 0.5rem !important;
+    transition: var(--transition) !important;
+}
+
 .form-control:focus,
 .form-select:focus {
-    border-color: var(--accent-color);
-    box-shadow: 0 0 0 0.125rem rgba(14, 165, 233, 0.25);
+    border-color: var(--accent-color) !important;
+    box-shadow: 0 0 0 1px var(--accent-color) !important;
+    outline: none !important;
+}
+
+.form-control:hover,
+.form-select:hover {
+    border-color: var(--google-grey-600, #5f6368) !important;
+}
+
+/* Tabler table enhancements */
+.table {
+    font-family: 'Google Sans', sans-serif !important;
+}
+
+.table th {
+    background: var(--google-grey-50, #f8f9fa) !important;
+    color: var(--google-grey-700, #3c4043) !important;
+    font-weight: 500 !important;
+    text-transform: uppercase !important;
+    font-size: 0.8125rem !important;
+    letter-spacing: 0.3px !important;
+}
+
+.table tbody tr:hover {
+    background: var(--google-grey-50, #f8f9fa) !important;
+    transform: translateX(2px);
 }
 
 /* Tablet responsive adjustments */
@@ -572,7 +1042,482 @@ body {
     }
 }
 
+/* ==================== MATERIAL DESIGN 3 COMPONENT CLASSES ==================== */
+
+/* Material Design 3 Chip Component */
+.md-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.375rem 0.75rem;
+    background: var(--google-grey-100);
+    border: 1px solid var(--google-grey-300);
+    border-radius: 1rem;
+    font-family: 'Google Sans', sans-serif;
+    font-size: 0.875rem;
+    font-weight: 400;
+    color: var(--on-surface);
+    transition: var(--transition);
+    gap: 0.375rem;
+    cursor: pointer;
+}
+
+.md-chip:hover {
+    background: var(--google-grey-200);
+    border-color: var(--google-grey-400);
+}
+
+.md-chip.md-chip-filled {
+    background: var(--accent-color);
+    color: white;
+    border-color: var(--accent-color);
+}
+
+.md-chip.md-chip-filled:hover {
+    background: var(--accent-dark);
+    border-color: var(--accent-dark);
+}
+
+/* Material Design 3 Switch Component */
+.md-switch {
+    position: relative;
+    display: inline-block;
+    width: 3.25rem;
+    height: 2rem;
+    background: var(--google-grey-300);
+    border-radius: 1rem;
+    transition: var(--transition);
+    cursor: pointer;
+}
+
+.md-switch::before {
+    content: '';
+    position: absolute;
+    top: 0.125rem;
+    left: 0.125rem;
+    width: 1.75rem;
+    height: 1.75rem;
+    background: white;
+    border-radius: 50%;
+    transition: var(--transition);
+    box-shadow: var(--elevation-1);
+}
+
+.md-switch.checked {
+    background: var(--accent-color);
+}
+
+.md-switch.checked::before {
+    transform: translateX(1.25rem);
+}
+
+/* Material Design 3 Divider */
+.md-divider {
+    height: 1px;
+    background: var(--google-grey-200);
+    margin: 1rem 0;
+    border: none;
+}
+
+.md-divider-vertical {
+    width: 1px;
+    height: auto;
+    background: var(--google-grey-200);
+    margin: 0 1rem;
+    border: none;
+    display: inline-block;
+    min-height: 2rem;
+}
+
+/* Material Design 3 Menu */
+.md-menu {
+    background: var(--surface);
+    border: none;
+    border-radius: 0.5rem;
+    box-shadow: var(--elevation-3);
+    padding: 0.5rem 0;
+    min-width: 12rem;
+    z-index: 1000;
+}
+
+.md-menu-item {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    color: var(--on-surface);
+    text-decoration: none;
+    transition: var(--transition);
+    cursor: pointer;
+    font-family: 'Google Sans', sans-serif;
+    font-size: 0.875rem;
+}
+
+.md-menu-item:hover {
+    background: var(--google-grey-50);
+    color: var(--on-surface);
+    text-decoration: none;
+}
+
+.md-menu-item.md-menu-item-danger {
+    color: var(--danger-color);
+}
+
+.md-menu-item.md-menu-item-danger:hover {
+    background: var(--google-red-50);
+    color: var(--google-red-700);
+}
+
+/* Material Design 3 Snackbar */
+.md-snackbar {
+    position: fixed;
+    bottom: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--google-grey-800);
+    color: white;
+    padding: 0.875rem 1.5rem;
+    border-radius: 0.25rem;
+    font-family: 'Google Sans', sans-serif;
+    font-size: 0.875rem;
+    font-weight: 400;
+    box-shadow: var(--elevation-3);
+    z-index: 2000;
+    max-width: calc(100vw - 2rem);
+}
+
+.md-snackbar.md-snackbar-success {
+    background: var(--success-color);
+}
+
+.md-snackbar.md-snackbar-error {
+    background: var(--danger-color);
+}
+
+/* Material Design 3 Tooltips */
+.md-tooltip {
+    position: absolute;
+    background: var(--google-grey-800);
+    color: white;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.25rem;
+    font-family: 'Google Sans', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 400;
+    white-space: nowrap;
+    z-index: 1500;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s, visibility 0.2s;
+}
+
+.md-tooltip.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Material Design 3 Loading Spinner */
+.md-spinner {
+    display: inline-block;
+    width: 1.5rem;
+    height: 1.5rem;
+    border: 2px solid var(--google-grey-200);
+    border-top: 2px solid var(--accent-color);
+    border-radius: 50%;
+    animation: md-spin 1s linear infinite;
+}
+
+@keyframes md-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.md-spinner-large {
+    width: 3rem;
+    height: 3rem;
+    border-width: 3px;
+}
+
+/* Material Design 3 Form Enhancements */
+.md-form-group {
+    margin-bottom: 1.5rem;
+}
+
+.md-form-floating {
+    position: relative;
+}
+
+.md-form-floating input {
+    background: var(--surface);
+    border: 1px solid var(--google-grey-300);
+    border-radius: 0.25rem;
+    padding: 1rem 0.75rem 0.5rem;
+    font-family: 'Google Sans', sans-serif;
+    font-size: 1rem;
+    color: var(--on-surface);
+    width: 100%;
+    transition: var(--transition);
+}
+
+.md-form-floating input:focus {
+    outline: none;
+    border-color: var(--accent-color);
+    border-width: 2px;
+}
+
+.md-form-floating label {
+    position: absolute;
+    top: 0.75rem;
+    left: 0.75rem;
+    font-family: 'Google Sans', sans-serif;
+    font-size: 1rem;
+    color: var(--google-grey-500);
+    pointer-events: none;
+    transition: var(--transition);
+    background: var(--surface);
+    padding: 0 0.25rem;
+}
+
+.md-form-floating input:focus + label,
+.md-form-floating input:not(:placeholder-shown) + label {
+    top: -0.5rem;
+    left: 0.5rem;
+    font-size: 0.75rem;
+    color: var(--accent-color);
+}
+
+/* Material Design 3 Checkboxes */
+.md-checkbox {
+    position: relative;
+    display: inline-block;
+    margin-right: 0.75rem;
+}
+
+.md-checkbox input[type="checkbox"] {
+    opacity: 0;
+    position: absolute;
+    width: 1.125rem;
+    height: 1.125rem;
+    margin: 0;
+    cursor: pointer;
+}
+
+.md-checkbox .checkmark {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 1.125rem;
+    width: 1.125rem;
+    background: var(--surface);
+    border: 2px solid var(--google-grey-300);
+    border-radius: 0.125rem;
+    transition: var(--transition);
+}
+
+.md-checkbox input:checked ~ .checkmark {
+    background: var(--accent-color);
+    border-color: var(--accent-color);
+}
+
+.md-checkbox .checkmark:after {
+    content: '';
+    position: absolute;
+    display: none;
+    left: 0.25rem;
+    top: 0.0625rem;
+    width: 0.3125rem;
+    height: 0.625rem;
+    border: solid white;
+    border-width: 0 0.125rem 0.125rem 0;
+    transform: rotate(45deg);
+}
+
+.md-checkbox input:checked ~ .checkmark:after {
+    display: block;
+}
+
+/* Material Design 3 Radio Buttons */
+.md-radio {
+    position: relative;
+    display: inline-block;
+    margin-right: 0.75rem;
+}
+
+.md-radio input[type="radio"] {
+    opacity: 0;
+    position: absolute;
+    width: 1.125rem;
+    height: 1.125rem;
+    margin: 0;
+    cursor: pointer;
+}
+
+.md-radio .radiomark {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 1.125rem;
+    width: 1.125rem;
+    background: var(--surface);
+    border: 2px solid var(--google-grey-300);
+    border-radius: 50%;
+    transition: var(--transition);
+}
+
+.md-radio input:checked ~ .radiomark {
+    border-color: var(--accent-color);
+}
+
+.md-radio .radiomark:after {
+    content: '';
+    position: absolute;
+    display: none;
+    top: 0.1875rem;
+    left: 0.1875rem;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: var(--accent-color);
+}
+
+.md-radio input:checked ~ .radiomark:after {
+    display: block;
+}
+
+/* Material Design 3 Select Dropdown */
+.md-select-wrapper {
+    position: relative;
+}
+
+.md-select {
+    background: var(--surface);
+    border: 1px solid var(--google-grey-300);
+    border-radius: 0.5rem;
+    padding: 0.75rem 2.5rem 0.75rem 1rem;
+    font-family: 'Google Sans', sans-serif;
+    font-size: 0.875rem;
+    color: var(--on-surface);
+    width: 100%;
+    transition: var(--transition);
+    appearance: none;
+    cursor: pointer;
+}
+
+.md-select:focus {
+    outline: none;
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 1px var(--accent-color);
+}
+
+.md-select-wrapper::after {
+    content: '\25BC';
+    position: absolute;
+    top: 50%;
+    right: 1rem;
+    transform: translateY(-50%);
+    color: var(--google-grey-500);
+    pointer-events: none;
+    font-size: 0.75rem;
+}
+
+/* Material Design 3 Textarea */
+.md-textarea {
+    background: var(--surface);
+    border: 1px solid var(--google-grey-300);
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
+    font-family: 'Google Sans', sans-serif;
+    font-size: 0.875rem;
+    color: var(--on-surface);
+    width: 100%;
+    min-height: 6rem;
+    resize: vertical;
+    transition: var(--transition);
+}
+
+.md-textarea:focus {
+    outline: none;
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 1px var(--accent-color);
+}
+
+.md-textarea::placeholder {
+    color: var(--google-grey-500);
+}
+
+/* Material Design 3 Form Validation */
+.md-form-error {
+    color: var(--danger-color);
+    font-size: 0.75rem;
+    margin-top: 0.25rem;
+    font-family: 'Google Sans', sans-serif;
+}
+
+.md-form-success {
+    color: var(--success-color);
+    font-size: 0.75rem;
+    margin-top: 0.25rem;
+    font-family: 'Google Sans', sans-serif;
+}
+
+.md-input-error {
+    border-color: var(--danger-color) !important;
+}
+
+.md-input-success {
+    border-color: var(--success-color) !important;
+}
+
+/* Material Design 3 Floating Action Button */
+.md-fab {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    width: 3.5rem;
+    height: 3.5rem;
+    background: var(--accent-color);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--elevation-3);
+    cursor: pointer;
+    transition: var(--transition);
+    z-index: 1000;
+}
+
+.md-fab:hover {
+    background: var(--accent-dark);
+    box-shadow: var(--elevation-4);
+    color: white;
+    transform: scale(1.1);
+}
+
+.md-fab.md-fab-extended {
+    width: auto;
+    padding: 0 1.5rem;
+    border-radius: 1rem;
+    gap: 0.5rem;
+    font-family: 'Google Sans', sans-serif;
+    font-weight: 500;
+    font-size: 0.875rem;
+}
+
+/* Material Design 3 Enhanced Input Focus */
+.google-input:focus,
+.neuro-input:focus,
+.md-textarea:focus,
+.md-select:focus {
+    transform: translateY(-1px);
+}
+
 /* ==================== TABLER RESPONSIVE UTILITIES ==================== */
+
+/* Accessibility: Ensure focus is visible for all interactive elements */
+.focus-visible {
+    outline: 2px solid var(--accent-color) !important;
+    outline-offset: 2px !important;
+}
 
 /* Subtle enhancements to Tabler's responsive system */
 .table-responsive {
@@ -585,27 +1530,547 @@ body {
     box-shadow: 0 0 0 0.125rem rgba(14, 165, 233, 0.25);
 }
 
-/* Enhanced dropdown styling */
+/* Optimized dropdown styling */
 .dropdown-menu {
-    border-radius: var(--border-radius-sm);
-    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    background: var(--surface, #ffffff) !important;
+    border: 1px solid var(--google-grey-200, #e8eaed) !important;
+    border-radius: 0.75rem !important;
+    box-shadow: var(--elevation-3, 0 2px 6px 2px rgba(60, 64, 67, 0.15)) !important;
+    font-family: 'Google Sans', sans-serif !important;
 }
 
-/* Smooth transitions for interactive elements */
+.dropdown-item {
+    color: var(--on-surface, #202124) !important;
+    font-family: 'Google Sans', sans-serif !important;
+    transition: var(--transition) !important;
+}
+
+.dropdown-item:hover {
+    background: var(--google-grey-50, #f8f9fa) !important;
+    color: var(--accent-color) !important;
+}
+
+/* Global Material Design 3 optimizations */
 .btn,
 .nav-link,
-.dropdown-item {
-    transition: var(--transition);
+.dropdown-item,
+.form-control,
+.card,
+.avatar {
+    transition: var(--transition) !important;
 }
 
-/* Card hover effects (desktop only) */
-@media (min-width: 768px) {
+/* Reduce animation for users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* Performance optimization - GPU acceleration for animations */
+.neuro-card,
+.google-card,
+.neuro-btn,
+.google-btn,
+.md-fab {
+    will-change: transform;
+    transform: translateZ(0);
+}
+
+/* Optimize font loading */
+@font-display: swap;
+
+/* Dark mode compatibility placeholder */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --surface: #1f1f1f;
+        --on-surface: #e0e0e0;
+        --google-grey-50: #2d2d2d;
+        --google-grey-100: #3a3a3a;
+        --google-grey-200: #4a4a4a;
+    }
+}
+
+/* ==================== RESPONSIVE DESIGN ENHANCEMENTS ==================== */
+
+/* Mobile First Responsive Breakpoints */
+/* Mobile devices (up to 767px) */
+@media (max-width: 767.98px) {
+    /* Disable hover animations on mobile for better performance */
+    .neuro-card:hover,
+    .google-card:hover,
+    .card:hover {
+        transform: none !important;
+        box-shadow: var(--elevation-1) !important;
+    }
+
+    /* Optimize button sizing for touch */
+    .neuro-btn,
+    .google-btn,
+    .btn {
+        min-height: 3rem !important;
+        padding: 0.875rem 1.25rem !important;
+        font-size: 1rem !important;
+    }
+
+    /* Stack form elements on mobile */
+    .row .col-md-6,
+    .row .col-md-4,
+    .row .col-md-3 {
+        margin-bottom: 1rem;
+    }
+
+    /* Larger tap targets for mobile */
+    .md-table-action,
+    .nav-link {
+        min-width: 2.75rem !important;
+        min-height: 2.75rem !important;
+    }
+
+    /* Responsive typography */
+    .google-display,
+    h1 {
+        font-size: 1.875rem !important;
+    }
+
+    .google-headline,
+    h2 {
+        font-size: 1.5rem !important;
+    }
+
+    .google-title,
+    h3 {
+        font-size: 1.25rem !important;
+    }
+
+    /* Mobile navigation improvements */
+    .navbar-nav .nav-link {
+        padding: 1rem !important;
+        text-align: center;
+    }
+
+    .navbar-brand {
+        font-size: 1.125rem !important;
+    }
+
+    /* Mobile card spacing */
+    .neuro-card,
+    .google-card {
+        margin-bottom: 1rem;
+        padding: 1rem !important;
+    }
+
+    /* Mobile table responsiveness */
+    .md-table,
+    .table-responsive {
+        font-size: 0.875rem;
+    }
+
+    .md-table th,
+    .md-table td {
+        padding: 0.75rem 0.5rem !important;
+    }
+
+    /* Hide less important columns on mobile */
+    .d-mobile-none {
+        display: none !important;
+    }
+
+    /* Mobile form improvements */
+    .form-control,
+    .neuro-input,
+    .google-input {
+        font-size: 1rem !important;
+        padding: 0.875rem 1rem !important;
+    }
+
+    /* Mobile dropdown improvements */
+    .dropdown-menu {
+        width: 100% !important;
+        max-width: none !important;
+    }
+}
+
+/* Tablet devices (768px to 991px) */
+@media (min-width: 768px) and (max-width: 991.98px) {
+    .google-stats-grid,
+    .google-grid-3,
+    .google-grid-4 {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 1rem;
+    }
+
+    .neuro-card,
+    .google-card {
+        padding: 1.25rem;
+    }
+
+    /* Tablet button sizing */
+    .neuro-btn,
+    .google-btn {
+        padding: 0.75rem 1.5rem;
+    }
+
+    /* Tablet table adjustments */
+    .md-table th,
+    .md-table td {
+        padding: 1rem;
+    }
+}
+
+/* Desktop and larger devices (992px and up) */
+@media (min-width: 992px) {
+    /* Enable hover effects on desktop */
     .card {
         transition: var(--transition);
     }
-    
+
     .card:hover {
         transform: translateY(-2px);
-        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+        box-shadow: var(--elevation-3);
+    }
+
+    .neuro-card:hover,
+    .google-card:hover {
+        transform: translateY(-4px) scale(1.01);
+    }
+
+    /* Desktop navigation spacing */
+    .navbar-nav {
+        gap: 0.5rem;
+    }
+
+    .nav-link {
+        padding: 0.625rem 1rem !important;
+    }
+
+    /* Desktop form layouts */
+    .form-row {
+        display: flex;
+        gap: 1rem;
+    }
+
+    /* Desktop table hover effects */
+    .md-table tbody tr:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+}
+
+/* Large screens (1200px and up) */
+@media (min-width: 1200px) {
+    .container-xl {
+        max-width: 1140px;
+    }
+
+    .google-container {
+        max-width: 1200px;
+        padding: 2rem;
+    }
+
+    .google-stats-grid {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1.5rem;
+    }
+
+    /* Large screen typography */
+    .google-display {
+        font-size: 2.5rem;
+    }
+
+    .google-headline {
+        font-size: 2rem;
+    }
+
+    /* Enhanced cards on large screens */
+    .neuro-card,
+    .google-card {
+        padding: 2rem;
+    }
+}
+
+/* Ultra-wide screens (1400px and up) */
+@media (min-width: 1400px) {
+    .container-xl {
+        max-width: 1320px;
+    }
+
+    .google-container {
+        max-width: 1400px;
+        padding: 3rem;
+    }
+}
+
+/* Print styles */
+@media print {
+    .navbar,
+    .nav-link,
+    .dropdown,
+    .btn,
+    .google-btn,
+    .neuro-btn,
+    .md-fab {
+        display: none !important;
+    }
+
+    .card,
+    .google-card,
+    .neuro-card {
+        box-shadow: none !important;
+        border: 1px solid #ccc !important;
+    }
+
+    body {
+        background: white !important;
+        color: black !important;
+    }
+}
+
+/* ==================== ACCESSIBILITY COMPLIANCE (WCAG 2.1 AA) ==================== */
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .card,
+    .google-card,
+    .neuro-card {
+        border: 2px solid var(--on-surface) !important;
+    }
+
+    .btn,
+    .google-btn,
+    .neuro-btn {
+        border: 2px solid currentColor !important;
+        font-weight: 600 !important;
+    }
+
+    /* Ensure sufficient color contrast */
+    .text-muted {
+        color: var(--google-grey-700) !important;
+    }
+}
+
+/* Focus indicators for keyboard navigation */
+.neuro-btn:focus,
+.google-btn:focus,
+.btn:focus {
+    outline: 2px solid var(--accent-color) !important;
+    outline-offset: 2px !important;
+    box-shadow: 0 0 0 4px rgba(66, 133, 244, 0.25) !important;
+}
+
+.nav-link:focus {
+    outline: 2px solid var(--accent-color) !important;
+    outline-offset: 2px !important;
+    border-radius: 0.25rem;
+}
+
+.form-control:focus,
+.neuro-input:focus,
+.google-input:focus {
+    outline: 2px solid var(--accent-color) !important;
+    outline-offset: 1px !important;
+}
+
+.dropdown-item:focus {
+    outline: 2px solid var(--accent-color) !important;
+    outline-offset: -2px !important;
+    background: var(--google-blue-50) !important;
+}
+
+/* Skip to main content link */
+.skip-to-main {
+    position: absolute;
+    display: none;
+    top: -40px;
+    left: 6px;
+    background: var(--accent-color);
+    color: white;
+    padding: 8px;
+    text-decoration: none;
+    border-radius: 0 0 4px 4px;
+    z-index: 10000;
+    font-family: 'Google Sans', sans-serif;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.skip-to-main:focus {
+    top: 6px;
+    outline: 2px solid white;
+    outline-offset: 2px;
+}
+
+/* Ensure minimum color contrast ratios */
+.text-muted,
+.google-body-small {
+    color: var(--google-grey-600) !important; /* Meets WCAG AA contrast ratio */
+}
+
+.google-caption {
+    color: var(--google-grey-700) !important; /* Enhanced contrast for small text */
+}
+
+/* Error and success states with sufficient contrast */
+.md-form-error,
+.invalid-feedback {
+    color: #c5221f !important; /* Enhanced red for better contrast */
+    font-weight: 500;
+}
+
+.md-form-success,
+.valid-feedback {
+    color: #0d652d !important; /* Enhanced green for better contrast */
+    font-weight: 500;
+}
+
+/* Enhanced focus states for interactive elements */
+a:focus,
+button:focus,
+input:focus,
+select:focus,
+textarea:focus {
+    outline: 2px solid var(--accent-color);
+    outline-offset: 2px;
+}
+
+/* Remove outline for mouse users only */
+.js-focus-visible :focus:not(.focus-visible) {
+    outline: none;
+}
+
+/* Ensure interactive elements have minimum size (44x44px) */
+.btn,
+.google-btn,
+.neuro-btn,
+.nav-link,
+.dropdown-item {
+    min-height: 2.75rem;
+    min-width: 2.75rem;
+}
+
+/* Table accessibility enhancements */
+.md-table th[scope="col"] {
+    background: var(--google-grey-100) !important;
+    font-weight: 600 !important;
+}
+
+.md-table caption {
+    font-size: 1.125rem;
+    font-weight: 500;
+    color: var(--on-surface);
+    text-align: left;
+    padding: 1rem 0;
+}
+
+/* Form label association and required field indicators */
+.form-label.required::after,
+.google-label.required::after,
+.neuro-label.required::after {
+    content: ' *';
+    color: var(--danger-color);
+    font-weight: 600;
+}
+
+/* Screen reader only content */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* Ensure sufficient spacing for readability */
+p,
+.google-body {
+    margin-bottom: 1rem;
+    line-height: 1.6; /* Meets WCAG recommendation of 1.5+ */
+}
+
+/* Link styling for better accessibility */
+a {
+    color: var(--accent-color);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+a:hover {
+    color: var(--accent-dark);
+    text-decoration-thickness: 2px;
+}
+
+a:visited {
+    color: var(--google-blue-800);
+}
+
+/* Loading states for screen readers */
+.loading[aria-busy="true"] {
+    position: relative;
+}
+
+.loading[aria-busy="true"]::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 2px solid var(--accent-color);
+    border-top: 2px solid transparent;
+    border-radius: 50%;
+    animation: md-spin 1s linear infinite;
+}
+
+/* Status messages with appropriate ARIA roles */
+.alert[role="alert"],
+.google-alert[role="alert"] {
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border-left: 4px solid;
+    border-radius: 0.25rem;
+}
+
+.alert-success,
+.google-alert-success {
+    background: var(--google-green-50);
+    border-left-color: var(--google-green);
+    color: var(--google-green-700);
+}
+
+.alert-error,
+.google-alert-error {
+    background: var(--google-red-50);
+    border-left-color: var(--google-red);
+    color: var(--google-red-700);
+}
+
+.alert-warning,
+.google-alert-warning {
+    background: var(--google-yellow-50);
+    border-left-color: var(--google-yellow);
+    color: #f57c00;
+}
+
+/* Motion preferences respected */
+@media (prefers-reduced-motion: reduce) {
+    .md-animate-scale:hover,
+    .md-animate-lift:hover,
+    .neuro-card:hover,
+    .google-card:hover {
+        transform: none !important;
+    }
+
+    .md-spinner,
+    .loading::after {
+        animation: none !important;
     }
 }

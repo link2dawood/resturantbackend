@@ -4,7 +4,6 @@
 
 @section('content')
 <div class="container-xl">
-    <div class="page-header d-print-none">
         <div class="row g-2 align-items-center">
             <div class="col">
                 <nav aria-label="breadcrumb">
@@ -29,7 +28,6 @@
                 </div>
             </div>
         </div>
-    </div>
 
     <div class="row">
         <div class="col-md-8">

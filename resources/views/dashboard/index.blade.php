@@ -1,52 +1,96 @@
 @extends('layouts.tabler')
 @section('title', 'Analytics Dashboard')
 
-@section('head')
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
-@endsection
+@section('page-header')
+@section('page-title', 'Analytics Dashboard')
+@section('page-subtitle', 'Real-time insights and performance metrics for your daily reports')
 
 @section('content')
-
-<div class="container-xl px-4">
-    <!-- Dashboard Header -->
-    <div class="dashboard-header">
-        <div class="row align-items-center">
-            <div class="col-md-8">
-                <h1 class="mb-2">📊 Analytics Dashboard</h1>
-                <p class="mb-0">Real-time insights and performance metrics for your daily reports</p>
-            </div>
-            <div class="col-md-4 text-end">
-                <div class="text-white-50">
-                    Last updated: {{ date('M j, Y g:i A') }}
-                </div>
-            </div>
+<div class="container-xl mt-4">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="mb-0" style="font-family: 'Google Sans', sans-serif; font-size: 1.75rem; font-weight: 400; color: #202124;">Analytics Dashboard</h1>
+            <p class="text-muted mb-0" style="font-family: 'Google Sans', sans-serif; margin-top: 0.25rem;">Real-time insights and performance metrics for your daily reports</p>
+        </div>
+        <div class="text-muted" style="font-family: 'Google Sans', sans-serif; font-size: 0.875rem;">
+            Last updated: {{ date('M j, Y g:i A') }}
         </div>
     </div>
 
     <!-- Overview Statistics -->
-    <div class="row mb-4">
+    <div class="row g-3 mb-4">
         <div class="col-md-4">
-            <div class="stat-card today">
-                <div class="stat-value">${{ number_format($analytics['overview']['today']['grossSales'], 0) }}</div>
-                <div class="stat-label">Today's Sales</div>
-                <small class="text-muted">{{ $analytics['overview']['today']['reports'] }} reports</small>
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div class="d-inline-flex p-3 rounded-circle" style="background: #e6f4ea; color: #34a853;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                                    <line x1="16" y1="2" x2="16" y2="6"/>
+                                    <line x1="8" y1="2" x2="8" y2="6"/>
+                                    <line x1="3" y1="10" x2="21" y2="10"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <div style="font-family: 'Google Sans', sans-serif; font-size: 1.75rem; font-weight: 400; color: #202124; line-height: 1.2;">${{ number_format($analytics['overview']['today']['grossSales'], 0) }}</div>
+                            <div style="font-family: 'Google Sans', sans-serif; font-size: 1rem; font-weight: 500; color: #202124; margin-top: 0.25rem;">Today's Sales</div>
+                            <div style="font-family: 'Google Sans', sans-serif; font-size: 0.875rem; color: #5f6368;">{{ $analytics['overview']['today']['reports'] }} reports</div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
+
         <div class="col-md-4">
-            <div class="stat-card week">
-                <div class="stat-value">${{ number_format($analytics['overview']['thisWeek']['grossSales'], 0) }}</div>
-                <div class="stat-label">This Week's Sales</div>
-                <small class="text-muted">{{ $analytics['overview']['thisWeek']['reports'] }} reports</small>
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div class="d-inline-flex p-3 rounded-circle" style="background: #e8f0fe; color: #4285f4;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                                    <line x1="16" y1="2" x2="16" y2="6"/>
+                                    <line x1="8" y1="2" x2="8" y2="6"/>
+                                    <line x1="3" y1="10" x2="21" y2="10"/>
+                                    <path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <div style="font-family: 'Google Sans', sans-serif; font-size: 1.75rem; font-weight: 400; color: #202124; line-height: 1.2;">${{ number_format($analytics['overview']['thisWeek']['grossSales'], 0) }}</div>
+                            <div style="font-family: 'Google Sans', sans-serif; font-size: 1rem; font-weight: 500; color: #202124; margin-top: 0.25rem;">This Week's Sales</div>
+                            <div style="font-family: 'Google Sans', sans-serif; font-size: 0.875rem; color: #5f6368;">{{ $analytics['overview']['thisWeek']['reports'] }} reports</div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
+
         <div class="col-md-4">
-            <div class="stat-card month">
-                <div class="stat-value">${{ number_format($analytics['overview']['thisMonth']['grossSales'], 0) }}</div>
-                <div class="stat-label">This Month's Sales</div>
-                <small class="text-muted">{{ $analytics['overview']['thisMonth']['reports'] }} reports</small>
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div class="d-inline-flex p-3 rounded-circle" style="background: #fff3e0; color: #f57c00;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                                    <line x1="16" y1="2" x2="16" y2="6"/>
+                                    <line x1="8" y1="2" x2="8" y2="6"/>
+                                    <line x1="3" y1="10" x2="21" y2="10"/>
+                                    <path d="M17 14h-6l-2 4h-2l2-4H3l4-7h7l-2 3h6l-1 4z"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <div style="font-family: 'Google Sans', sans-serif; font-size: 1.75rem; font-weight: 400; color: #202124; line-height: 1.2;">${{ number_format($analytics['overview']['thisMonth']['grossSales'], 0) }}</div>
+                            <div style="font-family: 'Google Sans', sans-serif; font-size: 1rem; font-weight: 500; color: #202124; margin-top: 0.25rem;">This Month's Sales</div>
+                            <div style="font-family: 'Google Sans', sans-serif; font-size: 0.875rem; color: #5f6368;">{{ $analytics['overview']['thisMonth']['reports'] }} reports</div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -55,70 +99,78 @@
         <!-- Charts Column -->
         <div class="col-lg-8">
             <!-- Daily Trends Chart -->
-            <div class="chart-card">
-                <div class="chart-header">
-                    <h3 class="chart-title">📈 Daily Sales Trends (Last 30 Days)</h3>
+            <div class="card mb-4">
+                <div class="card-header border-0">
+                    <h3 class="card-title" style="font-family: 'Google Sans', sans-serif; font-size: 1.125rem; font-weight: 500; color: #202124;">📈 Daily Sales Trends (Last 30 Days)</h3>
                 </div>
-                <div class="chart-body">
+                <div class="card-body">
                     <canvas id="dailyTrendsChart" style="max-height: 300px;"></canvas>
                 </div>
             </div>
 
             <!-- Monthly Comparison -->
-            <div class="chart-card">
-                <div class="chart-header">
-                    <h3 class="chart-title">📊 Month-over-Month Comparison</h3>
+            <div class="card mb-4">
+                <div class="card-header border-0">
+                    <h3 class="card-title" style="font-family: 'Google Sans', sans-serif; font-size: 1.125rem; font-weight: 500; color: #202124;">📊 Month-over-Month Comparison</h3>
                 </div>
-                <div class="chart-body">
+                <div class="card-body">
                     @if($analytics['monthlyComparison']['changes'])
                         <div class="row">
                             <div class="col-md-3">
-                                <div class="comparison-card">
-                                    <div class="comparison-metric">
-                                        <div class="comparison-value">${{ number_format($analytics['monthlyComparison']['current']->gross_sales ?? 0, 0) }}</div>
-                                        <div class="text-muted">Gross Sales</div>
+                                <div class="card" style="border: 1px solid #e0e0e0;">
+                                    <div class="card-body text-center">
+                                        <h4 style="font-family: 'Google Sans', sans-serif; font-size: 1.5rem; font-weight: 400; color: #202124; margin-bottom: 0.5rem;">${{ number_format($analytics['monthlyComparison']['current']->gross_sales ?? 0, 0) }}</h4>
+                                        <div class="text-muted" style="font-family: 'Google Sans', sans-serif; font-size: 0.875rem;">Gross Sales</div>
                                         @if($analytics['monthlyComparison']['changes']['gross_sales'])
-                                            <div class="comparison-change {{ $analytics['monthlyComparison']['changes']['gross_sales'] >= 0 ? 'change-positive' : 'change-negative' }}">
-                                                {{ $analytics['monthlyComparison']['changes']['gross_sales'] >= 0 ? '+' : '' }}{{ $analytics['monthlyComparison']['changes']['gross_sales'] }}%
+                                            <div class="mt-2">
+                                                <span class="badge {{ $analytics['monthlyComparison']['changes']['gross_sales'] >= 0 ? 'bg-success' : 'bg-danger' }}">
+                                                    {{ $analytics['monthlyComparison']['changes']['gross_sales'] >= 0 ? '+' : '' }}{{ $analytics['monthlyComparison']['changes']['gross_sales'] }}%
+                                                </span>
                                             </div>
                                         @endif
                                     </div>
                                 </div>
                             </div>
                             <div class="col-md-3">
-                                <div class="comparison-card">
-                                    <div class="comparison-metric">
-                                        <div class="comparison-value">${{ number_format($analytics['monthlyComparison']['current']->net_sales ?? 0, 0) }}</div>
-                                        <div class="text-muted">Net Sales</div>
+                                <div class="card" style="border: 1px solid #e0e0e0;">
+                                    <div class="card-body text-center">
+                                        <h4 style="font-family: 'Google Sans', sans-serif; font-size: 1.5rem; font-weight: 400; color: #202124; margin-bottom: 0.5rem;">${{ number_format($analytics['monthlyComparison']['current']->net_sales ?? 0, 0) }}</h4>
+                                        <div class="text-muted" style="font-family: 'Google Sans', sans-serif; font-size: 0.875rem;">Net Sales</div>
                                         @if($analytics['monthlyComparison']['changes']['net_sales'])
-                                            <div class="comparison-change {{ $analytics['monthlyComparison']['changes']['net_sales'] >= 0 ? 'change-positive' : 'change-negative' }}">
-                                                {{ $analytics['monthlyComparison']['changes']['net_sales'] >= 0 ? '+' : '' }}{{ $analytics['monthlyComparison']['changes']['net_sales'] }}%
+                                            <div class="mt-2">
+                                                <span class="badge {{ $analytics['monthlyComparison']['changes']['net_sales'] >= 0 ? 'bg-success' : 'bg-danger' }}">
+                                                    {{ $analytics['monthlyComparison']['changes']['net_sales'] >= 0 ? '+' : '' }}{{ $analytics['monthlyComparison']['changes']['net_sales'] }}%
+                                                </span>
                                             </div>
                                         @endif
                                     </div>
                                 </div>
                             </div>
                             <div class="col-md-3">
-                                <div class="comparison-card">
-                                    <div class="comparison-metric">
-                                        <div class="comparison-value">{{ $analytics['monthlyComparison']['current']->reports ?? 0 }}</div>
-                                        <div class="text-muted">Reports</div>
+                                <div class="card" style="border: 1px solid #e0e0e0;">
+                                    <div class="card-body text-center">
+                                        <h4 style="font-family: 'Google Sans', sans-serif; font-size: 1.5rem; font-weight: 400; color: #202124; margin-bottom: 0.5rem;">{{ $analytics['monthlyComparison']['current']->reports ?? 0 }}</h4>
+                                        <div class="text-muted" style="font-family: 'Google Sans', sans-serif; font-size: 0.875rem;">Reports</div>
                                         @if($analytics['monthlyComparison']['changes']['reports'])
-                                            <div class="comparison-change {{ $analytics['monthlyComparison']['changes']['reports'] >= 0 ? 'change-positive' : 'change-negative' }}">
-                                                {{ $analytics['monthlyComparison']['changes']['reports'] >= 0 ? '+' : '' }}{{ $analytics['monthlyComparison']['changes']['reports'] }}%
+                                            <div class="mt-2">
+                                                <span class="badge {{ $analytics['monthlyComparison']['changes']['reports'] >= 0 ? 'bg-success' : 'bg-danger' }}">
+                                                    {{ $analytics['monthlyComparison']['changes']['reports'] >= 0 ? '+' : '' }}{{ $analytics['monthlyComparison']['changes']['reports'] }}%
+                                                </span>
                                             </div>
                                         @endif
                                     </div>
                                 </div>
                             </div>
                             <div class="col-md-3">
-                                <div class="comparison-card">
-                                    <div class="comparison-metric">
-                                        <div class="comparison-value">{{ number_format($analytics['monthlyComparison']['current']->avg_customers ?? 0, 0) }}</div>
-                                        <div class="text-muted">Avg Customers</div>
+                                <div class="card" style="border: 1px solid #e0e0e0;">
+                                    <div class="card-body text-center">
+                                        <h4 style="font-family: 'Google Sans', sans-serif; font-size: 1.5rem; font-weight: 400; color: #202124; margin-bottom: 0.5rem;">{{ number_format($analytics['monthlyComparison']['current']->avg_customers ?? 0, 0) }}</h4>
+                                        <div class="text-muted" style="font-family: 'Google Sans', sans-serif; font-size: 0.875rem;">Avg Customers</div>
                                         @if($analytics['monthlyComparison']['changes']['avg_customers'])
-                                            <div class="comparison-change {{ $analytics['monthlyComparison']['changes']['avg_customers'] >= 0 ? 'change-positive' : 'change-negative' }}">
-                                                {{ $analytics['monthlyComparison']['changes']['avg_customers'] >= 0 ? '+' : '' }}{{ $analytics['monthlyComparison']['changes']['avg_customers'] }}%
+                                            <div class="mt-2">
+                                                <span class="badge {{ $analytics['monthlyComparison']['changes']['avg_customers'] >= 0 ? 'bg-success' : 'bg-danger' }}">
+                                                    {{ $analytics['monthlyComparison']['changes']['avg_customers'] >= 0 ? '+' : '' }}{{ $analytics['monthlyComparison']['changes']['avg_customers'] }}%
+                                                </span>
                                             </div>
                                         @endif
                                     </div>
@@ -134,11 +186,11 @@
             </div>
 
             <!-- Store Performance Chart -->
-            <div class="chart-card">
+            <div class="google-card chart-card">
                 <div class="chart-header">
                     <h3 class="chart-title">🏪 Store Performance Distribution</h3>
                 </div>
-                <div class="chart-body">
+                <div class="card-body">
                     @if($analytics['storePerformance']->count() > 0)
                         <div class="row">
                             <div class="col-md-6">
@@ -175,32 +227,32 @@
 
             <!-- Financial Analysis -->
             @if(!empty($analytics['financialAnalysis']))
-            <div class="chart-card">
+            <div class="google-card chart-card">
                 <div class="chart-header">
                     <h3 class="chart-title">💰 Financial Analysis (Last 30 Days)</h3>
                 </div>
-                <div class="chart-body">
+                <div class="card-body">
                     <div class="row">
                         <div class="col-md-3">
-                            <div class="text-center p-3 bg-light rounded">
+                            <div class="card text-center">
                                 <h4 class="text-success">{{ $analytics['financialAnalysis']['profitMargin'] }}%</h4>
                                 <small class="text-muted">Profit Margin</small>
                             </div>
                         </div>
                         <div class="col-md-3">
-                            <div class="text-center p-3 bg-light rounded">
+                            <div class="card text-center">
                                 <h4 class="text-info">{{ $analytics['financialAnalysis']['taxRate'] }}%</h4>
                                 <small class="text-muted">Tax Rate</small>
                             </div>
                         </div>
                         <div class="col-md-3">
-                            <div class="text-center p-3 bg-light rounded">
+                            <div class="card text-center">
                                 <h4 class="text-warning">{{ $analytics['financialAnalysis']['creditCardRatio'] }}%</h4>
                                 <small class="text-muted">Credit Card Usage</small>
                             </div>
                         </div>
                         <div class="col-md-3">
-                            <div class="text-center p-3 bg-light rounded">
+                            <div class="card text-center">
                                 <h4 class="text-primary">${{ number_format($analytics['financialAnalysis']['avgDailySales'], 0) }}</h4>
                                 <small class="text-muted">Avg Daily Sales</small>
                             </div>
@@ -226,26 +278,26 @@
 
             <!-- Customer Analytics -->
             @if(!empty($analytics['customerAnalytics']))
-            <div class="chart-card">
+            <div class="google-card chart-card">
                 <div class="chart-header">
                     <h3 class="chart-title">👥 Customer Analytics (Last 30 Days)</h3>
                 </div>
-                <div class="chart-body">
+                <div class="card-body">
                     <div class="row">
                         <div class="col-md-4">
-                            <div class="text-center p-3 bg-light rounded">
+                            <div class="card text-center">
                                 <h4 class="text-primary">{{ number_format($analytics['customerAnalytics']['totalCustomers']) }}</h4>
                                 <small class="text-muted">Total Customers</small>
                             </div>
                         </div>
                         <div class="col-md-4">
-                            <div class="text-center p-3 bg-light rounded">
+                            <div class="card text-center">
                                 <h4 class="text-success">${{ $analytics['customerAnalytics']['avgTicketAmount'] }}</h4>
                                 <small class="text-muted">Avg Ticket Size</small>
                             </div>
                         </div>
                         <div class="col-md-4">
-                            <div class="text-center p-3 bg-light rounded">
+                            <div class="card text-center">
                                 <h4 class="text-info">{{ $analytics['customerAnalytics']['avgDailyCustomers'] }}</h4>
                                 <small class="text-muted">Avg Daily Customers</small>
                             </div>
@@ -262,11 +314,11 @@
         <!-- Insights Column -->
         <div class="col-lg-4">
             <!-- Insights and Alerts -->
-            <div class="chart-card">
+            <div class="google-card chart-card">
                 <div class="chart-header">
                     <h3 class="chart-title">💡 Insights & Alerts</h3>
                 </div>
-                <div class="chart-body">
+                <div class="card-body">
                     @if($analytics['insights']->count() > 0)
                         @foreach($analytics['insights'] as $insight)
                             <div class="insight-card {{ $insight['type'] }}">
@@ -286,11 +338,11 @@
             </div>
 
             <!-- Top Performing Days -->
-            <div class="chart-card">
+            <div class="google-card chart-card">
                 <div class="chart-header">
                     <h3 class="chart-title">🏆 Top Performing Days</h3>
                 </div>
-                <div class="chart-body">
+                <div class="card-body">
                     @if($analytics['topDays']->count() > 0)
                         @foreach($analytics['topDays'] as $index => $day)
                             <div class="d-flex justify-content-between align-items-center mb-3 p-2 rounded" style="background: {{ $index === 0 ? '#fff3cd' : '#f8f9fa' }}">
@@ -316,14 +368,14 @@
             </div>
 
             <!-- Export & Actions -->
-            <div class="chart-card">
+            <div class="google-card chart-card">
                 <div class="chart-header">
                     <h3 class="chart-title">📊 Export & Actions</h3>
                 </div>
-                <div class="chart-body">
+                <div class="card-body">
                     <div class="d-grid gap-2 mb-3">
                         <div class="dropdown">
-                            <button class="btn btn-success dropdown-toggle w-100" type="button" data-bs-toggle="dropdown">
+                            <button class="google-btn google-btn-success dropdown-toggle w-100" type="button" data-bs-toggle="dropdown" style="justify-content: space-between;">
                                 📥 Export Data
                             </button>
                             <ul class="dropdown-menu w-100">
@@ -334,16 +386,16 @@
                         </div>
                     </div>
                     <div class="d-grid gap-2">
-                        <a href="{{ route('daily-reports.quick-entry') }}" class="btn btn-primary">
+                        <a href="{{ route('daily-reports.quick-entry') }}" class="google-btn google-btn-primary">
                             ⚡ Quick Entry
                         </a>
-                        <a href="{{ route('daily-reports.create') }}" class="btn btn-outline-primary">
+                        <a href="{{ route('daily-reports.create') }}" class="google-btn google-btn-outlined">
                             📝 Full Report
                         </a>
-                        <a href="{{ route('daily-reports.index') }}" class="btn btn-outline-secondary">
+                        <a href="{{ route('daily-reports.index') }}" class="google-btn google-btn-outlined">
                             📋 View All Reports
                         </a>
-                        <button class="btn btn-outline-info" onclick="refreshDashboard()">
+                        <button class="google-btn google-btn-outlined" onclick="refreshDashboard()" style="color: var(--google-blue); border-color: var(--google-blue);">
                             🔄 Refresh Data
                         </button>
                     </div>
@@ -352,11 +404,28 @@
         </div>
     </div>
 </div>
+</div>
 
-<!-- Include Chart.js -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- Load Chart.js asynchronously for better performance -->
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+    // Load Chart.js asynchronously to avoid blocking page load
+    function loadChartJS() {
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/chart.js';
+        script.async = true;
+        script.onload = initializeCharts;
+        document.head.appendChild(script);
+    }
+
+    // Only load charts if there's actual data
+    const hasData = @json($analytics['dailyTrends']->count() > 0 || $analytics['storePerformance']->count() > 0);
+    if (hasData) {
+        loadChartJS();
+    }
+</script>
+<script>
+// Initialize charts only after Chart.js is loaded
+function initializeCharts() {
     // Data preparation
     const dailyTrends = @json($analytics['dailyTrends']);
     const storePerformance = @json($analytics['storePerformance']);
@@ -591,17 +660,43 @@ function refreshDashboard() {
     }, 1000);
 }
 
-// Export functionality with loading state
-document.querySelectorAll('.dropdown-item[href*="export"]').forEach(link => {
-    link.addEventListener('click', function(e) {
-        const originalText = this.innerHTML;
-        this.innerHTML = '⏳ Exporting...';
-
-        setTimeout(() => {
-            this.innerHTML = originalText;
-        }, 2000);
+    // Export functionality with loading state
+    document.querySelectorAll('.dropdown-item[href*="export"]').forEach(link => {
+        link.addEventListener('click', function(e) {
+            const originalText = this.innerHTML;
+            this.innerHTML = '⏳ Exporting...';
+            setTimeout(() => {
+                this.innerHTML = originalText;
+            }, 2000);
+        });
     });
-});
+}
+
+// Fallback: if no Chart.js needed, just initialize basic interactions
+if (!hasData) {
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeBasicInteractions();
+    });
+}
+
+function initializeBasicInteractions() {
+    // Refresh Dashboard Function
+    const refreshBtn = document.querySelector('button[onclick="refreshDashboard()"]');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', refreshDashboard);
+    }
+
+    // Export functionality with loading state
+    document.querySelectorAll('.dropdown-item[href*="export"]').forEach(link => {
+        link.addEventListener('click', function(e) {
+            const originalText = this.innerHTML;
+            this.innerHTML = '⏳ Exporting...';
+            setTimeout(() => {
+                this.innerHTML = originalText;
+            }, 2000);
+        });
+    });
+}
 </script>
 
 @endsection

@@ -3,27 +3,20 @@
 @section('title', 'All US States')
 
 @section('content')
-<div class="container-xl">
-    <div class="page-header d-print-none">
-        <div class="row g-2 align-items-center">
-            <div class="col">
-                <h2 class="page-title">All US States</h2>
-                <div class="text-muted mt-1">Complete list of all {{ $states->count() }} US states and territories</div>
-            </div>
-            <div class="col-auto">
-                <div class="btn-list">
-                    <a href="{{ route('home') }}" class="btn btn-primary">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                            <path stroke="none" d="m0 0h24v24H0z" fill="none"/>
-                            <polyline points="5 12 3 12 12 3 21 12 19 12"/>
-                            <path d="m5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7"/>
-                            <path d="m9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6"/>
-                        </svg>
-                        Back to Home
-                    </a>
-                </div>
-            </div>
+<div class="container-xl mt-4">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="mb-0" style="font-family: 'Google Sans', sans-serif; font-size: 1.75rem; font-weight: 400; color: var(--on-surface, #202124);">US States</h1>
+            <p class="text-muted mb-0" style="font-family: 'Google Sans', sans-serif; margin-top: 0.25rem;">Complete list of all {{ $states->count() }} US states and territories</p>
         </div>
+        <a href="{{ route('home') }}" class="btn btn-outline-secondary d-flex align-items-center" style="gap: 0.5rem;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+                <polyline points="9,22 9,12 15,12 15,22"/>
+            </svg>
+            Back to Home
+        </a>
     </div>
 
     <div class="row">

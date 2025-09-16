@@ -9,8 +9,8 @@
             <p class="text-muted">Step 3 of 3: Enter report details</p>
         </div>
         <div class="page-actions">
-            <a href="{{ route('daily-reports.quick-entry') }}" class="btn btn-warning">⚡ Quick Entry Mode</a>
-            <a href="{{ route('daily-reports.index') }}" class="btn btn-secondary">← Back to Reports</a>
+            <a href="{{ route('daily-reports.quick-entry') }}" class="google-btn-warning google-btn">⚡ Quick Entry Mode</a>
+            <a href="{{ route('daily-reports.index') }}" class="google-btn google-btn-outlined">← Back to Reports</a>
         </div>
     </div>
 
@@ -35,11 +35,11 @@
                             <strong>Date:</strong> {{ \Carbon\Carbon::parse($reportDate)->format('l, M j, Y') }}
                         </div>
                         <div>
-                            <a href="{{ route('daily-reports.select-date', ['store_id' => $store->id]) }}" class="btn btn-sm btn-outline-primary">
-                                <i class="fas fa-edit me-1"></i>Change Date
+                            <a href="{{ route('daily-reports.select-date', ['store_id' => $store->id]) }}" class="google-btn google-btn-outlined google-btn-small">
+                                <span class="material-symbols-outlined" style="font-size: 16px;">edit</span>Change Date
                             </a>
-                            <a href="{{ route('daily-reports.create') }}" class="btn btn-sm btn-outline-secondary">
-                                <i class="fas fa-store me-1"></i>Change Store
+                            <a href="{{ route('daily-reports.create') }}" class="google-btn google-btn-outlined google-btn-small">
+                                <span class="material-symbols-outlined" style="font-size: 16px;">store</span>Change Store
                             </a>
                         </div>
                     </div>
