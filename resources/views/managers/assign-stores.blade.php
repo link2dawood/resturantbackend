@@ -1,25 +1,26 @@
 @extends('layouts.tabler')
 
-@section('title', 'Assign Stores')
+@section('title', 'Assign Store')
 
 @section('content')
 <div class="container-xl">
-    <h2>Assign Stores to {{ $manager->name }}</h2>
+    <h2>Assign Store to {{ $manager->name }}</h2>
 
     <form action="{{ route('managers.assign-stores', $manager->id) }}" method="POST">
         @csrf
         <div class="form-group">
-            <label for="store_ids">Select Stores</label>
-            <select name="store_ids[]" id="store_ids" class="form-control" multiple>
+            <label for="store_id">Select Store</label>
+            <select name="store_id" id="store_id" class="form-control">
+                <option value="">Select a store</option>
                 @foreach($stores as $store)
-                    <option value="{{ $store->id }}" {{ $manager->stores->contains($store->id) ? 'selected' : '' }}>
+                    <option value="{{ $store->id }}" {{ $manager->store_id == $store->id ? 'selected' : '' }}>
                         {{ $store->store_info }}
                     </option>
                 @endforeach
             </select>
         </div>
 
-        <button type="submit" class="btn btn-primary mt-3">Assign Stores</button>
+        <button type="submit" class="btn btn-primary mt-3">Assign Store</button>
     </form>
 </div>
 @endsection

@@ -26,14 +26,11 @@
             <input type="text" class="form-control" id="username" name="username" value="{{ $manager->username }}">
         </div>
         <div class="mb-3">
-            <label for="assigned_stores" class="form-label">Assigned Stores</label>
-            <div class="d-flex justify-content-between mb-2">
-                <button type="button" id="select-all" class="btn btn-sm btn-success">Select All</button>
-                <button type="button" id="deselect-all" class="btn btn-sm btn-danger">Deselect All</button>
-            </div>
-            <select class="form-control" id="assigned_stores" name="assigned_stores[]" multiple>
+            <label for="store_id" class="form-label">Assigned Store</label>
+            <select class="form-control" id="store_id" name="store_id">
+                <option value="">Select a store</option>
                 @foreach ($stores as $store)
-                    <option value="{{ $store->id }}" {{ $manager->stores->contains('id', $store->id) ? 'selected' : '' }}>{{ $store->store_info }}</option>
+                    <option value="{{ $store->id }}" {{ $manager->store_id == $store->id ? 'selected' : '' }}>{{ $store->store_info }}</option>
                 @endforeach
             </select>
         </div>
@@ -51,17 +48,9 @@
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
     $(document).ready(function() {
-        $('#assigned_stores').select2({
-            placeholder: 'Select stores',
+        $('#store_id').select2({
+            placeholder: 'Select a store',
             allowClear: true
-        });
-
-        $('#select-all').click(function() {
-            $('#assigned_stores > option').prop('selected', true).trigger('change');
-        });
-
-        $('#deselect-all').click(function() {
-            $('#assigned_stores > option').prop('selected', false).trigger('change');
         });
     });
 </script>
