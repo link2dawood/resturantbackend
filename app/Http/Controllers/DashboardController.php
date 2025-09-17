@@ -251,8 +251,8 @@ class DashboardController extends Controller
                 DB::raw('WEEK(report_date) as week'),
                 DB::raw('SUM(gross_sales) as total')
             )
-            ->groupBy('week')
-            ->orderBy('week')
+            ->groupBy(DB::raw('WEEK(report_date)'))
+            ->orderBy(DB::raw('WEEK(report_date)'))
             ->pluck('total')
             ->toArray();
 
