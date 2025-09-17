@@ -13,8 +13,7 @@ class StoreController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
-        $this->middleware('permission:manage_stores')->only(['create', 'store', 'edit', 'update', 'destroy']);
-        $this->middleware('permission:view_stores')->only(['index', 'show']);
+        $this->middleware('role:admin');
     }
 
     /**
@@ -22,9 +21,8 @@ class StoreController extends Controller
      */
     public function index()
     {
-        $user = auth()->user();
-        $stores = $user->accessibleStores()->get();
-        
+        $stores = Store::with('owners')->get();
+
         return view('stores.index', compact('stores'));
     }
 
@@ -66,9 +64,12 @@ class StoreController extends Controller
     /**
      * Display the specified resource.
      */
-    public function reports()
+    public function show(Store $store)
     {
-        return view('reports');
+        $store->load('owners');
+        $availableOwners = User::where('role', 'owner')->get();
+
+        return view('stores.show', compact('store', 'availableOwners'));
     }
 
     /**
@@ -100,5 +101,32 @@ class StoreController extends Controller
         $store->delete();
 
         return redirect()->route('stores.index')->with('success', 'Store deleted successfully.');
+    }
+
+    /**
+     * Show the form for assigning an owner to a store.
+     */
+    public function assignOwnerForm(Store $store)
+    {
+        $owners = User::where('role', 'owner')->get();
+        $assignedOwners = $store->owners;
+
+        return view('stores.assign-owner', compact('store', 'owners', 'assignedOwners'));
+    }
+
+    /**
+     * Assign an owner to a store.
+     */
+    public function assignOwner(Request $request, Store $store)
+    {
+        $request->validate([
+            'owner_ids' => 'required|array',
+            'owner_ids.*' => 'exists:users,id'
+        ]);
+
+        // Sync the owners - this will replace all current assignments
+        $store->owners()->sync($request->owner_ids);
+
+        return redirect()->route('stores.show', $store)->with('success', 'Store owners updated successfully.');
     }
 }

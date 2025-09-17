@@ -45,13 +45,15 @@
                         Dashboard
                     </a>
 
-                    <!-- Stores -->
+                    <!-- Stores (Admin Only) -->
+                    @if(Auth::user()->role === 'admin')
                     <a href="{{ route('stores.index') }}" style="display: flex; align-items: center; padding: 0.5rem 1rem; border-radius: 1.25rem; text-decoration: none; font-family: 'Google Sans', sans-serif; font-size: 0.875rem; font-weight: 500; color: {{ request()->routeIs('stores.*') ? 'white' : 'var(--google-grey-700, #3c4043)' }}; background: {{ request()->routeIs('stores.*') ? 'var(--google-blue, #4285f4)' : 'transparent' }}; transition: all 0.2s ease;"
                        onmouseover="if (!this.style.background.includes('#4285f4')) { this.style.background = 'var(--google-blue-50, #e8f0fe)'; this.style.color = 'var(--google-blue-700, #1967d2)'; }"
                        onmouseout="if (!this.style.background.includes('#4285f4')) { this.style.background = 'transparent'; this.style.color = 'var(--google-grey-700, #3c4043)'; }">
                         <span class="material-symbols-outlined" style="font-size: 16px; margin-right: 0.25rem;">store</span>
                         Stores
                     </a>
+                    @endif
 
                     <!-- Owners -->
                     @if(Auth::user()->hasPermission('manage_owners'))
@@ -109,14 +111,6 @@
                         Daily Reports
                     </a>
                     @endif
-
-                    <!-- US States -->
-                    <a href="{{ route('states.index') }}" style="display: flex; align-items: center; padding: 0.5rem 1rem; border-radius: 1.25rem; text-decoration: none; font-family: 'Google Sans', sans-serif; font-size: 0.875rem; font-weight: 500; color: {{ request()->routeIs('states.*') ? 'white' : 'var(--google-grey-700, #3c4043)' }}; background: {{ request()->routeIs('states.*') ? 'var(--google-blue, #4285f4)' : 'transparent' }}; transition: all 0.2s ease;"
-                       onmouseover="if (!this.style.background.includes('#4285f4')) { this.style.background = 'var(--google-blue-50, #e8f0fe)'; this.style.color = 'var(--google-blue-700, #1967d2)'; }"
-                       onmouseout="if (!this.style.background.includes('#4285f4')) { this.style.background = 'transparent'; this.style.color = 'var(--google-grey-700, #3c4043)'; }">
-                        <span class="material-symbols-outlined" style="font-size: 16px; margin-right: 0.25rem;">location_on</span>
-                        US States
-                    </a>
                 </nav>
 
                 <!-- User Menu -->

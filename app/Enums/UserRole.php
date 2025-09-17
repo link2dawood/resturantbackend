@@ -37,19 +37,25 @@ enum UserRole: string
         
         // Fallback to hardcoded permissions for backward compatibility
         return match($this) {
-            self::ADMIN => true, // Admins have all permissions
-            self::OWNER => in_array($permission, [
+            self::ADMIN =>in_array($permission, [
+                'view_stores',
+                'view_assigned_stores',
+                'manage_reports',
+                'manage_managers',
+                'view_audit_logs',
+                'manage_owners',
                 'manage_stores',
+                'manage_transaction_types',
+            ]),
+            self::OWNER => in_array($permission, [
                 'view_stores',
                 'view_reports',
                 'create_reports',
                 'manage_reports',
                 'manage_managers',
                 'view_audit_logs',
-                'manage_owners',
             ]),
             self::MANAGER => in_array($permission, [
-                'view_stores',
                 'view_assigned_stores',
                 'create_reports',
                 'view_reports',

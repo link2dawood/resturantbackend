@@ -56,25 +56,12 @@
                                 <span class="badge bg-info text-white" style="font-size: 0.75rem;">{{ $type->parent ? $type->parent->name : 'None' }}</span>
                             </td>
                             <td style="padding: 1rem; vertical-align: middle; text-align: center;">
-                                <div class="d-flex justify-content-center" style="gap: 0.5rem;">
-                                    <a href="{{ route('transaction-types.edit', $type->id) }}" class="btn btn-sm btn-outline-primary">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-1">
-                                            <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
-                                        </svg>
-                                        Edit
-                                    </a>
-                                    <form action="{{ route('transaction-types.destroy', $type->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this transaction type?')" class="m-0">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-outline-danger">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-1">
-                                                <polyline points="3,6 5,6 21,6"/>
-                                                <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
-                                            </svg>
-                                            Delete
-                                        </button>
-                                    </form>
-                                </div>
+                                <a href="{{ route('transaction-types.show', $type->id) }}" class="btn btn-sm btn-outline-primary d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;" title="View Details">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                        <circle cx="12" cy="12" r="3"/>
+                                    </svg>
+                                </a>
                             </td>
                         </tr>
                         @endforeach

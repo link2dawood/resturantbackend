@@ -45,7 +45,9 @@ class TransactionTypeController extends Controller
      */
     public function show(TransactionType $transactionType)
     {
-        //
+        $transactionType->load('parent', 'children');
+
+        return view('transaction_types.show', compact('transactionType'));
     }
 
     /**

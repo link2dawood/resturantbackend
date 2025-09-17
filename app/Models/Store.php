@@ -44,11 +44,11 @@ class Store extends Model
     }
 
     /**
-     * The managers assigned to the store.
+     * The manager assigned to the store (one-to-many: store has one manager).
      */
-    public function managers()
+    public function manager()
     {
-        return $this->belongsToMany(User::class, 'manager_store', 'store_id', 'manager_id');
+        return $this->hasOne(User::class, 'store_id')->where('role', 'manager');
     }
 
     /**
@@ -58,5 +58,14 @@ class Store extends Model
     {
         return $this->hasMany(DailyReport::class);
     }
- 
+
+    /**
+     * The owners assigned to the store (many-to-many relationship).
+     */
+    public function owners()
+    {
+        return $this->belongsToMany(User::class, 'owner_store', 'store_id', 'owner_id')
+                    ->where('role', 'owner');
+    }
+
 }

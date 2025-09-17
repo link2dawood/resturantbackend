@@ -70,6 +70,14 @@ class OwnerController extends Controller
         return view('owners.create');
     }
 
+    public function show(User $owner)
+    {
+        $assignedStores = $owner->ownedStores;
+        $availableStores = \App\Models\Store::all();
+
+        return view('owners.show', compact('owner', 'assignedStores', 'availableStores'));
+    }
+
     public function edit(User $owner)
     {
         return view('owners.edit', compact('owner'));

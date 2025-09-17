@@ -93,53 +93,12 @@
                                     <span class="badge bg-warning text-dark" style="font-size: 0.75rem;">{{ $store->medicare_tax_rate }}%</span>
                                 </td>
                                 <td style="padding: 1rem; vertical-align: middle; text-align: center;">
-                                    <div class="dropdown">
-                                        <button class="btn btn-sm btn-light dropdown-toggle" type="button" id="dropdownMenuButton{{ $store->id }}" data-bs-toggle="dropdown" aria-expanded="false" style="border: 1px solid var(--google-grey-300, #dadce0); font-size: 0.813rem;">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-1">
-                                                <path d="M12 1v6M12 17v6M4.22 4.22l4.24 4.24M15.54 15.54l4.24 4.24M1 12h6M17 12h6M4.22 19.78l4.24-4.24M15.54 8.46l4.24-4.24"/>
-                                            </svg>
-                                            Actions
-                                        </button>
-                                        <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton{{ $store->id }}" style="border-radius: 0.75rem; box-shadow: var(--elevation-3, 0 2px 6px 2px rgba(60, 64, 67, 0.15)); border: 1px solid var(--google-grey-200, #e8eaed);">
-                                            <li>
-                                                <a class="dropdown-item d-flex align-items-center" href="{{ route('stores.edit', $store->id) }}" style="padding: 0.75rem 1rem; font-size: 0.875rem;">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
-                                                        <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
-                                                    </svg>
-                                                    Edit Store
-                                                </a>
-                                            </li>
-                                            @if(!Auth::user()->hasPermission('manage_owners'))
-                                            <li>
-                                                <a class="dropdown-item d-flex align-items-center" href="{{url('/stores/'.$store->id.'/daily-reports')}}" style="padding: 0.75rem 1rem; font-size: 0.875rem;">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
-                                                        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
-                                                        <polyline points="14,2 14,8 20,8"/>
-                                                        <line x1="16" y1="13" x2="8" y2="13"/>
-                                                        <line x1="16" y1="17" x2="8" y2="17"/>
-                                                    </svg>
-                                                    Daily Reports
-                                                </a>
-                                            </li>
-                                            @endif
-                                            <li><hr class="dropdown-divider" style="margin: 0.5rem 0;"></li>
-                                            <li>
-                                                <form action="{{ route('stores.destroy', $store->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this store? This action cannot be undone.')" class="m-0">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button type="submit" class="dropdown-item text-danger d-flex align-items-center" style="padding: 0.75rem 1rem; font-size: 0.875rem; border: none; background: none; width: 100%;">
-                                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
-                                                            <polyline points="3,6 5,6 21,6"/>
-                                                            <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
-                                                            <line x1="10" y1="11" x2="10" y2="17"/>
-                                                            <line x1="14" y1="11" x2="14" y2="17"/>
-                                                        </svg>
-                                                        Delete Store
-                                                    </button>
-                                                </form>
-                                            </li>
-                                        </ul>
-                                    </div>
+                                    <a href="{{ route('stores.show', $store->id) }}" class="btn btn-sm btn-outline-primary d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;" title="View Details">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                            <circle cx="12" cy="12" r="3"/>
+                                        </svg>
+                                    </a>
                                 </td>
                             </tr>
                             @endforeach

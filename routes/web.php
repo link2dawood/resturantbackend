@@ -11,6 +11,7 @@ use App\Http\Controllers\RevenueIncomeTypeController;
 use App\Http\Controllers\DailyReportController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ReportsController;
 
 
 Route::get('/', [App\Http\Controllers\WelcomeController::class, 'index'])->name('index');
@@ -18,7 +19,6 @@ Route::get('/', [App\Http\Controllers\WelcomeController::class, 'index'])->name(
 Auth::routes();
 
 // Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
-Route::get('/states', [App\Http\Controllers\HomeController::class, 'states'])->name('states.index');
 
 // Dashboard Analytics Routes
 Route::middleware('auth')->group(function () {
@@ -45,6 +45,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/owners', [OwnerController::class, 'index'])->name('owners.index');
         Route::get('owners/create', [OwnerController::class, 'create'])->name('owners.create');
         Route::post('owners/create', [OwnerController::class, 'create'])->name('owners.store');
+        Route::get('owners/{owner}', [OwnerController::class, 'show'])->name('owners.show');
         Route::get('owners/{owner}/edit', [OwnerController::class, 'edit'])->name('owners.edit');
         Route::put('owners/{owner}', [OwnerController::class, 'update'])->name('owners.update');
         Route::delete('owners/{owner}', [OwnerController::class, 'destroy'])->name('owners.destroy');
@@ -52,14 +53,17 @@ Route::middleware('auth')->group(function () {
         Route::post('owners/{owner}/assign-stores', [OwnerController::class, 'assignStores'])->name('owners.assign-stores');
     });
 
-    // Store management - Admin and Owner access
-    Route::middleware('role:admin,owner')->group(function () {
+    // Store management - Admin only
+    Route::middleware('role:admin')->group(function () {
         Route::get('/stores', [StoreController::class, 'index'])->name('stores.index');
         Route::get('/stores/create', [StoreController::class, 'create'])->name('stores.create');
         Route::post('/stores', [StoreController::class, 'store'])->name('stores.store');
+        Route::get('/stores/{store}', [StoreController::class, 'show'])->name('stores.show');
         Route::get('/stores/{store}/edit', [StoreController::class, 'edit'])->name('stores.edit');
         Route::put('/stores/{store}', [StoreController::class, 'update'])->name('stores.update');
         Route::delete('/stores/{store}', [StoreController::class, 'destroy'])->name('stores.destroy');
+        Route::get('/stores/{store}/assign-owner', [StoreController::class, 'assignOwnerForm'])->name('stores.assign-owner.form');
+        Route::post('/stores/{store}/assign-owner', [StoreController::class, 'assignOwner'])->name('stores.assign-owner');
     });
     
     // Daily Reports Routes - with access control and date conversion
@@ -107,6 +111,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/transaction-types', [TransactionTypeController::class, 'index'])->name('transaction-types.index');
         Route::get('/transaction-types/create', [TransactionTypeController::class, 'create'])->name('transaction-types.create');
         Route::post('/transaction-types', [TransactionTypeController::class, 'store'])->name('transaction-types.store');
+        Route::get('/transaction-types/{transactionType}', [TransactionTypeController::class, 'show'])->name('transaction-types.show');
         Route::get('/transaction-types/{transactionType}/edit', [TransactionTypeController::class, 'edit'])->name('transaction-types.edit');
         Route::put('/transaction-types/{transactionType}', [TransactionTypeController::class, 'update'])->name('transaction-types.update');
         Route::delete('/transaction-types/{transactionType}', [TransactionTypeController::class, 'destroy'])->name('transaction-types.destroy');
@@ -129,5 +134,10 @@ Route::middleware('auth')->group(function () {
     Route::middleware(['admin_or_owner', 'convert_date_format'])->group(function () {
         Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
         Route::get('/audit-logs/{auditLog}', [AuditLogController::class, 'show'])->name('audit-logs.show');
+    });
+
+    // Reports Routes
+    Route::middleware('auth')->group(function () {
+        Route::get('/reports', [ReportsController::class, 'index'])->name('reports.index');
     });
 });

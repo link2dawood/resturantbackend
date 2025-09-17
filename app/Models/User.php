@@ -47,6 +47,7 @@ class User extends Authenticatable implements MustVerifyEmail
         // Business Details
         'corporate_ein',
         'corporate_creation_date',
+        'store_id',
     ];
 
     /**
@@ -99,19 +100,27 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
-     * The stores assigned to the manager.
+     * The store assigned to the manager (one-to-many: manager belongs to one store).
      */
-   public function stores()
-{
-    return $this->belongsToMany(Store::class, 'manager_store', 'manager_id', 'store_id');
-}
+    public function store()
+    {
+        return $this->belongsTo(Store::class, 'store_id');
+    }
 
     /**
-     * Alias for stores() - more descriptive for managers
+     * Alias for store() - more descriptive for managers
      */
-    public function managedStores()
+    public function managedStore()
     {
-        return $this->stores();
+        return $this->store();
+    }
+
+    /**
+     * The stores owned by the user (many-to-many relationship).
+     */
+    public function ownedStores()
+    {
+        return $this->belongsToMany(Store::class, 'owner_store', 'owner_id', 'store_id');
     }
 
     /**
@@ -209,7 +218,7 @@ class User extends Authenticatable implements MustVerifyEmail
         }
 
         if ($this->isManager()) {
-            return $this->stores()->where('stores.id', $storeId)->exists();
+            return $this->store_id == $storeId;
         }
 
         return false;
@@ -229,7 +238,7 @@ class User extends Authenticatable implements MustVerifyEmail
         }
 
         if ($this->isManager()) {
-            return $this->stores()->whereNull('stores.deleted_at')->select('stores.*');
+            return Store::where('id', $this->store_id)->whereNull('deleted_at');
         }
 
         return Store::whereRaw('1 = 0'); // Return empty query

@@ -13,52 +13,45 @@ class RevenueIncomeTypeSeeder extends Seeder
         $revenueTypes = [
             [
                 'name' => 'Cash',
-                'description' => 'Cash payments',
+                'description' => 'Cash Sales',
                 'category' => 'cash',
-                'sort_order' => 1
+                'is_active' => true,
+                'sort_order' => 0
             ],
             [
-                'name' => 'Credit Card',
-                'description' => 'Credit and debit card payments',
+                'name' => 'Credit Card - Square',
+                'description' => 'Credit card sales through square terminal',
                 'category' => 'card',
-                'sort_order' => 2
+                'is_active' => true,
+                'sort_order' => 0
             ],
             [
-                'name' => 'Checks',
-                'description' => 'Check payments',
-                'category' => 'check',
-                'sort_order' => 3,
-                'metadata' => ['requires_check_number' => true]
-            ],
-            [
-                'name' => 'Uber Eats',
-                'description' => 'Uber Eats delivery orders',
+                'name' => 'Ubereats',
+                'description' => 'Ubereats online ordering platform',
                 'category' => 'online',
-                'sort_order' => 4
+                'is_active' => true,
+                'sort_order' => 0
             ],
             [
-                'name' => 'DoorDash',
-                'description' => 'DoorDash delivery orders',
+                'name' => 'Doordash',
+                'description' => 'Doordash online ordering platform',
                 'category' => 'online',
-                'sort_order' => 5
-            ],
-            [
-                'name' => 'EZ Catering',
-                'description' => 'EZ Catering orders',
-                'category' => 'online',
-                'sort_order' => 6
-            ],
-            [
-                'name' => 'Relish',
-                'description' => 'Relish platform orders',
-                'category' => 'online',
-                'sort_order' => 7
+                'is_active' => true,
+                'sort_order' => 0
             ],
             [
                 'name' => 'Grubhub',
-                'description' => 'Grubhub delivery orders',
+                'description' => 'Grubhub online ordering platform',
                 'category' => 'online',
-                'sort_order' => 8
+                'is_active' => true,
+                'sort_order' => 0
+            ],
+            [
+                'name' => 'EZ Catering',
+                'description' => 'Relish and EZ Catering online ordering platform',
+                'category' => 'online',
+                'is_active' => true,
+                'sort_order' => 0
             ]
         ];
 
