@@ -68,7 +68,7 @@ class DashboardController extends Controller
             'storePerformance' => $this->getStorePerformance(clone $baseQuery),
 
             // Insights and alerts
-            'insights' => $this->getInsights(clone $baseQuery),
+            'insights' => $this->getInsights(clone $baseQuery, $user),
 
             // Top performing days
             'topDays' => $this->getTopPerformingDays(clone $baseQuery),
@@ -205,7 +205,7 @@ class DashboardController extends Controller
             ->get();
     }
 
-    private function getInsights($query)
+    private function getInsights($query, $user)
     {
         $insights = [];
         
@@ -245,8 +245,23 @@ class DashboardController extends Controller
             }
         }
 
-        // Identify trends
-        $weeklyTotals = $query->where('report_date', '>=', Carbon::now()->subWeeks(4))
+        // Identify trends - create fresh query to avoid conflicts with withSum
+        $trendsQuery = DailyReport::query();
+
+        // Apply the same role-based filters
+        if ($user->isOwner()) {
+            $trendsQuery->whereHas('store', function ($q) use ($user) {
+                $q->where('created_by', $user->id);
+            });
+        } elseif ($user->isManager()) {
+            $trendsQuery->whereHas('store', function ($q) use ($user) {
+                $q->whereHas('managers', function ($subQ) use ($user) {
+                    $subQ->where('users.id', $user->id);
+                });
+            });
+        }
+
+        $weeklyTotals = $trendsQuery->where('report_date', '>=', Carbon::now()->subWeeks(4))
             ->select(
                 DB::raw('WEEK(report_date) as week'),
                 DB::raw('SUM(gross_sales) as total')
