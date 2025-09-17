@@ -703,6 +703,9 @@
                                 <img src="{{ Auth::user()->avatar_url }}" alt="{{ Auth::user()->name }}" class="rounded-circle me-2" style="width: 32px; height: 32px; object-fit: cover; border: 2px solid #e0e0e0;">
                                 <div class="d-none d-lg-block text-start">
                                     <div style="font-family: 'Google Sans', sans-serif; font-size: 14px; font-weight: 500; color: #202124; line-height: 1.2;">{{ Auth::user()->name }}</div>
+                                    @if(Auth::user()->isManager() && Auth::user()->store)
+                                        <div style="font-family: 'Google Sans', sans-serif; font-size: 11px; color: #1967d2; line-height: 1.2; font-weight: 500;">{{ Auth::user()->store->store_info }}</div>
+                                    @endif
                                     <div style="font-family: 'Google Sans', sans-serif; font-size: 12px; color: #5f6368; line-height: 1.2;">{{ Auth::user()->email }}</div>
                                 </div>
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5f6368" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ms-1">

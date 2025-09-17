@@ -106,9 +106,7 @@ class DailyReportController extends Controller
             if ($user->role === \App\Enums\UserRole::OWNER) {
                 $storesQuery->where('created_by', $user->id);
             } elseif ($user->role === \App\Enums\UserRole::MANAGER) {
-                $storesQuery->whereHas('managers', function ($q) use ($user) {
-                    $q->where('users.id', $user->id);
-                });
+                $storesQuery->where('id', $user->store_id);
             }
         }
         $stores = $storesQuery->get();
@@ -243,9 +241,7 @@ class DailyReportController extends Controller
             if ($user->role === \App\Enums\UserRole::OWNER) {
                 $query->where('created_by', $user->id);
             } elseif ($user->role === \App\Enums\UserRole::MANAGER) {
-                $query->whereHas('managers', function ($q) use ($user) {
-                    $q->where('users.id', $user->id);
-                });
+                $query->where('store_id', $user->store_id);
             }
             // Admins see all stores
         }
@@ -381,9 +377,7 @@ class DailyReportController extends Controller
             if ($user->role === \App\Enums\UserRole::OWNER) {
                 $query->where('created_by', $user->id);
             } elseif ($user->role === \App\Enums\UserRole::MANAGER) {
-                $query->whereHas('managers', function ($q) use ($user) {
-                    $q->where('users.id', $user->id);
-                });
+                $query->where('store_id', $user->store_id);
             }
             // Admins see all stores
         }
@@ -444,9 +438,7 @@ class DailyReportController extends Controller
         $user = auth()->user();
         if ($user->role === \App\Enums\UserRole::MANAGER) {
             $allowedStore = Store::where('id', $validatedData['store_id'])
-                ->whereHas('managers', function ($q) use ($user) {
-                    $q->where('users.id', $user->id);
-                })
+                ->where('id', $user->store_id)
                 ->first();
                 
             if (!$allowedStore) {
@@ -559,9 +551,7 @@ class DailyReportController extends Controller
         if ($user->role === 'owner') {
             $query->where('created_by', $user->id);
         } elseif ($user->role === \App\Enums\UserRole::MANAGER) {
-            $query->whereHas('managers', function ($q) use ($user) {
-                $q->where('users.id', $user->id);
-            });
+            $query->where('store_id', $user->store_id);
         }
         // Admins can access all stores
         

@@ -36,11 +36,7 @@ class DashboardController extends Controller
             });
         } elseif ($user->isManager()) {
             // Manager can see only assigned stores
-            $query->whereHas('store', function ($q) use ($user) {
-                $q->whereHas('managers', function ($subQ) use ($user) {
-                    $subQ->where('users.id', $user->id);
-                });
-            });
+            $query->where('store_id', $user->store_id);
         }
 
         $baseQuery = clone $query;

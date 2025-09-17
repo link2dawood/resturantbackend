@@ -123,6 +123,9 @@
                         <img src="{{ Auth::user()->avatar_url }}" alt="{{ Auth::user()->name }}" style="width: 2rem; height: 2rem; border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
                         <div style="display: none; text-align: left;" class="user-info">
                             <div style="font-family: 'Google Sans', sans-serif; font-size: 0.875rem; font-weight: 500; color: var(--google-grey-900, #202124);">{{ Auth::user()->name }}</div>
+                            @if(Auth::user()->isManager() && Auth::user()->store)
+                                <div style="font-family: 'Google Sans', sans-serif; font-size: 0.6875rem; color: var(--google-blue-700, #1967d2); font-weight: 500;">{{ Auth::user()->store->store_info }}</div>
+                            @endif
                             <div style="font-family: 'Google Sans', sans-serif; font-size: 0.75rem; color: var(--google-grey-600, #5f6368);">{{ Auth::user()->email }}</div>
                         </div>
                         <span class="material-symbols-outlined" style="color: var(--google-grey-600, #5f6368);">expand_more</span>
