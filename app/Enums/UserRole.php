@@ -50,6 +50,7 @@ enum UserRole: string
             ]),
             self::OWNER => in_array($permission, [
                 'view_stores',
+                'view_daily_reports',
                 'create_reports',
                 'manage_reports',
                 'manage_managers',
@@ -57,6 +58,7 @@ enum UserRole: string
             ]),
             self::MANAGER => in_array($permission, [
                 'view_assigned_stores',
+                'view_daily_reports',
                 'create_reports',
             ]),
         };

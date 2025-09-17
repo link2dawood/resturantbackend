@@ -178,7 +178,7 @@
                         @if($manager->hasPermission('create_reports'))
                             <span class="badge bg-blue">Create Reports</span>
                         @endif
-                        @if($manager->hasPermission('view_reports'))
+                        @if($manager->hasPermission('view_daily_reports'))
                             <span class="badge bg-purple">View Reports</span>
                         @endif
                         @if($manager->hasPermission('view_assigned_stores'))

@@ -27,7 +27,7 @@ class DailyReportController extends Controller
     {
         $this->reportService = $reportService;
         $this->middleware('auth');
-        $this->middleware('permission:view_reports')->only(['index', 'show']);
+        $this->middleware('permission:view_daily_reports')->only(['index', 'show']);
         $this->middleware('permission:create_reports')->only(['create', 'store']);
         $this->middleware('permission:manage_reports')->only(['edit', 'update', 'destroy', 'approve']);
         $this->middleware(CheckDailyReportAccess::class)->except(['index', 'create']);
@@ -102,7 +102,7 @@ class DailyReportController extends Controller
         
         // Get available stores for filter dropdown (based on user role)
         $storesQuery = Store::query();
-        if ($user->hasPermission('view_reports')) {
+        if ($user->hasPermission('view_daily_reports')) {
             if ($user->role === \App\Enums\UserRole::OWNER) {
                 $storesQuery->where('created_by', $user->id);
             } elseif ($user->role === \App\Enums\UserRole::MANAGER) {
