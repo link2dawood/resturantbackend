@@ -75,9 +75,9 @@ class DailyReportService
             return $store->created_by === $user->id;
         }
 
-        // Managers can access assigned stores
+        // Managers can access their assigned store
         if ($user->isManager()) {
-            return $user->stores()->where('stores.id', $store->id)->exists();
+            return $user->store_id == $store->id;
         }
 
         return false;

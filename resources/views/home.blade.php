@@ -128,7 +128,15 @@
                     <div class="row text-center">
                         <div class="col-md-3">
                             <div class="mb-2">
-                                <span style="font-size: 2rem; color: var(--google-blue, #4285f4); font-weight: 300;">{{ Auth::user()->stores()->count() }}</span>
+                                <span style="font-size: 2rem; color: var(--google-blue, #4285f4); font-weight: 300;">
+                                    @if(Auth::user()->isOwner())
+                                        {{ Auth::user()->ownedStores()->count() }}
+                                    @elseif(Auth::user()->isManager())
+                                        {{ Auth::user()->store ? 1 : 0 }}
+                                    @else
+                                        {{ Auth::user()->accessibleStores()->count() }}
+                                    @endif
+                                </span>
                             </div>
                             <div style="font-family: 'Google Sans', sans-serif; color: var(--google-grey-600, #5f6368); font-size: 0.875rem;">Total Stores</div>
                         </div>

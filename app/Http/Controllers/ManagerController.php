@@ -23,7 +23,7 @@ class ManagerController extends Controller
      */
     public function index()
     {
-        $managers = User::where('role', UserRole::MANAGER)->with('stores')->get();
+        $managers = User::where('role', UserRole::MANAGER)->with('store')->get();
         return view('managers.index', compact('managers'));
     }
 
@@ -55,8 +55,7 @@ class ManagerController extends Controller
                 'email' => 'required|email|unique:users,email',
                 'password' => 'required|string|min:8',
                 'username' => 'nullable|string|max:255',
-                'assigned_stores' => 'nullable|array',
-                'assigned_stores.*' => 'integer',
+                'store_id' => 'nullable|exists:stores,id',
             ]);
 
             \Log::info('Validation passed', ['validated_fields' => array_keys($validatedData)]);
@@ -84,13 +83,9 @@ class ManagerController extends Controller
         $temporaryPassword = $validatedData['password'];
         $validatedData['password'] = bcrypt($validatedData['password']);
         
-        // Extract store assignments before creating user
-        $assignedStores = $validatedData['assigned_stores'] ?? [];
-        unset($validatedData['assigned_stores']); // Remove from user creation data
-
         \Log::info('Creating manager user', [
             'user_data' => array_keys($validatedData),
-            'assigned_stores' => $assignedStores
+            'store_id' => $validatedData['store_id'] ?? null
         ]);
 
         try {
@@ -102,14 +97,13 @@ class ManagerController extends Controller
             $manager->changeRole(UserRole::MANAGER, auth()->user());
             \Log::info('Manager role assigned', ['manager_id' => $manager->id]);
 
-            // Assign stores using pivot table
-            $assignedStoresCollection = collect();
-            if (!empty($assignedStores)) {
-                $manager->stores()->sync($assignedStores);
-                $assignedStoresCollection = Store::whereIn('id', $assignedStores)->get();
-                \Log::info('Stores assigned to manager', [
+            // Get assigned store for email notification
+            $assignedStore = null;
+            if (!empty($validatedData['store_id'])) {
+                $assignedStore = Store::find($validatedData['store_id']);
+                \Log::info('Store assigned to manager', [
                     'manager_id' => $manager->id,
-                    'store_count' => $assignedStoresCollection->count()
+                    'store_id' => $validatedData['store_id']
                 ]);
             }
 
@@ -117,7 +111,7 @@ class ManagerController extends Controller
             try {
                 \Mail::to($manager->email)->send(new \App\Mail\WelcomeNewManagerWithPassword(
                     $manager,
-                    $assignedStoresCollection,
+                    $assignedStore ? collect([$assignedStore]) : collect(),
                     auth()->user(),
                     $temporaryPassword
                 ));
@@ -175,7 +169,7 @@ class ManagerController extends Controller
             $stores = collect();
         }
         
-        $manager->load('stores'); // Load the pivot table relationship
+        $manager->load('store'); // Load the store relationship
         return view('managers.edit', compact('manager', 'stores'));
     }
 
@@ -189,8 +183,7 @@ class ManagerController extends Controller
             'email' => 'required|email|unique:users,email,' . $manager->id,
             'password' => 'nullable|string|min:8',
             'username' => 'nullable|string|max:255',
-            'assigned_stores' => 'nullable|array',
-            'assigned_stores.*' => 'integer',
+            'store_id' => 'nullable|exists:stores,id',
         ]);
 
         if (!empty($validatedData['password'])) {
@@ -199,30 +192,26 @@ class ManagerController extends Controller
             unset($validatedData['password']);
         }
 
-        // Extract store assignments before updating user
-        $assignedStores = $validatedData['assigned_stores'] ?? [];
-        unset($validatedData['assigned_stores']); // Remove from user update data
+        // Get current store assignment before update
+        $previousStore = $manager->store;
 
-        // Get current store assignments before update
-        $previousStores = $manager->stores;
-
-        // Update user basic info
+        // Update user basic info (including store_id)
         $manager->update($validatedData);
 
-        // Update store assignments using pivot table
-        $manager->stores()->sync($assignedStores);
-
-        // Get updated store assignments
-        $currentStores = Store::whereIn('id', $assignedStores)->get();
+        // Get updated store assignment
+        $currentStore = null;
+        if (!empty($validatedData['store_id'])) {
+            $currentStore = Store::find($validatedData['store_id']);
+        }
 
         // Dispatch event for email notification if there are changes
-        if ($currentStores->isNotEmpty()) {
+        if ($currentStore && (!$previousStore || $previousStore->id !== $currentStore->id)) {
             event(new ManagerAssignedToStores(
                 $manager,
-                $currentStores,
+                collect([$currentStore]),
                 auth()->user(),
                 false, // isNewManager
-                $previousStores
+                $previousStore ? collect([$previousStore]) : collect()
             ));
         }
 
@@ -240,12 +229,12 @@ class ManagerController extends Controller
     }
 
     /**
-     * Display the form for assigning stores to the manager.
+     * Display the form for assigning a store to the manager.
      */
     public function assignStoresForm(User $manager)
     {
         $user = auth()->user();
-        
+
         // Filter stores based on current user's permissions
         if ($user->isAdmin()) {
             // Admins can assign managers to any store
@@ -257,37 +246,37 @@ class ManagerController extends Controller
             // Managers shouldn't be able to assign stores to other managers
             $stores = collect();
         }
-        
+
         return view('managers.assign-stores', compact('manager', 'stores'));
     }
 
     /**
-     * Assign stores to the manager.
+     * Assign a store to the manager.
      */
     public function assignStores(Request $request, User $manager)
     {
         $validatedData = $request->validate([
-            'store_ids' => 'required|array',
-            'store_ids.*' => 'exists:stores,id',
+            'store_id' => 'required|exists:stores,id',
         ]);
 
-        // Get current store assignments before update
-        $previousStores = $manager->stores;
+        // Get current store assignment before update
+        $previousStore = $manager->store;
 
-        $manager->stores()->sync($validatedData['store_ids']);
+        // Update manager's store assignment
+        $manager->update(['store_id' => $validatedData['store_id']]);
 
-        // Get updated store assignments
-        $currentStores = Store::whereIn('id', $validatedData['store_ids'])->get();
+        // Get updated store assignment
+        $currentStore = Store::find($validatedData['store_id']);
 
         // Dispatch event for email notification
         event(new ManagerAssignedToStores(
             $manager,
-            $currentStores,
+            collect([$currentStore]),
             auth()->user(),
             false, // isNewManager
-            $previousStores
+            $previousStore ? collect([$previousStore]) : collect()
         ));
 
-        return redirect()->route('managers.index')->with('success', 'Stores assigned successfully.');
+        return redirect()->route('managers.index')->with('success', 'Store assigned successfully.');
     }
 }

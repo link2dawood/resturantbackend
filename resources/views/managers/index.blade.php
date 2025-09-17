@@ -88,14 +88,10 @@
                                                 </div>
                                             </td>
                                             <td>
-                                                @if ($manager->stores->isNotEmpty())
-                                                <div class="d-flex flex-wrap gap-1">
-                                                    @foreach ($manager->stores as $store)
-                                                    <span class="badge badge-outline text-green">{{ $store->name }}</span>
-                                                    @endforeach
-                                                </div>
+                                                @if ($manager->store)
+                                                <span class="badge badge-outline text-green">{{ $manager->store->store_info }}</span>
                                                 @else
-                                                <span class="text-muted">No stores assigned</span>
+                                                <span class="text-muted">No store assigned</span>
                                                 @endif
                                             </td>
                                             <td>
