@@ -145,9 +145,15 @@ class ManagerController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    public function show(User $manager)
     {
-        //
+        // Ensure the user is actually a manager
+        if (!$manager->isManager()) {
+            abort(404);
+        }
+
+        $manager->load('store');
+        return view('managers.show', compact('manager'));
     }
 
     /**
