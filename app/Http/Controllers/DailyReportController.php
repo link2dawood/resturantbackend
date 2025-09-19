@@ -227,28 +227,6 @@ class DailyReportController extends Controller
         return redirect()->route('daily-reports.create');
     }
 
-    /**
-     * Show the quick entry form for creating a new resource.
-     */
-    public function quickEntry()
-    {
-        $user = auth()->user();
-        $query = Store::query();
-        $types = TransactionType::all();
-        
-        // Filter stores based on user role
-        if ($user->hasPermission('create_reports')) {
-            if ($user->role === \App\Enums\UserRole::OWNER) {
-                $query->where('created_by', $user->id);
-            } elseif ($user->role === \App\Enums\UserRole::MANAGER) {
-                $query->where('store_id', $user->store_id);
-            }
-            // Admins see all stores
-        }
-        
-        $stores = $query->get();
-        return view('daily-reports.quick-entry', compact('stores', 'types'));
-    }
 
     /**
      * Store a newly created resource in storage.

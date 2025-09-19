@@ -131,12 +131,6 @@
                     </svg>
                     Create Daily Report
                 </a>
-                <a href="{{ route('daily-reports.quick-entry') }}" class="btn btn-outline-primary d-flex align-items-center" style="gap: 0.5rem;">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <polygon points="13,2 3,14 12,14 11,22 21,10 12,10 13,2"/>
-                    </svg>
-                    Quick Entry
-                </a>
             @endif
         </div>
         <div class="d-flex" style="gap: 0.75rem;">
@@ -310,10 +304,6 @@
                     <a href="{{ route('daily-reports.create') }}" class="google-btn google-btn-primary">
                         <span class="material-symbols-outlined">add</span>
                         Create Your First Report
-                    </a>
-                    <a href="{{ route('daily-reports.quick-entry') }}" class="google-btn google-btn-outlined">
-                        <span class="material-symbols-outlined">flash_on</span>
-                        Quick Entry
                     </a>
                 </div>
             @endif

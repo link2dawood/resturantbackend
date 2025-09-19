@@ -386,11 +386,8 @@
                         </div>
                     </div>
                     <div class="d-grid gap-2">
-                        <a href="{{ route('daily-reports.quick-entry') }}" class="google-btn google-btn-primary">
-                            ⚡ Quick Entry
-                        </a>
-                        <a href="{{ route('daily-reports.create') }}" class="google-btn google-btn-outlined">
-                            📝 Full Report
+                        <a href="{{ route('daily-reports.create') }}" class="google-btn google-btn-primary">
+                            📝 Create Report
                         </a>
                         <a href="{{ route('daily-reports.index') }}" class="google-btn google-btn-outlined">
                             📋 View All Reports

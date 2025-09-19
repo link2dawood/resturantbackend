@@ -6,10 +6,6 @@
 
 @section('page-actions')
 <div class="gd-flex gd-gap-sm">
-    <a href="{{ route('daily-reports.quick-entry') }}" class="gd-button gd-button-success">
-        <span class="material-symbols-outlined">flash_on</span>
-        Quick Entry
-    </a>
     <a href="{{ route('daily-reports.create') }}" class="gd-button gd-button-primary">
         <span class="material-symbols-outlined">add</span>
         New Report
@@ -224,13 +220,9 @@
                 <p class="gd-card-subtitle">Common tasks and shortcuts</p>
             </div>
             <div class="gd-card-body gd-flex gd-flex-col gd-gap-sm">
-                <a href="{{ route('daily-reports.quick-entry') }}" class="gd-button gd-button-primary gd-justify-start">
-                    <span class="material-symbols-outlined">flash_on</span>
-                    Quick Entry
-                </a>
-                <a href="{{ route('daily-reports.create') }}" class="gd-button gd-button-outlined gd-justify-start">
+                <a href="{{ route('daily-reports.create') }}" class="gd-button gd-button-primary gd-justify-start">
                     <span class="material-symbols-outlined">description</span>
-                    Full Report
+                    Create Report
                 </a>
                 <a href="{{ route('daily-reports.index') }}" class="gd-button gd-button-outlined gd-justify-start">
                     <span class="material-symbols-outlined">list</span>

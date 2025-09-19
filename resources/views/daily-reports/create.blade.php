@@ -9,7 +9,6 @@
             <p class="text-muted">Step 3 of 3: Enter report details</p>
         </div>
         <div class="page-actions">
-            <a href="{{ route('daily-reports.quick-entry') }}" class="google-btn-warning google-btn">⚡ Quick Entry Mode</a>
             <a href="{{ route('daily-reports.index') }}" class="google-btn google-btn-outlined">← Back to Reports</a>
         </div>
     </div>

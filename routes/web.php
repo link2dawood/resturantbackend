@@ -75,7 +75,6 @@ Route::middleware('auth')->group(function () {
         Route::get('/daily-reports/create/step-2', [DailyReportController::class, 'selectDate'])->name('daily-reports.select-date');
         Route::get('/daily-reports/create/form', [DailyReportController::class, 'createForm'])->name('daily-reports.create-form');
 
-        Route::get('/daily-reports/quick-entry', [DailyReportController::class, 'quickEntry'])->name('daily-reports.quick-entry');
         Route::post('/daily-reports', [DailyReportController::class, 'store'])->name('daily-reports.store');
         Route::get('/daily-reports/{dailyReport}', [DailyReportController::class, 'show'])->name('daily-reports.show');
         Route::get('/daily-reports/{dailyReport}/edit', [DailyReportController::class, 'edit'])->name('daily-reports.edit');

@@ -52,6 +52,14 @@ class Store extends Model
     }
 
     /**
+     * All managers assigned to the store (one-to-many: store has multiple managers).
+     */
+    public function managers()
+    {
+        return $this->hasMany(User::class, 'store_id')->where('role', 'manager');
+    }
+
+    /**
      * The daily reports for this store.
      */
     public function dailyReports()

@@ -7,10 +7,6 @@
 @section('page-actions')
 <div class="gd-flex gd-gap-sm">
     @if(auth()->user()->hasPermission('create_reports'))
-    <a href="{{ route('daily-reports.quick-entry') }}" class="gd-button gd-button-success">
-        <span class="material-symbols-outlined">flash_on</span>
-        Quick Entry
-    </a>
     <a href="{{ route('daily-reports.create') }}" class="gd-button gd-button-primary">
         <span class="material-symbols-outlined">add</span>
         Create Report
@@ -318,10 +314,6 @@
             <a href="{{ route('daily-reports.create') }}" class="gd-button gd-button-primary">
                 <span class="material-symbols-outlined">add</span>
                 Create Your First Report
-            </a>
-            <a href="{{ route('daily-reports.quick-entry') }}" class="gd-button gd-button-outlined">
-                <span class="material-symbols-outlined">flash_on</span>
-                Quick Entry Mode
             </a>
         </div>
         @endif
