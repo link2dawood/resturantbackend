@@ -27,7 +27,7 @@
             <div style="max-width: 1200px; margin: 0 auto; padding: 0.75rem 1.5rem; display: flex; align-items: center; justify-content: space-between;">
                 <!-- Brand -->
                 <a href="{{ route('home') }}" style="display: flex; align-items: center; text-decoration: none; margin-right: auto; margin-left: 20px">
-                    <span class="material-symbols-outlined" style="font-size: 28px; color: var(--google-blue, #4285f4);">restaurant_menu</span>
+                    <img src="{{ asset('images/logo.jpg') }}" height="32" alt="Restaurant Logo" style="border-radius: 6px;">
                 </a>
                 
                 <!-- Mobile Menu Toggle -->

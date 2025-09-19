@@ -565,12 +565,7 @@
             <div class="container-fluid px-4">
                 <!-- Brand Logo -->
                 <a class="navbar-brand d-flex align-items-center" href="{{ url('/home') }}" style="text-decoration: none;">
-                    <div class="d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; background: linear-gradient(135deg, #4285f4, #1a73e8); border-radius: 10px; box-shadow: 0 2px 8px rgba(66, 133, 244, 0.3);">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
-                            <polyline points="9,22 9,12 15,12 15,22"/>
-                        </svg>
-                    </div>
+                    <img src="{{ asset('images/logo.jpg') }}" height="40" alt="Restaurant Logo" style="border-radius: 8px;">
                 </a>
 
                 <!-- Mobile menu toggle -->
