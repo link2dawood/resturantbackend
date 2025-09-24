@@ -228,6 +228,11 @@ class DailyReportService
      */
     private function logReportCreation(User $user, DailyReport $report, Store $store): void
     {
+        // Additional safety check to prevent null store_info access
+        if (!$store) {
+            throw new \InvalidArgumentException('Store cannot be null when creating audit log');
+        }
+
         AuditLog::create([
             'user_id' => $user->id,
             'action' => 'created',
