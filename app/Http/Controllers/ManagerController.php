@@ -4,10 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Enums\UserRole;
 use App\Events\ManagerAssignedToStores;
-use App\Models\User;
 use App\Models\Store;
+use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\DB;
 
 class ManagerController extends Controller
@@ -24,6 +23,7 @@ class ManagerController extends Controller
     public function index()
     {
         $managers = User::where('role', UserRole::MANAGER)->with('store')->get();
+
         return view('managers.index', compact('managers'));
     }
 
@@ -34,7 +34,7 @@ class ManagerController extends Controller
     {
         $user = auth()->user();
         $stores = $user->accessibleStores()->get();
-        
+
         return view('managers.create', compact('stores'));
     }
 
@@ -46,7 +46,7 @@ class ManagerController extends Controller
         \Log::info('Manager creation started', [
             'user_id' => auth()->id(),
             'user_role' => auth()->user()->role?->value,
-            'request_data' => $request->except(['password'])
+            'request_data' => $request->except(['password']),
         ]);
 
         try {
@@ -62,30 +62,30 @@ class ManagerController extends Controller
         } catch (\Illuminate\Validation\ValidationException $e) {
             \Log::error('Validation failed', [
                 'errors' => $e->errors(),
-                'input' => $request->except(['password'])
+                'input' => $request->except(['password']),
             ]);
             throw $e;
         }
 
         // Use secure role assignment - only admins or owners can create managers
-        if (!auth()->user()->hasPermission('manage_managers')) {
+        if (! auth()->user()->hasPermission('manage_managers')) {
             \Log::error('Permission denied for manager creation', [
                 'user_id' => auth()->id(),
                 'user_role' => auth()->user()->role?->value,
-                'user_permissions' => auth()->user()->getAllPermissions()
+                'user_permissions' => auth()->user()->getAllPermissions(),
             ]);
             abort(403, 'Insufficient permissions to create managers');
         }
 
         \Log::info('Permission check passed');
-        
+
         // Store the plain password for email before hashing
         $temporaryPassword = $validatedData['password'];
         $validatedData['password'] = bcrypt($validatedData['password']);
-        
+
         \Log::info('Creating manager user', [
             'user_data' => array_keys($validatedData),
-            'store_id' => $validatedData['store_id'] ?? null
+            'store_id' => $validatedData['store_id'] ?? null,
         ]);
 
         try {
@@ -99,11 +99,11 @@ class ManagerController extends Controller
 
             // Get assigned store for email notification
             $assignedStore = null;
-            if (!empty($validatedData['store_id'])) {
+            if (! empty($validatedData['store_id'])) {
                 $assignedStore = Store::find($validatedData['store_id']);
                 \Log::info('Store assigned to manager', [
                     'manager_id' => $manager->id,
-                    'store_id' => $validatedData['store_id']
+                    'store_id' => $validatedData['store_id'],
                 ]);
             }
 
@@ -119,7 +119,7 @@ class ManagerController extends Controller
             } catch (\Exception $emailError) {
                 \Log::error('Failed to send welcome email', [
                     'manager_id' => $manager->id,
-                    'error' => $emailError->getMessage()
+                    'error' => $emailError->getMessage(),
                 ]);
             }
 
@@ -133,12 +133,12 @@ class ManagerController extends Controller
             \Log::error('Manager creation failed', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
-                'input' => $request->except(['password'])
+                'input' => $request->except(['password']),
             ]);
 
             return redirect()->back()
                 ->withInput($request->except(['password']))
-                ->withErrors(['error' => 'Failed to create manager: ' . $e->getMessage()]);
+                ->withErrors(['error' => 'Failed to create manager: '.$e->getMessage()]);
         }
     }
 
@@ -148,11 +148,12 @@ class ManagerController extends Controller
     public function show(User $manager)
     {
         // Ensure the user is actually a manager
-        if (!$manager->isManager()) {
+        if (! $manager->isManager()) {
             abort(404);
         }
 
         $manager->load('store');
+
         return view('managers.show', compact('manager'));
     }
 
@@ -162,7 +163,7 @@ class ManagerController extends Controller
     public function edit(User $manager)
     {
         $user = auth()->user();
-        
+
         // Filter stores based on current user's permissions
         if ($user->isAdmin()) {
             // Admins can assign managers to any store
@@ -174,8 +175,9 @@ class ManagerController extends Controller
             // Managers shouldn't be able to edit other managers, but just in case
             $stores = collect();
         }
-        
+
         $manager->load('store'); // Load the store relationship
+
         return view('managers.edit', compact('manager', 'stores'));
     }
 
@@ -186,13 +188,13 @@ class ManagerController extends Controller
     {
         $validatedData = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,' . $manager->id,
+            'email' => 'required|email|unique:users,email,'.$manager->id,
             'password' => 'nullable|string|min:8',
             'username' => 'nullable|string|max:255',
             'store_id' => 'nullable|exists:stores,id',
         ]);
 
-        if (!empty($validatedData['password'])) {
+        if (! empty($validatedData['password'])) {
             $validatedData['password'] = bcrypt($validatedData['password']);
         } else {
             unset($validatedData['password']);
@@ -206,12 +208,12 @@ class ManagerController extends Controller
 
         // Get updated store assignment
         $currentStore = null;
-        if (!empty($validatedData['store_id'])) {
+        if (! empty($validatedData['store_id'])) {
             $currentStore = Store::find($validatedData['store_id']);
         }
 
         // Dispatch event for email notification if there are changes
-        if ($currentStore && (!$previousStore || $previousStore->id !== $currentStore->id)) {
+        if ($currentStore && (! $previousStore || $previousStore->id !== $currentStore->id)) {
             event(new ManagerAssignedToStores(
                 $manager,
                 collect([$currentStore]),
@@ -229,7 +231,42 @@ class ManagerController extends Controller
      */
     public function destroy(User $manager)
     {
+        // Ensure the user being deleted is actually a manager
+        if (! $manager->isManager()) {
+            abort(404, 'Manager not found');
+        }
+
+        // Check if current user has permission to delete managers
+        $currentUser = auth()->user();
+        if (! $currentUser->hasPermission('manage_managers')) {
+            abort(403, 'Insufficient permissions to delete managers');
+        }
+
+        // Additional check: Only admins can delete managers, owners can only delete managers they created
+        if ($currentUser->isOwner()) {
+            // Owners can only delete managers from stores they own
+            $managerStore = $manager->store;
+            if (! $managerStore || $managerStore->created_by !== $currentUser->id) {
+                abort(403, 'You can only delete managers assigned to stores you own');
+            }
+        }
+
+        \Log::info('Manager deletion initiated', [
+            'manager_id' => $manager->id,
+            'manager_email' => $manager->email,
+            'deleted_by' => $currentUser->id,
+            'deleted_by_email' => $currentUser->email,
+            'deleted_by_role' => $currentUser->role?->value,
+            'timestamp' => now(),
+        ]);
+
         $manager->delete();
+
+        \Log::info('Manager deleted successfully', [
+            'manager_id' => $manager->id,
+            'deleted_by' => $currentUser->id,
+            'timestamp' => now(),
+        ]);
 
         return redirect()->route('managers.index')->with('success', 'Manager deleted successfully.');
     }
