@@ -12,6 +12,7 @@ use App\Http\Controllers\DailyReportController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ReportsController;
+use App\Http\Controllers\ImpersonationController;
 
 
 Route::get('/', [App\Http\Controllers\WelcomeController::class, 'index'])->name('index');
@@ -127,6 +128,11 @@ Route::middleware('auth')->group(function () {
         Route::get('/revenue-income-types/{revenueIncomeType}/edit', [RevenueIncomeTypeController::class, 'edit'])->name('revenue-income-types.edit');
         Route::put('/revenue-income-types/{revenueIncomeType}', [RevenueIncomeTypeController::class, 'update'])->name('revenue-income-types.update');
         Route::delete('/revenue-income-types/{revenueIncomeType}', [RevenueIncomeTypeController::class, 'destroy'])->name('revenue-income-types.destroy');
+
+        // Impersonation Routes - Admin only
+        Route::post('/impersonate/{user}', [ImpersonationController::class, 'start'])->name('impersonate.start');
+        Route::post('/impersonate/stop', [ImpersonationController::class, 'stop'])->name('impersonate.stop');
+        Route::get('/api/users-for-impersonation', [DashboardController::class, 'getUsersForImpersonation'])->name('api.users-for-impersonation');
     });
 
 

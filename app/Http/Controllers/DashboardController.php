@@ -541,4 +541,78 @@ class DashboardController extends Controller
         // For now, return a simple response
         return response()->json(['message' => 'Excel export not yet implemented'], 501);
     }
+
+    /**
+     * Get users for impersonation (Admin only)
+     */
+    public function getUsersForImpersonation(Request $request)
+    {
+        $user = auth()->user();
+
+        // Only admins can access this
+        if (!$user->isAdmin()) {
+            abort(403, 'Unauthorized');
+        }
+
+        $query = $request->get('q', '');
+        $type = $request->get('type', 'all'); // 'all', 'owners', 'managers'
+
+        $owners = collect();
+        $managers = collect();
+
+        if ($type === 'all' || $type === 'owners') {
+            $ownersQuery = \App\Models\User::where('role', \App\Enums\UserRole::OWNER)
+                ->orderBy('name');
+
+            if ($query) {
+                $ownersQuery->where(function($q) use ($query) {
+                    $q->where('name', 'LIKE', "%{$query}%")
+                      ->orWhere('email', 'LIKE', "%{$query}%");
+                });
+            }
+
+            $owners = $ownersQuery->get()->map(function($user) {
+                return [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'avatar_url' => $user->avatar_url,
+                    'role' => 'owner',
+                ];
+            });
+        }
+
+        if ($type === 'all' || $type === 'managers') {
+            $managersQuery = \App\Models\User::where('role', \App\Enums\UserRole::MANAGER)
+                ->with('store')
+                ->orderBy('name');
+
+            if ($query) {
+                $managersQuery->where(function($q) use ($query) {
+                    $q->where('name', 'LIKE', "%{$query}%")
+                      ->orWhere('email', 'LIKE', "%{$query}%")
+                      ->orWhereHas('store', function($sq) use ($query) {
+                          $sq->where('store_info', 'LIKE', "%{$query}%");
+                      });
+                });
+            }
+
+            $managers = $managersQuery->get()->map(function($user) {
+                return [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'avatar_url' => $user->avatar_url,
+                    'role' => 'manager',
+                    'store_name' => $user->store ? $user->store->store_info : null,
+                ];
+            });
+        }
+
+        return response()->json([
+            'owners' => $owners,
+            'managers' => $managers,
+            'total' => $owners->count() + $managers->count(),
+        ]);
+    }
 }

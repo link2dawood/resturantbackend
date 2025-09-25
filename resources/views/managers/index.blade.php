@@ -111,6 +111,19 @@
                                                             </svg>
                                                         </a>
 
+                                                        @if(Auth::user()->isAdmin())
+                                                            <form method="POST" action="{{ route('impersonate.start', $manager) }}" class="d-inline">
+                                                                @csrf
+                                                                <button type="submit" class="btn btn-sm btn-outline-info d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;" title="Login as {{ $manager->name }}">
+                                                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                                        <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+                                                                        <polyline points="10,17 15,12 10,7"/>
+                                                                        <line x1="15" y1="12" x2="3" y2="12"/>
+                                                                    </svg>
+                                                                </button>
+                                                            </form>
+                                                        @endif
+
                                                         <form method="POST" action="{{ route('managers.destroy', $manager->id) }}" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this manager? This action cannot be undone.')">
                                                             @csrf
                                                             @method('DELETE')

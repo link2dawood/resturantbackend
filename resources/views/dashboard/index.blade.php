@@ -367,6 +367,113 @@
                 </div>
             </div>
 
+            <!-- Admin User Management -->
+            @if(Auth::user()->isAdmin())
+            <div class="google-card chart-card">
+                <div class="chart-header">
+                    <h3 class="chart-title">👥 User Impersonation</h3>
+                </div>
+                <div class="card-body">
+                    @php
+                        $owners = \App\Models\User::where('role', \App\Enums\UserRole::OWNER)->orderBy('name')->take(3)->get();
+                        $managers = \App\Models\User::where('role', \App\Enums\UserRole::MANAGER)->orderBy('name')->take(3)->get();
+                        $totalOwners = \App\Models\User::where('role', \App\Enums\UserRole::OWNER)->count();
+                        $totalManagers = \App\Models\User::where('role', \App\Enums\UserRole::MANAGER)->count();
+                    @endphp
+
+                    <!-- Quick Actions -->
+                    <div class="d-grid gap-2 mb-3">
+                        <button type="button" class="btn btn-outline-primary d-flex align-items-center justify-content-center" data-bs-toggle="modal" data-bs-target="#userSelectionModal">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
+                                <circle cx="11" cy="11" r="8"/>
+                                <path d="M21 21l-4.35-4.35"/>
+                            </svg>
+                            🔍 Search & Login as User
+                        </button>
+                    </div>
+
+                    <!-- Quick Access - Recent Users -->
+                    @if($owners->count() > 0)
+                    <h6 class="mb-2" style="font-family: 'Google Sans', sans-serif; color: #202124;">👨‍💼 Owners ({{ $totalOwners }} total)</h6>
+                    @foreach($owners as $owner)
+                        <div class="d-flex justify-content-between align-items-center mb-2 p-2 rounded" style="background: #f8f9fa;">
+                            <div class="d-flex align-items-center">
+                                <span class="avatar me-2" style="background-image: url({{ $owner->avatar_url }}); width: 24px; height: 24px;"></span>
+                                <div>
+                                    <small><strong>{{ $owner->name }}</strong></small>
+                                    <br>
+                                    <small class="text-muted">{{ $owner->email }}</small>
+                                </div>
+                            </div>
+                            <form method="POST" action="{{ route('impersonate.start', $owner) }}" class="d-inline">
+                                @csrf
+                                <button type="submit" class="btn btn-sm btn-outline-primary" title="Login as {{ $owner->name }}">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+                                        <polyline points="10,17 15,12 10,7"/>
+                                        <line x1="15" y1="12" x2="3" y2="12"/>
+                                    </svg>
+                                </button>
+                            </form>
+                        </div>
+                    @endforeach
+                    @if($totalOwners > 3)
+                        <div class="text-center mb-2">
+                            <small class="text-muted">+{{ $totalOwners - 3 }} more owners available</small>
+                        </div>
+                    @endif
+                    @endif
+
+                    @if($managers->count() > 0)
+                    <h6 class="mb-2 mt-3" style="font-family: 'Google Sans', sans-serif; color: #202124;">👨‍💻 Managers ({{ $totalManagers }} total)</h6>
+                    @foreach($managers as $manager)
+                        <div class="d-flex justify-content-between align-items-center mb-2 p-2 rounded" style="background: #f8f9fa;">
+                            <div class="d-flex align-items-center">
+                                <span class="avatar me-2" style="background-image: url({{ $manager->avatar_url }}); width: 24px; height: 24px;"></span>
+                                <div>
+                                    <small><strong>{{ $manager->name }}</strong></small>
+                                    <br>
+                                    <small class="text-muted">{{ $manager->email }}</small>
+                                    @if($manager->store)
+                                        <br>
+                                        <small class="text-info">📍 {{ Str::limit($manager->store->store_info, 20) }}</small>
+                                    @endif
+                                </div>
+                            </div>
+                            <form method="POST" action="{{ route('impersonate.start', $manager) }}" class="d-inline">
+                                @csrf
+                                <button type="submit" class="btn btn-sm btn-outline-primary" title="Login as {{ $manager->name }}">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+                                        <polyline points="10,17 15,12 10,7"/>
+                                        <line x1="15" y1="12" x2="3" y2="12"/>
+                                    </svg>
+                                </button>
+                            </form>
+                        </div>
+                    @endforeach
+                    @if($totalManagers > 3)
+                        <div class="text-center mb-2">
+                            <small class="text-muted">+{{ $totalManagers - 3 }} more managers available</small>
+                        </div>
+                    @endif
+                    @endif
+
+                    @if($owners->count() == 0 && $managers->count() == 0)
+                        <div class="text-center text-muted py-3">
+                            <p>No owners or managers found in the system.</p>
+                        </div>
+                    @endif
+
+                    <div class="d-grid gap-2 mt-3">
+                        <a href="{{ route('managers.index') }}" class="btn btn-sm btn-outline-secondary">
+                            📋 Manage All Users
+                        </a>
+                    </div>
+                </div>
+            </div>
+            @endif
+
             <!-- Export & Actions -->
             <div class="google-card chart-card">
                 <div class="chart-header">
@@ -695,5 +802,205 @@ function initializeBasicInteractions() {
     });
 }
 </script>
+
+<!-- User Selection Modal -->
+@if(Auth::user()->isAdmin())
+<div class="modal fade" id="userSelectionModal" tabindex="-1" aria-labelledby="userSelectionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content" style="border-radius: 12px; border: none; box-shadow: 0 8px 32px rgba(0,0,0,0.1);">
+            <div class="modal-header" style="border-bottom: 1px solid #e0e0e0; padding: 20px 24px;">
+                <h5 class="modal-title" id="userSelectionModalLabel" style="font-family: 'Google Sans', sans-serif; font-weight: 500; color: #202124;">🔍 Select User to Impersonate</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" style="padding: 20px 24px;">
+                <!-- Search Input -->
+                <div class="mb-3">
+                    <input type="text" id="userSearch" class="form-control" placeholder="Search by name or email..." style="border-radius: 20px; border: 1px solid #dadce0; padding: 12px 16px; font-family: 'Google Sans', sans-serif;">
+                </div>
+
+                <!-- User Tabs -->
+                <ul class="nav nav-tabs mb-3" id="userTabs" role="tablist" style="border-bottom: 2px solid #e8f0fe;">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="owners-tab" data-bs-toggle="tab" data-bs-target="#owners" type="button" role="tab" style="font-family: 'Google Sans', sans-serif; font-weight: 500;">
+                            👨‍💼 Owners (<span id="ownersCount">0</span>)
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="managers-tab" data-bs-toggle="tab" data-bs-target="#managers" type="button" role="tab" style="font-family: 'Google Sans', sans-serif; font-weight: 500;">
+                            👨‍💻 Managers (<span id="managersCount">0</span>)
+                        </button>
+                    </li>
+                </ul>
+
+                <!-- Tab Content -->
+                <div class="tab-content" id="userTabContent">
+                    <!-- Owners Tab -->
+                    <div class="tab-pane fade show active" id="owners" role="tabpanel" aria-labelledby="owners-tab">
+                        <div id="ownersList" style="max-height: 300px; overflow-y: auto;">
+                            <!-- Will be populated by JavaScript -->
+                        </div>
+                    </div>
+
+                    <!-- Managers Tab -->
+                    <div class="tab-pane fade" id="managers" role="tabpanel" aria-labelledby="managers-tab">
+                        <div id="managersList" style="max-height: 300px; overflow-y: auto;">
+                            <!-- Will be populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Loading State -->
+                <div id="loadingState" class="text-center py-4" style="display: none;">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2 text-muted">Loading users...</p>
+                </div>
+
+                <!-- No Results -->
+                <div id="noResults" class="text-center py-4" style="display: none;">
+                    <p class="text-muted">No users found matching your search.</p>
+                </div>
+            </div>
+            <div class="modal-footer" style="border-top: 1px solid #e0e0e0; padding: 16px 24px;">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" style="border-radius: 20px; padding: 8px 20px; font-family: 'Google Sans', sans-serif;">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// User Selection Modal Functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const userSelectionModal = document.getElementById('userSelectionModal');
+    const userSearch = document.getElementById('userSearch');
+    const ownersList = document.getElementById('ownersList');
+    const managersList = document.getElementById('managersList');
+    const ownersCount = document.getElementById('ownersCount');
+    const managersCount = document.getElementById('managersCount');
+    const loadingState = document.getElementById('loadingState');
+    const noResults = document.getElementById('noResults');
+
+    let allUsers = {
+        owners: [],
+        managers: []
+    };
+
+    // Load users when modal is shown
+    userSelectionModal.addEventListener('shown.bs.modal', function() {
+        loadUsers();
+    });
+
+    // Search functionality
+    userSearch.addEventListener('input', function() {
+        const query = this.value.toLowerCase();
+        filterUsers(query);
+    });
+
+    function loadUsers() {
+        loadingState.style.display = 'block';
+        ownersList.innerHTML = '';
+        managersList.innerHTML = '';
+
+        // Simulate API call - In a real app, you'd make an AJAX request
+        // For now, we'll use the data from the page
+        setTimeout(() => {
+            // Get all owners
+            @php
+                $allOwners = \App\Models\User::where('role', \App\Enums\UserRole::OWNER)->orderBy('name')->get();
+                $allManagers = \App\Models\User::where('role', \App\Enums\UserRole::MANAGER)->with('store')->orderBy('name')->get();
+            @endphp
+
+            allUsers.owners = @json($allOwners->map(function($user) {
+                return [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'avatar_url' => $user->avatar_url,
+                ];
+            }));
+
+            allUsers.managers = @json($allManagers->map(function($user) {
+                return [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'avatar_url' => $user->avatar_url,
+                    'store_name' => $user->store ? $user->store->store_info : null,
+                ];
+            }));
+
+            renderUsers();
+            loadingState.style.display = 'none';
+        }, 500);
+    }
+
+    function renderUsers(query = '') {
+        const filteredOwners = allUsers.owners.filter(user =>
+            user.name.toLowerCase().includes(query) ||
+            user.email.toLowerCase().includes(query)
+        );
+
+        const filteredManagers = allUsers.managers.filter(user =>
+            user.name.toLowerCase().includes(query) ||
+            user.email.toLowerCase().includes(query) ||
+            (user.store_name && user.store_name.toLowerCase().includes(query))
+        );
+
+        // Update counts
+        ownersCount.textContent = filteredOwners.length;
+        managersCount.textContent = filteredManagers.length;
+
+        // Render owners
+        ownersList.innerHTML = filteredOwners.length > 0
+            ? filteredOwners.map(user => createUserCard(user, 'owner')).join('')
+            : '<div class="text-center py-3 text-muted">No owners found</div>';
+
+        // Render managers
+        managersList.innerHTML = filteredManagers.length > 0
+            ? filteredManagers.map(user => createUserCard(user, 'manager')).join('')
+            : '<div class="text-center py-3 text-muted">No managers found</div>';
+
+        // Show/hide no results
+        const hasResults = filteredOwners.length > 0 || filteredManagers.length > 0;
+        noResults.style.display = hasResults ? 'none' : 'block';
+    }
+
+    function createUserCard(user, type) {
+        const storeInfo = user.store_name
+            ? `<br><small class="text-info">📍 ${user.store_name}</small>`
+            : '';
+
+        return `
+            <div class="d-flex justify-content-between align-items-center mb-2 p-3 rounded border" style="background: #f8f9fa;">
+                <div class="d-flex align-items-center">
+                    <span class="avatar me-3" style="background-image: url(${user.avatar_url}); width: 32px; height: 32px; border-radius: 50%; background-size: cover;"></span>
+                    <div>
+                        <div><strong>${user.name}</strong></div>
+                        <small class="text-muted">${user.email}</small>
+                        ${storeInfo}
+                    </div>
+                </div>
+                <form method="POST" action="{{ route('impersonate.start', '') }}/${user.id}" class="d-inline">
+                    @csrf
+                    <button type="submit" class="btn btn-primary btn-sm" title="Login as ${user.name}" style="border-radius: 20px; padding: 6px 16px;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-1">
+                            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+                            <polyline points="10,17 15,12 10,7"/>
+                            <line x1="15" y1="12" x2="3" y2="12"/>
+                        </svg>
+                        Login As
+                    </button>
+                </form>
+            </div>
+        `;
+    }
+
+    function filterUsers(query) {
+        renderUsers(query);
+    }
+});
+</script>
+@endif
 
 @endsection

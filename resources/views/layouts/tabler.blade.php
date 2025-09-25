@@ -739,7 +739,40 @@
             </div>
         </nav>
         @endauth
-        
+
+        <!-- Impersonation Banner -->
+        @if(Session::has('impersonating_admin_id') && Session::has('impersonating_user_id'))
+        @php
+            $originalAdmin = \App\Models\User::find(Session::get('impersonating_admin_id'));
+            $impersonatedUser = \App\Models\User::find(Session::get('impersonating_user_id'));
+        @endphp
+        <div class="alert alert-warning d-flex justify-content-between align-items-center m-0" style="background: linear-gradient(90deg, #fef7cd 0%, #fff3b0 100%); border: none; border-radius: 0; padding: 12px 24px; border-bottom: 2px solid #f9ca24;">
+            <div class="d-flex align-items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f57c00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-3">
+                    <path d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/>
+                </svg>
+                <div>
+                    <strong style="font-family: 'Google Sans', sans-serif; color: #e65100;">⚡ You are impersonating {{ $impersonatedUser->name ?? 'Unknown User' }}</strong>
+                    <div style="font-family: 'Google Sans', sans-serif; font-size: 13px; color: #bf360c;">
+                        Logged in as {{ $impersonatedUser->email ?? 'unknown@email.com' }}
+                        ({{ ucfirst($impersonatedUser->role?->value ?? 'unknown') }})
+                        • Original admin: {{ $originalAdmin->name ?? 'Unknown Admin' }}
+                    </div>
+                </div>
+            </div>
+            <form method="POST" action="{{ route('impersonate.stop') }}" class="m-0">
+                @csrf
+                <button type="submit" class="btn btn-sm btn-outline-danger" style="font-family: 'Google Sans', sans-serif; border-radius: 20px; padding: 6px 16px;" title="Stop impersonating and return to admin account">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-1">
+                        <path d="M18 6 6 18"/>
+                        <path d="m6 6 12 12"/>
+                    </svg>
+                    Exit Impersonation
+                </button>
+            </form>
+        </div>
+        @endif
+
         <!-- Main Content Area -->
         <div class="main-content" style="min-height: calc(100vh - 80px); background: #f8f9fa; padding-top: 1rem;">
             @yield('content')

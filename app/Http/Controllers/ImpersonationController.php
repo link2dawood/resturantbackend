@@ -1,0 +1,114 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Enums\UserRole;
+use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Session;
+
+class ImpersonationController extends Controller
+{
+    /**
+     * Start impersonating a user.
+     */
+    public function start(User $user)
+    {
+        $currentUser = Auth::user();
+
+        // Only admins can impersonate
+        if (!$currentUser->isAdmin()) {
+            abort(403, 'Unauthorized to impersonate users');
+        }
+
+        // Cannot impersonate self
+        if ($currentUser->id === $user->id) {
+            return redirect()->back()->with('error', 'You cannot impersonate yourself');
+        }
+
+        // Cannot impersonate other admins
+        if ($user->isAdmin()) {
+            return redirect()->back()->with('error', 'You cannot impersonate other administrators');
+        }
+
+        // Only allow impersonating owners and managers
+        if (!$user->isOwner() && !$user->isManager()) {
+            return redirect()->back()->with('error', 'You can only impersonate owners and managers');
+        }
+
+        // Store the original admin user ID in session
+        Session::put('impersonating_admin_id', $currentUser->id);
+        Session::put('impersonating_user_id', $user->id);
+
+        // Log the impersonation start
+        \Log::info('Impersonation started', [
+            'admin_id' => $currentUser->id,
+            'admin_email' => $currentUser->email,
+            'target_user_id' => $user->id,
+            'target_user_email' => $user->email,
+            'target_user_role' => $user->role?->value,
+            'timestamp' => now(),
+        ]);
+
+        // Login as the target user
+        Auth::login($user);
+
+        return redirect()->route('dashboard.index')->with('success', "You are now impersonating {$user->name}");
+    }
+
+    /**
+     * Stop impersonating and return to admin account.
+     */
+    public function stop()
+    {
+        $impersonatedUserId = Session::get('impersonating_user_id');
+        $adminId = Session::get('impersonating_admin_id');
+
+        if (!$adminId || !$impersonatedUserId) {
+            return redirect()->route('dashboard.index')->with('error', 'No active impersonation session found');
+        }
+
+        $admin = User::find($adminId);
+        $impersonatedUser = User::find($impersonatedUserId);
+
+        if (!$admin) {
+            Session::forget(['impersonating_admin_id', 'impersonating_user_id']);
+            return redirect()->route('login')->with('error', 'Original admin user not found');
+        }
+
+        // Log the impersonation end
+        \Log::info('Impersonation ended', [
+            'admin_id' => $admin->id,
+            'admin_email' => $admin->email,
+            'impersonated_user_id' => $impersonatedUserId,
+            'impersonated_user_email' => $impersonatedUser?->email,
+            'timestamp' => now(),
+        ]);
+
+        // Clear impersonation session data
+        Session::forget(['impersonating_admin_id', 'impersonating_user_id']);
+
+        // Login back as admin
+        Auth::login($admin);
+
+        return redirect()->route('dashboard.index')->with('success', 'Stopped impersonating. You are now back to your admin account');
+    }
+
+    /**
+     * Check if currently impersonating.
+     */
+    public function isImpersonating()
+    {
+        return Session::has('impersonating_admin_id') && Session::has('impersonating_user_id');
+    }
+
+    /**
+     * Get the original admin user if currently impersonating.
+     */
+    public function getOriginalAdmin()
+    {
+        $adminId = Session::get('impersonating_admin_id');
+        return $adminId ? User::find($adminId) : null;
+    }
+}
