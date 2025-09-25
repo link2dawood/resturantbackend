@@ -13,11 +13,39 @@ class DashboardController extends Controller
     public function index()
     {
         $user = auth()->user();
-        
+
         // Get analytics data based on user role
         $analytics = $this->getAnalyticsData($user);
-        
-        return view('dashboard.index', compact('analytics'));
+
+        // Prepare data for impersonation modal (admin only)
+        $modalOwnersData = [];
+        $modalManagersData = [];
+
+        if ($user && $user->isAdmin()) {
+            $allOwners = \App\Models\User::where('role', \App\Enums\UserRole::OWNER)->orderBy('name')->get();
+            $allManagers = \App\Models\User::where('role', \App\Enums\UserRole::MANAGER)->with('store')->orderBy('name')->get();
+
+            $modalOwnersData = $allOwners->map(function($user) {
+                return [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'avatar_url' => $user->avatar_url,
+                ];
+            })->toArray();
+
+            $modalManagersData = $allManagers->map(function($user) {
+                return [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'avatar_url' => $user->avatar_url,
+                    'store_name' => $user->store ? $user->store->store_info : null,
+                ];
+            })->toArray();
+        }
+
+        return view('dashboard.index', compact('analytics', 'modalOwnersData', 'modalManagersData'));
     }
 
     public function getAnalyticsData($user)

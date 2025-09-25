@@ -902,33 +902,11 @@ document.addEventListener('DOMContentLoaded', function() {
         ownersList.innerHTML = '';
         managersList.innerHTML = '';
 
-        // Simulate API call - In a real app, you'd make an AJAX request
-        // For now, we'll use the data from the page
+        // Load pre-processed data
         setTimeout(() => {
-            // Get all owners
-            @php
-                $allOwners = \App\Models\User::where('role', \App\Enums\UserRole::OWNER)->orderBy('name')->get();
-                $allManagers = \App\Models\User::where('role', \App\Enums\UserRole::MANAGER)->with('store')->orderBy('name')->get();
-            @endphp
-
-            allUsers.owners = @json($allOwners->map(function($user) {
-                return [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                    'email' => $user->email,
-                    'avatar_url' => $user->avatar_url,
-                ];
-            }));
-
-            allUsers.managers = @json($allManagers->map(function($user) {
-                return [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                    'email' => $user->email,
-                    'avatar_url' => $user->avatar_url,
-                    'store_name' => $user->store ? $user->store->store_info : null,
-                ];
-            }));
+            // Use data passed from the controller
+            allUsers.owners = {!! json_encode($modalOwnersData ?? []) !!};
+            allUsers.managers = {!! json_encode($modalManagersData ?? []) !!};
 
             renderUsers();
             loadingState.style.display = 'none';
