@@ -129,10 +129,14 @@ Route::middleware('auth')->group(function () {
         Route::put('/revenue-income-types/{revenueIncomeType}', [RevenueIncomeTypeController::class, 'update'])->name('revenue-income-types.update');
         Route::delete('/revenue-income-types/{revenueIncomeType}', [RevenueIncomeTypeController::class, 'destroy'])->name('revenue-income-types.destroy');
 
-        // Impersonation Routes - Admin only
+        Route::get('/api/users-for-impersonation', [DashboardController::class, 'getUsersForImpersonation'])->name('api.users-for-impersonation');
+    });
+
+    // Impersonation Routes - Admin only (controller handles role checking)
+    Route::middleware('auth')->group(function () {
         Route::post('/impersonate/{user}', [ImpersonationController::class, 'start'])->name('impersonate.start');
         Route::post('/impersonate/stop', [ImpersonationController::class, 'stop'])->name('impersonate.stop');
-        Route::get('/api/users-for-impersonation', [DashboardController::class, 'getUsersForImpersonation'])->name('api.users-for-impersonation');
+        Route::get('/debug-user', [ImpersonationController::class, 'debug'])->name('debug.user');
     });
 
 

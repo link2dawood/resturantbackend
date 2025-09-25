@@ -17,9 +17,26 @@ class ImpersonationController extends Controller
     {
         $currentUser = Auth::user();
 
+        // Debug current user information
+        \Log::info('Impersonation attempt debug', [
+            'current_user_id' => $currentUser->id,
+            'current_user_email' => $currentUser->email,
+            'current_user_role' => $currentUser->role?->value,
+            'is_admin_method' => $currentUser->isAdmin(),
+            'target_user_id' => $user->id,
+            'target_user_email' => $user->email,
+            'target_user_role' => $user->role?->value,
+        ]);
+
         // Only admins can impersonate
-        if (!$currentUser->isAdmin()) {
-            abort(403, 'Unauthorized to impersonate users');
+        if (!$currentUser || !$currentUser->role || $currentUser->role !== UserRole::ADMIN) {
+            \Log::warning('Non-admin impersonation attempt', [
+                'user_id' => $currentUser->id ?? null,
+                'user_email' => $currentUser->email ?? null,
+                'user_role' => $currentUser->role?->value ?? null,
+            ]);
+
+            return redirect()->back()->with('error', 'Only administrators can impersonate users. Current role: ' . ($currentUser->role?->value ?? 'none'));
         }
 
         // Cannot impersonate self
@@ -110,5 +127,27 @@ class ImpersonationController extends Controller
     {
         $adminId = Session::get('impersonating_admin_id');
         return $adminId ? User::find($adminId) : null;
+    }
+
+    /**
+     * Debug current user information - temporary method for troubleshooting
+     */
+    public function debug()
+    {
+        $user = Auth::user();
+
+        return response()->json([
+            'authenticated' => Auth::check(),
+            'user' => $user ? [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'role' => $user->role?->value,
+                'role_object' => $user->role,
+                'is_admin' => $user->isAdmin(),
+                'is_owner' => $user->isOwner(),
+                'is_manager' => $user->isManager(),
+            ] : null,
+        ]);
     }
 }
