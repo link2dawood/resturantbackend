@@ -881,8 +881,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const loadingState = document.getElementById('loadingState');
     const noResults = document.getElementById('noResults');
 
-    // Get CSRF token for forms
+    // Get CSRF token and base URL for forms
     const csrfToken = '{{ csrf_token() }}';
+    const impersonateBaseUrl = '{{ rtrim(url('/'), '/') }}/impersonate';
 
     let allUsers = {
         owners: [],
@@ -962,7 +963,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         ${storeInfo}
                     </div>
                 </div>
-                <form method="POST" action="/impersonate/${user.id}" class="d-inline">
+                <form method="POST" action="${impersonateBaseUrl}/${user.id}" class="d-inline">
                     <input type="hidden" name="_token" value="${csrfToken}">
                     <button type="submit" class="btn btn-primary btn-sm" title="Login as ${user.name}" style="border-radius: 20px; padding: 6px 16px;">
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-1">
