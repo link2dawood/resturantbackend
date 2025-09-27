@@ -55,6 +55,7 @@ class DailyReport extends Model
     ];
 
     protected $appends = [
+        'total_transaction_expenses',
         'total_paid_outs',
         'net_sales',
         'tax',
@@ -63,6 +64,7 @@ class DailyReport extends Model
         'short',
         'over',
         'average_ticket',
+        'total_revenue_income',
         'total_revenue_entries',
         'online_platform_revenue'
     ];
@@ -97,10 +99,16 @@ class DailyReport extends Model
         return $this->morphMany(AuditLog::class, 'auditable');
     }
 
-    public function getTotalPaidOutsAttribute(): float
+    public function getTotalTransactionExpensesAttribute(): float
     {
         // Use cached sum if available to avoid N+1 queries
         return $this->transactions_sum_amount ?? $this->transactions()->sum('amount');
+    }
+
+    public function getTotalPaidOutsAttribute(): float
+    {
+        // Alias for backward compatibility
+        return $this->getTotalTransactionExpensesAttribute();
     }
 
     public function getNetSalesAttribute(): float
@@ -121,7 +129,7 @@ class DailyReport extends Model
 
     public function getCashToAccountForAttribute(): float
     {
-        return $this->getNetSalesAttribute() - $this->getTotalPaidOutsAttribute() - $this->credit_cards - $this->getOnlinePlatformRevenueAttribute();
+        return $this->getNetSalesAttribute() - $this->getTotalTransactionExpensesAttribute() - $this->credit_cards - $this->getOnlinePlatformRevenueAttribute();
     }
 
     public function getShortAttribute(): float
@@ -140,14 +148,20 @@ class DailyReport extends Model
 
     public function getAverageTicketAttribute(): float
     {
-        return $this->total_customers > 0 ? 
+        return $this->total_customers > 0 ?
                $this->getNetSalesAttribute() / $this->total_customers : 0;
+    }
+
+    public function getTotalRevenueIncomeAttribute(): float
+    {
+        // Use cached sum if available to avoid N+1 queries
+        return $this->revenues_sum_amount ?? $this->revenues()->sum('amount');
     }
 
     public function getTotalRevenueEntriesAttribute(): float
     {
-        // Use cached sum if available to avoid N+1 queries
-        return $this->revenues_sum_amount ?? $this->revenues()->sum('amount');
+        // Alias for backward compatibility
+        return $this->getTotalRevenueIncomeAttribute();
     }
 
     public function getOnlinePlatformRevenueAttribute(): float

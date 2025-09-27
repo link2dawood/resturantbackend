@@ -359,12 +359,18 @@
                                     </td>
                                 </tr>
                                 <tr class="total-row">
-                                    <td colspan="3"><strong>Total Paid Outs:</strong></td>
+                                    <td colspan="3"><strong>Total Transaction Expenses:</strong></td>
                                     <td id="totalPaidOuts" class="number-input"><strong>$0.00</strong></td>
                                     <td></td>
                                 </tr>
                             </tbody>
                         </table>
+                        <div style="margin-top: 15px; padding: 10px; background: #fff3cd; border-radius: 4px; border: 1px solid #ffeaa7;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="font-weight: 600; color: #856404;">Total Transaction Expenses:</span>
+                                <span id="totalTransactionExpenses" style="font-weight: 600; color: #856404; font-size: 1.1rem;">$0.00</span>
+                            </div>
+                        </div>
                     </div>
                     
                     <div class="col-lg-4">
@@ -418,7 +424,7 @@
                                         <select class="form-input" name="revenues[0][revenue_income_type_id]">
                                             <option value="">Select Revenue Type</option>
                                                 @foreach($revenueTypes as $revenueType)
-                                                    <option value="{{ $revenueType->id }}">{{ $revenueType->name }}</option>
+                                                    <option value="{{ $revenueType->id }}" data-category="{{ $revenueType->category }}">{{ $revenueType->name }}</option>
                                                 @endforeach
                                         </select>
                                     </td>
@@ -437,7 +443,7 @@
                         <button type="button" id="addRevenueRow" class="btn-add-row" style="margin-top: 10px;">+ Add Revenue Entry</button>
                         <div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 4px;">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <span style="font-weight: 600; color: #495057;">Total Revenue Entries:</span>
+                                <span style="font-weight: 600; color: #495057;">Total Revenue Income:</span>
                                 <span id="totalRevenue" style="font-weight: 600; color: #28a745; font-size: 1.1rem;">$0.00</span>
                             </div>
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 5px;">
@@ -483,19 +489,24 @@
                     <div class="col-8">
                         <table class="sales-table">
                             <tr>
-                                <td rowspan="2">
+                                <td>
                                     <div style="display:flex;justify-content: space-between;align-items: anchor-center;">
                                         <span>Total # of Coupons</span>
                                         <span style="width:30%;"><input type="number" name="total_coupons" value="0" class="form-input number-input" step="0.01" style="background: white;"></span>
                                     </div>
-                                    
                                 </td>
                                 <td><strong>Gross Sales:</strong></td>
                                 <td><input type="number" name="gross_sales" class="form-input number-input" step="0.01" required></td>
                             </tr>
                             <tr>
-                                <td><strong>Total Amount of Coupons Received:</strong></td>
-                                <td><input type="number" name="coupons_received" class="form-input number-input" step="0.01" value="0.00"></td>
+                                <td>
+                                    <div style="display:flex;justify-content: space-between;align-items: anchor-center;">
+                                        <span><strong>Total Amount of Coupons Received:</strong></span>
+                                        <span style="width:30%;"><input type="number" name="coupons_received" class="form-input number-input" step="0.01" value="0.00" style="background: white;"></span>
+                                    </div>
+                                </td>
+                                <td></td>
+                                <td></td>
                             </tr>
                             <tr>
                                 <td></td>
@@ -523,7 +534,7 @@
                                    
                                     <div style="display:flex;justify-content: space-between;align-items: anchor-center;">
                                         <span> Average Ticket</span>
-                                        <span style="width:30%;"><input type="number" name="average_ticket" value="0" class="form-input number-input" step="0.01" style="background: white;"></span>
+                                        <span style="width:30%;"><input type="number" name="average_ticket" id="averageTicketInput" value="0" class="form-input number-input" step="0.01" style="background: white;" readonly></span>
                                     </div>
                                 </td>
                                 <td><strong>Sales (Pre-tax):</strong></td>
@@ -539,8 +550,12 @@
                                 <td id="netSales2" class="calculated-field number-input">$0.00</td>
                             </tr>
                             <tr>
-                                <td><strong>Total Paid Outs:</strong></td>
+                                <td><strong>Total Transaction Expenses:</strong></td>
                                 <td id="totalPaidOuts2" class="calculated-field number-input">$0.00</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Online Platform Revenue:</strong></td>
+                                <td id="onlineRevenue2" class="calculated-field number-input">$0.00</td>
                             </tr>
                             <tr>
                                 <td><strong>Credit Cards:</strong></td>
@@ -585,29 +600,31 @@ function calculateTotals() {
     const adjustmentsOverrings = parseFloat(document.querySelector('input[name="adjustments_overrings"]').value || 0);
     const creditCards = parseFloat(document.querySelector('input[name="credit_cards"]').value || 0);
     const actualDeposit = parseFloat(document.querySelector('input[name="actual_deposit"]').value || 0);
+    const totalCustomers = parseFloat(document.querySelector('input[name="total_customers"]').value || 0);
 
-    // Calculate total paid outs from transactions
+    // Calculate total paid outs from transactions (Transaction Expenses)
     let totalPaidOuts = 0;
-    document.querySelectorAll('input[name*="[amount]"]').forEach(input => {
+    document.querySelectorAll('#transactionTable input[name*="[amount]"]').forEach(input => {
         totalPaidOuts += parseFloat(input.value || 0);
     });
 
-    // Calculate online platform revenue
+    // Get revenue totals (already calculated separately)
+    let totalRevenueIncome = 0;
     let onlinePlatformRevenue = 0;
+
+    // Calculate revenue totals for this function
     document.querySelectorAll('#revenueTable tbody tr').forEach(row => {
         const amountInput = row.querySelector('.revenue-amount');
         const selectElement = row.querySelector('select[name*="revenue_income_type_id"]');
-        
-        if (amountInput && selectElement) {
+
+        if (amountInput && selectElement && selectElement.selectedIndex > 0) {
             const amount = parseFloat(amountInput.value || 0);
             const selectedOption = selectElement.options[selectElement.selectedIndex];
-            
+
             if (amount > 0) {
-                // Check if this is an online platform
-                const revenueTypeName = selectedOption.text;
-                if (revenueTypeName.includes('Uber') || revenueTypeName.includes('DoorDash') || 
-                    revenueTypeName.includes('Grubhub') || revenueTypeName.includes('EZ Catering') || 
-                    revenueTypeName.includes('Relish')) {
+                totalRevenueIncome += amount;
+
+                if (selectedOption && selectedOption.dataset.category === 'online') {
                     onlinePlatformRevenue += amount;
                 }
             }
@@ -618,6 +635,7 @@ function calculateTotals() {
     const netSales = grossSales - couponsReceived - adjustmentsOverrings;
     const tax = netSales - (netSales / 1.0825); // Texas tax rate 8.25%
     const salesPreTax = netSales - tax;
+    const averageTicket = totalCustomers > 0 ? netSales / totalCustomers : 0;
     const cashToAccountFor = netSales - totalPaidOuts - creditCards - onlinePlatformRevenue;
     
     let short = 0;
@@ -630,11 +648,14 @@ function calculateTotals() {
 
     // Update display
     document.getElementById('totalPaidOuts').innerHTML = `<strong>$${totalPaidOuts.toFixed(2)}</strong>`;
+    document.getElementById('totalTransactionExpenses').textContent = `$${totalPaidOuts.toFixed(2)}`;
     document.getElementById('totalPaidOuts2').textContent = `$${totalPaidOuts.toFixed(2)}`;
+    document.getElementById('onlineRevenue2').textContent = `$${onlinePlatformRevenue.toFixed(2)}`;
     document.getElementById('netSales').textContent = `$${netSales.toFixed(2)}`;
     document.getElementById('netSales2').textContent = `$${netSales.toFixed(2)}`;
     document.getElementById('tax').textContent = `$${tax.toFixed(2)}`;
     document.getElementById('salesPreTax').textContent = `$${salesPreTax.toFixed(2)}`;
+    document.getElementById('averageTicketInput').value = averageTicket.toFixed(2);
     document.getElementById('cashToAccountFor').textContent = `$${cashToAccountFor.toFixed(2)}`;
     document.getElementById('short').textContent = `$${short.toFixed(2)}`;
     document.getElementById('over').textContent = `$${over.toFixed(2)}`;
@@ -758,10 +779,11 @@ document.addEventListener('DOMContentLoaded', function() {
     // Add event listeners for all inputs that affect calculations
     const inputs = [
         'input[name="gross_sales"]',
-        'input[name="coupons_received"]', 
+        'input[name="coupons_received"]',
         'input[name="adjustments_overrings"]',
         'input[name="credit_cards"]',
         'input[name="actual_deposit"]',
+        'input[name="total_customers"]',
         'input[name*="[amount]"]'
     ];
     
@@ -830,8 +852,14 @@ function addRevenueRow() {
     revenueCount++;
     
     // Attach event listeners
-    newRow.querySelector('.revenue-amount').addEventListener('input', calculateRevenueTotals);
-    newRow.querySelector('select').addEventListener('change', calculateRevenueTotals);
+    newRow.querySelector('.revenue-amount').addEventListener('input', function() {
+        calculateRevenueTotals();
+        calculateTotals(); // Also trigger main calculation
+    });
+    newRow.querySelector('select').addEventListener('change', function() {
+        calculateRevenueTotals();
+        calculateTotals(); // Also trigger main calculation
+    });
 }
 
 function removeRevenueRow(button) {
@@ -844,35 +872,33 @@ function removeRevenueRow(button) {
 function calculateRevenueTotals() {
     let totalRevenue = 0;
     let onlineRevenue = 0;
-    
+
     // Get all revenue rows
     document.querySelectorAll('#revenueTable tbody tr').forEach(row => {
         const amountInput = row.querySelector('.revenue-amount');
         const selectElement = row.querySelector('select[name*="revenue_income_type_id"]');
-        
-        if (amountInput && selectElement) {
+
+        if (amountInput && selectElement && selectElement.selectedIndex > 0) {
             const amount = parseFloat(amountInput.value || 0);
             const selectedOption = selectElement.options[selectElement.selectedIndex];
-            
+
             if (amount > 0) {
                 totalRevenue += amount;
-                
-                // Check if this is an online platform (you may need to adjust this based on your categories)
-                const revenueTypeName = selectedOption.text;
-                if (revenueTypeName.includes('Uber') || revenueTypeName.includes('DoorDash') || 
-                    revenueTypeName.includes('Grubhub') || revenueTypeName.includes('EZ Catering') || 
-                    revenueTypeName.includes('Relish')) {
+
+                // Check if this is an online platform using category data
+                if (selectedOption && selectedOption.dataset.category === 'online') {
                     onlineRevenue += amount;
+                    console.log('Online revenue found:', amount, 'Total online:', onlineRevenue);
                 }
             }
         }
     });
-    
-    // Update display
+
+    // Update revenue display (separate from transaction expenses)
     document.getElementById('totalRevenue').textContent = `$${totalRevenue.toFixed(2)}`;
     document.getElementById('onlineRevenue').textContent = `$${onlineRevenue.toFixed(2)}`;
-    
-    // Recalculate cash totals when revenue changes
+
+    // Recalculate main totals when revenue changes (affects Cash To Account For)
     calculateTotals();
 }
 
@@ -883,12 +909,18 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initial revenue amount listeners
     document.querySelectorAll('.revenue-amount').forEach(input => {
-        input.addEventListener('input', calculateRevenueTotals);
+        input.addEventListener('input', function() {
+            calculateRevenueTotals();
+            calculateTotals(); // Also trigger main calculation
+        });
     });
-    
-    // Initial revenue type change listeners  
+
+    // Initial revenue type change listeners
     document.querySelectorAll('select[name*="revenue_income_type_id"]').forEach(select => {
-        select.addEventListener('change', calculateRevenueTotals);
+        select.addEventListener('change', function() {
+            calculateRevenueTotals();
+            calculateTotals(); // Also trigger main calculation
+        });
     });
 });
 </script>
