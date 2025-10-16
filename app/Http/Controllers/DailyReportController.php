@@ -657,7 +657,8 @@ class DailyReportController extends Controller
         $dompdf->setPaper('A4', 'portrait');
         $dompdf->render();
 
-        $filename = 'daily-report-'.($dailyReport->store?->store_info ?? 'unknown').'-'.$dailyReport->report_date->format('Y-m-d').'.pdf';
+        $storeName = $dailyReport->store?->store_info ?? 'unknown';
+        $filename = 'daily-report-'.$storeName.'-'.$dailyReport->report_date->format('Y-m-d').'.pdf';
 
         return $dompdf->stream($filename);
     }
