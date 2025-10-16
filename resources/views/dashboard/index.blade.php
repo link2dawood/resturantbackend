@@ -349,7 +349,7 @@
                                 <div>
                                     <strong>{{ $day->report_date->format('M j, Y') }}</strong>
                                     <br>
-                                    <small class="text-muted">{{ $day->store->store_info }}</small>
+                                    <small class="text-muted">{{ $day->store?->store_info ?? 'N/A' }}</small>
                                 </div>
                                 <div class="text-end">
                                     <div class="fw-bold text-success">${{ number_format($day->gross_sales, 0) }}</div>
