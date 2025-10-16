@@ -248,7 +248,7 @@ class DashboardController extends Controller
                         'type' => 'warning',
                         'icon' => '⚠️',
                         'title' => 'High Sales Variance',
-                        'message' => "Store '{$report->store->store_info}' had {$variance}% variance from projected on {$report->report_date->format('M j')}",
+                        'message' => "Store '{$report->store?->store_info ?? 'Unknown Store'}' had {$variance}% variance from projected on {$report->report_date->format('M j')}",
                         'date' => $report->report_date,
                     ];
                 }
@@ -263,7 +263,7 @@ class DashboardController extends Controller
                     'type' => 'alert',
                     'icon' => '🔍',
                     'title' => 'High '.ucfirst($type),
-                    'message' => "Store '{$report->store->store_info}' had ${$amount} in {$type} on {$report->report_date->format('M j')}",
+                    'message' => "Store '{$report->store?->store_info ?? 'Unknown Store'}' had ${$amount} in {$type} on {$report->report_date->format('M j')}",
                     'date' => $report->report_date,
                 ];
             }
