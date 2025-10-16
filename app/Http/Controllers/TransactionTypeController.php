@@ -13,6 +13,7 @@ class TransactionTypeController extends Controller
     public function index()
     {
         $transactionTypes = TransactionType::all();
+
         return view('transaction_types.index', compact('transactionTypes'));
     }
 
@@ -22,6 +23,7 @@ class TransactionTypeController extends Controller
     public function create()
     {
         $parentTransactionTypes = TransactionType::whereNull('p_id')->get();
+
         return view('transaction_types.create', compact('parentTransactionTypes'));
     }
 
@@ -56,6 +58,7 @@ class TransactionTypeController extends Controller
     public function edit(TransactionType $transactionType)
     {
         $parentTransactionTypes = TransactionType::whereNull('p_id')->where('id', '!=', $transactionType->id)->get();
+
         return view('transaction_types.edit', compact('transactionType', 'parentTransactionTypes'));
     }
 

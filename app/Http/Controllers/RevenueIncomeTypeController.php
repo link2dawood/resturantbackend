@@ -11,6 +11,7 @@ class RevenueIncomeTypeController extends Controller
     public function index()
     {
         $revenueIncomeTypes = RevenueIncomeType::ordered()->paginate(20);
+
         return view('revenue-income-types.index', compact('revenueIncomeTypes'));
     }
 
@@ -27,7 +28,7 @@ class RevenueIncomeTypeController extends Controller
             'category' => 'required|in:cash,card,check,online,crypto',
             'is_active' => 'boolean',
             'sort_order' => 'integer|min:0',
-            'metadata' => 'nullable|array'
+            'metadata' => 'nullable|array',
         ]);
 
         RevenueIncomeType::create($validated);
@@ -54,7 +55,7 @@ class RevenueIncomeTypeController extends Controller
             'category' => 'required|in:cash,card,check,online,crypto',
             'is_active' => 'boolean',
             'sort_order' => 'integer|min:0',
-            'metadata' => 'nullable|array'
+            'metadata' => 'nullable|array',
         ]);
 
         $revenueIncomeType->update($validated);

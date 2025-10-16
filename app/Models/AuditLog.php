@@ -46,7 +46,7 @@ class AuditLog extends Model
     /**
      * Create an audit log entry
      */
-    public static function log(string $action, Model $model, array $oldValues = null, array $newValues = null, array $additionalData = null): self
+    public static function log(string $action, Model $model, ?array $oldValues = null, ?array $newValues = null, ?array $additionalData = null): self
     {
         $user = auth()->user();
         $request = request();
@@ -88,7 +88,7 @@ class AuditLog extends Model
      */
     public function getChangesSummaryAttribute(): array
     {
-        if (!$this->old_values || !$this->new_values) {
+        if (! $this->old_values || ! $this->new_values) {
             return [];
         }
 
@@ -98,7 +98,7 @@ class AuditLog extends Model
             if ($oldValue != $newValue) {
                 $changes[$field] = [
                     'old' => $oldValue,
-                    'new' => $newValue
+                    'new' => $newValue,
                 ];
             }
         }

@@ -2,17 +2,17 @@
 
 namespace App\Exceptions;
 
+use App\Exceptions\Business\PermissionException;
+use App\Exceptions\Business\ReportException;
+use App\Exceptions\Business\StoreException;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Auth\AuthenticationException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
-use Illuminate\Auth\AuthenticationException;
-use Illuminate\Auth\Access\AuthorizationException;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
-use App\Exceptions\Business\StoreException;
-use App\Exceptions\Business\ReportException;
-use App\Exceptions\Business\PermissionException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Throwable;
 
 class Handler extends ExceptionHandler
@@ -54,7 +54,7 @@ class Handler extends ExceptionHandler
         $this->reportable(function (Throwable $e) {
             // Log security-related exceptions
             if ($e instanceof AuthenticationException || $e instanceof AuthorizationException) {
-                \Log::warning('Security Exception: ' . $e->getMessage(), [
+                \Log::warning('Security Exception: '.$e->getMessage(), [
                     'user_id' => auth()->id() ?? 'guest',
                     'ip' => request()->ip(),
                     'url' => request()->fullUrl(),
@@ -92,7 +92,7 @@ class Handler extends ExceptionHandler
         }
 
         if ($e instanceof ValidationException) {
-            return $isApiRequest 
+            return $isApiRequest
                 ? response()->json(['errors' => $e->errors()], 422)
                 : redirect()->back()->withErrors($e->errors())->withInput();
         }

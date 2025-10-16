@@ -16,13 +16,13 @@ return new class extends Migration
             $table->text('home_address')->nullable();
             $table->string('personal_phone')->nullable();
             $table->string('personal_email')->nullable();
-            
-            // Corporate Information  
+
+            // Corporate Information
             $table->text('corporate_address')->nullable();
             $table->string('corporate_phone')->nullable();
             $table->string('corporate_email')->nullable();
             $table->string('fanns_philly_email')->nullable();
-            
+
             // Business Details
             $table->string('corporate_ein')->nullable();
             $table->date('corporate_creation_date')->nullable();
@@ -34,14 +34,14 @@ return new class extends Migration
         Schema::table('users', function (Blueprint $table) {
             $table->dropColumn([
                 'home_address',
-                'personal_phone', 
+                'personal_phone',
                 'personal_email',
                 'corporate_address',
                 'corporate_phone',
                 'corporate_email',
                 'fanns_philly_email',
                 'corporate_ein',
-                'corporate_creation_date'
+                'corporate_creation_date',
             ]);
         });
     }

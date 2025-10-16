@@ -12,12 +12,12 @@ class RevenueIncomeType extends Model
         'category',
         'is_active',
         'sort_order',
-        'metadata'
+        'metadata',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
-        'metadata' => 'array'
+        'metadata' => 'array',
     ];
 
     public function scopeActive($query)

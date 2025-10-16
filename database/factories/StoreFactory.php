@@ -2,9 +2,9 @@
 
 namespace Database\Factories;
 
-use Illuminate\Database\Eloquent\Factories\Factory;
 use App\Models\Store;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Factories\Factory;
 
 class StoreFactory extends Factory
 {
@@ -13,7 +13,7 @@ class StoreFactory extends Factory
     public function definition()
     {
         return [
-            'store_info' => $this->faker->company . ' Restaurant',
+            'store_info' => $this->faker->company.' Restaurant',
             'contact_name' => $this->faker->name,
             'phone' => $this->faker->phoneNumber,
             'address' => $this->faker->streetAddress,

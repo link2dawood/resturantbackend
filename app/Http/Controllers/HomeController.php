@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Helpers\USStates;
 use App\Models\State;
-use Illuminate\Http\Request;
 
 class HomeController extends Controller
 {
@@ -35,7 +34,7 @@ class HomeController extends Controller
     {
         $states = State::orderBy('name')->get();
         $statesForSelect = USStates::getStatesFromDatabaseForSelect();
-        
+
         return view('states.index', compact('states', 'statesForSelect'));
     }
 }

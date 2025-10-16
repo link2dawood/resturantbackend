@@ -12,7 +12,9 @@ class OwnerCreated
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public User $owner;
+
     public string $temporaryPassword;
+
     public User $createdBy;
 
     /**

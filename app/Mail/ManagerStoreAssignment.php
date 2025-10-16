@@ -3,7 +3,6 @@
 namespace App\Mail;
 
 use App\Models\User;
-use App\Models\Store;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
@@ -17,22 +16,29 @@ class ManagerStoreAssignment extends Mailable implements ShouldQueue
     use Queueable, SerializesModels;
 
     public User $manager;
+
     public Collection $newStores;
+
     public Collection $removedStores;
+
     public Collection $allStores;
+
     public User $assignedBy;
+
     public string $loginUrl;
+
     public string $supportEmail;
+
     public string $supportPhone;
 
     /**
      * Create a new message instance.
      */
     public function __construct(
-        User $manager, 
-        Collection $newStores, 
-        Collection $removedStores, 
-        Collection $allStores, 
+        User $manager,
+        Collection $newStores,
+        Collection $removedStores,
+        Collection $allStores,
         User $assignedBy
     ) {
         $this->manager = $manager;
@@ -51,7 +57,7 @@ class ManagerStoreAssignment extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         $subject = 'Store Assignment Update - Restaurant Management System';
-        
+
         if ($this->newStores->isNotEmpty() && $this->removedStores->isNotEmpty()) {
             $subject = 'Store Assignments Updated - Restaurant Management System';
         } elseif ($this->newStores->isNotEmpty()) {

@@ -3,7 +3,6 @@
 namespace App\Mail;
 
 use App\Models\User;
-use App\Models\Store;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
@@ -17,10 +16,15 @@ class WelcomeNewManager extends Mailable implements ShouldQueue
     use Queueable, SerializesModels;
 
     public User $manager;
+
     public Collection $stores;
+
     public User $assignedBy;
+
     public string $loginUrl;
+
     public string $supportEmail;
+
     public string $supportPhone;
 
     /**

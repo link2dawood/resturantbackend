@@ -33,7 +33,7 @@ class DailyReport extends Model
         'status',
         'approved_by',
         'approved_at',
-        'approval_notes'
+        'approval_notes',
     ];
 
     /**
@@ -51,7 +51,7 @@ class DailyReport extends Model
         'coupons_received' => 'decimal:2',
         'adjustments_overrings' => 'decimal:2',
         'credit_cards' => 'decimal:2',
-        'actual_deposit' => 'decimal:2'
+        'actual_deposit' => 'decimal:2',
     ];
 
     protected $appends = [
@@ -66,7 +66,7 @@ class DailyReport extends Model
         'average_ticket',
         'total_revenue_income',
         'total_revenue_entries',
-        'online_platform_revenue'
+        'online_platform_revenue',
     ];
 
     public function store(): BelongsTo
@@ -119,6 +119,7 @@ class DailyReport extends Model
     public function getTaxAttribute(): float
     {
         $netSales = $this->getNetSalesAttribute();
+
         return $netSales - ($netSales / 1.0825);
     }
 
@@ -135,14 +136,16 @@ class DailyReport extends Model
     public function getShortAttribute(): float
     {
         $cashToAccountFor = $this->getCashToAccountForAttribute();
-        return $this->actual_deposit < $cashToAccountFor ? 
+
+        return $this->actual_deposit < $cashToAccountFor ?
                $this->actual_deposit - $cashToAccountFor : 0;
     }
 
     public function getOverAttribute(): float
     {
         $cashToAccountFor = $this->getCashToAccountForAttribute();
-        return $this->actual_deposit > $cashToAccountFor ? 
+
+        return $this->actual_deposit > $cashToAccountFor ?
                $this->actual_deposit - $cashToAccountFor : 0;
     }
 

@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\DailyReport;
 use App\Models\Store;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
@@ -25,7 +25,7 @@ class DashboardController extends Controller
             $allOwners = \App\Models\User::where('role', \App\Enums\UserRole::OWNER)->orderBy('name')->get();
             $allManagers = \App\Models\User::where('role', \App\Enums\UserRole::MANAGER)->with('store')->orderBy('name')->get();
 
-            $modalOwnersData = $allOwners->map(function($user) {
+            $modalOwnersData = $allOwners->map(function ($user) {
                 return [
                     'id' => $user->id,
                     'name' => $user->name,
@@ -34,7 +34,7 @@ class DashboardController extends Controller
                 ];
             })->toArray();
 
-            $modalManagersData = $allManagers->map(function($user) {
+            $modalManagersData = $allManagers->map(function ($user) {
                 return [
                     'id' => $user->id,
                     'name' => $user->name,
@@ -53,7 +53,7 @@ class DashboardController extends Controller
         $query = DailyReport::with(['store', 'creator'])
             ->withSum('transactions', 'amount')
             ->withSum('revenues', 'amount');
-        
+
         // Filter based on user role
         if ($user->isAdmin()) {
             // Admin can see all data - no filters
@@ -208,7 +208,7 @@ class DashboardController extends Controller
         return [
             'current' => $thisMonthData,
             'previous' => $lastMonthData,
-            'changes' => $this->calculateChanges($thisMonthData, $lastMonthData)
+            'changes' => $this->calculateChanges($thisMonthData, $lastMonthData),
         ];
     }
 
@@ -232,7 +232,7 @@ class DashboardController extends Controller
     private function getInsights($query, $user)
     {
         $insights = [];
-        
+
         // Get recent reports for analysis
         $recentReports = $query->where('report_date', '>=', Carbon::now()->subDays(7))
             ->orderBy('report_date', 'desc')
@@ -242,7 +242,7 @@ class DashboardController extends Controller
         foreach ($recentReports as $report) {
             if ($report->projected_sales > 0) {
                 $variance = abs($report->gross_sales - $report->projected_sales) / $report->projected_sales * 100;
-                
+
                 if ($variance > 25) {
                     $insights[] = [
                         'type' => 'warning',
@@ -253,7 +253,7 @@ class DashboardController extends Controller
                     ];
                 }
             }
-            
+
             // Check for high cancels/voids amounts
             if ($report->amount_of_cancels > 100 || $report->amount_of_voids > 100) {
                 $type = $report->amount_of_cancels > $report->amount_of_voids ? 'cancels' : 'voids';
@@ -262,7 +262,7 @@ class DashboardController extends Controller
                 $insights[] = [
                     'type' => 'alert',
                     'icon' => '🔍',
-                    'title' => 'High ' . ucfirst($type),
+                    'title' => 'High '.ucfirst($type),
                     'message' => "Store '{$report->store->store_info}' had ${$amount} in {$type} on {$report->report_date->format('M j')}",
                     'date' => $report->report_date,
                 ];
@@ -322,7 +322,9 @@ class DashboardController extends Controller
 
     private function calculateChanges($current, $previous)
     {
-        if (!$previous) return null;
+        if (! $previous) {
+            return null;
+        }
 
         return [
             'gross_sales' => $this->calculatePercentChange($current->gross_sales, $previous->gross_sales),
@@ -334,7 +336,10 @@ class DashboardController extends Controller
 
     private function calculatePercentChange($current, $previous)
     {
-        if ($previous == 0) return null;
+        if ($previous == 0) {
+            return null;
+        }
+
         return round((($current - $previous) / $previous) * 100, 1);
     }
 
@@ -375,7 +380,7 @@ class DashboardController extends Controller
             ')
             ->first();
 
-        if (!$financialData || $financialData->total_gross == 0) {
+        if (! $financialData || $financialData->total_gross == 0) {
             return [];
         }
 
@@ -424,7 +429,7 @@ class DashboardController extends Controller
             ')
             ->first();
 
-        if (!$customerData || $customerData->total_customers == 0) {
+        if (! $customerData || $customerData->total_customers == 0) {
             return [];
         }
 
@@ -517,14 +522,14 @@ class DashboardController extends Controller
 
     private function exportToCsv($analytics, $type)
     {
-        $filename = "analytics_{$type}_" . date('Y-m-d') . ".csv";
+        $filename = "analytics_{$type}_".date('Y-m-d').'.csv';
 
         $headers = [
             'Content-Type' => 'text/csv',
             'Content-Disposition' => "attachment; filename=\"{$filename}\"",
         ];
 
-        $callback = function() use ($analytics, $type) {
+        $callback = function () use ($analytics, $type) {
             $file = fopen('php://output', 'w');
 
             if ($type === 'store_performance') {
@@ -535,7 +540,7 @@ class DashboardController extends Controller
                         number_format($store->total_gross, 2),
                         number_format($store->total_net, 2),
                         $store->report_count,
-                        number_format($store->avg_gross, 2)
+                        number_format($store->avg_gross, 2),
                     ]);
                 }
             } elseif ($type === 'daily_trends') {
@@ -545,7 +550,7 @@ class DashboardController extends Controller
                         $trend->date,
                         number_format($trend->total_gross, 2),
                         number_format($trend->total_net, 2),
-                        $trend->report_count
+                        $trend->report_count,
                     ]);
                 }
             }
@@ -578,7 +583,7 @@ class DashboardController extends Controller
         $user = auth()->user();
 
         // Only admins can access this
-        if (!$user->isAdmin()) {
+        if (! $user->isAdmin()) {
             abort(403, 'Unauthorized');
         }
 
@@ -593,13 +598,13 @@ class DashboardController extends Controller
                 ->orderBy('name');
 
             if ($query) {
-                $ownersQuery->where(function($q) use ($query) {
+                $ownersQuery->where(function ($q) use ($query) {
                     $q->where('name', 'LIKE', "%{$query}%")
-                      ->orWhere('email', 'LIKE', "%{$query}%");
+                        ->orWhere('email', 'LIKE', "%{$query}%");
                 });
             }
 
-            $owners = $ownersQuery->get()->map(function($user) {
+            $owners = $ownersQuery->get()->map(function ($user) {
                 return [
                     'id' => $user->id,
                     'name' => $user->name,
@@ -616,16 +621,16 @@ class DashboardController extends Controller
                 ->orderBy('name');
 
             if ($query) {
-                $managersQuery->where(function($q) use ($query) {
+                $managersQuery->where(function ($q) use ($query) {
                     $q->where('name', 'LIKE', "%{$query}%")
-                      ->orWhere('email', 'LIKE', "%{$query}%")
-                      ->orWhereHas('store', function($sq) use ($query) {
-                          $sq->where('store_info', 'LIKE', "%{$query}%");
-                      });
+                        ->orWhere('email', 'LIKE', "%{$query}%")
+                        ->orWhereHas('store', function ($sq) use ($query) {
+                            $sq->where('store_info', 'LIKE', "%{$query}%");
+                        });
                 });
             }
 
-            $managers = $managersQuery->get()->map(function($user) {
+            $managers = $managersQuery->get()->map(function ($user) {
                 return [
                     'id' => $user->id,
                     'name' => $user->name,

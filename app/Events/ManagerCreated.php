@@ -13,8 +13,11 @@ class ManagerCreated
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public User $manager;
+
     public Collection $assignedStores;
+
     public User $createdBy;
+
     public string $temporaryPassword;
 
     /**

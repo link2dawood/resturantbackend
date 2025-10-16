@@ -11,11 +11,11 @@ class RolePermission extends Model
         'role',
         'permission_id',
     ];
-    
+
     protected $casts = [
         'role' => UserRole::class,
     ];
-    
+
     public function permission()
     {
         return $this->belongsTo(Permission::class);

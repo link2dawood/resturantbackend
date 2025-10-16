@@ -66,7 +66,7 @@ class USStates
             'GU' => 'Guam',
             'MP' => 'Northern Mariana Islands',
             'PR' => 'Puerto Rico',
-            'VI' => 'U.S. Virgin Islands'
+            'VI' => 'U.S. Virgin Islands',
         ];
     }
 
@@ -76,6 +76,7 @@ class USStates
     public static function getStateName(string $abbreviation): ?string
     {
         $states = self::getStates();
+
         return $states[strtoupper($abbreviation)] ?? null;
     }
 
@@ -85,6 +86,7 @@ class USStates
     public static function getStateAbbreviation(string $name): ?string
     {
         $states = array_flip(self::getStates());
+
         return $states[$name] ?? null;
     }
 
@@ -103,11 +105,11 @@ class USStates
     {
         $states = self::getStates();
         $options = ['' => 'Select State'];
-        
+
         foreach ($states as $abbr => $name) {
-            $options[$abbr] = $name . ' (' . $abbr . ')';
+            $options[$abbr] = $name.' ('.$abbr.')';
         }
-        
+
         return $options;
     }
 
@@ -119,11 +121,11 @@ class USStates
         try {
             $states = \App\Models\State::orderBy('name')->get();
             $options = ['' => 'Select State'];
-            
+
             foreach ($states as $state) {
-                $options[$state->code] = $state->name . ' (' . $state->code . ')';
+                $options[$state->code] = $state->name.' ('.$state->code.')';
             }
-            
+
             return $options;
         } catch (\Exception $e) {
             // Fallback to hardcoded states if database is not available

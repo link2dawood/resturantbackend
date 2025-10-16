@@ -3,12 +3,12 @@
 namespace App\Listeners;
 
 use App\Events\ManagerAssignedToStores;
-use App\Mail\WelcomeNewManager;
 use App\Mail\ManagerStoreAssignment;
+use App\Mail\WelcomeNewManager;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class SendManagerAssignmentEmail implements ShouldQueue
 {
@@ -29,11 +29,12 @@ class SendManagerAssignmentEmail implements ShouldQueue
     {
         try {
             // Ensure manager has a valid email address
-            if (empty($event->manager->email) || !filter_var($event->manager->email, FILTER_VALIDATE_EMAIL)) {
+            if (empty($event->manager->email) || ! filter_var($event->manager->email, FILTER_VALIDATE_EMAIL)) {
                 Log::warning('Cannot send manager assignment email: Invalid email address', [
                     'manager_id' => $event->manager->id,
                     'manager_email' => $event->manager->email,
                 ]);
+
                 return;
             }
 
@@ -95,6 +96,7 @@ class SendManagerAssignmentEmail implements ShouldQueue
             Log::info('No store assignment changes detected, skipping email', [
                 'manager_id' => $event->manager->id,
             ]);
+
             return;
         }
 

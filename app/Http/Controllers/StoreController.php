@@ -2,11 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Http\Requests\UpdateStoreRequest;
 use App\Models\Store;
 use App\Models\User;
-use Illuminate\Support\Facades\Gate;
+use Illuminate\Http\Request;
 
 class StoreController extends Controller
 {
@@ -31,8 +30,9 @@ class StoreController extends Controller
      */
     public function create()
     {
-        $owners = User::where('role','owner')->get();
-        return view('stores.create',compact('owners'));
+        $owners = User::where('role', 'owner')->get();
+
+        return view('stores.create', compact('owners'));
     }
 
     /**
@@ -40,7 +40,7 @@ class StoreController extends Controller
      */
     public function store(Request $request)
     {
-      
+
         $validatedData = $request->validate([
             'store_info' => 'required|string|max:255',
             'contact_name' => 'required|string|max:255',
@@ -53,8 +53,6 @@ class StoreController extends Controller
             'sales_tax_rate' => 'required|numeric|min:0',
             'medicare_tax_rate' => 'nullable|numeric|min:0',
         ]);
-
-       
 
         Store::create($validatedData);
 
@@ -77,8 +75,9 @@ class StoreController extends Controller
      */
     public function edit(Store $store)
     {
-        $owners = User::where('role','owner')->get();
-        return view('stores.edit', compact('store','owners'));
+        $owners = User::where('role', 'owner')->get();
+
+        return view('stores.edit', compact('store', 'owners'));
     }
 
     /**
@@ -121,7 +120,7 @@ class StoreController extends Controller
     {
         $request->validate([
             'owner_ids' => 'required|array',
-            'owner_ids.*' => 'exists:users,id'
+            'owner_ids.*' => 'exists:users,id',
         ]);
 
         // Sync the owners - this will replace all current assignments

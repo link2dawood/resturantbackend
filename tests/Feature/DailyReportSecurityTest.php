@@ -2,15 +2,12 @@
 
 namespace Tests\Feature;
 
-use Tests\TestCase;
-use App\Models\User;
-use App\Models\Store;
-use App\Models\DailyReport;
 use App\Enums\UserRole;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Foundation\Testing\WithFaker;
-use Illuminate\Foundation\Testing\WithoutMiddleware;
+use App\Models\Store;
+use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class DailyReportSecurityTest extends TestCase
 {
@@ -19,42 +16,42 @@ class DailyReportSecurityTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        
-        // Disable CSRF middleware for testing  
+
+        // Disable CSRF middleware for testing
         $this->withoutMiddleware();
-        
+
         // Create users for testing
         $this->owner = User::factory()->create([
             'role' => UserRole::OWNER,
             'email' => 'owner@test.com',
         ]);
-        
+
         $this->manager1 = User::factory()->create([
             'role' => UserRole::MANAGER,
             'email' => 'manager1@test.com',
         ]);
-        
+
         $this->manager2 = User::factory()->create([
             'role' => UserRole::MANAGER,
             'email' => 'manager2@test.com',
         ]);
-        
+
         $this->admin = User::factory()->create([
             'role' => UserRole::ADMIN,
             'email' => 'admin@test.com',
         ]);
-        
+
         // Create stores
         $this->ownerStore = Store::factory()->create([
             'created_by' => $this->owner->id,
-            'store_info' => 'Owner Store'
+            'store_info' => 'Owner Store',
         ]);
-        
+
         $this->unassignedStore = Store::factory()->create([
             'created_by' => $this->owner->id,
-            'store_info' => 'Unassigned Store'
+            'store_info' => 'Unassigned Store',
         ]);
-        
+
         // Assign manager1 to ownerStore
         $this->ownerStore->managers()->attach($this->manager1->id);
         // manager2 has no store assignments
@@ -66,7 +63,7 @@ class DailyReportSecurityTest extends TestCase
         // Test manager1 can see assigned store
         $response = $this->actingAs($this->manager1)->get('/daily-reports/create');
         $response->assertStatus(200);
-        
+
         $stores = $response->viewData('stores');
         $this->assertCount(1, $stores);
         $this->assertEquals($this->ownerStore->id, $stores->first()->id);
@@ -78,7 +75,7 @@ class DailyReportSecurityTest extends TestCase
         // Test manager2 sees empty list
         $response = $this->actingAs($this->manager2)->get('/daily-reports/create');
         $response->assertStatus(200);
-        
+
         $stores = $response->viewData('stores');
         $this->assertCount(0, $stores);
     }
@@ -95,14 +92,14 @@ class DailyReportSecurityTest extends TestCase
         ];
 
         $response = $this->actingAs($this->manager1)->post('/daily-reports', $reportData);
-        
+
         // Debug the response
-        if (!session()->has('errors')) {
-            $this->fail('Expected validation errors but got status: ' . $response->getStatusCode());
+        if (! session()->has('errors')) {
+            $this->fail('Expected validation errors but got status: '.$response->getStatusCode());
         }
-        
+
         $response->assertSessionHasErrors(['store_id']);
-        $this->assertStringContainsString('You are not authorized to create reports for this store.', 
+        $this->assertStringContainsString('You are not authorized to create reports for this store.',
             session('errors')->get('store_id')[0]);
     }
 
@@ -118,10 +115,10 @@ class DailyReportSecurityTest extends TestCase
         ];
 
         $response = $this->actingAs($this->manager1)->post('/daily-reports', $reportData);
-        
+
         $response->assertRedirect();
         $response->assertSessionDoesntHaveErrors();
-        
+
         $this->assertDatabaseHas('daily_reports', [
             'store_id' => $this->ownerStore->id,
             'created_by' => $this->manager1->id,
@@ -133,7 +130,7 @@ class DailyReportSecurityTest extends TestCase
     {
         $otherOwnerStore = Store::factory()->create([
             'created_by' => $this->admin->id, // Different owner
-            'store_info' => 'Other Owner Store'
+            'store_info' => 'Other Owner Store',
         ]);
 
         $reportData = [
@@ -145,9 +142,9 @@ class DailyReportSecurityTest extends TestCase
         ];
 
         $response = $this->actingAs($this->owner)->post('/daily-reports', $reportData);
-        
+
         $response->assertSessionHasErrors(['store_id']);
-        $this->assertStringContainsString('You are not authorized to create reports for this store.', 
+        $this->assertStringContainsString('You are not authorized to create reports for this store.',
             session('errors')->get('store_id')[0]);
     }
 
@@ -163,10 +160,10 @@ class DailyReportSecurityTest extends TestCase
         ];
 
         $response = $this->actingAs($this->admin)->post('/daily-reports', $reportData);
-        
+
         $response->assertRedirect();
         $response->assertSessionDoesntHaveErrors();
-        
+
         $this->assertDatabaseHas('daily_reports', [
             'store_id' => $this->ownerStore->id,
             'created_by' => $this->admin->id,

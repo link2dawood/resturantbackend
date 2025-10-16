@@ -3,8 +3,6 @@
 namespace App\Mail;
 
 use App\Models\User;
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
@@ -16,8 +14,11 @@ class WelcomeNewManagerWithPassword extends Mailable
     use SerializesModels;
 
     public User $manager;
+
     public Collection $stores;
+
     public User $createdBy;
+
     public string $temporaryPassword;
 
     /**
@@ -37,7 +38,7 @@ class WelcomeNewManagerWithPassword extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Welcome to ' . config('app.name') . ' - Manager Account Created'
+            subject: 'Welcome to '.config('app.name').' - Manager Account Created'
         );
     }
 

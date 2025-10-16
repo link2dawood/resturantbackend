@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Enums\UserRole;
 use App\Models\User;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
 
@@ -29,14 +28,14 @@ class ImpersonationController extends Controller
         ]);
 
         // Only admins can impersonate
-        if (!$currentUser || !$currentUser->role || $currentUser->role !== UserRole::ADMIN) {
+        if (! $currentUser || ! $currentUser->role || $currentUser->role !== UserRole::ADMIN) {
             \Log::warning('Non-admin impersonation attempt', [
                 'user_id' => $currentUser->id ?? null,
                 'user_email' => $currentUser->email ?? null,
                 'user_role' => $currentUser->role?->value ?? null,
             ]);
 
-            return redirect()->back()->with('error', 'Only administrators can impersonate users. Current role: ' . ($currentUser->role?->value ?? 'none'));
+            return redirect()->back()->with('error', 'Only administrators can impersonate users. Current role: '.($currentUser->role?->value ?? 'none'));
         }
 
         // Cannot impersonate self
@@ -50,7 +49,7 @@ class ImpersonationController extends Controller
         }
 
         // Only allow impersonating owners and managers
-        if (!$user->isOwner() && !$user->isManager()) {
+        if (! $user->isOwner() && ! $user->isManager()) {
             return redirect()->back()->with('error', 'You can only impersonate owners and managers');
         }
 
@@ -82,15 +81,16 @@ class ImpersonationController extends Controller
         $impersonatedUserId = Session::get('impersonating_user_id');
         $adminId = Session::get('impersonating_admin_id');
 
-        if (!$adminId || !$impersonatedUserId) {
+        if (! $adminId || ! $impersonatedUserId) {
             return redirect()->route('home')->with('error', 'No active impersonation session found');
         }
 
         $admin = User::find($adminId);
         $impersonatedUser = User::find($impersonatedUserId);
 
-        if (!$admin) {
+        if (! $admin) {
             Session::forget(['impersonating_admin_id', 'impersonating_user_id']);
+
             return redirect()->route('login')->with('error', 'Original admin user not found');
         }
 
@@ -126,6 +126,7 @@ class ImpersonationController extends Controller
     public function getOriginalAdmin()
     {
         $adminId = Session::get('impersonating_admin_id');
+
         return $adminId ? User::find($adminId) : null;
     }
 

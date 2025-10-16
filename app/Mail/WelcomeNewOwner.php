@@ -15,7 +15,9 @@ class WelcomeNewOwner extends Mailable implements ShouldQueue
     use Queueable, SerializesModels;
 
     public User $owner;
+
     public string $temporaryPassword;
+
     public User $createdBy;
 
     /**
@@ -34,9 +36,9 @@ class WelcomeNewOwner extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Welcome to ' . config('app.name') . ' - Owner Account Created',
+            subject: 'Welcome to '.config('app.name').' - Owner Account Created',
             replyTo: [
-                config('mail.from.address') => config('mail.from.name')
+                config('mail.from.address') => config('mail.from.name'),
             ]
         );
     }

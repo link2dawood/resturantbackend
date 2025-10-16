@@ -14,13 +14,13 @@ return new class extends Migration
         Schema::table('stores', function (Blueprint $table) {
             // Add index on created_by for owner-store relationships
             $table->index('created_by', 'idx_stores_created_by');
-            
+
             // Add index on city/state for geographic queries
             $table->index(['city', 'state'], 'idx_stores_city_state');
-            
+
             // Add index on store_info for search functionality
             $table->index('store_info', 'idx_stores_store_info');
-            
+
             // Add index on created_at for chronological queries
             $table->index('created_at', 'idx_stores_created_at');
         });

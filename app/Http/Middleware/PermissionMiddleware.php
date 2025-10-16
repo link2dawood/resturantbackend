@@ -14,23 +14,23 @@ class PermissionMiddleware
      */
     public function handle(Request $request, Closure $next, string $permission): Response
     {
-        if (!auth()->check()) {
+        if (! auth()->check()) {
             Log::warning('Unauthenticated permission access attempt', [
                 'permission' => $permission,
                 'route' => $request->route()?->getName(),
                 'ip' => $request->ip(),
                 'user_agent' => $request->userAgent(),
             ]);
-            
+
             if ($request->expectsJson()) {
                 return response()->json(['error' => 'Unauthorized'], 401);
             }
-            
+
             return redirect()->route('login');
         }
 
         $user = auth()->user();
-        
+
         // Check if user account is soft deleted
         if ($user->trashed()) {
             auth()->logout();
@@ -41,15 +41,15 @@ class PermissionMiddleware
                 'route' => $request->route()?->getName(),
                 'ip' => $request->ip(),
             ]);
-            
+
             if ($request->expectsJson()) {
                 return response()->json(['error' => 'Account no longer active'], 401);
             }
-            
+
             return redirect()->route('login')->with('error', 'Your account is no longer active.');
         }
 
-        if (!$user->hasPermission($permission)) {
+        if (! $user->hasPermission($permission)) {
             Log::warning('Insufficient permissions access attempt', [
                 'user_id' => $user->id,
                 'user_email' => $user->email,
@@ -58,11 +58,11 @@ class PermissionMiddleware
                 'route' => $request->route()?->getName(),
                 'ip' => $request->ip(),
             ]);
-            
+
             if ($request->expectsJson()) {
                 return response()->json(['error' => 'Forbidden - Insufficient permissions'], 403);
             }
-            
+
             abort(403, 'You do not have permission to access this resource.');
         }
 

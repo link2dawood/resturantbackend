@@ -1,19 +1,18 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Auth\GoogleController;
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\OwnerController;
-use App\Http\Controllers\StoreController;
-use App\Http\Controllers\ManagerController;
-use App\Http\Controllers\TransactionTypeController;
-use App\Http\Controllers\RevenueIncomeTypeController;
-use App\Http\Controllers\DailyReportController;
 use App\Http\Controllers\AuditLogController;
+use App\Http\Controllers\Auth\GoogleController;
+use App\Http\Controllers\DailyReportController;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\ReportsController;
 use App\Http\Controllers\ImpersonationController;
-
+use App\Http\Controllers\ManagerController;
+use App\Http\Controllers\OwnerController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ReportsController;
+use App\Http\Controllers\RevenueIncomeTypeController;
+use App\Http\Controllers\StoreController;
+use App\Http\Controllers\TransactionTypeController;
+use Illuminate\Support\Facades\Route;
 
 Route::get('/', [App\Http\Controllers\WelcomeController::class, 'index'])->name('index');
 
@@ -66,7 +65,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/stores/{store}/assign-owner', [StoreController::class, 'assignOwnerForm'])->name('stores.assign-owner.form');
         Route::post('/stores/{store}/assign-owner', [StoreController::class, 'assignOwner'])->name('stores.assign-owner');
     });
-    
+
     // Daily Reports Routes - with access control and date conversion
     Route::middleware(['daily_report_access', 'convert_date_format'])->group(function () {
         Route::get('/daily-reports', [DailyReportController::class, 'index'])->name('daily-reports.index');
@@ -82,17 +81,17 @@ Route::middleware('auth')->group(function () {
         Route::put('/daily-reports/{dailyReport}', [DailyReportController::class, 'update'])->name('daily-reports.update');
         Route::delete('/daily-reports/{dailyReport}', [DailyReportController::class, 'destroy'])->name('daily-reports.destroy');
         Route::get('stores/{store}/daily-reports', [DailyReportController::class, 'reports'])->name('stores.daily-reports.index');
-        
+
         // Export routes
         Route::get('/daily-reports/{dailyReport}/export-pdf', [DailyReportController::class, 'exportPdf'])->name('daily-reports.export-pdf');
         Route::get('/daily-reports/export-csv', [DailyReportController::class, 'exportCsv'])->name('daily-reports.export-csv');
-        
+
         // Approval workflow routes
         Route::post('/daily-reports/{dailyReport}/submit', [DailyReportController::class, 'submit'])->name('daily-reports.submit');
         Route::post('/daily-reports/{dailyReport}/approve', [DailyReportController::class, 'approve'])->name('daily-reports.approve');
         Route::post('/daily-reports/{dailyReport}/reject', [DailyReportController::class, 'reject'])->name('daily-reports.reject');
         Route::post('/daily-reports/{dailyReport}/return-to-draft', [DailyReportController::class, 'returnToDraft'])->name('daily-reports.return-to-draft');
-    }); 
+    });
 
     // Manager management - Admin and Owner access
     Route::middleware('role:admin,owner')->group(function () {
@@ -138,7 +137,6 @@ Route::middleware('auth')->group(function () {
         Route::post('/impersonate/stop', [ImpersonationController::class, 'stop'])->name('impersonate.stop');
         Route::get('/debug-user', [ImpersonationController::class, 'debug'])->name('debug.user');
     });
-
 
     // Audit Log Routes (Admin and Owner only) with date conversion
     Route::middleware(['admin_or_owner', 'convert_date_format'])->group(function () {

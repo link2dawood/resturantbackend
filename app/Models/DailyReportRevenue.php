@@ -12,12 +12,12 @@ class DailyReportRevenue extends Model
         'revenue_income_type_id',
         'amount',
         'notes',
-        'metadata'
+        'metadata',
     ];
 
     protected $casts = [
         'amount' => 'decimal:2',
-        'metadata' => 'array'
+        'metadata' => 'array',
     ];
 
     public function dailyReport(): BelongsTo

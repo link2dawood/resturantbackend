@@ -14,13 +14,13 @@ return new class extends Migration
         Schema::table('daily_reports', function (Blueprint $table) {
             // Composite index for store and date queries
             $table->index(['store_id', 'report_date'], 'idx_store_date');
-            
+
             // Index for created_by for filtering by user
             $table->index('created_by', 'idx_created_by');
-            
+
             // Index for report_date for date range queries
             $table->index('report_date', 'idx_report_date');
-            
+
             // Index for created_at for recent reports
             $table->index('created_at', 'idx_created_at');
         });

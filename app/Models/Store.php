@@ -73,7 +73,6 @@ class Store extends Model
     public function owners()
     {
         return $this->belongsToMany(User::class, 'owner_store', 'store_id', 'owner_id')
-                    ->where('role', 'owner');
+            ->where('role', 'owner');
     }
-
 }

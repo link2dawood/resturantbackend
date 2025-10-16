@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('daily_report_transactions', function (Blueprint $table) {
             $table->id();
-            
+
             // Relationship to daily report
             $table->foreignId('daily_report_id')->nullable()->constrained('daily_reports')->onDelete('cascade');
             $table->foreignId('transaction_type_id')->nullable()->constrained('transaction_types')->onDelete('cascade');

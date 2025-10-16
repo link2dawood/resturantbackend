@@ -2,16 +2,16 @@
 
 namespace App\Services;
 
-use App\Models\User;
-use App\Models\Store;
-use App\Models\DailyReport;
-use App\Models\AuditLog;
-use App\Exceptions\Business\ReportException;
 use App\Exceptions\Business\PermissionException;
+use App\Exceptions\Business\ReportException;
 use App\Exceptions\Business\StoreException;
+use App\Models\AuditLog;
+use App\Models\DailyReport;
+use App\Models\Store;
+use App\Models\User;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class DailyReportService
 {
@@ -23,7 +23,7 @@ class DailyReportService
         $validationErrors = [];
 
         // 1. Validate user authentication
-        if (!$user) {
+        if (! $user) {
             throw PermissionException::sessionExpired();
         }
 
@@ -34,7 +34,7 @@ class DailyReportService
 
         // 3. Validate store exists and is active
         $store = Store::find($storeId);
-        if (!$store) {
+        if (! $store) {
             throw StoreException::notFound($storeId);
         }
 
@@ -43,7 +43,7 @@ class DailyReportService
         }
 
         // 4. Check user has access to this store based on role
-        if (!$this->userHasStoreAccess($user, $store)) {
+        if (! $this->userHasStoreAccess($user, $store)) {
             throw StoreException::accessDenied($storeId, $user->id);
         }
 
@@ -163,16 +163,16 @@ class DailyReportService
         // Required fields validation
         $requiredFields = [
             'store_id', 'report_date', 'gross_sales', 'total_customers',
-            'credit_cards', 'actual_deposit'
+            'credit_cards', 'actual_deposit',
         ];
 
         foreach ($requiredFields as $field) {
-            if (!isset($reportData[$field]) || $reportData[$field] === null || $reportData[$field] === '') {
+            if (! isset($reportData[$field]) || $reportData[$field] === null || $reportData[$field] === '') {
                 $errors[] = $field;
             }
         }
 
-        if (!empty($errors)) {
+        if (! empty($errors)) {
             throw ReportException::missingRequiredData($errors);
         }
 
@@ -210,7 +210,7 @@ class DailyReportService
         // Actual deposit should be reasonable compared to net sales
         $expectedCash = $netSales - $creditCards;
         $variance = abs($actualDeposit - $expectedCash);
-        
+
         if ($variance > ($grossSales * 0.1)) { // 10% variance threshold
             Log::warning('High cash deposit variance detected', [
                 'expected_cash' => $expectedCash,
@@ -229,7 +229,7 @@ class DailyReportService
     private function logReportCreation(User $user, DailyReport $report, Store $store): void
     {
         // Additional safety check to prevent null store_info access
-        if (!$store) {
+        if (! $store) {
             throw new \InvalidArgumentException('Store cannot be null when creating audit log');
         }
 

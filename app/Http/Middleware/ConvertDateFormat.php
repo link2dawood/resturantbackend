@@ -2,9 +2,9 @@
 
 namespace App\Http\Middleware;
 
+use Carbon\Carbon;
 use Closure;
 use Illuminate\Http\Request;
-use Carbon\Carbon;
 
 class ConvertDateFormat
 {
@@ -16,22 +16,22 @@ class ConvertDateFormat
     {
         $dateFields = [
             'report_date',
-            'corporate_creation_date', 
+            'corporate_creation_date',
             'date_from',
-            'date_to'
+            'date_to',
         ];
-        
+
         foreach ($dateFields as $field) {
             if ($request->has($field) && $request->get($field)) {
                 $dateValue = $request->get($field);
-                
+
                 // Check if it's in MM-DD-YYYY format
                 if (preg_match('/^\d{2}-\d{2}-\d{4}$/', $dateValue)) {
                     try {
                         // Convert MM-DD-YYYY to YYYY-MM-DD
                         $parts = explode('-', $dateValue);
-                        $convertedDate = $parts[2] . '-' . $parts[0] . '-' . $parts[1];
-                        
+                        $convertedDate = $parts[2].'-'.$parts[0].'-'.$parts[1];
+
                         // Validate the date
                         if (Carbon::createFromFormat('Y-m-d', $convertedDate)) {
                             $request->merge([$field => $convertedDate]);
@@ -43,7 +43,7 @@ class ConvertDateFormat
                 }
             }
         }
-        
+
         return $next($request);
     }
 }

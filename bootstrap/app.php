@@ -15,14 +15,14 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\SecurityHeaders::class,
             \App\Http\Middleware\UpdateLastOnline::class,
         ]);
-        
+
         // Add rate limiting to API routes if they exist
         if (file_exists(__DIR__.'/../routes/api.php')) {
             $middleware->api([
-                \App\Http\Middleware\RateLimitMiddleware::class . ':120,60', // 120 requests per minute
+                \App\Http\Middleware\RateLimitMiddleware::class.':120,60', // 120 requests per minute
             ]);
         }
-        
+
         $middleware->alias([
             'role' => \App\Http\Middleware\RoleMiddleware::class,
             'admin_or_owner' => \App\Http\Middleware\AdminOrOwnerMiddleware::class,

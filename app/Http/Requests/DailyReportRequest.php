@@ -46,12 +46,12 @@ class DailyReportRequest extends FormRequest
             'page_number' => ['required', 'integer', 'min:1', 'max:999'],
             'weather' => ['nullable', 'string', 'max:50', 'regex:/^[a-zA-Z\s\-]+$/'],
             'holiday_event' => ['nullable', 'string', 'max:100'],
-            
+
             // Transaction validations
             'transactions' => ['required', 'array', 'min:1'],
             'transactions.*.transaction_type_id' => ['required', 'exists:transaction_types,id'],
             'transactions.*.amount' => ['required', 'numeric', 'min:0', 'max:999999.99'],
-            
+
             // Revenue validations
             'revenues' => ['required', 'array', 'min:1'],
             'revenues.*.revenue_income_type_id' => ['required', 'exists:revenue_income_types,id'],
@@ -86,7 +86,7 @@ class DailyReportRequest extends FormRequest
             'projected_sales', 'amount_of_cancels', 'amount_of_voids', 'gross_sales',
             'coupons_received', 'adjustments_overrings', 'net_sales', 'tax',
             'average_ticket', 'sales', 'total_paid_outs', 'credit_cards',
-            'cash_to_account', 'actual_deposit', 'short', 'over'
+            'cash_to_account', 'actual_deposit', 'short', 'over',
         ];
 
         $sanitized = [];

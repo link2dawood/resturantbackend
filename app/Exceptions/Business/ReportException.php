@@ -34,13 +34,14 @@ class ReportException extends Exception
     public static function missingRequiredData(array $missingFields): self
     {
         $fields = implode(', ', $missingFields);
+
         return new self("Missing required report data: {$fields}.", 422);
     }
 
     public static function inconsistentTotals(float $calculated, float $provided): self
     {
         return new self(
-            "Total amount inconsistency: calculated {$calculated}, provided {$provided}.", 
+            "Total amount inconsistency: calculated {$calculated}, provided {$provided}.",
             422
         );
     }

@@ -2,8 +2,8 @@
 
 namespace App\Exceptions\Business;
 
-use Exception;
 use App\Enums\UserRole;
+use Exception;
 
 class PermissionException extends Exception
 {
@@ -31,18 +31,19 @@ class PermissionException extends Exception
         );
     }
 
-    public static function accountSuspended(int $userId, string $reason = null): self
+    public static function accountSuspended(int $userId, ?string $reason = null): self
     {
         $message = "User account {$userId} has been suspended";
         if ($reason) {
             $message .= ": {$reason}";
         }
+
         return new self($message, 403);
     }
 
     public static function sessionExpired(): self
     {
-        return new self("Your session has expired. Please log in again.", 401);
+        return new self('Your session has expired. Please log in again.', 401);
     }
 
     public static function maxLoginAttemptsExceeded(string $email, int $remainingMinutes): self

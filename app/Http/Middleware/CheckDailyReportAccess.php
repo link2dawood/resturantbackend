@@ -2,11 +2,11 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\DailyReport;
+use App\Models\Store;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
-use App\Models\DailyReport;
-use App\Models\Store;
 
 class CheckDailyReportAccess
 {
@@ -33,10 +33,10 @@ class CheckDailyReportAccess
             if ($dailyReport) {
                 // Check if user has access to this report's store
                 $store = Store::withTrashed()->find($dailyReport->store_id);
-                if (!$store || $store->trashed() || (property_exists($store, 'status') && $store->status !== 'active')) {
+                if (! $store || $store->trashed() || (property_exists($store, 'status') && $store->status !== 'active')) {
                     abort(403, 'This store is inactive or deleted.');
                 }
-                if (!$this->hasStoreAccess($user, $dailyReport->store_id)) {
+                if (! $this->hasStoreAccess($user, $dailyReport->store_id)) {
                     abort(403, 'You do not have access to reports for this store.');
                 }
             }
@@ -46,16 +46,17 @@ class CheckDailyReportAccess
         if ($storeId) {
             $storeId = is_object($storeId) ? $storeId->id : $storeId;
             $store = Store::withTrashed()->find($storeId);
-            if (!$store || $store->trashed() || (property_exists($store, 'status') && $store->status !== 'active')) {
+            if (! $store || $store->trashed() || (property_exists($store, 'status') && $store->status !== 'active')) {
                 abort(403, 'This store is inactive or deleted.');
             }
-            if (!$this->hasStoreAccess($user, $storeId)) {
+            if (! $this->hasStoreAccess($user, $storeId)) {
                 abort(403, 'You do not have access to this store.');
             }
         }
+
         return $next($request);
     }
-    
+
     /**
      * Check if user has access to a specific store
      */

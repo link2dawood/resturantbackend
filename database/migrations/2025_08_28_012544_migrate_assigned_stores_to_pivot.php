@@ -21,7 +21,7 @@ return new class extends Migration
                     DB::table('manager_store')->updateOrInsert(
                         [
                             'manager_id' => $manager->id,
-                            'store_id'   => $storeId,
+                            'store_id' => $storeId,
                         ],
                         [] // no extra data
                     );
@@ -36,4 +36,3 @@ return new class extends Migration
         DB::table('manager_store')->truncate();
     }
 };
-

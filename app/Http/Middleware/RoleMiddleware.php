@@ -17,17 +17,18 @@ class RoleMiddleware
      */
     public function handle(Request $request, Closure $next, ...$roles): Response
     {
-        if (!auth()->check()) {
+        if (! auth()->check()) {
             Log::warning('Unauthenticated access attempt', [
                 'route' => $request->route()?->getName(),
                 'ip' => $request->ip(),
                 'user_agent' => $request->userAgent(),
             ]);
+
             return response()->json(['error' => 'Unauthorized'], 401);
         }
 
         $user = auth()->user();
-        
+
         // Check if user account is soft deleted
         if ($user->trashed()) {
             auth()->logout();
@@ -37,23 +38,25 @@ class RoleMiddleware
                 'route' => $request->route()?->getName(),
                 'ip' => $request->ip(),
             ]);
+
             return response()->json(['error' => 'Account no longer active'], 401);
         }
 
         // Convert string roles to UserRole enums for comparison
-        $allowedRoles = array_map(function($role) {
+        $allowedRoles = array_map(function ($role) {
             return is_string($role) ? UserRole::from($role) : $role;
         }, $roles);
 
-        if (!$user->role || !in_array($user->role, $allowedRoles)) {
+        if (! $user->role || ! in_array($user->role, $allowedRoles)) {
             Log::warning('Insufficient permissions access attempt', [
                 'user_id' => $user->id,
                 'user_email' => $user->email,
                 'user_role' => $user->role?->value,
-                'required_roles' => array_map(fn($r) => $r->value, $allowedRoles),
+                'required_roles' => array_map(fn ($r) => $r->value, $allowedRoles),
                 'route' => $request->route()?->getName(),
                 'ip' => $request->ip(),
             ]);
+
             return response()->json(['error' => 'Forbidden - Insufficient permissions'], 403);
         }
 

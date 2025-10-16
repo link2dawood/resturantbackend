@@ -12,13 +12,11 @@ class AdminOrOwnerMiddleware
     /**
      * Handle an incoming request.
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \Closure  $next
      * @return mixed
      */
     public function handle(Request $request, Closure $next)
     {
-        if (!auth()->check()) {
+        if (! auth()->check()) {
             Log::warning('Unauthenticated admin/owner access attempt', [
                 'route' => $request->route()?->getName(),
                 'ip' => $request->ip(),
@@ -41,7 +39,7 @@ class AdminOrOwnerMiddleware
             abort(401);
         }
 
-        if (!in_array($user->role, [UserRole::ADMIN, UserRole::OWNER])) {
+        if (! in_array($user->role, [UserRole::ADMIN, UserRole::OWNER])) {
             Log::warning('Unauthorized admin/owner access attempt', [
                 'user_id' => $user->id,
                 'user_email' => $user->email,

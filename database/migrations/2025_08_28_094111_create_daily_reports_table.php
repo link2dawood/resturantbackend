@@ -39,7 +39,7 @@ return new class extends Migration
             $table->foreignId('store_id')->nullable()->constrained('stores')->onDelete('cascade');
             $table->foreignId('created_by')->constrained('users')->onDelete('cascade');
             $table->timestamps();
-            
+
             $table->unique(['store_id', 'report_date']);
         });
     }

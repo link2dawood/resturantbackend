@@ -6,8 +6,8 @@ use App\Events\ManagerCreated;
 use App\Mail\WelcomeNewManager;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class SendManagerWelcomeEmail implements ShouldQueue
 {
@@ -40,7 +40,7 @@ class SendManagerWelcomeEmail implements ShouldQueue
                 'manager_id' => $event->manager->id,
                 'manager_email' => $event->manager->email,
                 'created_by' => $event->createdBy->id,
-                'stores_count' => $event->assignedStores->count()
+                'stores_count' => $event->assignedStores->count(),
             ]);
 
         } catch (\Exception $e) {
@@ -48,7 +48,7 @@ class SendManagerWelcomeEmail implements ShouldQueue
                 'manager_id' => $event->manager->id,
                 'manager_email' => $event->manager->email,
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
         }
     }
@@ -61,7 +61,7 @@ class SendManagerWelcomeEmail implements ShouldQueue
         Log::error('Manager welcome email job failed', [
             'manager_id' => $event->manager->id,
             'manager_email' => $event->manager->email,
-            'error' => $exception->getMessage()
+            'error' => $exception->getMessage(),
         ]);
     }
 }

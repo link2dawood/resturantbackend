@@ -21,7 +21,7 @@ class SecurityHeaders
         $response->headers->set('X-XSS-Protection', '1; mode=block');
         $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
         $response->headers->set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
-        
+
         // Content Security Policy
         $csp = [
             "default-src 'self'",
@@ -30,12 +30,12 @@ class SecurityHeaders
             "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net",
             "img-src 'self' data: https: blob:",
             "connect-src 'self' https://accounts.google.com",
-            "frame-src https://accounts.google.com",
+            'frame-src https://accounts.google.com',
             "object-src 'none'",
             "base-uri 'self'",
-            "form-action 'self'"
+            "form-action 'self'",
         ];
-        
+
         $response->headers->set('Content-Security-Policy', implode('; ', $csp));
 
         // HSTS (only for HTTPS)

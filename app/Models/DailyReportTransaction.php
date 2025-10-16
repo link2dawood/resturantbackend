@@ -11,11 +11,11 @@ class DailyReportTransaction extends Model
         'daily_report_id',
         'transaction_type_id',
         'company',
-        'amount'
+        'amount',
     ];
 
     protected $casts = [
-        'amount' => 'decimal:2'
+        'amount' => 'decimal:2',
     ];
 
     public function dailyReport(): BelongsTo

@@ -6,8 +6,8 @@ use App\Events\OwnerCreated;
 use App\Mail\WelcomeNewOwner;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class SendOwnerWelcomeEmail implements ShouldQueue
 {
@@ -37,7 +37,7 @@ class SendOwnerWelcomeEmail implements ShouldQueue
             Log::info('Owner welcome email sent successfully', [
                 'owner_id' => $event->owner->id,
                 'owner_email' => $event->owner->email,
-                'created_by' => $event->createdBy->id
+                'created_by' => $event->createdBy->id,
             ]);
 
         } catch (\Exception $e) {
@@ -45,7 +45,7 @@ class SendOwnerWelcomeEmail implements ShouldQueue
                 'owner_id' => $event->owner->id,
                 'owner_email' => $event->owner->email,
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
         }
     }
@@ -58,7 +58,7 @@ class SendOwnerWelcomeEmail implements ShouldQueue
         Log::error('Owner welcome email job failed', [
             'owner_id' => $event->owner->id,
             'owner_email' => $event->owner->email,
-            'error' => $exception->getMessage()
+            'error' => $exception->getMessage(),
         ]);
     }
 }

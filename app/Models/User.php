@@ -93,10 +93,10 @@ class User extends Authenticatable implements MustVerifyEmail
     public function getAvatarUrlAttribute(): string
     {
         if ($this->avatar) {
-            return asset('storage/avatars/' . $this->avatar);
+            return asset('storage/avatars/'.$this->avatar);
         }
-        
-        return 'https://ui-avatars.com/api/?name=' . urlencode($this->name) . '&background=206bc4&color=fff&size=128';
+
+        return 'https://ui-avatars.com/api/?name='.urlencode($this->name).'&background=206bc4&color=fff&size=128';
     }
 
     /**
@@ -129,6 +129,7 @@ class User extends Authenticatable implements MustVerifyEmail
     public function getAssignedStoresAttribute()
     {
         $storeIds = json_decode($this->attributes['assigned_stores'] ?? '[]', true);
+
         return $storeIds ? Store::whereIn('id', $storeIds)->get() : collect();
     }
 
@@ -170,7 +171,7 @@ class User extends Authenticatable implements MustVerifyEmail
     public function changeRole(UserRole $newRole, User $changedBy): bool
     {
         // Check if the user making the change has permission
-        if (!$changedBy->role?->canManageRole($newRole)) {
+        if (! $changedBy->role?->canManageRole($newRole)) {
             Log::warning('Unauthorized role change attempt', [
                 'target_user' => $this->id,
                 'target_email' => $this->email,
@@ -179,12 +180,13 @@ class User extends Authenticatable implements MustVerifyEmail
                 'changed_by' => $changedBy->id,
                 'changed_by_email' => $changedBy->email,
             ]);
+
             return false;
         }
 
         $oldRole = $this->role;
         $this->role = $newRole;
-        
+
         if ($this->save()) {
             Log::info('User role changed successfully', [
                 'user_id' => $this->id,
@@ -195,6 +197,7 @@ class User extends Authenticatable implements MustVerifyEmail
                 'changed_by_email' => $changedBy->email,
                 'timestamp' => now(),
             ]);
+
             return true;
         }
 
@@ -257,16 +260,16 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function getLastOnlineHumanAttribute(): string
     {
-        if (!$this->last_online) {
+        if (! $this->last_online) {
             return 'Never';
         }
 
         $now = now();
-        
+
         if ($this->last_online->diffInMinutes($now) < 5) {
             return 'Online';
         }
-        
+
         return $this->last_online->diffForHumans();
     }
 }

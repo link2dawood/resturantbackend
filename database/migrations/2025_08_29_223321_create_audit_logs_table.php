@@ -24,13 +24,13 @@ return new class extends Migration
             $table->string('user_agent')->nullable(); // User agent
             $table->json('additional_data')->nullable(); // Any additional context
             $table->timestamps();
-            
+
             // Indexes for better performance
             $table->index(['auditable_type', 'auditable_id']);
             $table->index(['user_id']);
             $table->index(['action']);
             $table->index(['created_at']);
-            
+
             // Foreign key
             $table->foreign('user_id')->references('id')->on('users')->onDelete('set null');
         });

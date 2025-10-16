@@ -1,9 +1,9 @@
 <?php
 
+use App\Enums\UserRole;
+use App\Models\User;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
-use App\Models\User;
-use App\Enums\UserRole;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
@@ -11,7 +11,7 @@ Artisan::command('inspire', function () {
 
 Artisan::command('create:test-users', function () {
     $this->info('Creating test users...');
-    
+
     // Create admin user
     $admin = User::firstOrCreate(
         ['email' => 'admin@admin.com'],
@@ -23,8 +23,8 @@ Artisan::command('create:test-users', function () {
             'email_verified_at' => now(),
         ]
     );
-    $this->info('Admin user created/found: ' . $admin->email);
-    
+    $this->info('Admin user created/found: '.$admin->email);
+
     // Create owner user
     $owner = User::firstOrCreate(
         ['email' => 'owner@owner.com'],
@@ -36,8 +36,8 @@ Artisan::command('create:test-users', function () {
             'email_verified_at' => now(),
         ]
     );
-    $this->info('Owner user created/found: ' . $owner->email);
-    
+    $this->info('Owner user created/found: '.$owner->email);
+
     // Create manager user
     $manager = User::firstOrCreate(
         ['email' => 'manager@manager.com'],
@@ -49,23 +49,24 @@ Artisan::command('create:test-users', function () {
             'email_verified_at' => now(),
         ]
     );
-    $this->info('Manager user created/found: ' . $manager->email);
-    
+    $this->info('Manager user created/found: '.$manager->email);
+
     $this->info('All test users created successfully!');
 })->purpose('Create test users for testing');
 
 Artisan::command('create:test-data', function () {
     $this->info('Creating test data...');
-    
+
     // Get users
     $owner = User::where('email', 'owner@owner.com')->first();
     $manager = User::where('email', 'manager@manager.com')->first();
-    
-    if (!$owner || !$manager) {
+
+    if (! $owner || ! $manager) {
         $this->error('Test users not found. Run create:test-users first.');
+
         return;
     }
-    
+
     // Create a test store
     $store = \App\Models\Store::firstOrCreate(
         ['store_info' => 'Test Restaurant #1'],
@@ -82,25 +83,25 @@ Artisan::command('create:test-data', function () {
             'created_by' => $owner->id,
         ]
     );
-    $this->info('Test store created/found: ' . $store->store_info);
-    
+    $this->info('Test store created/found: '.$store->store_info);
+
     // Assign manager to store
-    if (!$store->managers()->where('users.id', $manager->id)->exists()) {
+    if (! $store->managers()->where('users.id', $manager->id)->exists()) {
         $store->managers()->attach($manager->id);
         $this->info('Manager assigned to store');
     } else {
         $this->info('Manager already assigned to store');
     }
-    
+
     // Create transaction types if they don't exist
     $transactionTypes = [
         'Food Cost',
-        'Rent', 
+        'Rent',
         'Accounting',
         'Taxes',
-        'Other'
+        'Other',
     ];
-    
+
     foreach ($transactionTypes as $type) {
         \App\Models\TransactionType::firstOrCreate(
             ['name' => $type],
@@ -108,21 +109,21 @@ Artisan::command('create:test-data', function () {
         );
     }
     $this->info('Transaction types created');
-    
+
     // Create revenue income types if they don't exist
     $revenueTypes = [
         ['name' => 'Food Sales', 'sort_order' => 1, 'is_active' => 1],
         ['name' => 'Beverage Sales', 'sort_order' => 2, 'is_active' => 1],
         ['name' => 'Other Income', 'sort_order' => 3, 'is_active' => 1],
     ];
-    
+
     foreach ($revenueTypes as $type) {
         \App\Models\RevenueIncomeType::firstOrCreate(
-            ['name' => $type['name']], 
+            ['name' => $type['name']],
             $type
         );
     }
     $this->info('Revenue income types created');
-    
+
     $this->info('Test data created successfully!');
 })->purpose('Create test store and assign manager');

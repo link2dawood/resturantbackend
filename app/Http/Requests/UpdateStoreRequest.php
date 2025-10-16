@@ -13,22 +13,22 @@ class UpdateStoreRequest extends FormRequest
     {
         $user = $this->user();
         $store = $this->route('store');
-        
+
         // Check if user is authenticated
-        if (!$user) {
+        if (! $user) {
             return false;
         }
-        
+
         // Admin can update any store
         if ($user->isAdmin()) {
             return true;
         }
-        
+
         // Owner can update stores they created
         if ($user->isOwner() && $store && $store->created_by === $user->id) {
             return true;
         }
-        
+
         // Manager cannot update stores (only view and create reports)
         // This maintains the business logic where only owners/admins can modify store information
         return false;
