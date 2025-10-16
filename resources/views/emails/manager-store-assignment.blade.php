@@ -174,7 +174,7 @@
                     @foreach($newStores as $store)
                     <div class="store-item new">
                         <div class="status-badge new">NEWLY ASSIGNED</div>
-                        <div class="store-name">{{ $store->store_info }}</div>
+                        <div class="store-name">{{ $store->store_info ?? 'Store' }}</div>
                         <div class="store-details">
                             📍 {{ $store->address }}<br>
                             {{ $store->city }}, {{ $store->state }} {{ $store->zip }}<br>
@@ -192,7 +192,7 @@
                     @foreach($removedStores as $store)
                     <div class="store-item removed">
                         <div class="status-badge removed">ASSIGNMENT REMOVED</div>
-                        <div class="store-name">{{ $store->store_info }}</div>
+                        <div class="store-name">{{ $store->store_info ?? 'Store' }}</div>
                         <div class="store-details">
                             📍 {{ $store->address }}<br>
                             {{ $store->city }}, {{ $store->state }} {{ $store->zip }}
@@ -208,7 +208,7 @@
                 <div class="store-list">
                     @foreach($allStores as $store)
                     <div class="store-item">
-                        <div class="store-name">{{ $store->store_info }}</div>
+                        <div class="store-name">{{ $store->store_info ?? 'Store' }}</div>
                         <div class="store-details">
                             📍 {{ $store->address }}<br>
                             {{ $store->city }}, {{ $store->state }} {{ $store->zip }}<br>

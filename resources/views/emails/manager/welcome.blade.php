@@ -128,7 +128,7 @@
         <div class="stores-list">
             @foreach($stores as $store)
             <div class="store-item">
-                <strong>{{ $store->store_info }}</strong><br>
+                <strong>{{ $store->store_info ?? 'Store' }}</strong><br>
                 <small>📍 {{ $store->address }}, {{ $store->city }}, {{ $store->state }} {{ $store->zip }}</small><br>
                 <small>📞 {{ $store->phone }}</small>
             </div>
