@@ -75,4 +75,24 @@ class Store extends Model
         return $this->belongsToMany(User::class, 'owner_store', 'store_id', 'owner_id')
             ->where('role', 'owner');
     }
+
+    /**
+     * The chart of accounts assigned to this store.
+     */
+    public function chartOfAccounts()
+    {
+        return $this->belongsToMany(ChartOfAccount::class, 'coa_store_assignments', 'store_id', 'coa_id')
+                    ->withPivot('is_global')
+                    ->withTimestamps();
+    }
+
+    /**
+     * The vendors assigned to this store.
+     */
+    public function vendors()
+    {
+        return $this->belongsToMany(Vendor::class, 'vendor_store_assignments', 'store_id', 'vendor_id')
+                    ->withPivot('is_global')
+                    ->withTimestamps();
+    }
 }

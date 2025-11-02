@@ -379,23 +379,23 @@ class ResponsiveEnhancer {
     /**
      * Setup accessibility features
      */
-    // setupAccessibilityFeatures() {
-    //     // Add skip to main content link
-    //     const skipLink = document.createElement('a');
-    //     skipLink.href = '#main-content';
-    //     skipLink.className = 'skip-link';
-    //     skipLink.textContent = 'Skip to main content';
-    //     document.body.insertBefore(skipLink, document.body.firstChild);
+    setupAccessibilityFeatures() {
+        // Add skip to main content link
+        const skipLink = document.createElement('a');
+        skipLink.href = '#main-content';
+        skipLink.className = 'skip-link';
+        skipLink.textContent = 'Skip to main content';
+        document.body.insertBefore(skipLink, document.body.firstChild);
 
-    //     // Add main content ID if not exists
-    //     const mainContent = document.querySelector('.page-wrapper') || document.querySelector('main') || document.querySelector('.container-xl');
-    //     if (mainContent && !mainContent.id) {
-    //         mainContent.id = 'main-content';
-    //     }
+        // Add main content ID if not exists
+        const mainContent = document.querySelector('.page-wrapper') || document.querySelector('main') || document.querySelector('.container-xl');
+        if (mainContent && !mainContent.id) {
+            mainContent.id = 'main-content';
+        }
 
-    //     // Enhance focus management
-    //     this.enhanceFocusManagement();
-    // }
+        // Enhance focus management
+        this.enhanceFocusManagement();
+    }
 
     /**
      * Enhance focus management for better accessibility

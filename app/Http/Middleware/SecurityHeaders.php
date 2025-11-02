@@ -26,8 +26,8 @@ class SecurityHeaders
         $csp = [
             "default-src 'self'",
             "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://accounts.google.com",
-            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com",
-            "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net",
+            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com https://rsms.me",
+            "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net https://rsms.me",
             "img-src 'self' data: https: blob:",
             "connect-src 'self' https://accounts.google.com",
             'frame-src https://accounts.google.com',

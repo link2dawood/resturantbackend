@@ -1,5 +1,12 @@
 <?php
 
+use App\Http\Controllers\Admin\ChartOfAccountViewController;
+use App\Http\Controllers\Admin\ExpenseViewController;
+use App\Http\Controllers\Admin\ReviewQueueViewController;
+use App\Http\Controllers\Admin\VendorViewController;
+use App\Http\Controllers\Api\ChartOfAccountController;
+use App\Http\Controllers\Api\ExpenseController;
+use App\Http\Controllers\Api\VendorController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\Auth\GoogleController;
 use App\Http\Controllers\DailyReportController;
@@ -118,6 +125,26 @@ Route::middleware('auth')->group(function () {
         Route::post('transaction-types/{transactionType}/assign-stores', [TransactionTypeController::class, 'assignStores'])->name('transaction-types.assign.stores');
     });
 
+    // Chart of Accounts - Admin only
+    Route::middleware('role:admin')->group(function () {
+        Route::get('/chart-of-accounts', [ChartOfAccountViewController::class, 'index'])->name('admin.coa.index');
+        // API endpoint for stores (for COA form)
+        Route::get('/api/stores', function() {
+            return response()->json(App\Models\Store::select('id', 'store_info as name')->get());
+        })->name('api.stores');
+    });
+
+    // Vendors - Admin only
+    Route::middleware('role:admin')->group(function () {
+        Route::get('/vendors', [VendorViewController::class, 'index'])->name('admin.vendors.index');
+    });
+
+    // Expenses - Admin, Owner, Manager can view
+    Route::middleware('role:admin,owner,manager')->group(function () {
+        Route::get('/expenses', [ExpenseViewController::class, 'index'])->name('admin.expenses.index');
+        Route::get('/expenses/review', [ReviewQueueViewController::class, 'index'])->name('admin.expenses.review');
+    });
+
     // Revenue Income Types Routes - Admin only
     Route::middleware('role:admin')->group(function () {
         Route::get('/revenue-income-types', [RevenueIncomeTypeController::class, 'index'])->name('revenue-income-types.index');
@@ -147,5 +174,33 @@ Route::middleware('auth')->group(function () {
     // Reports Routes
     Route::middleware('auth')->group(function () {
         Route::get('/reports', [ReportsController::class, 'index'])->name('reports.index');
+    });
+
+    // API Routes - JSON endpoints for AJAX calls (using web session auth)
+    Route::prefix('api')->group(function () {
+        // Chart of Accounts API
+        Route::middleware('role:admin')->group(function () {
+            Route::apiResource('coa', ChartOfAccountController::class);
+        });
+        
+        // Vendor API
+        Route::middleware('role:admin')->group(function () {
+            Route::post('vendors/{id}/aliases', [VendorController::class, 'addAlias']);
+            Route::get('vendors/match', [VendorController::class, 'match']);
+            Route::apiResource('vendors', VendorController::class);
+        });
+        
+        // Expense API
+        Route::post('expenses/sync-cash-expenses', [ExpenseController::class, 'syncCashExpenses'])->middleware('role:admin');
+        Route::get('expenses', [ExpenseController::class, 'index']);
+        Route::post('expenses', [ExpenseController::class, 'store'])->middleware('role:admin,owner,manager');
+        Route::get('expenses/{id}', [ExpenseController::class, 'show']);
+        Route::put('expenses/{id}', [ExpenseController::class, 'update'])->middleware('role:admin,owner');
+        
+        // Review Queue API
+        Route::get('expenses/review-queue', [ExpenseController::class, 'reviewQueue'])->middleware('role:admin,owner');
+        Route::get('expenses/review-stats', [ExpenseController::class, 'reviewStats']);
+        Route::post('expenses/{id}/resolve', [ExpenseController::class, 'resolve'])->middleware('role:admin,owner');
+        Route::post('expenses/bulk-resolve', [ExpenseController::class, 'bulkResolve'])->middleware('role:admin,owner');
     });
 });
