@@ -682,6 +682,32 @@
                                     </svg>
                                     Expense Ledger
                                 </a></li>
+                                <li><a class="dropdown-item d-flex align-items-center" href="{{ route('admin.bank.accounts.index') }}" style="padding: 8px 16px; font-family: 'Google Sans', sans-serif; font-size: 14px; border-radius: 8px; margin: 0 8px;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
+                                        <rect x="2" y="6" width="20" height="12" rx="2"/>
+                                        <path d="M6 10h.01M10 10h.01"/>
+                                    </svg>
+                                    Bank Accounts
+                                </a></li>
+                                <li><a class="dropdown-item d-flex align-items-center" href="{{ route('admin.merchant-fees.index') }}" style="padding: 8px 16px; font-family: 'Google Sans', sans-serif; font-size: 14px; border-radius: 8px; margin: 0 8px;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
+                                        <line x1="12" y1="1" x2="12" y2="23"/>
+                                        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                                    </svg>
+                                    Merchant Fee Analytics
+                                </a></li>
+                                @if(Auth::user()->isAdmin() || Auth::user()->isOwner())
+                                <li><a class="dropdown-item d-flex align-items-center" href="{{ route('admin.reports.profit-loss.index') }}" style="padding: 8px 16px; font-family: 'Google Sans', sans-serif; font-size: 14px; border-radius: 8px; margin: 0 8px;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                        <polyline points="14,2 14,8 20,8"/>
+                                        <line x1="16" y1="13" x2="8" y2="13"/>
+                                        <line x1="16" y1="17" x2="8" y2="17"/>
+                                        <polyline points="10,9 9,9 8,9"/>
+                                    </svg>
+                                    P&L Reports
+                                </a></li>
+                                @endif
                             </ul>
                         </li>
                         @endif

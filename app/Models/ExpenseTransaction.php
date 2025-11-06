@@ -33,6 +33,7 @@ class ExpenseTransaction extends Model
         'duplicate_check_hash',
         'import_batch_id',
         'daily_report_id',
+        'third_party_statement_id',
         'created_by',
     ];
 
@@ -79,6 +80,11 @@ class ExpenseTransaction extends Model
     public function importBatch(): BelongsTo
     {
         return $this->belongsTo(ImportBatch::class, 'import_batch_id');
+    }
+
+    public function thirdPartyStatement(): BelongsTo
+    {
+        return $this->belongsTo(ThirdPartyStatement::class, 'third_party_statement_id');
     }
 
     // Scopes

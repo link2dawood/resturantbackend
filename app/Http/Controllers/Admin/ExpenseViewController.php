@@ -11,11 +11,20 @@ class ExpenseViewController extends Controller
 {
     public function index(Request $request)
     {
-        $query = ExpenseTransaction::with(['store', 'vendor', 'coa', 'creator', 'dailyReport']);
+        $user = auth()->user();
+        
+        // Filter by accessible stores
+        $accessibleStoreIds = $user->getAccessibleStoreIds();
+        
+        $query = ExpenseTransaction::with(['store', 'vendor', 'coa', 'creator', 'dailyReport'])
+            ->whereIn('store_id', $accessibleStoreIds);
 
         // Apply filters from request
         if ($request->has('store_id') && $request->store_id) {
-            $query->where('store_id', $request->store_id);
+            // Ensure user has access to the requested store
+            if ($user->hasStoreAccess($request->store_id)) {
+                $query->where('store_id', $request->store_id);
+            }
         }
 
         if ($request->has('start_date') && $request->has('end_date') && $request->start_date && $request->end_date) {
@@ -50,7 +59,8 @@ class ExpenseViewController extends Controller
                           ->orderBy('created_at', 'desc')
                           ->paginate(50);
 
-        $stores = Store::all();
+        // Get accessible stores
+        $stores = Store::whereIn('id', $accessibleStoreIds)->get();
 
         return view('admin.expenses.index', compact('expenses', 'total', 'stores'));
     }

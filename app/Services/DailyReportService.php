@@ -65,22 +65,8 @@ class DailyReportService
      */
     public function userHasStoreAccess(User $user, Store $store): bool
     {
-        // Admins can access all stores
-        if ($user->isAdmin()) {
-            return true;
-        }
-
-        // Owners can access stores they created
-        if ($user->isOwner()) {
-            return $store->created_by === $user->id;
-        }
-
-        // Managers can access their assigned store
-        if ($user->isManager()) {
-            return $user->store_id == $store->id;
-        }
-
-        return false;
+        // Use the User model's hasStoreAccess method which checks both direct assignment and pivot table
+        return $user->hasStoreAccess($store->id);
     }
 
     /**

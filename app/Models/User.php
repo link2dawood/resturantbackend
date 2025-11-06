@@ -124,6 +124,14 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * The stores assigned to the manager (many-to-many relationship via manager_store pivot).
+     */
+    public function assignedStoresPivot()
+    {
+        return $this->belongsToMany(Store::class, 'manager_store', 'manager_id', 'store_id');
+    }
+
+    /**
      * Get the stores assigned to the manager from the assigned_stores field.
      */
     public function getAssignedStoresAttribute()
@@ -221,7 +229,16 @@ class User extends Authenticatable implements MustVerifyEmail
         }
 
         if ($this->isManager()) {
-            return $this->store_id == $storeId;
+            // Check direct store_id assignment
+            if ($this->store_id == $storeId) {
+                return true;
+            }
+            
+            // Check pivot table assignment
+            return $this->assignedStoresPivot()
+                ->where('stores.id', $storeId)
+                ->whereNull('stores.deleted_at')
+                ->exists();
         }
 
         return false;
@@ -241,10 +258,44 @@ class User extends Authenticatable implements MustVerifyEmail
         }
 
         if ($this->isManager()) {
-            return Store::where('id', $this->store_id)->whereNull('deleted_at');
+            // Get stores from both direct assignment and pivot table
+            $storeIds = collect([$this->store_id])->filter();
+            $pivotStoreIds = $this->assignedStoresPivot()->pluck('stores.id');
+            $allStoreIds = $storeIds->merge($pivotStoreIds)->unique()->filter();
+            
+            if ($allStoreIds->isEmpty()) {
+                return Store::whereRaw('1 = 0'); // Return empty query
+            }
+            
+            return Store::whereIn('id', $allStoreIds)->whereNull('deleted_at');
         }
 
         return Store::whereRaw('1 = 0'); // Return empty query
+    }
+
+    /**
+     * Get all accessible store IDs for the user
+     */
+    public function getAccessibleStoreIds(): array
+    {
+        if ($this->isAdmin()) {
+            return Store::whereNull('deleted_at')->pluck('id')->toArray();
+        }
+
+        if ($this->isOwner()) {
+            return Store::where('created_by', $this->id)
+                ->whereNull('deleted_at')
+                ->pluck('id')
+                ->toArray();
+        }
+
+        if ($this->isManager()) {
+            $storeIds = collect([$this->store_id])->filter();
+            $pivotStoreIds = $this->assignedStoresPivot()->pluck('stores.id');
+            return $storeIds->merge($pivotStoreIds)->unique()->filter()->toArray();
+        }
+
+        return [];
     }
 
     /**

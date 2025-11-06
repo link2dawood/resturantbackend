@@ -1,11 +1,20 @@
 <?php
 
+use App\Http\Controllers\Admin\BankAccountViewController;
 use App\Http\Controllers\Admin\ChartOfAccountViewController;
 use App\Http\Controllers\Admin\ExpenseViewController;
+use App\Http\Controllers\Admin\MerchantFeeViewController;
+use App\Http\Controllers\Admin\ProfitLossViewController;
 use App\Http\Controllers\Admin\ReviewQueueViewController;
 use App\Http\Controllers\Admin\VendorViewController;
+use App\Http\Controllers\Api\BankAccountController;
+use App\Http\Controllers\Api\BankImportController;
+use App\Http\Controllers\Api\BankReconciliationController;
 use App\Http\Controllers\Api\ChartOfAccountController;
 use App\Http\Controllers\Api\ExpenseController;
+use App\Http\Controllers\Api\MerchantFeeController;
+use App\Http\Controllers\Api\ProfitLossController;
+use App\Http\Controllers\Api\ThirdPartyImportController;
 use App\Http\Controllers\Api\VendorController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\Auth\GoogleController;
@@ -144,6 +153,27 @@ Route::middleware('auth')->group(function () {
         Route::get('/expenses', [ExpenseViewController::class, 'index'])->name('admin.expenses.index');
         Route::get('/expenses/review', [ReviewQueueViewController::class, 'index'])->name('admin.expenses.review');
     });
+    
+    // Merchant Fees - Admin, Owner
+    Route::middleware('role:admin,owner')->group(function () {
+        Route::get('/merchant-fees', [MerchantFeeViewController::class, 'index'])->name('admin.merchant-fees.index');
+        Route::get('/merchant-fees/third-party', [MerchantFeeViewController::class, 'thirdParty'])->name('admin.merchant-fees.third-party');
+    });
+
+    // P&L Reports - Admin, Owner
+    Route::middleware('role:admin,owner')->group(function () {
+        Route::get('/reports/profit-loss', [ProfitLossViewController::class, 'index'])->name('admin.reports.profit-loss.index');
+        Route::get('/reports/profit-loss/drill-down', [ProfitLossViewController::class, 'drillDown'])->name('admin.reports.profit-loss.drill-down');
+        Route::get('/reports/profit-loss/comparison', [ProfitLossViewController::class, 'comparison'])->name('admin.reports.profit-loss.comparison');
+        Route::get('/reports/profit-loss/snapshots', [ProfitLossViewController::class, 'snapshots'])->name('admin.reports.profit-loss.snapshots');
+    });
+
+    // Bank Accounts - Admin, Owner
+    Route::middleware('role:admin,owner')->group(function () {
+        Route::get('/bank-accounts', [BankAccountViewController::class, 'index'])->name('admin.bank.accounts.index');
+        Route::get('/bank-accounts/{id}', [BankAccountViewController::class, 'show'])->name('admin.bank.accounts.show');
+        Route::get('/bank-accounts/{accountId}/reconciliation', [BankAccountViewController::class, 'reconciliation'])->name('admin.bank.reconciliation.index');
+    });
 
     // Revenue Income Types Routes - Admin only
     Route::middleware('role:admin')->group(function () {
@@ -184,10 +214,15 @@ Route::middleware('auth')->group(function () {
         });
         
         // Vendor API
-        Route::middleware('role:admin')->group(function () {
-            Route::post('vendors/{id}/aliases', [VendorController::class, 'addAlias']);
+        // Vendors - Admin and Owner can manage
+        Route::middleware('role:admin,owner')->group(function () {
             Route::get('vendors/match', [VendorController::class, 'match']);
             Route::apiResource('vendors', VendorController::class);
+        });
+        
+        // Vendor aliases - Admin only
+        Route::middleware('role:admin')->group(function () {
+            Route::post('vendors/{id}/aliases', [VendorController::class, 'addAlias']);
         });
         
         // Expense API
@@ -202,5 +237,55 @@ Route::middleware('auth')->group(function () {
         Route::get('expenses/review-stats', [ExpenseController::class, 'reviewStats']);
         Route::post('expenses/{id}/resolve', [ExpenseController::class, 'resolve'])->middleware('role:admin,owner');
         Route::post('expenses/bulk-resolve', [ExpenseController::class, 'bulkResolve'])->middleware('role:admin,owner');
+        
+        // Bank Account API
+        Route::middleware('role:admin,owner')->group(function () {
+            Route::get('bank-accounts', [BankAccountController::class, 'index']);
+            Route::post('bank-accounts', [BankAccountController::class, 'store']);
+            Route::get('bank-accounts/{id}', [BankAccountController::class, 'show']);
+            Route::put('bank-accounts/{id}', [BankAccountController::class, 'update']);
+        });
+        
+        // Bank Import API
+        Route::middleware('role:admin,owner')->group(function () {
+            Route::post('bank/import/preview', [BankImportController::class, 'preview']);
+            Route::post('bank/import/upload', [BankImportController::class, 'import']);
+            Route::get('bank/import/history', [BankImportController::class, 'history']);
+        });
+        
+        // Bank Reconciliation API
+        Route::middleware('role:admin,owner')->group(function () {
+            Route::get('bank/reconciliation', [BankReconciliationController::class, 'index']);
+            Route::get('bank/reconciliation/{id}/matches', [BankReconciliationController::class, 'getMatches']);
+            Route::post('bank/reconciliation/{id}/match', [BankReconciliationController::class, 'matchTransaction']);
+            Route::post('bank/reconciliation/{id}/mark-reviewed', [BankReconciliationController::class, 'markReviewed']);
+        });
+        
+        // Third-Party Platform Import API
+        Route::middleware('role:admin,owner')->group(function () {
+            Route::post('third-party/import', [ThirdPartyImportController::class, 'import']);
+            Route::get('third-party/statements', [ThirdPartyImportController::class, 'history']);
+            Route::get('third-party/statements/{id}', [ThirdPartyImportController::class, 'show']);
+        });
+        
+        // Merchant Fee Analytics API
+        Route::middleware('role:admin,owner')->group(function () {
+            Route::get('merchant-fees/summary', [MerchantFeeController::class, 'summary']);
+            Route::get('merchant-fees/by-processor', [MerchantFeeController::class, 'byProcessor']);
+            Route::get('merchant-fees/trends', [MerchantFeeController::class, 'trends']);
+            Route::get('merchant-fees/third-party-breakdown', [MerchantFeeController::class, 'thirdPartyBreakdown']);
+            Route::get('merchant-fees/transactions', [MerchantFeeController::class, 'transactions']);
+        });
+        
+        // P&L Report API
+        Route::get('reports/pl/summary', [ProfitLossController::class, 'summary'])->middleware('auth');
+        Route::middleware('role:admin,owner')->group(function () {
+            Route::get('reports/pl', [ProfitLossController::class, 'index']);
+            Route::post('reports/pl/snapshot', [ProfitLossController::class, 'snapshot']);
+            Route::get('reports/pl/snapshots', [ProfitLossController::class, 'snapshots']);
+            Route::get('reports/pl/drill-down', [ProfitLossController::class, 'drillDown']);
+            Route::get('reports/pl/consolidated', [ProfitLossController::class, 'consolidated']);
+            Route::get('reports/pl/store-comparison', [ProfitLossController::class, 'storeComparison']);
+        });
     });
 });

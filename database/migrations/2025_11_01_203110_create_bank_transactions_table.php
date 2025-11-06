@@ -25,7 +25,7 @@ return new class extends Migration
             $table->foreignId('matched_revenue_id')->nullable()->constrained('daily_reports')->onDelete('set null');
             $table->enum('reconciliation_status', ['unmatched', 'matched', 'reviewed', 'exception'])->default('unmatched')->index();
             $table->text('reconciliation_notes')->nullable();
-            $table->foreignId('import_batch_id')->constrained('import_batches')->onDelete('restrict');
+            $table->foreignId('import_batch_id')->nullable()->constrained('import_batches')->onDelete('set null');
             $table->string('duplicate_check_hash', 64)->index();
             $table->timestamps();
             

@@ -10,12 +10,14 @@
             <h1 class="mb-0" style="font-family: 'Google Sans', sans-serif; font-size: 1.75rem; font-weight: 400; color: var(--on-surface, #202124);">Chart of Accounts</h1>
             <p class="text-muted mb-0" style="font-family: 'Google Sans', sans-serif; margin-top: 0.25rem;">Manage your accounting categories</p>
         </div>
+        @can('coa', 'create')
         <button class="btn btn-primary d-flex align-items-center" style="gap: 0.5rem;" data-bs-toggle="modal" data-bs-target="#coaModal" onclick="openCreateModal()">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M12 5v14M5 12h14"/>
             </svg>
             Add Account
         </button>
+        @endcan
     </div>
 
     <!-- Filters -->
@@ -181,7 +183,9 @@
                         <label for="parentAccount" class="form-label">Parent Account (Optional)</label>
                         <select class="form-select" id="parentAccount" name="parent_account_id">
                             <option value="">None (Top Level)</option>
-                            <!-- Options loaded via JavaScript -->
+                            @foreach($parentAccounts as $parentAccount)
+                                <option value="{{ $parentAccount->id }}">{{ $parentAccount->account_name }}</option>
+                            @endforeach
                         </select>
                     </div>
 
@@ -194,7 +198,12 @@
                             </label>
                         </div>
                         <div id="storeSelection" class="border rounded p-3">
-                            <div class="text-muted text-center">Loading stores...</div>
+                            @foreach($stores as $store)
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="store_ids[]" value="{{ $store->id }}" id="store{{ $store->id }}">
+                                    <label class="form-check-label" for="store{{ $store->id }}">{{ $store->store_info }}</label>
+                                </div>
+                            @endforeach
                         </div>
                     </div>
 
@@ -246,9 +255,6 @@ let deleteCoaId = null;
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
-    loadStores();
-    loadParentAccounts();
-    
     // COA form submission
     document.getElementById('coaForm').addEventListener('submit', function(e) {
         e.preventDefault();

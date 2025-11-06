@@ -11,7 +11,7 @@
             <p class="text-muted mb-0" style="font-family: 'Google Sans', sans-serif; margin-top: 0.25rem;">Track all cash, credit card, and bank expenses</p>
         </div>
         <div class="d-flex gap-2">
-            @if(auth()->user()->isAdmin() || auth()->user()->isOwner())
+            @can('review', 'view')
             <a href="{{ route('admin.expenses.review') }}" class="btn btn-warning d-flex align-items-center" style="gap: 0.5rem;">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="12" cy="12" r="10"/>
@@ -20,8 +20,8 @@
                 </svg>
                 Review Queue
             </a>
-            @endif
-            @if(auth()->user()->isAdmin())
+            @endcan
+            @can('imports', 'upload')
             <button class="btn btn-success d-flex align-items-center" style="gap: 0.5rem;" onclick="showSyncModal()">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M21 8v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h7"/>
@@ -30,15 +30,15 @@
                 </svg>
                 Sync Cash Expenses
             </button>
-            @endif
-            @if(auth()->user()->isAdmin() || auth()->user()->isOwner() || auth()->user()->isManager())
+            @endcan
+            @can('expenses', 'create')
             <button class="btn btn-primary d-flex align-items-center" style="gap: 0.5rem;" data-bs-toggle="modal" data-bs-target="#expenseModal" onclick="openCreateModal()">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M12 5v14M5 12h14"/>
                 </svg>
                 Add Expense
             </button>
-            @endif
+            @endcan
         </div>
     </div>
 
@@ -46,6 +46,19 @@
     <div class="card mb-4">
         <div class="card-body">
             <form action="{{ route('admin.expenses.index') }}" method="GET" class="row g-3">
+                @canViewAllStores
+                <div class="col-md-2">
+                    <label class="form-label">Store</label>
+                    <select class="form-select" name="store_id">
+                        <option value="">All Stores</option>
+                        @foreach($stores as $store)
+                            <option value="{{ $store->id }}" {{ request('store_id') == $store->id ? 'selected' : '' }}>
+                                {{ $store->store_info }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+                @endcanViewAllStores
                 <div class="col-md-2">
                     <label class="form-label">Start Date</label>
                     <input type="date" class="form-control" name="start_date" value="{{ request('start_date') }}">
@@ -72,7 +85,7 @@
                         <option value="1" {{ request('needs_review') === '1' ? 'selected' : '' }}>Needs Review</option>
                     </select>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-2">
                     <label class="form-label">&nbsp;</label>
                     <button type="submit" class="btn btn-secondary w-100">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

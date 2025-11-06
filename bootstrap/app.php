@@ -28,6 +28,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => \App\Http\Middleware\RoleMiddleware::class,
             'admin_or_owner' => \App\Http\Middleware\AdminOrOwnerMiddleware::class,
             'permission' => \App\Http\Middleware\PermissionMiddleware::class,
+            'check_permission' => \App\Http\Middleware\CheckPermission::class,
             'daily_report_access' => \App\Http\Middleware\CheckDailyReportAccess::class,
             'convert_date_format' => \App\Http\Middleware\ConvertDateFormat::class,
             'rate_limit' => \App\Http\Middleware\RateLimitMiddleware::class,

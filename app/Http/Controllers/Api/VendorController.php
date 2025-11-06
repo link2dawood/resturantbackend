@@ -56,7 +56,8 @@ class VendorController extends Controller
     public function store(Request $request)
     {
         // Authorization check - only admin/owner can create
-        if (!auth()->user()->isAdmin()) {
+        $user = auth()->user();
+        if (!$user->isAdmin() && !$user->isOwner()) {
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 
@@ -133,8 +134,9 @@ class VendorController extends Controller
      */
     public function update(Request $request, $id)
     {
-        // Authorization check
-        if (!auth()->user()->isAdmin()) {
+        // Authorization check - only admin/owner can update
+        $user = auth()->user();
+        if (!$user->isAdmin() && !$user->isOwner()) {
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 

@@ -60,6 +60,15 @@ class Store extends Model
     }
 
     /**
+     * Managers assigned via pivot table (many-to-many relationship).
+     */
+    public function assignedManagers()
+    {
+        return $this->belongsToMany(User::class, 'manager_store', 'store_id', 'manager_id')
+            ->where('role', 'manager');
+    }
+
+    /**
      * The daily reports for this store.
      */
     public function dailyReports()
