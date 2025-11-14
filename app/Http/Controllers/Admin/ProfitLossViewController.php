@@ -133,9 +133,14 @@ class ProfitLossViewController extends Controller
         $stores = Store::all();
         $storeId = $request->input('store_id');
         
-        $request->merge(['store_id' => $storeId]);
-        $response = $this->plController->snapshots($request);
-        $snapshots = json_decode($response->getContent(), true);
+        // Query snapshots directly to get a paginator object instead of JSON array
+        $query = PlSnapshot::with(['store', 'creator']);
+        
+        if ($storeId) {
+            $query->where('store_id', $storeId);
+        }
+        
+        $snapshots = $query->orderBy('created_at', 'desc')->paginate(25);
         
         return view('admin.reports.profit-loss.snapshots', compact(
             'stores',

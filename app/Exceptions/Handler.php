@@ -10,6 +10,7 @@ use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
 use Illuminate\Http\Request;
+use Illuminate\Session\TokenMismatchException;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -69,12 +70,41 @@ class Handler extends ExceptionHandler
      */
     public function render($request, Throwable $e)
     {
+        // Handle CSRF token mismatch (419 errors) - redirect to login
+        if ($e instanceof TokenMismatchException) {
+            return $this->handleTokenMismatch($request);
+        }
+
         // Security: Don't expose sensitive information in production
         if (app()->environment('production')) {
             return $this->renderProductionException($request, $e);
         }
 
+        // Handle token mismatch in non-production environments too
         return parent::render($request, $e);
+    }
+
+    /**
+     * Handle CSRF token mismatch exception (419 errors)
+     */
+    protected function handleTokenMismatch(Request $request)
+    {
+        $isApiRequest = $request->expectsJson() || $request->is('api/*');
+
+        if ($isApiRequest) {
+            return response()->json([
+                'error' => 'Session expired. Please refresh and try again.',
+                'session_expired' => true
+            ], 419);
+        }
+
+        // Clear the session and redirect to login
+        auth()->logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return redirect()->route('login')
+            ->with('error', 'Your session has expired due to inactivity. Please log in again.');
     }
 
     /**
@@ -83,6 +113,11 @@ class Handler extends ExceptionHandler
     private function renderProductionException(Request $request, Throwable $e)
     {
         $isApiRequest = $request->expectsJson() || $request->is('api/*');
+
+        // Handle CSRF token mismatch (419 errors) - redirect to login
+        if ($e instanceof TokenMismatchException) {
+            return $this->handleTokenMismatch($request);
+        }
 
         // Business logic exceptions
         if ($e instanceof StoreException || $e instanceof ReportException || $e instanceof PermissionException) {

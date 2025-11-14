@@ -52,18 +52,18 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($snapshots['data'] ?? [] as $snapshot)
+                        @forelse($snapshots as $snapshot)
                         <tr>
-                            <td><strong>{{ $snapshot['name'] }}</strong></td>
-                            <td>{{ $snapshot['store']['store_info'] ?? 'All Stores' }}</td>
-                            <td>{{ $snapshot['start_date'] }} to {{ $snapshot['end_date'] }}</td>
-                            <td>${{ number_format($snapshot['pl_data']['revenue']['total'] ?? 0, 2) }}</td>
-                            <td class="{{ ($snapshot['pl_data']['net_profit'] ?? 0) >= 0 ? 'text-success' : 'text-danger' }}">
-                                ${{ number_format($snapshot['pl_data']['net_profit'] ?? 0, 2) }}
+                            <td><strong>{{ $snapshot->name }}</strong></td>
+                            <td>{{ $snapshot->store->store_info ?? 'All Stores' }}</td>
+                            <td>{{ $snapshot->start_date }} to {{ $snapshot->end_date }}</td>
+                            <td>${{ number_format($snapshot->pl_data['revenue']['total'] ?? 0, 2) }}</td>
+                            <td class="{{ ($snapshot->pl_data['net_profit'] ?? 0) >= 0 ? 'text-success' : 'text-danger' }}">
+                                ${{ number_format($snapshot->pl_data['net_profit'] ?? 0, 2) }}
                             </td>
-                            <td>{{ $snapshot['created_at'] }}</td>
+                            <td>{{ $snapshot->created_at->format('M d, Y H:i') }}</td>
                             <td>
-                                <button class="btn btn-sm btn-outline-primary" onclick="viewSnapshot({{ $snapshot['id'] }})">View</button>
+                                <button class="btn btn-sm btn-outline-primary" onclick="viewSnapshot({{ $snapshot->id }})">View</button>
                             </td>
                         </tr>
                         @empty
@@ -75,7 +75,7 @@
                 </table>
             </div>
         </div>
-        @if(isset($snapshots['links']))
+        @if($snapshots->hasPages())
         <div class="card-footer">
             {{ $snapshots->links() }}
         </div>
