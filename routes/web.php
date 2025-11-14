@@ -10,7 +10,7 @@ use App\Http\Controllers\Admin\VendorViewController;
 use App\Http\Controllers\Api\BankAccountController;
 use App\Http\Controllers\Api\BankImportController;
 use App\Http\Controllers\Api\BankReconciliationController;
-use App\Http\Controllers\Api\ChartOfAccountController;
+use App\Http\Controllers\Api\ChartOfAccountController as ApiChartOfAccountController;
 use App\Http\Controllers\Api\ExpenseController;
 use App\Http\Controllers\Api\MerchantFeeController;
 use App\Http\Controllers\Api\ProfitLossController;
@@ -212,7 +212,7 @@ Route::middleware('auth')->group(function () {
     Route::prefix('api')->group(function () {
         // Chart of Accounts API
         Route::middleware('role:admin')->group(function () {
-            Route::apiResource('coa', ChartOfAccountController::class);
+            Route::apiResource('coa', ApiChartOfAccountController::class);
         });
         
         // Vendor API
