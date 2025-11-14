@@ -1,7 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\BankAccountViewController;
-use App\Http\Controllers\Admin\ChartOfAccountViewController;
+use App\Http\Controllers\Admin\ChartOfAccountController;
 use App\Http\Controllers\Admin\ExpenseViewController;
 use App\Http\Controllers\Admin\MerchantFeeViewController;
 use App\Http\Controllers\Admin\ProfitLossViewController;
@@ -136,9 +136,11 @@ Route::middleware('auth')->group(function () {
 
     // Chart of Accounts - Admin only
     Route::middleware('role:admin')->group(function () {
-        Route::get('/chart-of-accounts', [ChartOfAccountViewController::class, 'index'])->name('admin.coa.index');
-        // API endpoint for stores (for COA form)
-        Route::get('/api/stores', function() {
+        Route::resource('chart-of-accounts', ChartOfAccountController::class)
+            ->parameters(['chart-of-accounts' => 'chartOfAccount'])
+            ->names('coa');
+        // API endpoint for stores (for COA form and other admin tools)
+        Route::get('/api/stores', function () {
             return response()->json(App\Models\Store::select('id', 'store_info as name')->get());
         })->name('api.stores');
     });
