@@ -46,18 +46,19 @@
             <div class="card-header border-0">
                 <h3 class="card-title" style="font-family: 'Google Sans', sans-serif; font-size: 1.125rem; font-weight: 500;">Select a Year</h3>
             </div>
-            <div class="card-body">
-                <div class="row g-3">
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
                     @foreach($years as $year)
-                        <div class="col-md-2 col-sm-3 col-4">
-                            <a href="{{ route('daily-reports.index', ['year' => $year]) }}" 
-                               class="btn btn-outline-primary w-100 d-flex align-items-center justify-content-center" 
-                               style="height: 60px; font-size: 1.125rem; font-weight: 500; border-radius: 12px; transition: all 0.2s;"
-                               onmouseover="this.style.background='#4285f4'; this.style.color='white'; this.style.transform='scale(1.05)'"
-                               onmouseout="this.style.background='transparent'; this.style.color='#4285f4'; this.style.transform='scale(1)'">
-                                {{ $year }}
-                            </a>
-                        </div>
+                        <a href="{{ route('daily-reports.index', ['year' => $year]) }}" 
+                           class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" 
+                           style="padding: 1rem 1.5rem; border: none; border-bottom: 1px solid #e0e0e0; transition: all 0.2s; font-family: 'Google Sans', sans-serif; font-size: 0.875rem;"
+                           onmouseover="this.style.background='#f8f9fa'; this.style.paddingLeft='2rem'"
+                           onmouseout="this.style.background='white'; this.style.paddingLeft='1.5rem'">
+                            <span style="font-weight: 500; color: #202124;">{{ $year }}</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #5f6368;">
+                                <path d="M9 18l6-6-6-6"/>
+                            </svg>
+                        </a>
                     @endforeach
                 </div>
             </div>
@@ -75,18 +76,26 @@
                         Back to Years
                     </a>
                 </div>
-                <div class="card-body">
-                    <div class="row g-3">
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        @php
+                            $shortMonths = [
+                                1 => 'Jan', 2 => 'Feb', 3 => 'Mar', 4 => 'Apr',
+                                5 => 'May', 6 => 'Jun', 7 => 'Jul', 8 => 'Aug',
+                                9 => 'Sep', 10 => 'Oct', 11 => 'Nov', 12 => 'Dec'
+                            ];
+                        @endphp
                         @foreach($months as $monthNum => $monthName)
-                            <div class="col-md-3 col-sm-4 col-6">
-                                <a href="{{ route('daily-reports.index', ['year' => $selectedYear, 'month' => $monthNum]) }}" 
-                                   class="btn btn-outline-primary w-100 d-flex align-items-center justify-content-center" 
-                                   style="height: 60px; font-size: 1rem; font-weight: 500; border-radius: 12px; transition: all 0.2s;"
-                                   onmouseover="this.style.background='#4285f4'; this.style.color='white'; this.style.transform='scale(1.05)'"
-                                   onmouseout="this.style.background='transparent'; this.style.color='#4285f4'; this.style.transform='scale(1)'">
-                                    {{ $monthName }}
-                                </a>
-                            </div>
+                            <a href="{{ route('daily-reports.index', ['year' => $selectedYear, 'month' => $monthNum]) }}" 
+                               class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" 
+                               style="padding: 1rem 1.5rem; border: none; border-bottom: 1px solid #e0e0e0; transition: all 0.2s; font-family: 'Google Sans', sans-serif; font-size: 0.875rem;"
+                               onmouseover="this.style.background='#f8f9fa'; this.style.paddingLeft='2rem'"
+                               onmouseout="this.style.background='white'; this.style.paddingLeft='1.5rem'">
+                                <span style="font-weight: 500; color: #202124;">{{ $shortMonths[$monthNum] }}</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #5f6368;">
+                                    <path d="M9 18l6-6-6-6"/>
+                                </svg>
+                            </a>
                         @endforeach
                     </div>
                 </div>
