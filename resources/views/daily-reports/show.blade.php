@@ -3,7 +3,18 @@
 @section('content')
 
 <style>
-    .report-view {
+    .sales-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed; /* force equal widths */
+}
+
+.sales-table td {
+    width: 33.33%;   /* 3 equal columns */
+    padding: 8px;
+    vertical-align: middle;
+}
+    .report-container {
         background: white;
         border-radius: 8px;
         box-shadow: 0 2px 10px rgba(0,0,0,0.1);
@@ -13,390 +24,447 @@
     .report-header {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
-        padding: 30px;
+        padding: 12px 15px;
         text-align: center;
     }
     
     .company-name {
-        font-size: 2rem;
+        font-size: 1.5rem;
         font-weight: bold;
-        margin-bottom: 10px;
+        margin-bottom: 5px;
     }
     
-    .report-meta {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-top: 20px;
-        padding: 0 20px;
+    .company-info {
+        opacity: 0.9;
+        font-size: 0.85rem;
     }
     
     .section-title {
         background: #f8f9fa;
-        padding: 15px 20px;
+        padding: 10px 15px;
         font-weight: 600;
         border-bottom: 2px solid #e9ecef;
         color: #495057;
-        font-size: 1.1rem;
+        font-size: 1rem;
     }
     
-    .content-section {
-        padding: 20px;
-    }
-    
-    .info-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 30px;
-        margin-bottom: 30px;
-    }
-    
-    .info-card {
-        background: #f8f9fa;
-        padding: 20px;
-        border-radius: 8px;
-        border-left: 4px solid #007bff;
-    }
-    
-    .info-card h5 {
-        color: #495057;
-        margin-bottom: 15px;
-        font-weight: 600;
-    }
-    
-    .info-item {
-        display: flex;
-        justify-content: space-between;
-        padding: 8px 0;
-        border-bottom: 1px solid #dee2e6;
-    }
-    
-    .info-item:last-child {
-        border-bottom: none;
-    }
-    
-    .info-item .label {
-        font-weight: 500;
-        color: #6c757d;
-    }
-    
-    .info-item .value {
-        font-weight: 600;
-        color: #495057;
+    .form-section {
+        padding: 12px 15px;
     }
     
     .transaction-table {
         width: 100%;
         border-collapse: collapse;
-        margin-top: 20px;
+        margin-bottom: 12px;
     }
     
     .transaction-table th {
-        background: #007bff;
-        color: white;
-        padding: 12px;
-        text-align: left;
+        background: #f8f9fa;
+        padding: 8px 6px;
+        border: 1px solid #dee2e6;
         font-weight: 600;
+        text-align: center;
+        font-size: 0.875rem;
     }
     
     .transaction-table td {
-        padding: 12px;
-        border-bottom: 1px solid #dee2e6;
+        border: 1px solid #dee2e6;
+        padding: 6px;
     }
     
-    .transaction-table tbody tr:hover {
-        background: #f8f9fa;
+    .form-input {
+        width: 100%;
+        border: none;
+        background: transparent;
+        padding: 8px;
+        font-size: 14px;
     }
     
-    .calculated-values {
-        background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
-        padding: 20px;
-        border-radius: 8px;
-        margin: 20px 0;
-    }
-    
-    .calculated-values h5 {
-        color: #1976d2;
-        margin-bottom: 20px;
-        font-weight: 600;
-    }
-    
-    .calc-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 15px;
-    }
-    
-    .calc-item {
-        background: white;
-        padding: 15px;
-        border-radius: 6px;
-        text-align: center;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    
-    .calc-item .label {
-        font-size: 0.9rem;
-        color: #6c757d;
-        margin-bottom: 5px;
-    }
-    
-    .calc-item .value {
-        font-size: 1.2rem;
-        font-weight: bold;
+    .readonly-input {
+        width: 100%;
+        border: none;
+        background: transparent;
+        padding: 8px;
+        font-size: 14px;
         color: #495057;
     }
     
-    .print-btn {
-        background: #28a745;
+    .number-input {
+        text-align: right;
+    }
+    
+    .total-row {
+        background: #e7f3ff;
+        font-weight: 600;
+    }
+    
+    .side-panel {
+        background: #f8f9fa;
+        padding: 12px 15px;
+        border-radius: 8px;
+        margin-bottom: 12px;
+    }
+    
+    .side-panel .form-group {
+        margin-bottom: 10px;
+    }
+    
+    .side-panel label {
+        font-weight: 600;
+        color: #495057;
+        margin-bottom: 4px;
+        display: block;
+        font-size: 0.875rem;
+    }
+    
+    .side-panel input {
+        width: 100%;
+        padding: 6px 10px;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        background: white;
+    }
+    
+    .category-labels {
+        background: #e9ecef;
+        padding: 10px 12px;
+        border-radius: 8px;
+        margin-top: 12px;
+    }
+    
+    .category-labels .category {
+        display: inline-block;
+        background: #6c757d;
         color: white;
-        border: none;
+        padding: 5px 10px;
+        border-radius: 15px;
+        font-size: 12px;
+        margin: 3px;
+        font-weight: 500;
+    }
+    
+    .sales-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+        margin-top: 12px;
+    }
+    
+    .sales-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .sales-table td {
+        padding: 8px 10px;
+        border: 1px solid #dee2e6;
+    }
+    
+    .sales-table td:first-child {
+        background: #f8f9fa;
+        font-weight: 600;
+        color: #495057;
+        width: 60%;
+    }
+    
+    .calculated-field {
+        background: #e7f3ff !important;
+        color: #004085;
+        font-weight: 600;
+    }
+    
+    .export-buttons {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+    }
+    
+    .export-btn {
         padding: 10px 20px;
         border-radius: 5px;
-        cursor: pointer;
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
     }
     
-    @media (max-width: 768px) {
-        .info-grid,
-        .calc-grid {
-            grid-template-columns: 1fr;
-        }
-        
-        .report-meta {
-            flex-direction: column;
-            gap: 10px;
-        }
-        
-        .company-name {
-            font-size: 1.5rem;
-        }
+    .export-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
     }
     
-    @media print {
-        .page-header,
-        .print-btn {
-            display: none !important;
-        }
+    .export-btn-pdf {
+        background: #dc3545;
+        color: white;
+    }
+    
+    .export-btn-csv {
+        background: #28a745;
+        color: white;
+    }
+    
+    .export-btn-edit {
+        background: #ffc107;
+        color: #000;
+    }
+    
+    .export-btn-back {
+        background: #6c757d;
+        color: white;
     }
 </style>
-<div class="container-xl mt-5">
-    <div class="page-header">
-        <div class="page-title">
-            <h1>Daily Report - {{ \App\Helpers\DateFormatter::toUSShort($dailyReport->report_date) }}</h1>
-        </div>
-        <div class="page-actions">
-        <a href="{{ route('daily-reports.edit', $dailyReport) }}" class="btn btn-warning">✏️ Edit Report</a>
-        <a href="{{ route('daily-reports.export-pdf', $dailyReport) }}" class="btn btn-success">📄 Export PDF</a>
-        <button onclick="window.print()" class="print-btn">🖨️ Print Report</button>
-        <a href="{{ route('daily-reports.index') }}" class="btn btn-secondary">← Back to List</a>
-    </div>
-</div>
 
-<div class="report-view mt-5">
-    <!-- Header Section -->
-    <div class="report-header">
-        <div class="company-name">{{ $dailyReport->restaurant_name }}</div>
-        @if($dailyReport->address)
-            <div>{{ $dailyReport->address }}</div>
-        @endif
-        @if($dailyReport->phone)
-            <div>Phone: {{ $dailyReport->phone }}</div>
-        @endif
-    </div>
-    
-    <div class="report-meta">
-        <div>
-            <strong>Report Date:</strong> {{ \App\Helpers\DateFormatter::toUSDisplay($dailyReport->report_date) }}
-        </div>
-        <div>
-            <strong>Created by:</strong> {{ $dailyReport->creator->name }}
-        </div>
-        <div>
-            <strong>Created:</strong> {{ \App\Helpers\DateFormatter::toUSWithTime($dailyReport->created_at) }}
-        </div>
+<div class="container-xl mt-4">
+    <div class="export-buttons">
+        <a href="{{ route('daily-reports.export-pdf', $dailyReport) }}" class="export-btn export-btn-pdf" target="_blank">
+            📄 Export PDF
+        </a>
+        <a href="{{ route('daily-reports.edit', $dailyReport) }}" class="export-btn export-btn-edit">
+            ✏️ Edit Report
+        </a>
+        <a href="{{ route('daily-reports.index') }}" class="export-btn export-btn-back">
+            ← Back to List
+        </a>
     </div>
 
-    <!-- Environmental Info -->
-    <div class="section-title">Report Information</div>
-    <div class="content-section">
-        <div class="info-grid">
-            <div class="info-card">
-                <h5>Environmental Data</h5>
-                <div class="info-item">
-                    <span class="label">Weather:</span>
-                    <span class="value">{{ $dailyReport->weather ?? 'Not specified' }}</span>
-                </div>
-                <div class="info-item">
-                    <span class="label">Holiday/Event:</span>
-                    <span class="value">{{ $dailyReport->holiday_event ?? 'None' }}</span>
-                </div>
-            </div>
-            
-            <div class="info-card">
-                <h5>Basic Sales Data</h5>
-                <div class="info-item">
-                    <span class="label">Projected Sales:</span>
-                    <span class="value">${{ number_format($dailyReport->projected_sales, 2) }}</span>
-                </div>
-                <div class="info-item">
-                    <span class="label">Gross Sales:</span>
-                    <span class="value">${{ number_format($dailyReport->gross_sales, 2) }}</span>
-                </div>
-                <div class="info-item">
-                    <span class="label">Total Customers:</span>
-                    <span class="value">{{ $dailyReport->total_customers }}</span>
-                </div>
+    <div class="report-container">
+        <!-- Header Section -->
+        <div class="report-header">
+            <div class="company-name">{{ $dailyReport->store->store_info ?? 'N/A' }}</div>
+            <div class="company-info">
+                <div>{{ $dailyReport->store->address ?? 'N/A' }}</div>
+                <div>Phone: {{ $dailyReport->store->phone ?? 'N/A' }}</div>
             </div>
         </div>
-    </div>
 
-    <!-- Transactions -->
-    @if($dailyReport->transactions->count() > 0)
+        <!-- Transaction Expenses Section -->
         <div class="section-title">Transaction Expenses</div>
-        <div class="content-section">
-            <table class="transaction-table">
-                <thead>
-                    <tr>
-                        <th>Transaction ID</th>
-                        <th>Company</th>
-                        <th>Type</th>
-                        <th>Amount</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($dailyReport->transactions as $transaction)
-                        <tr>
-                            <td>{{ $transaction->transaction_id }}</td>
-                            <td>{{ $transaction->company }}</td>
-                            <td>{{ $transaction->transactionType->description_name ?? 'N/A' }}</td>
-                            <td>${{ number_format($transaction->amount, 2) }}</td>
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
+        <div class="form-section">
+            <div class="row">
+                <div class="col-lg-8">
+                    @if($dailyReport->transactions->count() > 0)
+                        <table class="transaction-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 15%;">Transaction ID</th>
+                                    <th style="width: 30%;">Company</th>
+                                    <th style="width: 25%;">Transaction Type</th>
+                                    <th style="width: 20%;">Amount ($)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($dailyReport->transactions as $transaction)
+                                    <tr>
+                                        <td>{{ $transaction->transaction_id }}</td>
+                                        <td>{{ $transaction->company }}</td>
+                                        <td>{{ $transaction->transactionType->name ?? 'N/A' }}</td>
+                                        <td class="number-input">${{ number_format($transaction->amount, 2) }}</td>
+                                    </tr>
+                                @endforeach
+                                <tr class="total-row">
+                                    <td colspan="3"><strong>Total Transaction Expenses:</strong></td>
+                                    <td class="number-input"><strong>${{ number_format($dailyReport->total_paid_outs, 2) }}</strong></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    @else
+                        <p class="text-muted">No transactions recorded.</p>
+                    @endif
+                    <div style="margin-top: 8px; padding: 8px; background: #fff3cd; border-radius: 4px; border: 1px solid #ffeaa7;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-weight: 600; color: #856404;">Total Transaction Expenses:</span>
+                            <span style="font-weight: 600; color: #856404; font-size: 1.1rem;">${{ number_format($dailyReport->total_paid_outs, 2) }}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-lg-4">
+                    <div class="side-panel">
+                        <div class="form-group">
+                            <label>Date:</label>
+                            <input type="text" class="form-control" value="{{ \App\Helpers\DateFormatter::toUSDisplay($dailyReport->report_date) }}" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label>Weather:</label>
+                            <input type="text" class="form-control" value="{{ $dailyReport->weather ?? 'N/A' }}" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label>Holiday/Special Event:</label>
+                            <input type="text" class="form-control" value="{{ $dailyReport->holiday_event ?? 'N/A' }}" readonly>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-    @endif
 
-    <!-- Revenue Income Types -->
-    @if($dailyReport->revenues->count() > 0)
+        <!-- Revenue Types Section -->
         <div class="section-title">Revenue Income Tracking</div>
-        <div class="content-section">
-            <table class="transaction-table">
-                <thead>
-                    <tr>
-                        <th>Revenue Type</th>
-                        <th>Amount</th>
-                        <th>Notes</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($dailyReport->revenues as $revenue)
+        <div class="form-section">
+            <div class="row">
+                <div class="col-lg-12">
+                    @if($dailyReport->revenues->count() > 0)
+                        <table class="transaction-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 30%;">Revenue Type</th>
+                                    <th style="width: 20%;">Amount ($)</th>
+                                    <th style="width: 50%;">Notes</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($dailyReport->revenues as $revenue)
+                                    <tr>
+                                        <td>
+                                            <span class="badge badge-outline text-{{ $revenue->revenueIncomeType->category == 'online' ? 'info' : ($revenue->revenueIncomeType->category == 'cash' ? 'success' : 'secondary') }}">
+                                                {{ $revenue->revenueIncomeType->name }}
+                                            </span>
+                                        </td>
+                                        <td class="number-input">${{ number_format($revenue->amount, 2) }}</td>
+                                        <td>{{ $revenue->notes ?? '-' }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    @else
+                        <p class="text-muted">No revenue entries recorded.</p>
+                    @endif
+                    <div style="margin-top: 8px; padding: 8px; background: #f8f9fa; border-radius: 4px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-weight: 600; color: #495057;">Total Revenue Income:</span>
+                            <span style="font-weight: 600; color: #28a745; font-size: 1.1rem;">${{ number_format($dailyReport->total_revenue_entries, 2) }}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 5px;">
+                            <span style="font-weight: 600; color: #495057;">Online Platform Revenue:</span>
+                            <span style="font-weight: 600; color: #17a2b8; font-size: 1.1rem;">${{ number_format($dailyReport->online_platform_revenue, 2) }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sales Section -->
+        <div class="section-title">Sales Information</div>
+        <div class="form-section">
+            <div class="row">
+                <div class="col-md-6">
+                    <table class="sales-table">
+                        <tr>
+                            <td>Projected Sales</td>
+                            <td class="number-input">${{ number_format($dailyReport->projected_sales, 2) }}</td>
+                        </tr>
+                        <tr>
+                            <td>Amount of Cancels</td>
+                            <td class="number-input">${{ number_format($dailyReport->amount_of_cancels, 2) }}</td>
+                        </tr>
+                        <tr>
+                            <td>Amount of Voids</td>
+                            <td class="number-input">${{ number_format($dailyReport->amount_of_voids, 2) }}</td>
+                        </tr>
+                        <tr>
+                            <td>Number of No Sales</td>
+                            <td class="number-input">{{ $dailyReport->number_of_no_sales }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Financial Summary Section -->
+        <div class="section-title">Financial Summary</div>
+        <div class="form-section">
+            <div class="row">
+                <div class="col-8">
+                    <table class="sales-table">
                         <tr>
                             <td>
-                                <span class="badge badge-outline text-{{ $revenue->revenueIncomeType->category == 'online' ? 'info' : ($revenue->revenueIncomeType->category == 'cash' ? 'success' : 'secondary') }}">
-                                    {{ $revenue->revenueIncomeType->name }}
-                                </span>
+                                <div style="display:flex;justify-content: space-between;align-items: center;">
+                                    <span>Total # of Coupons</span>
+                                    <span style="width:30%;" class="number-input">{{ $dailyReport->total_coupons }}</span>
+                                </div>
                             </td>
-                            <td>${{ number_format($revenue->amount, 2) }}</td>
-                            <td>{{ $revenue->notes ?? '-' }}</td>
+                            <td><strong>Gross Sales:</strong></td>
+                            <td class="number-input">${{ number_format($dailyReport->gross_sales, 2) }}</td>
                         </tr>
-                    @endforeach
-                </tbody>
-                <tfoot>
-                    <tr style="background-color: #f8f9fa; font-weight: 600;">
-                        <td>Total Revenue Entries</td>
-                        <td>${{ number_format($dailyReport->total_revenue_entries, 2) }}</td>
-                        <td>-</td>
-                    </tr>
-                    <tr style="background-color: #e9ecef; font-weight: 600;">
-                        <td>Online Platform Revenue</td>
-                        <td>${{ number_format($dailyReport->online_platform_revenue, 2) }}</td>
-                        <td>-</td>
-                    </tr>
-                </tfoot>
-            </table>
-        </div>
-    @endif
-
-    <!-- Calculated Values -->
-    <div class="section-title">Financial Summary</div>
-    <div class="content-section">
-        <div class="calculated-values">
-            <h5>Calculated Financial Metrics</h5>
-            <div class="calc-grid">
-                <div class="calc-item">
-                    <div class="label">Total Paid Outs</div>
-                    <div class="value">${{ number_format($dailyReport->total_paid_outs, 2) }}</div>
+                        <tr>
+                            <td>
+                                <div style="display:flex;justify-content: space-between;align-items: center;">
+                                    <span><strong>Total Amount of Coupons Received:</strong></span>
+                                    <span style="width:30%;" class="number-input">${{ number_format($dailyReport->coupons_received, 2) }}</span>
+                                </div>
+                            </td>
+                            <td></td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td></td>
+                            <td><strong>Adjustments: Overrings/Returns:</strong></td>
+                            <td class="number-input">${{ number_format($dailyReport->adjustments_overrings, 2) }}</td>
+                        </tr>
+                        <tr>
+                            <td rowspan="2">
+                                <div style="display:flex;justify-content: space-between;align-items: center;">
+                                    <span>Total # of Customers</span>
+                                    <span style="width:30%;" class="number-input">{{ $dailyReport->total_customers }}</span>
+                                </div>
+                            </td>
+                            <td><strong>Net Sales:</strong></td>
+                            <td id="netSales" class="calculated-field number-input">${{ number_format($dailyReport->net_sales, 2) }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Tax:</strong></td>
+                            <td id="tax" class="calculated-field number-input">${{ number_format($dailyReport->tax, 2) }}</td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div style="display:flex;justify-content: space-between;align-items: center;">
+                                    <span>Average Ticket</span>
+                                    <span style="width:30%;" class="number-input">${{ number_format($dailyReport->average_ticket, 2) }}</span>
+                                </div>
+                            </td>
+                            <td><strong>Sales (Pre-tax):</strong></td>
+                            <td id="salesPreTax" class="calculated-field number-input">${{ number_format($dailyReport->sales_pre_tax, 2) }}</td>
+                        </tr>
+                    </table>
                 </div>
-                <div class="calc-item">
-                    <div class="label">Net Sales</div>
-                    <div class="value">${{ number_format($dailyReport->net_sales, 2) }}</div>
-                </div>
-                <div class="calc-item">
-                    <div class="label">Tax</div>
-                    <div class="value">${{ number_format($dailyReport->tax, 2) }}</div>
-                </div>
-                <div class="calc-item">
-                    <div class="label">Sales (Pre-tax)</div>
-                    <div class="value">${{ number_format($dailyReport->sales_pre_tax, 2) }}</div>
-                </div>
-                <div class="calc-item">
-                    <div class="label">Cash to Account For</div>
-                    <div class="value">${{ number_format($dailyReport->cash_to_account_for, 2) }}</div>
-                </div>
-                <div class="calc-item">
-                    <div class="label">Average Ticket</div>
-                    <div class="value">${{ number_format($dailyReport->average_ticket, 2) }}</div>
-                </div>
-                @if($dailyReport->short != 0)
-                    <div class="calc-item" style="border-left: 4px solid #dc3545;">
-                        <div class="label">Short</div>
-                        <div class="value" style="color: #dc3545;">${{ number_format($dailyReport->short, 2) }}</div>
-                    </div>
-                @endif
-                @if($dailyReport->over != 0)
-                    <div class="calc-item" style="border-left: 4px solid #28a745;">
-                        <div class="label">Over</div>
-                        <div class="value" style="color: #28a745;">${{ number_format($dailyReport->over, 2) }}</div>
-                    </div>
-                @endif
-            </div>
-        </div>
-
-        <div class="info-grid">
-            <div class="info-card">
-                <h5>Adjustments & Deductions</h5>
-                <div class="info-item">
-                    <span class="label">Amount of Cancels:</span>
-                    <span class="value">${{ number_format($dailyReport->amount_of_cancels, 2) }}</span>
-                </div>
-                <div class="info-item">
-                    <span class="label">Amount of Voids:</span>
-                    <span class="value">${{ number_format($dailyReport->amount_of_voids, 2) }}</span>
-                </div>
-                <div class="info-item">
-                    <span class="label">Coupons Received:</span>
-                    <span class="value">${{ number_format($dailyReport->coupons_received, 2) }}</span>
-                </div>
-                <div class="info-item">
-                    <span class="label">Adjustments/Overrings:</span>
-                    <span class="value">${{ number_format($dailyReport->adjustments_overrings, 2) }}</span>
-                </div>
-            </div>
-            
-            <div class="info-card">
-                <h5>Payment Summary</h5>
-                <div class="info-item">
-                    <span class="label">Credit Cards:</span>
-                    <span class="value">${{ number_format($dailyReport->credit_cards, 2) }}</span>
-                </div>
-                <div class="info-item">
-                    <span class="label">Actual Deposit:</span>
-                    <span class="value">${{ number_format($dailyReport->actual_deposit, 2) }}</span>
-                </div>
-                <div class="info-item">
-                    <span class="label">Number of No Sales:</span>
-                    <span class="value">{{ $dailyReport->number_of_no_sales }}</span>
+                
+                <div class="col-4">
+                    <table class="sales-table">
+                        <tr>
+                            <td><strong>Net Sales:</strong></td>
+                            <td id="netSales2" class="calculated-field number-input">${{ number_format($dailyReport->net_sales, 2) }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Total Transaction Expenses:</strong></td>
+                            <td id="totalPaidOuts2" class="calculated-field number-input">${{ number_format($dailyReport->total_paid_outs, 2) }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Online Platform Revenue:</strong></td>
+                            <td id="onlineRevenue2" class="calculated-field number-input">${{ number_format($dailyReport->online_platform_revenue, 2) }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Credit Cards:</strong></td>
+                            <td class="number-input">${{ number_format($dailyReport->credit_cards, 2) }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Cash To Account For:</strong></td>
+                            <td id="cashToAccountFor" class="calculated-field number-input">${{ number_format($dailyReport->cash_to_account_for, 2) }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Actual Deposit:</strong></td>
+                            <td class="number-input">${{ number_format($dailyReport->actual_deposit, 2) }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Short:</strong></td>
+                            <td id="short" class="calculated-field number-input" style="color: {{ $dailyReport->short < 0 ? '#dc3545' : '#495057' }};">${{ number_format($dailyReport->short, 2) }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Over:</strong></td>
+                            <td id="over" class="calculated-field number-input" style="color: {{ $dailyReport->over > 0 ? '#28a745' : '#495057' }};">${{ number_format($dailyReport->over, 2) }}</td>
+                        </tr>
+                    </table>
                 </div>
             </div>
         </div>
