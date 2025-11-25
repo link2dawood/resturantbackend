@@ -115,14 +115,18 @@ class DailyReport extends Model
 
     public function getNetSalesAttribute(): float
     {
-        return $this->gross_sales - $this->coupons_received - $this->adjustments_overrings;
+        // Net sales = sum of revenues
+        return $this->revenues_sum_amount ?? $this->revenues()->sum('amount');
     }
 
     public function getTaxAttribute(): float
     {
         $netSales = $this->getNetSalesAttribute();
-
-        return $netSales - ($netSales / 1.0825);
+        
+        // Calculate 8.25% sales tax
+        // If net sales includes tax: tax = netSales * 0.0825 / 1.0825
+        // This is equivalent to: tax = netSales - (netSales / 1.0825)
+        return $netSales * 0.0825 / 1.0825;
     }
 
     public function getSalesPreTaxAttribute(): float
@@ -132,7 +136,8 @@ class DailyReport extends Model
 
     public function getCashToAccountForAttribute(): float
     {
-        return $this->getNetSalesAttribute() - $this->getTotalTransactionExpensesAttribute() - $this->credit_cards - $this->getOnlinePlatformRevenueAttribute();
+        // Cash to account for = Net Sales - Total Paid Out
+        return $this->getNetSalesAttribute() - $this->getTotalTransactionExpensesAttribute();
     }
 
     public function getShortAttribute(): float

@@ -201,8 +201,14 @@ class DailyReportController extends Controller
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get();
+        
+        // Get vendors for the company dropdown
+        $vendors = Vendor::active()
+            ->with(['defaultTransactionType', 'defaultCoa'])
+            ->orderBy('vendor_name')
+            ->get();
 
-        return view('daily-reports.create', compact('store', 'types', 'revenueTypes', 'reportDate'));
+        return view('daily-reports.create', compact('store', 'types', 'revenueTypes', 'reportDate', 'vendors'));
     }
 
     /**
@@ -394,9 +400,10 @@ class DailyReportController extends Controller
 
             // transactions
             'transactions' => 'nullable|array',
-            'transactions.*.transaction_id' => 'required|integer',
-            'transactions.*.company' => 'required|string|max:100',
-            'transactions.*.transaction_type' => 'required|in:Food Cost,Rent,Accounting,Taxes,Other',
+            'transactions.*.transaction_id' => 'nullable|integer',
+            'transactions.*.company' => 'nullable|string|max:100',
+            'transactions.*.vendor_id' => 'nullable|exists:vendors,id',
+            'transactions.*.transaction_type' => 'nullable|exists:transaction_types,id',
             'transactions.*.amount' => 'required|numeric|min:0',
         ]);
 
@@ -455,18 +462,32 @@ class DailyReportController extends Controller
 
             if ($request->has('transactions')) {
                 foreach ($request->transactions as $transactionData) {
+                    if (empty($transactionData['amount'])) {
+                        continue; // Skip empty transaction rows
+                    }
+
+                    // Get company name from vendor if vendor_id is provided
+                    $companyName = $transactionData['company'] ?? '';
+                    if (!empty($transactionData['vendor_id'])) {
+                        $vendor = \App\Models\Vendor::find($transactionData['vendor_id']);
+                        if ($vendor) {
+                            $companyName = $vendor->vendor_name;
+                        }
+                    }
+
                     // Validate transaction_type_id
-                    if (! empty($transactionData['transaction_id']) && ! TransactionType::find($transactionData['transaction_id'])) {
+                    $transactionTypeId = $transactionData['transaction_type'] ?? null;
+                    if ($transactionTypeId && ! TransactionType::find($transactionTypeId)) {
                         throw ValidationException::withMessages([
-                            'transactions' => "Invalid transaction type ID: {$transactionData['transaction_id']}",
+                            'transactions' => "Invalid transaction type ID: {$transactionTypeId}",
                         ]);
                     }
 
                     DailyReportTransaction::create([
                         'daily_report_id' => $dailyReport->id,
-                        'transaction_type_id' => $transactionData['transaction_id'] ?? null,
-                        'company' => $transactionData['company'] ?? '',
-                        'amount' => $transactionData['amount'] ?? 0,
+                        'transaction_type_id' => $transactionTypeId,
+                        'company' => $companyName,
+                        'amount' => (float) ($transactionData['amount'] ?? 0),
                     ]);
                 }
             }
@@ -658,26 +679,31 @@ class DailyReportController extends Controller
         $errors = [];
 
         // Calculate derived fields
-        $grossSales = (float) ($data['gross_sales'] ?? 0);
-        $couponsReceived = (float) ($data['coupons_received'] ?? 0);
-        $adjustmentsOverrings = (float) ($data['adjustments_overrings'] ?? 0);
         $creditCards = (float) ($data['credit_cards'] ?? 0);
         $actualDeposit = (float) ($data['actual_deposit'] ?? 0);
         $totalPaidOuts = (float) ($data['total_paid_outs'] ?? 0);
 
-        // Calculate net sales
-        $netSales = $grossSales - $couponsReceived - $adjustmentsOverrings;
+        // Calculate net sales as sum of revenues
+        $netSales = 0;
+        if (isset($data['revenues']) && is_array($data['revenues'])) {
+            foreach ($data['revenues'] as $revenue) {
+                if (isset($revenue['amount']) && is_numeric($revenue['amount'])) {
+                    $netSales += (float) $revenue['amount'];
+                }
+            }
+        }
         $data['net_sales'] = $netSales;
 
-        // Calculate tax (assuming 8.25% tax rate)
-        $tax = $netSales - ($netSales / 1.0825);
+        // Calculate tax (8.25% sales tax)
+        // If net sales includes tax: tax = netSales * 0.0825 / 1.0825
+        $tax = $netSales * 0.0825 / 1.0825;
         $data['tax'] = $tax;
 
         // Calculate sales (pre-tax)
         $data['sales'] = $netSales - $tax;
 
-        // Calculate cash to account for
-        $cashToAccountFor = $netSales - $totalPaidOuts - $creditCards;
+        // Calculate cash to account for = Net Sales - Total Paid Out
+        $cashToAccountFor = $netSales - $totalPaidOuts;
         $data['cash_to_account'] = $cashToAccountFor;
 
         // Calculate short/over
@@ -697,17 +723,22 @@ class DailyReportController extends Controller
      */
     private function calculateDerivedFields(array $data): array
     {
-        $grossSales = (float) ($data['gross_sales'] ?? 0);
-        $couponsReceived = (float) ($data['coupons_received'] ?? 0);
-        $adjustmentsOverrings = (float) ($data['adjustments_overrings'] ?? 0);
         $creditCards = (float) ($data['credit_cards'] ?? 0);
         $totalPaidOuts = (float) ($data['total_paid_outs'] ?? 0);
 
-        // Calculate net sales
-        $data['net_sales'] = $grossSales - $couponsReceived - $adjustmentsOverrings;
+        // Calculate net sales as sum of revenues
+        $netSales = 0;
+        if (isset($data['revenues']) && is_array($data['revenues'])) {
+            foreach ($data['revenues'] as $revenue) {
+                if (isset($revenue['amount']) && is_numeric($revenue['amount'])) {
+                    $netSales += (float) $revenue['amount'];
+                }
+            }
+        }
+        $data['net_sales'] = $netSales;
 
-        // Calculate cash to account
-        $data['cash_to_account'] = $data['net_sales'] - $totalPaidOuts - $creditCards;
+        // Calculate cash to account for = Net Sales - Total Paid Out
+        $data['cash_to_account'] = $data['net_sales'] - $totalPaidOuts;
 
         return $data;
     }
@@ -878,21 +909,31 @@ class DailyReportController extends Controller
     private function processTransactions(Request $request, DailyReport $dailyReport): void
     {
         foreach ($request->transactions as $transactionData) {
-            if (empty($transactionData['company']) || empty($transactionData['amount'])) {
+            if (empty($transactionData['amount'])) {
                 continue; // Skip empty transaction rows
             }
 
+            // Get company name from vendor if vendor_id is provided
+            $companyName = $transactionData['company'] ?? '';
+            if (!empty($transactionData['vendor_id'])) {
+                $vendor = \App\Models\Vendor::find($transactionData['vendor_id']);
+                if ($vendor) {
+                    $companyName = $vendor->vendor_name;
+                }
+            }
+
             // Validate transaction_type_id
-            if (! empty($transactionData['transaction_id']) && ! TransactionType::find($transactionData['transaction_id'])) {
+            $transactionTypeId = $transactionData['transaction_type'] ?? null;
+            if ($transactionTypeId && ! TransactionType::find($transactionTypeId)) {
                 throw ValidationException::withMessages([
-                    'transactions' => "Invalid transaction type ID: {$transactionData['transaction_id']}",
+                    'transactions' => "Invalid transaction type ID: {$transactionTypeId}",
                 ]);
             }
 
             DailyReportTransaction::create([
                 'daily_report_id' => $dailyReport->id,
-                'transaction_type_id' => $transactionData['transaction_id'] ?? null,
-                'company' => $transactionData['company'],
+                'transaction_type_id' => $transactionTypeId,
+                'company' => $companyName,
                 'amount' => (float) $transactionData['amount'],
             ]);
         }

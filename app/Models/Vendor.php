@@ -16,6 +16,7 @@ class Vendor extends Model
         'vendor_name',
         'vendor_identifier',
         'default_coa_id',
+        'default_transaction_type_id',
         'vendor_type',
         'contact_name',
         'contact_email',
@@ -34,6 +35,11 @@ class Vendor extends Model
     public function defaultCoa(): BelongsTo
     {
         return $this->belongsTo(ChartOfAccount::class, 'default_coa_id');
+    }
+
+    public function defaultTransactionType(): BelongsTo
+    {
+        return $this->belongsTo(TransactionType::class, 'default_transaction_type_id');
     }
 
     public function stores(): BelongsToMany

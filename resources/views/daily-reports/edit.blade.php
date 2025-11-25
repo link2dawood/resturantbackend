@@ -634,10 +634,15 @@ function calculateTotals() {
     });
 
     // Calculate derived values
-    const netSales = grossSales - couponsReceived - adjustmentsOverrings;
-    const tax = netSales - (netSales / 1.0825); // Texas tax rate 8.25%
+    // Net sales = sum of revenues
+    const netSales = totalRevenueEntries;
+    
+    // Calculate 8.25% sales tax
+    const tax = netSales * 0.0825 / 1.0825;
     const salesPreTax = netSales - tax;
-    const cashToAccountFor = netSales - totalPaidOuts - creditCards - onlinePlatformRevenue;
+    
+    // Cash to account for = Net Sales - Total Paid Out
+    const cashToAccountFor = netSales - totalPaidOuts;
     
     let short = 0;
     let over = 0;
