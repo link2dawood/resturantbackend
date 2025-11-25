@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class TransactionType extends Model
 {
-    protected $fillable = ['name', 'p_id'];
+    protected $fillable = ['name', 'p_id', 'default_coa_id'];
 
     public function parent()
     {
@@ -16,6 +16,15 @@ class TransactionType extends Model
     public function children()
     {
         return $this->hasMany(TransactionType::class, 'p_id');
+    }
+
+    /**
+     * Default Chart of Account for this transaction type
+     * Links TransactionType to ChartOfAccount to eliminate redundancy
+     */
+    public function defaultCoa()
+    {
+        return $this->belongsTo(ChartOfAccount::class, 'default_coa_id');
     }
 
     // Store relationship can be added later when pivot table is created

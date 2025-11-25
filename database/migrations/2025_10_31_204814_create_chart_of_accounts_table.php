@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('account_code', 10)->unique();
             $table->string('account_name', 100);
-            $table->enum('account_type', ['Revenue', 'COGS', 'Expense', 'Other Income']);
+            $table->enum('account_type', ['Asset', 'Liability', 'Equity', 'Revenue', 'COGS', 'Expense', 'Other Income']);
             $table->foreignId('parent_account_id')->nullable()->constrained('chart_of_accounts')->onDelete('set null');
             $table->boolean('is_active')->default(true);
             $table->boolean('is_system_account')->default(false);

@@ -245,10 +245,13 @@ class ExpenseController extends Controller
                     $vendor = $this->matchVendor($cashTrans->company);
                 }
 
-                // Determine COA
+                // Determine COA - priority: Vendor default > TransactionType default
                 $coaId = null;
                 if ($vendor && $vendor->default_coa_id) {
                     $coaId = $vendor->default_coa_id;
+                } elseif ($cashTrans->transactionType && $cashTrans->transactionType->default_coa_id) {
+                    // Use TransactionType's default COA if vendor doesn't have one
+                    $coaId = $cashTrans->transactionType->default_coa_id;
                 }
 
                 // Generate duplicate hash - unique per transaction (not per report)

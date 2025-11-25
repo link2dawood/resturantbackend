@@ -46,6 +46,23 @@ class PermissionSeeder extends Seeder
             // Revenue Income Types
             ['name' => 'manage_revenue_types', 'description' => 'Manage revenue income types', 'category' => 'configuration'],
             ['name' => 'view_revenue_types', 'description' => 'View revenue income types', 'category' => 'configuration'],
+
+            // Chart of Accounts (COA)
+            ['name' => 'manage_coa', 'description' => 'Create, update, and delete chart of accounts', 'category' => 'configuration'],
+            ['name' => 'view_coa', 'description' => 'View chart of accounts', 'category' => 'configuration'],
+
+            // Vendor Management
+            ['name' => 'manage_vendors', 'description' => 'Create, update, and delete vendors', 'category' => 'vendors'],
+            ['name' => 'view_vendors', 'description' => 'View vendors', 'category' => 'vendors'],
+            ['name' => 'edit_vendors', 'description' => 'Edit vendor information', 'category' => 'vendors'],
+
+            // File Uploads
+            ['name' => 'upload_files', 'description' => 'Upload CSV files for bank/credit card imports', 'category' => 'imports'],
+
+            // P&L Reports
+            ['name' => 'generate_pl', 'description' => 'Generate profit and loss reports', 'category' => 'reports'],
+            ['name' => 'view_pl', 'description' => 'View profit and loss reports', 'category' => 'reports'],
+            ['name' => 'export_pl', 'description' => 'Export P&L reports to PDF/CSV', 'category' => 'reports'],
         ];
 
         foreach ($permissions as $permissionData) {
@@ -58,24 +75,35 @@ class PermissionSeeder extends Seeder
         // Set up role-permission relationships
         $rolePermissions = [
             UserRole::ADMIN->value => [
-                // Admin can do everything: owners, stores, transaction types, revenue types
+                // Super Admin: Full system access (COA setup, vendor management, all reports)
                 'manage_users', 'view_users', 'manage_owners', 'manage_managers', 'change_user_roles',
                 'manage_stores', 'view_stores',
                 'create_reports', 'view_reports', 'edit_reports', 'delete_reports', 'approve_reports', 'export_reports',
                 'view_audit_logs', 'manage_permissions',
                 'manage_transaction_types', 'view_transaction_types',
                 'manage_revenue_types', 'view_revenue_types',
+                'manage_coa', 'view_coa', // COA setup (full access)
+                'manage_vendors', 'view_vendors', 'edit_vendors', // Vendor management (full access)
+                'upload_files', // File uploads
+                'generate_pl', 'view_pl', 'export_pl', // All reports (full access)
             ],
             UserRole::OWNER->value => [
-                // Owner can: manage stores, manage managers, assign managers to stores, create daily reports
+                // Owner/Admin: Upload files, edit vendors, generate P&L for their stores
                 'manage_stores', 'view_stores',
                 'manage_managers', 'view_users',
                 'create_reports', 'view_reports', 'edit_reports', 'approve_reports', 'export_reports',
+                'view_coa', // Can view COA but not manage
+                'view_vendors', 'edit_vendors', // Can edit vendors
+                'upload_files', // Can upload files
+                'generate_pl', 'view_pl', 'export_pl', // Can generate P&L for their stores
             ],
             UserRole::MANAGER->value => [
-                // Manager can only: view assigned stores and create daily reports
+                // Manager: Enter daily reports, view store-level P&L only
                 'view_assigned_stores',
-                'create_reports', 'view_reports', 'edit_reports',
+                'create_reports', 'view_reports', 'edit_reports', // Enter daily reports
+                'view_coa', // Can view COA for reference
+                'view_vendors', // Can view vendors for reference
+                'view_pl', // Can view store-level P&L only (no export, no generation)
             ],
         ];
 

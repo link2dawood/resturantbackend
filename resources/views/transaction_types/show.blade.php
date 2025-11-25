@@ -69,6 +69,18 @@
                                 {{ $transactionType->created_at ? $transactionType->created_at->format('M d, Y') : '—' }}
                             </div>
                         </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted" style="font-size: 0.813rem; font-weight: 500; letter-spacing: 0.3px;">Default COA Category</label>
+                            <div>
+                                @if($transactionType->defaultCoa)
+                                    <span class="badge bg-success" style="font-size: 0.875rem;">
+                                        {{ $transactionType->defaultCoa->account_code }} - {{ $transactionType->defaultCoa->account_name }}
+                                    </span>
+                                @else
+                                    <span class="badge bg-secondary" style="font-size: 0.875rem;">Not assigned</span>
+                                @endif
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

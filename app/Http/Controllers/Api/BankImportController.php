@@ -163,20 +163,55 @@ class BankImportController extends Controller
 
                     $importedCount++;
 
-                    // For debit transactions, automatically create expense transaction with vendor matching
-                    if ($row['transaction_type'] === 'debit' && abs($row['amount']) > 0) {
-                        $expenseCreated = $this->createExpenseFromBankTransaction(
-                            $bankTransaction,
-                            $bankAccount,
-                            $importBatch,
-                            $row['card_last_four'] ?? null,
-                            $row['card_type'] ?? null
-                        );
+                    // Attempt automatic reconciliation
+                    $reconciled = false;
+                    
+                    if ($row['transaction_type'] === 'credit') {
+                        // Match deposits to daily reports
+                        $reconciled = $this->attemptDepositMatching($bankTransaction, $bankAccount);
+                        
+                        // If deposit not matched, flag for review
+                        if (!$reconciled) {
+                            $bankTransaction->reconciliation_status = 'exception';
+                            $bankTransaction->reconciliation_notes = 'Unmatched deposit - requires review';
+                            $bankTransaction->save();
+                            $needsReviewCount++;
+                        }
+                    } elseif ($row['transaction_type'] === 'debit') {
+                        // Match withdrawals to expense transactions
+                        $reconciled = $this->attemptWithdrawalMatching($bankTransaction, $bankAccount);
+                        
+                        // If not matched, create expense transaction with vendor matching
+                        if (!$reconciled) {
+                            $expenseCreated = $this->createExpenseFromBankTransaction(
+                                $bankTransaction,
+                                $bankAccount,
+                                $importBatch,
+                                $row['card_last_four'] ?? null,
+                                $row['card_type'] ?? null
+                            );
 
-                        if ($expenseCreated) {
-                            $expenseTransactionsCreated++;
-                            if ($expenseCreated->needs_review) {
-                                $needsReviewCount++;
+                            if ($expenseCreated) {
+                                $expenseTransactionsCreated++;
+                                
+                                // Try to match the newly created expense
+                                if ($expenseCreated->id) {
+                                    $bankTransaction->matched_expense_id = $expenseCreated->id;
+                                    $bankTransaction->reconciliation_status = 'matched';
+                                    $bankTransaction->save();
+                                    $reconciled = true;
+                                } elseif ($expenseCreated->needs_review) {
+                                    $needsReviewCount++;
+                                    // Flag for pending review if unmatched
+                                    $bankTransaction->reconciliation_status = 'exception';
+                                    $bankTransaction->reconciliation_notes = 'Unmatched withdrawal - requires review';
+                                    $bankTransaction->save();
+                                }
+                            } else {
+                                // No expense created, flag for review
+                                $bankTransaction->reconciliation_status = 'exception';
+                                $bankTransaction->reconciliation_notes = 'Unmatched withdrawal - requires review';
+                                $bankTransaction->save();
                             }
                         }
                     }
@@ -652,6 +687,164 @@ class BankImportController extends Controller
         }
 
         return $result;
+    }
+
+    /**
+     * Attempt to match deposit (credit) to daily report totals
+     */
+    protected function attemptDepositMatching(BankTransaction $bankTransaction, BankAccount $bankAccount): bool
+    {
+        try {
+            // Date range: ±3 days for deposits
+            $dateFrom = $bankTransaction->transaction_date->copy()->subDays(3);
+            $dateTo = $bankTransaction->transaction_date->copy()->addDays(3);
+            
+            // Amount tolerance: ±$5 for deposits
+            $amountTolerance = 5.00;
+            $amountMin = $bankTransaction->amount - $amountTolerance;
+            $amountMax = $bankTransaction->amount + $amountTolerance;
+            
+            // Find matching daily reports
+            $dailyReports = DailyReport::where('store_id', $bankAccount->store_id)
+                ->whereBetween('report_date', [$dateFrom, $dateTo])
+                ->where('status', 'approved') // Only match to approved reports
+                ->get();
+            
+            foreach ($dailyReports as $report) {
+                // Check credit card deposit (net after fees)
+                if ($report->credit_cards > 0) {
+                    $merchantFeeRate = 0.0245;
+                    $netDeposit = $report->credit_cards * (1 - $merchantFeeRate);
+                    
+                    if ($netDeposit >= $amountMin && $netDeposit <= $amountMax) {
+                        // Check if already matched
+                        $existingMatch = BankTransaction::where('matched_revenue_id', $report->id)
+                            ->where('id', '!=', $bankTransaction->id)
+                            ->first();
+                        
+                        if (!$existingMatch) {
+                            $bankTransaction->matched_revenue_id = $report->id;
+                            $bankTransaction->reconciliation_status = 'matched';
+                            $bankTransaction->reconciliation_notes = "Auto-matched to Daily Report #{$report->id} (Credit Card deposit)";
+                            $bankTransaction->save();
+                            return true;
+                        }
+                    }
+                }
+                
+                // Check cash deposit
+                if ($report->actual_deposit > 0) {
+                    if ($report->actual_deposit >= $amountMin && $report->actual_deposit <= $amountMax) {
+                        $existingMatch = BankTransaction::where('matched_revenue_id', $report->id)
+                            ->where('id', '!=', $bankTransaction->id)
+                            ->where('transaction_type', 'credit')
+                            ->first();
+                        
+                        if (!$existingMatch) {
+                            $bankTransaction->matched_revenue_id = $report->id;
+                            $bankTransaction->reconciliation_status = 'matched';
+                            $bankTransaction->reconciliation_notes = "Auto-matched to Daily Report #{$report->id} (Cash deposit)";
+                            $bankTransaction->save();
+                            return true;
+                        }
+                    }
+                }
+                
+                // Check online platform revenue (Grubhub, Uber, etc.)
+                // Use the accessor method if available, otherwise calculate
+                $onlineRevenue = method_exists($report, 'getOnlinePlatformRevenueAttribute') 
+                    ? $report->getOnlinePlatformRevenueAttribute() 
+                    : $report->revenues()->sum('amount');
+                
+                if ($onlineRevenue > 0 && $onlineRevenue >= $amountMin && $onlineRevenue <= $amountMax) {
+                    $existingMatch = BankTransaction::where('matched_revenue_id', $report->id)
+                        ->where('id', '!=', $bankTransaction->id)
+                        ->first();
+                    
+                    if (!$existingMatch) {
+                        $bankTransaction->matched_revenue_id = $report->id;
+                        $bankTransaction->reconciliation_status = 'matched';
+                        $bankTransaction->reconciliation_notes = "Auto-matched to Daily Report #{$report->id} (Online platform deposit)";
+                        $bankTransaction->save();
+                        return true;
+                    }
+                }
+            }
+            
+            return false;
+            
+        } catch (\Exception $e) {
+            Log::error('Error attempting deposit matching: ' . $e->getMessage(), [
+                'bank_transaction_id' => $bankTransaction->id
+            ]);
+            return false;
+        }
+    }
+    
+    /**
+     * Attempt to match withdrawal (debit) to expense transactions
+     */
+    protected function attemptWithdrawalMatching(BankTransaction $bankTransaction, BankAccount $bankAccount): bool
+    {
+        try {
+            // Date range: ±3 days
+            $dateFrom = $bankTransaction->transaction_date->copy()->subDays(3);
+            $dateTo = $bankTransaction->transaction_date->copy()->addDays(3);
+            
+            // Amount tolerance: ±$0.50
+            $amountTolerance = 0.50;
+            $amountMin = $bankTransaction->amount - $amountTolerance;
+            $amountMax = $bankTransaction->amount + $amountTolerance;
+            
+            // Get already matched expense IDs
+            $matchedExpenseIds = BankTransaction::where('transaction_type', 'debit')
+                ->whereNotNull('matched_expense_id')
+                ->where('id', '!=', $bankTransaction->id)
+                ->pluck('matched_expense_id')
+                ->toArray();
+            
+            // Find matching expense transactions
+            $expenses = ExpenseTransaction::where('store_id', $bankAccount->store_id)
+                ->whereBetween('transaction_date', [$dateFrom, $dateTo])
+                ->whereBetween('amount', [$amountMin, $amountMax])
+                ->whereNotIn('id', $matchedExpenseIds)
+                ->orderByRaw('ABS(DATEDIFF(transaction_date, ?))', [$bankTransaction->transaction_date])
+                ->orderByRaw('ABS(amount - ?)', [$bankTransaction->amount])
+                ->limit(5)
+                ->get();
+            
+            foreach ($expenses as $expense) {
+                // Calculate match confidence
+                $dateDiff = abs($bankTransaction->transaction_date->diffInDays($expense->transaction_date));
+                $amountDiff = abs($bankTransaction->amount - $expense->amount);
+                
+                // High confidence match: same day, exact amount
+                if ($dateDiff === 0 && $amountDiff < 0.01) {
+                    $bankTransaction->matched_expense_id = $expense->id;
+                    $bankTransaction->reconciliation_status = 'matched';
+                    $bankTransaction->reconciliation_notes = "Auto-matched to Expense #{$expense->id} ({$expense->description})";
+                    $bankTransaction->save();
+                    return true;
+                }
+                
+                // Medium confidence: within 1 day, within $0.10
+                if ($dateDiff <= 1 && $amountDiff <= 0.10) {
+                    $bankTransaction->matched_expense_id = $expense->id;
+                    $bankTransaction->reconciliation_status = 'matched';
+                    $bankTransaction->reconciliation_notes = "Auto-matched to Expense #{$expense->id} ({$expense->description})";
+                    $bankTransaction->save();
+                    return true;
+                }
+            }
+            
+            return false;
+            
+        } catch (\Exception $e) {
+            Log::error('Error attempting withdrawal matching: ' . $e->getMessage(), [
+                'bank_transaction_id' => $bankTransaction->id
+            ]);
+            return false;
+        }
     }
 
     /**

@@ -10,7 +10,7 @@
             <p class="text-muted mb-0">Manage and categorize the financial accounts used across your restaurants.</p>
         </div>
         <a href="{{ route('coa.create') }}" class="btn btn-primary">
-            <i class="bi bi-plus-circle me-2"></i>Add Account
+            <i class="bi bi-plus-circle me-2"></i>Add Chart of Account
         </a>
     </div>
 

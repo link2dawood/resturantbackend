@@ -40,6 +40,7 @@
                             <th style="font-weight: 500; color: #3c4043; padding: 1rem; border: none; font-size: 0.813rem; letter-spacing: 0.3px; font-family: 'Google Sans', sans-serif;">#</th>
                             <th style="font-weight: 500; color: #3c4043; padding: 1rem; border: none; font-size: 0.813rem; letter-spacing: 0.3px; font-family: 'Google Sans', sans-serif;">Description Name</th>
                             <th style="font-weight: 500; color: #3c4043; padding: 1rem; border: none; font-size: 0.813rem; letter-spacing: 0.3px; font-family: 'Google Sans', sans-serif;">Category</th>
+                            <th style="font-weight: 500; color: #3c4043; padding: 1rem; border: none; font-size: 0.813rem; letter-spacing: 0.3px; font-family: 'Google Sans', sans-serif;">Default COA</th>
                             <th style="font-weight: 500; color: #3c4043; padding: 1rem; border: none; font-size: 0.813rem; letter-spacing: 0.3px; font-family: 'Google Sans', sans-serif; text-align: center;">Actions</th>
                         </tr>
                     </thead>
@@ -54,6 +55,15 @@
                             </td>
                             <td style="padding: 1rem; vertical-align: middle; color: #5f6368;">
                                 <span class="badge bg-info text-white" style="font-size: 0.75rem;">{{ $type->parent ? $type->parent->name : 'None' }}</span>
+                            </td>
+                            <td style="padding: 1rem; vertical-align: middle; color: #5f6368;">
+                                @if($type->defaultCoa)
+                                    <span class="badge bg-success" style="font-size: 0.75rem;">
+                                        {{ $type->defaultCoa->account_code }} - {{ $type->defaultCoa->account_name }}
+                                    </span>
+                                @else
+                                    <span class="text-muted" style="font-size: 0.813rem;">Not assigned</span>
+                                @endif
                             </td>
                             <td style="padding: 1rem; vertical-align: middle; text-align: center;">
                                 <a href="{{ route('transaction-types.show', $type->id) }}" class="btn btn-sm btn-outline-primary d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;" title="View Details">

@@ -120,6 +120,7 @@ class ProfitLossController extends Controller
 
     /**
      * Get drill-down transactions for a specific COA
+     * Returns all transactions at the transaction level for detailed analysis
      */
     public function drillDown(Request $request)
     {
@@ -130,7 +131,7 @@ class ProfitLossController extends Controller
             'end_date' => 'required|date|after_or_equal:start_date',
         ]);
         
-        $query = ExpenseTransaction::with(['store', 'vendor', 'coa'])
+        $query = ExpenseTransaction::with(['store', 'vendor', 'coa', 'creator'])
             ->where('coa_id', $request->coa_id)
             ->whereBetween('transaction_date', [$request->start_date, $request->end_date]);
         
@@ -139,14 +140,29 @@ class ProfitLossController extends Controller
         }
         
         $transactions = $query->orderBy('transaction_date', 'desc')
+            ->orderBy('created_at', 'desc')
             ->paginate(50);
         
         $coa = ChartOfAccount::find($request->coa_id);
         
+        // Calculate summary statistics
+        $totalAmount = $transactions->sum('amount');
+        $transactionCount = $transactions->total();
+        $averageAmount = $transactionCount > 0 ? $totalAmount / $transactionCount : 0;
+        
         return response()->json([
             'coa' => $coa,
             'transactions' => $transactions,
-            'total' => $transactions->sum('amount'),
+            'summary' => [
+                'total_amount' => $totalAmount,
+                'transaction_count' => $transactionCount,
+                'average_amount' => $averageAmount,
+                'date_range' => [
+                    'start_date' => $request->start_date,
+                    'end_date' => $request->end_date,
+                ],
+                'store_id' => $request->store_id,
+            ],
         ]);
     }
 

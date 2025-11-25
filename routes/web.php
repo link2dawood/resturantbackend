@@ -145,8 +145,8 @@ Route::middleware('auth')->group(function () {
         })->name('api.stores');
     });
 
-    // Vendors - Admin only
-    Route::middleware('role:admin')->group(function () {
+    // Vendors - Admin and Owner can manage
+    Route::middleware('role:admin,owner')->group(function () {
         Route::get('/vendors', [VendorViewController::class, 'index'])->name('admin.vendors.index');
     });
 
@@ -162,12 +162,19 @@ Route::middleware('auth')->group(function () {
         Route::get('/merchant-fees/third-party', [MerchantFeeViewController::class, 'thirdParty'])->name('admin.merchant-fees.third-party');
     });
 
-    // P&L Reports - Admin, Owner
-    Route::middleware('role:admin,owner')->group(function () {
+    // P&L Reports - Admin, Owner (full access), Manager (view only)
+    Route::middleware('role:admin,owner,manager')->group(function () {
+        // Managers can view but not export
         Route::get('/reports/profit-loss', [ProfitLossViewController::class, 'index'])->name('admin.reports.profit-loss.index');
         Route::get('/reports/profit-loss/drill-down', [ProfitLossViewController::class, 'drillDown'])->name('admin.reports.profit-loss.drill-down');
+    });
+    
+    // P&L Export and Advanced Features - Admin and Owner only
+    Route::middleware('role:admin,owner')->group(function () {
         Route::get('/reports/profit-loss/comparison', [ProfitLossViewController::class, 'comparison'])->name('admin.reports.profit-loss.comparison');
         Route::get('/reports/profit-loss/snapshots', [ProfitLossViewController::class, 'snapshots'])->name('admin.reports.profit-loss.snapshots');
+        Route::get('/reports/profit-loss/export/csv', [ProfitLossViewController::class, 'exportCsv'])->name('admin.reports.profit-loss.export.csv');
+        Route::get('/reports/profit-loss/export/pdf', [ProfitLossViewController::class, 'exportPdf'])->name('admin.reports.profit-loss.export.pdf');
     });
 
     // Bank Accounts - Admin, Owner

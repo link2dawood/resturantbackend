@@ -23,6 +23,17 @@
             </select>
         </div>
 
+        <div class="form-group">
+            <label for="default_coa_id">Default COA Category (Optional)</label>
+            <select name="default_coa_id" id="default_coa_id" class="form-control">
+                <option value="">None (Select Manually)</option>
+                @foreach ($chartOfAccounts as $coa)
+                    <option value="{{ $coa->id }}">{{ $coa->account_code }} - {{ $coa->account_name }}</option>
+                @endforeach
+            </select>
+            <small class="form-text text-muted">This COA will be automatically assigned when syncing cash expenses with this transaction type</small>
+        </div>
+
         <button type="submit" class="btn btn-primary mt-3">Create</button>
     </form>
 </div>

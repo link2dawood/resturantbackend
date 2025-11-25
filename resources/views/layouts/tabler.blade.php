@@ -634,7 +634,7 @@
                         <!-- Transaction Management -->
                         @if(Auth::user()->hasPermission('manage_transaction_types'))
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle d-flex align-items-center {{ request()->routeIs('transaction-types.*') || request()->routeIs('revenue-income-types.*') || request()->routeIs('coa.*') || request()->routeIs('admin.vendors.*') || request()->routeIs('admin.expenses.*') ? 'active' : '' }}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="padding: 8px 16px; border-radius: 20px; font-family: 'Google Sans', sans-serif; font-weight: 500; font-size: 14px; transition: all 0.2s ease; {{ request()->routeIs('transaction-types.*') || request()->routeIs('revenue-income-types.*') || request()->routeIs('coa.*') || request()->routeIs('admin.vendors.*') || request()->routeIs('admin.expenses.*') ? 'background: #4285f4; color: white;' : 'color: #5f6368;' }}" onmouseover="if(!this.classList.contains('active')) { this.style.background='#f1f3f4'; this.style.color='#1a73e8'; }" onmouseout="if(!this.classList.contains('active')) { this.style.background='transparent'; this.style.color='#5f6368'; }">
+                            <a class="nav-link dropdown-toggle d-flex align-items-center {{ request()->routeIs('transaction-types.*') || request()->routeIs('revenue-income-types.*') || request()->routeIs('coa.*') ? 'active' : '' }}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="padding: 8px 16px; border-radius: 20px; font-family: 'Google Sans', sans-serif; font-weight: 500; font-size: 14px; transition: all 0.2s ease; {{ request()->routeIs('transaction-types.*') || request()->routeIs('revenue-income-types.*') || request()->routeIs('coa.*') ? 'background: #4285f4; color: white;' : 'color: #5f6368;' }}" onmouseover="if(!this.classList.contains('active')) { this.style.background='#f1f3f4'; this.style.color='#1a73e8'; }" onmouseout="if(!this.classList.contains('active')) { this.style.background='transparent'; this.style.color='#5f6368'; }">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
                                     <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
                                     <line x1="1" y1="10" x2="23" y2="10"/>
@@ -642,22 +642,6 @@
                                 Transactions
                             </a>
                             <ul class="dropdown-menu" style="border-radius: 12px; border: 1px solid #e0e0e0; box-shadow: 0 4px 12px rgba(0,0,0,0.15); padding: 8px 0;">
-                                <li><a class="dropdown-item d-flex align-items-center" href="{{ route('transaction-types.index') }}" style="padding: 8px 16px; font-family: 'Google Sans', sans-serif; font-size: 14px; border-radius: 8px; margin: 0 8px;">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
-                                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                                        <line x1="16" y1="2" x2="16" y2="6"/>
-                                        <line x1="8" y1="2" x2="8" y2="6"/>
-                                        <line x1="3" y1="10" x2="21" y2="10"/>
-                                    </svg>
-                                    Transaction Types
-                                </a></li>
-                                <li><a class="dropdown-item d-flex align-items-center" href="{{ route('revenue-income-types.index') }}" style="padding: 8px 16px; font-family: 'Google Sans', sans-serif; font-size: 14px; border-radius: 8px; margin: 0 8px;">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
-                                        <polyline points="22,12 18,12 15,21 9,3 6,12 2,12"/>
-                                    </svg>
-                                    Revenue Types
-                                </a></li>
-                                <li><hr class="dropdown-divider" style="margin: 8px 0;"></li>
                                 <li><a class="dropdown-item d-flex align-items-center" href="{{ route('coa.index') }}" style="padding: 8px 16px; font-family: 'Google Sans', sans-serif; font-size: 14px; border-radius: 8px; margin: 0 8px;">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
                                         <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
@@ -668,46 +652,21 @@
                                     </svg>
                                     Chart of Accounts
                                 </a></li>
-                                <li><a class="dropdown-item d-flex align-items-center" href="{{ route('admin.vendors.index') }}" style="padding: 8px 16px; font-family: 'Google Sans', sans-serif; font-size: 14px; border-radius: 8px; margin: 0 8px;">
+                                <li><a class="dropdown-item d-flex align-items-center" href="{{ route('revenue-income-types.index') }}" style="padding: 8px 16px; font-family: 'Google Sans', sans-serif; font-size: 14px; border-radius: 8px; margin: 0 8px;">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
-                                        <path d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                                        <polyline points="22,12 18,12 15,21 9,3 6,12 2,12"/>
                                     </svg>
-                                    Vendors
+                                    Revenue Type
                                 </a></li>
-                                <li><hr class="dropdown-divider" style="margin: 8px 0;"></li>
-                                <li><a class="dropdown-item d-flex align-items-center" href="{{ route('admin.expenses.index') }}" style="padding: 8px 16px; font-family: 'Google Sans', sans-serif; font-size: 14px; border-radius: 8px; margin: 0 8px;">
+                                <li><a class="dropdown-item d-flex align-items-center" href="{{ route('transaction-types.index') }}" style="padding: 8px 16px; font-family: 'Google Sans', sans-serif; font-size: 14px; border-radius: 8px; margin: 0 8px;">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
-                                        <line x1="12" y1="1" x2="12" y2="23"/>
-                                        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                                        <line x1="16" y1="2" x2="16" y2="6"/>
+                                        <line x1="8" y1="2" x2="8" y2="6"/>
+                                        <line x1="3" y1="10" x2="21" y2="10"/>
                                     </svg>
-                                    Expense Ledger
+                                    Transaction Type
                                 </a></li>
-                                <li><a class="dropdown-item d-flex align-items-center" href="{{ route('admin.bank.accounts.index') }}" style="padding: 8px 16px; font-family: 'Google Sans', sans-serif; font-size: 14px; border-radius: 8px; margin: 0 8px;">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
-                                        <rect x="2" y="6" width="20" height="12" rx="2"/>
-                                        <path d="M6 10h.01M10 10h.01"/>
-                                    </svg>
-                                    Bank Accounts
-                                </a></li>
-                                <li><a class="dropdown-item d-flex align-items-center" href="{{ route('admin.merchant-fees.index') }}" style="padding: 8px 16px; font-family: 'Google Sans', sans-serif; font-size: 14px; border-radius: 8px; margin: 0 8px;">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
-                                        <line x1="12" y1="1" x2="12" y2="23"/>
-                                        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-                                    </svg>
-                                    Merchant Fee Analytics
-                                </a></li>
-                                @if(Auth::user()->isAdmin() || Auth::user()->isOwner())
-                                <li><a class="dropdown-item d-flex align-items-center" href="{{ route('admin.reports.profit-loss.index') }}" style="padding: 8px 16px; font-family: 'Google Sans', sans-serif; font-size: 14px; border-radius: 8px; margin: 0 8px;">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
-                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                                        <polyline points="14,2 14,8 20,8"/>
-                                        <line x1="16" y1="13" x2="8" y2="13"/>
-                                        <line x1="16" y1="17" x2="8" y2="17"/>
-                                        <polyline points="10,9 9,9 8,9"/>
-                                    </svg>
-                                    P&L Reports
-                                </a></li>
-                                @endif
                             </ul>
                         </li>
                         @endif

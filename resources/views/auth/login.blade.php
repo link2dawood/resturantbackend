@@ -32,11 +32,22 @@
                     </span>
                 </label>
                 <div class="input-group input-group-flat">
-                    <input type="password" class="form-control @error('password') is-invalid @enderror" 
+                    <input type="password" id="password" class="form-control @error('password') is-invalid @enderror" 
                            name="password" placeholder="Your password" autocomplete="current-password">
                     <span class="input-group-text">
-                        <a href="#" class="link-secondary" title="Show password" data-bs-toggle="tooltip">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="m0 0h24v24H0z" fill="none"/><circle cx="12" cy="12" r="2"/><path d="m22 12c-2.667 4.667 -6 7 -10 7s-7.333 -2.333 -10 -7c2.667 -4.667 6 -7 10 -7s7.333 2.333 10 7"/></svg>
+                        <a href="#" id="togglePassword" class="link-secondary" title="Show password" data-bs-toggle="tooltip">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" id="eyeIcon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                <path stroke="none" d="m0 0h24v24H0z" fill="none"/>
+                                <circle cx="12" cy="12" r="2"/>
+                                <path d="m22 12c-2.667 4.667 -6 7 -10 7s-7.333 -2.333 -10 -7c2.667 -4.667 6 -7 10 -7s7.333 2.333 10 7"/>
+                            </svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon d-none" id="eyeOffIcon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                <path stroke="none" d="m0 0h24v24H0z" fill="none"/>
+                                <path d="M10.585 10.587a2 2 0 0 0 2.829 2.828"/>
+                                <path d="M16.681 16.673a10 10 0 0 1 -4.681 4.327c-4 0 -7.333 -2.333 -10 -7c2.667 -4.667 6 -7 10 -7a9.98 9.98 0 0 1 4.619 1.181"/>
+                                <path d="M19.5 19.5l-3.5 -3.5"/>
+                                <path d="M3 3l18 18"/>
+                            </svg>
                         </a>
                     </span>
                 </div>
@@ -58,5 +69,43 @@
         </form>
     </div>
 </div>
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const passwordInput = document.getElementById('password');
+    const togglePassword = document.getElementById('togglePassword');
+    const eyeIcon = document.getElementById('eyeIcon');
+    const eyeOffIcon = document.getElementById('eyeOffIcon');
+    
+    if (togglePassword && passwordInput && eyeIcon && eyeOffIcon) {
+        togglePassword.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            // Toggle password visibility
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                togglePassword.setAttribute('title', 'Hide password');
+                eyeIcon.classList.add('d-none');
+                eyeOffIcon.classList.remove('d-none');
+            } else {
+                passwordInput.type = 'password';
+                togglePassword.setAttribute('title', 'Show password');
+                eyeIcon.classList.remove('d-none');
+                eyeOffIcon.classList.add('d-none');
+            }
+            
+            // Update tooltip if Bootstrap tooltip is initialized
+            if (typeof bootstrap !== 'undefined') {
+                const tooltip = bootstrap.Tooltip.getInstance(togglePassword);
+                if (tooltip) {
+                    tooltip.setContent({ '.tooltip-inner': togglePassword.getAttribute('title') });
+                }
+            }
+        });
+    }
+});
+</script>
+@endpush
 
 @endsection
