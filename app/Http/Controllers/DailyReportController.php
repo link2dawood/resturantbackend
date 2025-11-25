@@ -13,6 +13,7 @@ use App\Models\DailyReportTransaction;
 use App\Models\RevenueIncomeType;
 use App\Models\Store;
 use App\Models\TransactionType;
+use App\Models\Vendor;
 use App\Services\DailyReportService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;

@@ -24,32 +24,32 @@
     .report-header {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
-        padding: 20px;
+        padding: 12px 15px;
         text-align: center;
     }
     
     .company-name {
-        font-size: 1.8rem;
+        font-size: 1.5rem;
         font-weight: bold;
-        margin-bottom: 10px;
+        margin-bottom: 5px;
     }
     
     .company-info {
         opacity: 0.9;
-        font-size: 0.9rem;
+        font-size: 0.85rem;
     }
     
     .section-title {
         background: #f8f9fa;
-        padding: 15px 20px;
+        padding: 10px 15px;
         font-weight: 600;
         border-bottom: 2px solid #e9ecef;
         color: #495057;
-        font-size: 1.1rem;
+        font-size: 1rem;
     }
     
     .form-section {
-        padding: 20px;
+        padding: 12px 15px;
     }
     
     .transaction-table {
@@ -60,15 +60,16 @@
     
     .transaction-table th {
         background: #f8f9fa;
-        padding: 12px 8px;
+        padding: 8px 6px;
         border: 1px solid #dee2e6;
         font-weight: 600;
         text-align: center;
+        font-size: 0.875rem;
     }
     
     .transaction-table td {
         border: 1px solid #dee2e6;
-        padding: 8px;
+        padding: 6px;
     }
     
     .form-input {
@@ -126,25 +127,26 @@
     
     .side-panel {
         background: #f8f9fa;
-        padding: 20px;
+        padding: 12px 15px;
         border-radius: 8px;
-        margin-bottom: 20px;
+        margin-bottom: 12px;
     }
     
     .side-panel .form-group {
-        margin-bottom: 15px;
+        margin-bottom: 10px;
     }
     
     .side-panel label {
         font-weight: 600;
         color: #495057;
-        margin-bottom: 5px;
+        margin-bottom: 4px;
         display: block;
+        font-size: 0.875rem;
     }
     
     .side-panel input {
         width: 100%;
-        padding: 8px 12px;
+        padding: 6px 10px;
         border: 1px solid #ced4da;
         border-radius: 4px;
         font-size: 14px;
@@ -152,9 +154,9 @@
     
     .category-labels {
         background: #e9ecef;
-        padding: 15px;
+        padding: 10px 12px;
         border-radius: 8px;
-        margin-top: 20px;
+        margin-top: 12px;
     }
     
     .category-labels .category {
@@ -171,8 +173,8 @@
     .sales-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 30px;
-        margin-top: 20px;
+        gap: 15px;
+        margin-top: 12px;
     }
     
     .sales-table {
@@ -181,7 +183,7 @@
     }
     
     .sales-table td {
-        padding: 12px 15px;
+        padding: 8px 10px;
         border: 1px solid #dee2e6;
     }
     
@@ -202,9 +204,9 @@
         background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
         color: white;
         border: none;
-        padding: 15px 40px;
+        padding: 10px 30px;
         border-radius: 25px;
-        font-size: 16px;
+        font-size: 15px;
         font-weight: 600;
         cursor: pointer;
         box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
@@ -387,7 +389,7 @@
                                 </tr>
                             </tbody>
                         </table>
-                        <div style="margin-top: 15px; padding: 10px; background: #fff3cd; border-radius: 4px; border: 1px solid #ffeaa7;">
+                        <div style="margin-top: 8px; padding: 8px; background: #fff3cd; border-radius: 4px; border: 1px solid #ffeaa7;">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
                                 <span style="font-weight: 600; color: #856404;">Total Transaction Expenses:</span>
                                 <span id="totalTransactionExpenses" style="font-weight: 600; color: #856404; font-size: 1.1rem;">$0.00</span>
@@ -463,7 +465,7 @@
                             </tbody>
                         </table>
                         <button type="button" id="addRevenueRow" class="btn-add-row" style="margin-top: 10px;">+ Add Revenue Entry</button>
-                        <div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 4px;">
+                        <div style="margin-top: 8px; padding: 8px; background: #f8f9fa; border-radius: 4px;">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
                                 <span style="font-weight: 600; color: #495057;">Total Revenue Income:</span>
                                 <span id="totalRevenue" style="font-weight: 600; color: #28a745; font-size: 1.1rem;">$0.00</span>
@@ -603,7 +605,7 @@
                     </div>
                 </div>
 
-                <div class="text-center mt-4">
+                <div class="text-center mt-2">
                     <button type="submit" class="save-btn">Save Daily Report</button>
                 </div>
             </div>

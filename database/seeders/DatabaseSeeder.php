@@ -13,23 +13,34 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        $this->call(TransactionTypeTableSeeder::class);
-        $this->call(StateSeeder::class);
-
-        User::factory()->create([
+        // Create users first (needed for stores and other relationships)
+        $admin = User::factory()->create([
             'name' => 'Admin',
             'email' => 'admin@admin.com',
             'role' => 'admin',
         ]);
-        User::factory()->create([
+        
+        $owner = User::factory()->create([
             'name' => 'Owner',
             'email' => 'owner@owner.com',
             'role' => 'owner',
         ]);
+        
         User::factory()->create([
             'name' => 'Manager',
             'email' => 'manager@manager.com',
             'role' => 'manager',
+        ]);
+
+        // Seed in order (respecting dependencies)
+        $this->call([
+            StateSeeder::class,
+            TransactionTypeTableSeeder::class,
+            ChartOfAccountsSeeder::class,
+            PermissionSeeder::class,
+            RevenueIncomeTypeSeeder::class,
+            StoresSeeder::class,
+            VendorsSeeder::class,
         ]);
     }
 }
