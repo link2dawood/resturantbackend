@@ -10,7 +10,6 @@ use App\Models\TransactionMappingRule;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 
 class ExpenseController extends Controller
 {
@@ -240,17 +239,7 @@ class ExpenseController extends Controller
         DB::beginTransaction();
         try {
             foreach ($cashTransactions as $cashTrans) {
-                // Check if already imported
-                $existing = ExpenseTransaction::where('daily_report_id', $cashTrans->daily_report_id)
-                    ->whereNotNull('daily_report_id')
-                    ->first();
-
-                if ($existing) {
-                    $skipped++;
-                    continue;
-                }
-
-                // Try to match vendor
+                // Try to match vendor first (needed for duplicate check)
                 $vendor = null;
                 if ($cashTrans->company) {
                     $vendor = $this->matchVendor($cashTrans->company);
@@ -262,18 +251,40 @@ class ExpenseController extends Controller
                     $coaId = $vendor->default_coa_id;
                 }
 
-                // Generate duplicate hash
+                // Generate duplicate hash - unique per transaction (not per report)
                 $duplicateHash = $this->generateDuplicateHash(
                     $cashTrans->dailyReport->store_id,
                     $cashTrans->dailyReport->report_date,
                     $vendor?->id,
-                    $cashTrans->amount
+                    $cashTrans->amount,
+                    $cashTrans->id // Include transaction ID to make it unique
                 );
 
-                // Create expense transaction
+                // Check if this specific transaction already imported (by duplicate hash or daily_report_transaction_id)
+                $existing = ExpenseTransaction::where('duplicate_check_hash', $duplicateHash)
+                    ->orWhere(function($q) use ($cashTrans) {
+                        // Also check by daily_report_id + amount + vendor to catch edge cases
+                        $q->where('daily_report_id', $cashTrans->daily_report_id)
+                          ->where('amount', $cashTrans->amount)
+                          ->where('transaction_date', $cashTrans->dailyReport->report_date);
+                        if ($vendor) {
+                            $q->where('vendor_id', $vendor->id);
+                        } else {
+                            $q->where('vendor_name_raw', $cashTrans->company);
+                        }
+                    })
+                    ->first();
+
+                if ($existing) {
+                    $skipped++;
+                    continue;
+                }
+
+                // Create expense transaction with all required fields
                 $expense = ExpenseTransaction::create([
                     'transaction_type' => 'cash',
                     'transaction_date' => $cashTrans->dailyReport->report_date,
+                    'post_date' => $cashTrans->dailyReport->report_date, // Same as transaction date for cash
                     'store_id' => $cashTrans->dailyReport->store_id,
                     'vendor_id' => $vendor?->id,
                     'vendor_name_raw' => $cashTrans->company,
@@ -286,6 +297,10 @@ class ExpenseController extends Controller
                     'duplicate_check_hash' => $duplicateHash,
                     'daily_report_id' => $cashTrans->daily_report_id,
                     'created_by' => $cashTrans->dailyReport->created_by,
+                    // Notes field - DailyReportTransaction doesn't have notes, but we can add a reference
+                    'notes' => $cashTrans->transactionType ? 
+                        "Synced from Daily Report #{$cashTrans->daily_report_id} - {$cashTrans->transactionType->name}" : 
+                        "Synced from Daily Report #{$cashTrans->daily_report_id}",
                 ]);
 
                 $imported++;
@@ -334,12 +349,16 @@ class ExpenseController extends Controller
     }
 
     /**
-     * Generate duplicate check hash
+     * Generate duplicate check hash (consistent hash for duplicate detection)
      */
-    private function generateDuplicateHash($storeId, $date, $vendorId, $amount)
+    private function generateDuplicateHash($storeId, $date, $vendorId, $amount, $transactionId = null)
     {
-        $data = $storeId . '|' . $date . '|' . ($vendorId ?? 'NULL') . '|' . $amount;
-        return Hash::make($data);
+        $data = $storeId . '|' . $date . '|' . ($vendorId ?? 'NULL') . '|' . number_format($amount, 2);
+        if ($transactionId) {
+            $data .= '|' . $transactionId;
+        }
+        // Use md5 for consistent hashing (not bcrypt which changes each time)
+        return md5($data);
     }
 
     /**

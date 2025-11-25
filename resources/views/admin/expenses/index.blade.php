@@ -410,6 +410,46 @@ document.addEventListener('DOMContentLoaded', function() {
         e.preventDefault();
         syncExpenses();
     });
+
+    // Auto-fill COA when vendor is selected (Create modal)
+    const expenseVendorSelect = document.getElementById('expenseVendor');
+    if (expenseVendorSelect) {
+        expenseVendorSelect.addEventListener('change', function() {
+            const vendorId = this.value;
+            if (vendorId) {
+                autoFillCoaFromVendor(vendorId, 'expenseCoa');
+            } else {
+                // Clear COA if vendor is deselected
+                document.getElementById('expenseCoa').value = '';
+            }
+        });
+    }
+
+    // Auto-fill COA when vendor is selected (Edit modal)
+    const editVendorSelect = document.getElementById('editVendor');
+    if (editVendorSelect) {
+        editVendorSelect.addEventListener('change', function() {
+            const vendorId = this.value;
+            if (vendorId) {
+                autoFillCoaFromVendor(vendorId, 'editCoa');
+            } else {
+                // Clear COA if vendor is deselected
+                document.getElementById('editCoa').value = '';
+            }
+        });
+    }
+
+    // Reload vendors when store changes (Create modal)
+    const expenseStoreSelect = document.getElementById('expenseStore');
+    if (expenseStoreSelect) {
+        expenseStoreSelect.addEventListener('change', function() {
+            const storeId = this.value;
+            loadVendors(storeId);
+            // Clear vendor and COA when store changes
+            document.getElementById('expenseVendor').value = '';
+            document.getElementById('expenseCoa').value = '';
+        });
+    }
 });
 
 // Show sync modal
@@ -597,9 +637,14 @@ function loadStores() {
     .catch(error => console.error('Error loading stores:', error));
 }
 
-// Load vendors
-function loadVendors() {
-    fetch('/api/vendors?per_page=1000', {
+// Load vendors (filtered by store if store is selected)
+function loadVendors(storeId = null) {
+    let url = '/api/vendors?per_page=1000';
+    if (storeId) {
+        url += `&store_id=${storeId}`;
+    }
+    
+    fetch(url, {
         headers: {
             'Accept': 'application/json',
             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
@@ -649,6 +694,59 @@ function loadCOAs() {
         });
     })
     .catch(error => console.error('Error loading COAs:', error));
+}
+
+// Auto-fill COA category when vendor is selected
+function autoFillCoaFromVendor(vendorId, coaSelectId) {
+    if (!vendorId) return;
+    
+    fetch(`/api/vendors/${vendorId}`, {
+        headers: {
+            'Accept': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+        },
+        credentials: 'same-origin'
+    })
+    .then(response => response.json())
+    .then(vendor => {
+        const coaSelect = document.getElementById(coaSelectId);
+        if (!coaSelect) return;
+        
+        // Handle both direct response and wrapped response
+        const vendorData = vendor.data || vendor;
+        const defaultCoaId = vendorData.default_coa_id;
+        
+        // If vendor has a default COA, auto-fill it
+        if (defaultCoaId) {
+            // Ensure COAs are loaded first
+            if (coaSelect.options.length <= 1) {
+                loadCOAs().then(() => {
+                    setCoaValue(coaSelect, defaultCoaId);
+                });
+            } else {
+                setCoaValue(coaSelect, defaultCoaId);
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Error fetching vendor details:', error);
+    });
+}
+
+// Helper function to set COA value with visual feedback
+function setCoaValue(coaSelect, coaId) {
+    coaSelect.value = coaId;
+    
+    // Show a brief visual indicator that COA was auto-filled
+    coaSelect.style.backgroundColor = '#e7f3ff';
+    coaSelect.style.transition = 'background-color 0.3s';
+    
+    setTimeout(() => {
+        coaSelect.style.backgroundColor = '';
+    }, 1500);
+    
+    // Show toast notification
+    showToast('Category auto-filled from vendor default', 'success');
 }
 
 // Utility functions

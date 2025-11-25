@@ -9,11 +9,14 @@ use App\Models\ImportBatch;
 use App\Models\DailyReport;
 use App\Models\ExpenseTransaction;
 use App\Models\Vendor;
+use App\Models\TransactionMappingRule;
+use App\Models\ChartOfAccount;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Hash;
 
 class BankImportController extends Controller
 {
@@ -123,6 +126,8 @@ class BankImportController extends Controller
             $importedCount = 0;
             $duplicateCount = 0;
             $errorCount = 0;
+            $needsReviewCount = 0;
+            $expenseTransactionsCreated = 0;
 
             foreach ($transactions as $row) {
                 try {
@@ -142,7 +147,7 @@ class BankImportController extends Controller
                     }
 
                     // Create bank transaction
-                    BankTransaction::create([
+                    $bankTransaction = BankTransaction::create([
                         'bank_account_id' => $bankAccount->id,
                         'transaction_date' => $row['transaction_date'],
                         'post_date' => $row['post_date'] ?? $row['transaction_date'],
@@ -158,6 +163,24 @@ class BankImportController extends Controller
 
                     $importedCount++;
 
+                    // For debit transactions, automatically create expense transaction with vendor matching
+                    if ($row['transaction_type'] === 'debit' && abs($row['amount']) > 0) {
+                        $expenseCreated = $this->createExpenseFromBankTransaction(
+                            $bankTransaction,
+                            $bankAccount,
+                            $importBatch,
+                            $row['card_last_four'] ?? null,
+                            $row['card_type'] ?? null
+                        );
+
+                        if ($expenseCreated) {
+                            $expenseTransactionsCreated++;
+                            if ($expenseCreated->needs_review) {
+                                $needsReviewCount++;
+                            }
+                        }
+                    }
+
                 } catch (\Exception $e) {
                     Log::error('Error importing bank transaction: ' . $e->getMessage(), ['row' => $row]);
                     $errorCount++;
@@ -169,6 +192,7 @@ class BankImportController extends Controller
                 'imported_count' => $importedCount,
                 'duplicate_count' => $duplicateCount,
                 'error_count' => $errorCount,
+                'needs_review_count' => $needsReviewCount,
                 'status' => 'completed',
             ]);
 
@@ -179,6 +203,8 @@ class BankImportController extends Controller
                 'imported' => $importedCount,
                 'duplicates' => $duplicateCount,
                 'errors' => $errorCount,
+                'expense_transactions_created' => $expenseTransactionsCreated,
+                'needs_review' => $needsReviewCount,
                 'batch_id' => $importBatch->id,
             ]);
 
@@ -200,13 +226,17 @@ class BankImportController extends Controller
 
         $firstLine = strtolower($lines[0]);
 
-        // Chase format detection
-        if (strpos($firstLine, 'chase') !== false || strpos($firstLine, 'card') !== false) {
+        // Chase credit card format detection
+        // Format: Card, Transaction Date, Post Date, Description, Category, Type, Amount, Memo
+        if (strpos($firstLine, 'chase') !== false || 
+            (strpos($firstLine, 'card') !== false && strpos($firstLine, 'transaction date') !== false)) {
             return 'chase';
         }
 
-        // Generic format with common headers
-        if (strpos($firstLine, 'date') !== false && strpos($firstLine, 'amount') !== false) {
+        // Generic credit card format with common headers
+        // Look for: Date, Description, Amount, or Date, Vendor, Description, Amount
+        if ((strpos($firstLine, 'date') !== false && strpos($firstLine, 'amount') !== false) ||
+            (strpos($firstLine, 'date') !== false && strpos($firstLine, 'vendor') !== false && strpos($firstLine, 'amount') !== false)) {
             return 'generic';
         }
 
@@ -263,6 +293,13 @@ class BankImportController extends Controller
                 return null;
             }
 
+            // Try to extract card info from description or reference number
+            $cardInfo = null;
+            $cardSource = $row[4] ?? $row[1] ?? '';
+            if ($cardSource) {
+                $cardInfo = $this->extractCardInfo($cardSource);
+            }
+
             return [
                 'transaction_date' => $date,
                 'post_date' => $date,
@@ -271,6 +308,8 @@ class BankImportController extends Controller
                 'amount' => abs($amount),
                 'balance' => isset($row[3]) ? $this->parseAmount($row[3]) : null,
                 'reference_number' => $row[4] ?? null,
+                'card_last_four' => $cardInfo['last_four'] ?? null,
+                'card_type' => $cardInfo['type'] ?? null,
             ];
         }
 
@@ -290,6 +329,9 @@ class BankImportController extends Controller
                 return null;
             }
 
+            // Extract card type and last 4 digits from card number
+            $cardInfo = $this->extractCardInfo($row[0] ?? '');
+
             return [
                 'transaction_date' => $this->parseDate($row[1]) ?? $date,
                 'post_date' => $date,
@@ -297,6 +339,8 @@ class BankImportController extends Controller
                 'transaction_type' => strtolower($row[6]) === 'debit' ? 'debit' : 'credit',
                 'amount' => abs($amount),
                 'reference_number' => $row[0] ?? null, // Card number
+                'card_last_four' => $cardInfo['last_four'] ?? null,
+                'card_type' => $cardInfo['type'] ?? null,
             ];
         }
 
@@ -372,5 +416,268 @@ class BankImportController extends Controller
         $batches = $query->paginate(20);
 
         return response()->json($batches);
+    }
+
+    /**
+     * Create expense transaction from bank transaction with automatic vendor matching and COA assignment
+     */
+    protected function createExpenseFromBankTransaction(
+        BankTransaction $bankTransaction,
+        BankAccount $bankAccount,
+        ImportBatch $importBatch,
+        ?string $cardLastFour = null,
+        ?string $cardType = null
+    ): ?ExpenseTransaction {
+        try {
+            // Try to match vendor from description
+            $vendor = $this->matchVendor($bankTransaction->description);
+            
+            // Try to get COA from mapping rules first
+            $coaId = $this->getCoaFromMappingRule($bankTransaction->description, $vendor);
+            
+            // If no mapping rule, use vendor's default COA
+            if (!$coaId && $vendor && $vendor->default_coa_id) {
+                $coaId = $vendor->default_coa_id;
+            }
+
+            // Determine payment method based on transaction type
+            $paymentMethod = $this->mapTransactionTypeToPaymentMethod($bankTransaction->transaction_type);
+
+            // Generate duplicate check hash for expense (Date + Vendor + Amount)
+            // Use vendor ID if matched, otherwise use normalized vendor name from description
+            $vendorIdentifier = $vendor?->id ?? $this->extractVendorNameFromDescription($bankTransaction->description);
+            $expenseDuplicateHash = $this->generateExpenseDuplicateHash(
+                $bankAccount->store_id,
+                $bankTransaction->transaction_date,
+                $vendorIdentifier,
+                $bankTransaction->amount
+            );
+
+            // Check if expense already exists
+            $existingExpense = ExpenseTransaction::where('duplicate_check_hash', $expenseDuplicateHash)->first();
+            if ($existingExpense) {
+                return null; // Skip duplicate
+            }
+
+            // Determine if needs review
+            $needsReview = !$vendor || !$coaId;
+            $reviewReason = null;
+            if (!$vendor) {
+                $reviewReason = 'Vendor not found';
+            } elseif (!$coaId) {
+                $reviewReason = 'COA not assigned';
+            }
+
+            // If card info not provided, try to extract from description or reference number
+            if (!$cardLastFour) {
+                $cardInfo = $this->extractCardInfo(
+                    $bankTransaction->description . ' ' . ($bankTransaction->reference_number ?? '')
+                );
+                $cardLastFour = $cardInfo['last_four'] ?? null;
+                $cardType = $cardInfo['type'] ?? null;
+            }
+
+            // Create expense transaction
+            $expense = ExpenseTransaction::create([
+                'transaction_type' => $this->mapPaymentMethodToTransactionType($paymentMethod),
+                'transaction_date' => $bankTransaction->transaction_date,
+                'post_date' => $bankTransaction->post_date,
+                'store_id' => $bankAccount->store_id,
+                'vendor_id' => $vendor?->id,
+                'vendor_name_raw' => $this->extractVendorNameFromDescription($bankTransaction->description),
+                'coa_id' => $coaId,
+                'amount' => $bankTransaction->amount,
+                'description' => $bankTransaction->description,
+                'reference_number' => $bankTransaction->reference_number,
+                'payment_method' => $paymentMethod,
+                'card_last_four' => $cardLastFour,
+                'needs_review' => $needsReview,
+                'review_reason' => $reviewReason,
+                'duplicate_check_hash' => $expenseDuplicateHash,
+                'import_batch_id' => $importBatch->id,
+                'created_by' => auth()->id(),
+            ]);
+
+            return $expense;
+
+        } catch (\Exception $e) {
+            Log::error('Error creating expense from bank transaction: ' . $e->getMessage(), [
+                'bank_transaction_id' => $bankTransaction->id,
+            ]);
+            return null;
+        }
+    }
+
+    /**
+     * Match vendor by description using aliases and fuzzy matching
+     */
+    protected function matchVendor(string $description): ?Vendor
+    {
+        // Extract potential vendor name from description (first few words)
+        $words = explode(' ', trim($description));
+        $potentialVendorName = implode(' ', array_slice($words, 0, 3)); // First 3 words
+
+        // First, try exact match with aliases
+        $vendor = Vendor::whereHas('aliases', function($q) use ($potentialVendorName) {
+            $q->where('alias', 'like', '%' . $potentialVendorName . '%');
+        })->first();
+
+        if ($vendor) {
+            return $vendor;
+        }
+
+        // Try fuzzy matching using VendorController
+        try {
+            $matchResult = app(\App\Http\Controllers\Api\VendorController::class)
+                ->match(new Request(['description' => $description]));
+            $matchData = json_decode($matchResult->getContent(), true);
+
+            if ($matchData && isset($matchData['match']) && $matchData['match'] && 
+                isset($matchData['confidence']) && $matchData['confidence'] >= 60) {
+                return Vendor::find($matchData['vendor']['id'] ?? null);
+            }
+        } catch (\Exception $e) {
+            Log::debug('Fuzzy matching failed: ' . $e->getMessage());
+        }
+
+        return null;
+    }
+
+    /**
+     * Get COA from mapping rules based on description pattern
+     */
+    protected function getCoaFromMappingRule(string $description, ?Vendor $vendor = null): ?int
+    {
+        // Try to find matching mapping rule
+        $mappingRule = TransactionMappingRule::where('description_pattern', 'like', '%' . substr($description, 0, 20) . '%')
+            ->orderBy('confidence_score', 'desc')
+            ->orderBy('times_used', 'desc')
+            ->first();
+
+        if ($mappingRule && $mappingRule->coa_id) {
+            // Update usage statistics
+            $mappingRule->markAsUsed();
+            return $mappingRule->coa_id;
+        }
+
+        // If vendor provided, try vendor-specific mapping
+        if ($vendor) {
+            $vendorMapping = TransactionMappingRule::where('vendor_id', $vendor->id)
+                ->where('description_pattern', 'like', '%' . substr($description, 0, 20) . '%')
+                ->orderBy('confidence_score', 'desc')
+                ->first();
+
+            if ($vendorMapping && $vendorMapping->coa_id) {
+                $vendorMapping->markAsUsed();
+                return $vendorMapping->coa_id;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Map transaction type to payment method
+     */
+    protected function mapTransactionTypeToPaymentMethod(string $transactionType): string
+    {
+        return match($transactionType) {
+            'debit' => 'credit_card',
+            'credit' => 'credit_card',
+            default => 'credit_card',
+        };
+    }
+
+    /**
+     * Map payment method to transaction type
+     */
+    protected function mapPaymentMethodToTransactionType(string $paymentMethod): string
+    {
+        return match($paymentMethod) {
+            'cash' => 'cash',
+            'credit_card', 'debit_card' => 'credit_card',
+            'check' => 'check',
+            'eft' => 'bank_transfer',
+            default => 'credit_card',
+        };
+    }
+
+    /**
+     * Generate duplicate check hash for expense transaction
+     * Uses Date + Vendor + Amount for duplicate detection
+     */
+    protected function generateExpenseDuplicateHash($storeId, $date, $vendorIdentifier, $amount): string
+    {
+        // Normalize amount to 2 decimal places
+        $normalizedAmount = number_format((float)$amount, 2, '.', '');
+        // Use consistent hash (MD5) for duplicate detection
+        $data = $storeId . '|' . $date . '|' . ($vendorIdentifier ?? 'NULL') . '|' . $normalizedAmount;
+        return md5($data);
+    }
+
+    /**
+     * Extract card information (type and last 4 digits) from card number or description
+     */
+    protected function extractCardInfo($cardString): array
+    {
+        $result = ['last_four' => null, 'type' => null];
+        
+        if (!$cardString) {
+            return $result;
+        }
+
+        // Extract last 4 digits
+        if (preg_match('/(\d{4})\s*$/', $cardString, $matches)) {
+            $result['last_four'] = $matches[1];
+        }
+
+        // Detect card type from card number patterns
+        $cardString = preg_replace('/\s+/', '', $cardString);
+        
+        // Visa: starts with 4
+        if (preg_match('/^4/', $cardString)) {
+            $result['type'] = 'Visa';
+        }
+        // Mastercard: starts with 5
+        elseif (preg_match('/^5[1-5]/', $cardString)) {
+            $result['type'] = 'Mastercard';
+        }
+        // American Express: starts with 34 or 37
+        elseif (preg_match('/^3[47]/', $cardString)) {
+            $result['type'] = 'American Express';
+        }
+        // Discover: starts with 6
+        elseif (preg_match('/^6/', $cardString)) {
+            $result['type'] = 'Discover';
+        }
+
+        return $result;
+    }
+
+    /**
+     * Extract vendor name from transaction description
+     * Removes common prefixes/suffixes and card info
+     */
+    protected function extractVendorNameFromDescription($description): string
+    {
+        if (!$description) {
+            return '';
+        }
+
+        // Remove common card-related prefixes
+        $description = preg_replace('/^(POS|DEBIT|CREDIT|PURCHASE|AUTH)\s*/i', '', $description);
+        
+        // Remove card number patterns (e.g., "****1234")
+        $description = preg_replace('/\*+\d{4}/', '', $description);
+        
+        // Remove date patterns
+        $description = preg_replace('/\d{1,2}\/\d{1,2}\/\d{2,4}/', '', $description);
+        
+        // Clean up extra spaces
+        $description = trim(preg_replace('/\s+/', ' ', $description));
+        
+        // Take first part (usually vendor name)
+        $parts = explode(' ', $description);
+        return implode(' ', array_slice($parts, 0, min(5, count($parts))));
     }
 }
