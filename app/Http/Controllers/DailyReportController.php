@@ -35,71 +35,58 @@ class DailyReportController extends Controller
 
     /**
      * Display a listing of the resource.
+     * Hierarchical selection: Year -> Month -> Reports
      */
     public function index(Request $request)
     {
         $user = auth()->user();
-        $query = DailyReport::with(['store', 'creator', 'approver', 'transactions', 'revenues.revenueIncomeType'])
-            ->withSum('transactions', 'amount')
-            ->withSum('revenues', 'amount');
+        
+        // Get selected year and month from request
+        $selectedYear = $request->get('year');
+        $selectedMonth = $request->get('month');
+        
+        // Generate years list (2000 to current year)
+        $currentYear = (int) date('Y');
+        $years = range(2000, $currentYear);
+        rsort($years); // Most recent first
+        
+        // Months list
+        $months = [
+            1 => 'January', 2 => 'February', 3 => 'March', 4 => 'April',
+            5 => 'May', 6 => 'June', 7 => 'July', 8 => 'August',
+            9 => 'September', 10 => 'October', 11 => 'November', 12 => 'December'
+        ];
+        
+        // Initialize reports collection
+        $reports = collect();
+        
+        // If year and month are selected, fetch reports
+        if ($selectedYear && $selectedMonth) {
+            $query = DailyReport::with(['store', 'creator', 'approver', 'transactions', 'revenues.revenueIncomeType'])
+                ->withSum('transactions', 'amount')
+                ->withSum('revenues', 'amount');
 
-        // Filter reports based on user accessible stores
-        if (! $user->isAdmin()) {
-            $accessibleStoreIds = $user->accessibleStores()->pluck('id');
-            $query->whereIn('store_id', $accessibleStoreIds);
-        }
+            // Filter reports based on user accessible stores
+            if (! $user->isAdmin()) {
+                $accessibleStoreIds = $user->accessibleStores()->pluck('id');
+                $query->whereIn('store_id', $accessibleStoreIds);
+            }
 
-        // Apply search filters
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->whereHas('store', function ($storeQ) use ($search) {
-                    $storeQ->where('store_info', 'LIKE', "%{$search}%");
-                })
-                    ->orWhereHas('creator', function ($userQ) use ($search) {
-                        $userQ->where('name', 'LIKE', "%{$search}%");
-                    })
-                    ->orWhere('gross_sales', 'LIKE', "%{$search}%")
-                    ->orWhere('net_sales', 'LIKE', "%{$search}%");
-            });
-        }
+            // Filter by year and month
+            $query->whereYear('report_date', $selectedYear)
+                  ->whereMonth('report_date', $selectedMonth);
 
-        // Date range filter
-        if ($request->filled('date_from')) {
-            $query->whereDate('report_date', '>=', $request->date_from);
-        }
+            // Store filter
+            if ($request->filled('store_id')) {
+                $query->where('store_id', $request->store_id);
+            }
 
-        if ($request->filled('date_to')) {
-            $query->whereDate('report_date', '<=', $request->date_to);
-        }
-
-        // Store filter
-        if ($request->filled('store_id')) {
-            $query->where('store_id', $request->store_id);
-        }
-
-        // Amount range filter
-        if ($request->filled('min_amount')) {
-            $query->where('gross_sales', '>=', $request->min_amount);
-        }
-
-        if ($request->filled('max_amount')) {
-            $query->where('gross_sales', '<=', $request->max_amount);
-        }
-
-        // Sorting
-        $sortBy = $request->get('sort_by', 'report_date');
-        $sortOrder = $request->get('sort_order', 'desc');
-
-        $validSortFields = ['report_date', 'gross_sales', 'net_sales', 'created_at'];
-        if (in_array($sortBy, $validSortFields)) {
-            $query->orderBy($sortBy, $sortOrder);
-        } else {
+            // Sorting
             $query->orderBy('report_date', 'desc');
+
+            $reports = $query->paginate(50)->appends($request->query());
         }
-
-        $reports = $query->paginate(15)->appends($request->query());
-
+        
         // Get available stores for filter dropdown (based on user role)
         $storesQuery = Store::query();
         if ($user->hasPermission('view_daily_reports')) {
@@ -111,7 +98,7 @@ class DailyReportController extends Controller
         }
         $stores = $storesQuery->get();
 
-        return view('daily-reports.index', compact('reports', 'stores'));
+        return view('daily-reports.index', compact('reports', 'stores', 'years', 'months', 'selectedYear', 'selectedMonth'));
     }
 
     /**
