@@ -309,44 +309,44 @@
                     @if($analytics['monthlyComparison']['changes'])
                         <div class="row g-3">
                             <div class="col-6 col-md-3">
-                                <div class="text-center p-3" style="background: #fafafa; border-radius: 4px;">
-                                    <div class="stat-value" style="font-size: 1.5rem; margin-bottom: 0.5rem;">${{ number_format($analytics['monthlyComparison']['current']->gross_sales ?? 0, 0) }}</div>
-                                    <div class="stat-meta">Gross Sales</div>
+                                <div class="metric-card">
+                                    <div class="metric-value">${{ number_format($analytics['monthlyComparison']['current']->gross_sales ?? 0, 0) }}</div>
+                                    <div class="metric-label">Gross Sales</div>
                                     @if($analytics['monthlyComparison']['changes']['gross_sales'])
-                                        <span class="badge {{ $analytics['monthlyComparison']['changes']['gross_sales'] >= 0 ? 'bg-success' : 'bg-danger' }} mt-2">
+                                        <span class="badge-material {{ $analytics['monthlyComparison']['changes']['gross_sales'] >= 0 ? 'bg-success' : 'bg-danger' }} text-white mt-2">
                                             {{ $analytics['monthlyComparison']['changes']['gross_sales'] >= 0 ? '+' : '' }}{{ $analytics['monthlyComparison']['changes']['gross_sales'] }}%
                                         </span>
                                     @endif
                                 </div>
                             </div>
                             <div class="col-6 col-md-3">
-                                <div class="text-center p-3" style="background: #fafafa; border-radius: 4px;">
-                                    <div class="stat-value" style="font-size: 1.5rem; margin-bottom: 0.5rem;">${{ number_format($analytics['monthlyComparison']['current']->net_sales ?? 0, 0) }}</div>
-                                    <div class="stat-meta">Net Sales</div>
+                                <div class="metric-card">
+                                    <div class="metric-value">${{ number_format($analytics['monthlyComparison']['current']->net_sales ?? 0, 0) }}</div>
+                                    <div class="metric-label">Net Sales</div>
                                     @if($analytics['monthlyComparison']['changes']['net_sales'])
-                                        <span class="badge {{ $analytics['monthlyComparison']['changes']['net_sales'] >= 0 ? 'bg-success' : 'bg-danger' }} mt-2">
+                                        <span class="badge-material {{ $analytics['monthlyComparison']['changes']['net_sales'] >= 0 ? 'bg-success' : 'bg-danger' }} text-white mt-2">
                                             {{ $analytics['monthlyComparison']['changes']['net_sales'] >= 0 ? '+' : '' }}{{ $analytics['monthlyComparison']['changes']['net_sales'] }}%
                                         </span>
                                     @endif
                                 </div>
                             </div>
                             <div class="col-6 col-md-3">
-                                <div class="text-center p-3" style="background: #fafafa; border-radius: 4px;">
-                                    <div class="stat-value" style="font-size: 1.5rem; margin-bottom: 0.5rem;">{{ $analytics['monthlyComparison']['current']->reports ?? 0 }}</div>
-                                    <div class="stat-meta">Reports</div>
+                                <div class="metric-card">
+                                    <div class="metric-value">{{ $analytics['monthlyComparison']['current']->reports ?? 0 }}</div>
+                                    <div class="metric-label">Reports</div>
                                     @if($analytics['monthlyComparison']['changes']['reports'])
-                                        <span class="badge {{ $analytics['monthlyComparison']['changes']['reports'] >= 0 ? 'bg-success' : 'bg-danger' }} mt-2">
+                                        <span class="badge-material {{ $analytics['monthlyComparison']['changes']['reports'] >= 0 ? 'bg-success' : 'bg-danger' }} text-white mt-2">
                                             {{ $analytics['monthlyComparison']['changes']['reports'] >= 0 ? '+' : '' }}{{ $analytics['monthlyComparison']['changes']['reports'] }}%
                                         </span>
                                     @endif
                                 </div>
                             </div>
                             <div class="col-6 col-md-3">
-                                <div class="text-center p-3" style="background: #fafafa; border-radius: 4px;">
-                                    <div class="stat-value" style="font-size: 1.5rem; margin-bottom: 0.5rem;">{{ number_format($analytics['monthlyComparison']['current']->avg_customers ?? 0, 0) }}</div>
-                                    <div class="stat-meta">Avg Customers</div>
+                                <div class="metric-card">
+                                    <div class="metric-value">{{ number_format($analytics['monthlyComparison']['current']->avg_customers ?? 0, 0) }}</div>
+                                    <div class="metric-label">Avg Customers</div>
                                     @if($analytics['monthlyComparison']['changes']['avg_customers'])
-                                        <span class="badge {{ $analytics['monthlyComparison']['changes']['avg_customers'] >= 0 ? 'bg-success' : 'bg-danger' }} mt-2">
+                                        <span class="badge-material {{ $analytics['monthlyComparison']['changes']['avg_customers'] >= 0 ? 'bg-success' : 'bg-danger' }} text-white mt-2">
                                             {{ $analytics['monthlyComparison']['changes']['avg_customers'] >= 0 ? '+' : '' }}{{ $analytics['monthlyComparison']['changes']['avg_customers'] }}%
                                         </span>
                                     @endif
@@ -378,7 +378,7 @@
                         </div>
                         <div class="col-12 col-md-6">
                             <div class="table-responsive">
-                                <table class="table table-sm">
+                                <table class="table-material">
                                     <thead>
                                         <tr>
                                             <th>Store</th>
@@ -415,27 +415,27 @@
                 <div class="chart-card-body">
                     <div class="row g-3 mb-3">
                         <div class="col-6 col-md-3">
-                            <div class="text-center p-3" style="background: #e8f5e9; border-radius: 4px;">
-                                <div class="stat-value" style="font-size: 1.5rem; color: #4caf50;">{{ $analytics['financialAnalysis']['profitMargin'] }}%</div>
-                                <div class="stat-meta">Profit Margin</div>
+                            <div class="metric-card" style="background: #e8f5e9;">
+                                <div class="metric-value" style="color: #4caf50;">{{ $analytics['financialAnalysis']['profitMargin'] }}%</div>
+                                <div class="metric-label">Profit Margin</div>
                             </div>
                         </div>
                         <div class="col-6 col-md-3">
-                            <div class="text-center p-3" style="background: #e3f2fd; border-radius: 4px;">
-                                <div class="stat-value" style="font-size: 1.5rem; color: #2196f3;">{{ $analytics['financialAnalysis']['taxRate'] }}%</div>
-                                <div class="stat-meta">Tax Rate</div>
+                            <div class="metric-card" style="background: #e3f2fd;">
+                                <div class="metric-value" style="color: #2196f3;">{{ $analytics['financialAnalysis']['taxRate'] }}%</div>
+                                <div class="metric-label">Tax Rate</div>
                             </div>
                         </div>
                         <div class="col-6 col-md-3">
-                            <div class="text-center p-3" style="background: #fff3e0; border-radius: 4px;">
-                                <div class="stat-value" style="font-size: 1.5rem; color: #ff9800;">{{ $analytics['financialAnalysis']['creditCardRatio'] }}%</div>
-                                <div class="stat-meta">Credit Card Usage</div>
+                            <div class="metric-card" style="background: #fff3e0;">
+                                <div class="metric-value" style="color: #ff9800;">{{ $analytics['financialAnalysis']['creditCardRatio'] }}%</div>
+                                <div class="metric-label">Credit Card Usage</div>
                             </div>
                         </div>
                         <div class="col-6 col-md-3">
-                            <div class="text-center p-3" style="background: #e8f0fe; border-radius: 4px;">
-                                <div class="stat-value" style="font-size: 1.5rem; color: #1976d2;">${{ number_format($analytics['financialAnalysis']['avgDailySales'], 0) }}</div>
-                                <div class="stat-meta">Avg Daily Sales</div>
+                            <div class="metric-card" style="background: #e8f0fe;">
+                                <div class="metric-value" style="color: #1976d2;">${{ number_format($analytics['financialAnalysis']['avgDailySales'], 0) }}</div>
+                                <div class="metric-label">Avg Daily Sales</div>
                             </div>
                         </div>
                     </div>
@@ -469,21 +469,21 @@
                 <div class="chart-card-body">
                     <div class="row g-3 mb-3">
                         <div class="col-12 col-md-4">
-                            <div class="text-center p-3" style="background: #e3f2fd; border-radius: 4px;">
-                                <div class="stat-value" style="font-size: 1.5rem; color: #2196f3;">{{ number_format($analytics['customerAnalytics']['totalCustomers']) }}</div>
-                                <div class="stat-meta">Total Customers</div>
+                            <div class="metric-card" style="background: #e3f2fd;">
+                                <div class="metric-value" style="color: #2196f3;">{{ number_format($analytics['customerAnalytics']['totalCustomers']) }}</div>
+                                <div class="metric-label">Total Customers</div>
                             </div>
                         </div>
                         <div class="col-12 col-md-4">
-                            <div class="text-center p-3" style="background: #e8f5e9; border-radius: 4px;">
-                                <div class="stat-value" style="font-size: 1.5rem; color: #4caf50;">${{ $analytics['customerAnalytics']['avgTicketAmount'] }}</div>
-                                <div class="stat-meta">Avg Ticket Size</div>
+                            <div class="metric-card" style="background: #e8f5e9;">
+                                <div class="metric-value" style="color: #4caf50;">${{ $analytics['customerAnalytics']['avgTicketAmount'] }}</div>
+                                <div class="metric-label">Avg Ticket Size</div>
                             </div>
                         </div>
                         <div class="col-12 col-md-4">
-                            <div class="text-center p-3" style="background: #fff3e0; border-radius: 4px;">
-                                <div class="stat-value" style="font-size: 1.5rem; color: #ff9800;">{{ $analytics['customerAnalytics']['avgDailyCustomers'] }}</div>
-                                <div class="stat-meta">Avg Daily Customers</div>
+                            <div class="metric-card" style="background: #fff3e0;">
+                                <div class="metric-value" style="color: #ff9800;">{{ $analytics['customerAnalytics']['avgDailyCustomers'] }}</div>
+                                <div class="metric-label">Avg Daily Customers</div>
                             </div>
                         </div>
                     </div>

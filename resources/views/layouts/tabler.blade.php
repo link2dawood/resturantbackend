@@ -587,24 +587,18 @@
                     <ul class="navbar-nav me-auto mb-2 mb-lg-0" style="gap: 0.25rem;">
                         <!-- Dashboard -->
                         <li class="nav-item">
-                            <a class="nav-link d-flex align-items-center {{ request()->routeIs('home') ? 'active' : '' }}" href="{{ route('home') }}" style="padding: 8px 16px; border-radius: 20px; font-family: 'Google Sans', sans-serif; font-weight: 500; font-size: 14px; transition: all 0.2s ease; {{ request()->routeIs('home') ? 'background: #4285f4; color: white;' : 'color: #5f6368;' }}" onmouseover="if(!this.classList.contains('active')) { this.style.background='#f1f3f4'; this.style.color='#1a73e8'; }" onmouseout="if(!this.classList.contains('active')) { this.style.background='transparent'; this.style.color='#5f6368'; }">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
-                                    <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
-                                    <polyline points="9,22 9,12 15,12 15,22"/>
-                                </svg>
-                                Dashboard
+                            <a class="nav-link-material {{ request()->routeIs('home') ? 'active' : '' }}" href="{{ route('home') }}">
+                                <i class="bi bi-house-door"></i>
+                                <span>Dashboard</span>
                             </a>
                         </li>
 
-                        <!-- Stores (Admin Only) -->
+                        <!-- Stores -->
                         @if(Auth::user()->hasPermission('manage_stores'))
                         <li class="nav-item">
-                            <a class="nav-link d-flex align-items-center {{ request()->routeIs('stores.*') ? 'active' : '' }}" href="{{ route('stores.index') }}" style="padding: 8px 16px; border-radius: 20px; font-family: 'Google Sans', sans-serif; font-weight: 500; font-size: 14px; transition: all 0.2s ease; {{ request()->routeIs('stores.*') ? 'background: #4285f4; color: white;' : 'color: #5f6368;' }}" onmouseover="if(!this.classList.contains('active')) { this.style.background='#f1f3f4'; this.style.color='#1a73e8'; }" onmouseout="if(!this.classList.contains('active')) { this.style.background='transparent'; this.style.color='#5f6368'; }">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
-                                    <path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/>
-                                    <path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/>
-                                </svg>
-                                Stores
+                            <a class="nav-link-material {{ request()->routeIs('stores.*') ? 'active' : '' }}" href="{{ route('stores.index') }}">
+                                <i class="bi bi-shop"></i>
+                                <span>Stores</span>
                             </a>
                         </li>
                         @endif
@@ -612,12 +606,9 @@
                         <!-- Owners -->
                         @if(Auth::user()->hasPermission('manage_owners'))
                         <li class="nav-item">
-                            <a class="nav-link d-flex align-items-center {{ request()->routeIs('owners.*') ? 'active' : '' }}" href="{{ route('owners.index') }}" style="padding: 8px 16px; border-radius: 20px; font-family: 'Google Sans', sans-serif; font-weight: 500; font-size: 14px; transition: all 0.2s ease; {{ request()->routeIs('owners.*') ? 'background: #4285f4; color: white;' : 'color: #5f6368;' }}" onmouseover="if(!this.classList.contains('active')) { this.style.background='#f1f3f4'; this.style.color='#1a73e8'; }" onmouseout="if(!this.classList.contains('active')) { this.style.background='transparent'; this.style.color='#5f6368'; }">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
-                                    <circle cx="12" cy="7" r="4"/>
-                                    <path d="M6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/>
-                                </svg>
-                                Owners
+                            <a class="nav-link-material {{ request()->routeIs('owners.*') ? 'active' : '' }}" href="{{ route('owners.index') }}">
+                                <i class="bi bi-person-badge"></i>
+                                <span>Owners</span>
                             </a>
                         </li>
                         @endif
@@ -625,14 +616,9 @@
                         <!-- Managers -->
                         @if(Auth::user()->hasPermission('manage_managers'))
                         <li class="nav-item">
-                            <a class="nav-link d-flex align-items-center {{ request()->routeIs('managers.*') ? 'active' : '' }}" href="{{ route('managers.index') }}" style="padding: 8px 16px; border-radius: 20px; font-family: 'Google Sans', sans-serif; font-weight: 500; font-size: 14px; transition: all 0.2s ease; {{ request()->routeIs('managers.*') ? 'background: #4285f4; color: white;' : 'color: #5f6368;' }}" onmouseover="if(!this.classList.contains('active')) { this.style.background='#f1f3f4'; this.style.color='#1a73e8'; }" onmouseout="if(!this.classList.contains('active')) { this.style.background='transparent'; this.style.color='#5f6368'; }">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
-                                    <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
-                                    <circle cx="9" cy="7" r="4"/>
-                                    <path d="M23 21v-2a4 4 0 00-3-3.87"/>
-                                    <path d="M16 3.13a4 4 0 010 7.75"/>
-                                </svg>
-                                Managers
+                            <a class="nav-link-material {{ request()->routeIs('managers.*') ? 'active' : '' }}" href="{{ route('managers.index') }}">
+                                <i class="bi bi-people"></i>
+                                <span>Managers</span>
                             </a>
                         </li>
                         @endif
@@ -640,12 +626,9 @@
                         <!-- Transaction Management -->
                         @if(Auth::user()->hasPermission('manage_transaction_types'))
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle d-flex align-items-center {{ request()->routeIs('transaction-types.*') || request()->routeIs('revenue-income-types.*') || request()->routeIs('coa.*') ? 'active' : '' }}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="padding: 8px 16px; border-radius: 20px; font-family: 'Google Sans', sans-serif; font-weight: 500; font-size: 14px; transition: all 0.2s ease; {{ request()->routeIs('transaction-types.*') || request()->routeIs('revenue-income-types.*') || request()->routeIs('coa.*') ? 'background: #4285f4; color: white;' : 'color: #5f6368;' }}" onmouseover="if(!this.classList.contains('active')) { this.style.background='#f1f3f4'; this.style.color='#1a73e8'; }" onmouseout="if(!this.classList.contains('active')) { this.style.background='transparent'; this.style.color='#5f6368'; }">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
-                                    <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
-                                    <line x1="1" y1="10" x2="23" y2="10"/>
-                                </svg>
-                                Transactions
+                            <a class="nav-link-material dropdown-toggle {{ request()->routeIs('transaction-types.*') || request()->routeIs('revenue-income-types.*') || request()->routeIs('coa.*') ? 'active' : '' }}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-receipt"></i>
+                                <span>Transactions</span>
                             </a>
                             <ul class="dropdown-menu" style="border-radius: 12px; border: 1px solid #e0e0e0; box-shadow: 0 4px 12px rgba(0,0,0,0.15); padding: 8px 0;">
                                 <li><a class="dropdown-item d-flex align-items-center" href="{{ route('coa.index') }}" style="padding: 8px 16px; font-family: 'Google Sans', sans-serif; font-size: 14px; border-radius: 8px; margin: 0 8px;">
