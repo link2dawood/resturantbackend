@@ -64,6 +64,7 @@
         transition: box-shadow 0.28s cubic-bezier(0.4, 0, 0.2, 1);
         overflow: hidden;
         height: 100%;
+        padding: 0 !important;
     }
     
     .card-material:hover,
@@ -77,7 +78,7 @@
     /* Stat Card Styling */
     .stat-card,
     div.stat-card {
-        padding: 1.5rem;
+        padding: 1.5rem !important;
         height: 100%;
         background: #ffffff !important;
         background-color: #ffffff !important;
@@ -120,7 +121,7 @@
     
     /* Chart Card Header */
     .chart-card-header {
-        padding: 1rem 1.5rem;
+        padding: 1rem 1.5rem !important;
         border-bottom: 1px solid rgba(0, 0, 0, 0.12);
         background: #fafafa !important;
     }
@@ -137,8 +138,8 @@
     }
     
     .chart-card-body,
-    div.chart-card-body {
-        padding: 1.5rem;
+    div    .chart-card-body {
+        padding: 1.5rem !important;
         background: #ffffff !important;
         background-color: #ffffff !important;
     }
@@ -288,7 +289,7 @@
         }
     }
     
-    /* Force white backgrounds - highest priority override - Loads after all other CSS */
+    /* Force white backgrounds and padding - highest priority override - Loads after all other CSS */
     html body .container-fluid .row [class*="col"] .card-material,
     html body .container-fluid .card-material,
     html body .card-material,
@@ -306,6 +307,7 @@
         background: #ffffff !important;
         background-color: #ffffff !important;
         background-image: none !important;
+        padding: 1.5rem !important;
     }
     
     html body .container-fluid .chart-card-body,
@@ -315,6 +317,14 @@
         background: #ffffff !important;
         background-color: #ffffff !important;
         background-image: none !important;
+        padding: 1.5rem !important;
+    }
+    
+    html body .container-fluid .chart-card-header,
+    html body .chart-card-header,
+    body .chart-card-header,
+    .chart-card-header {
+        padding: 1rem 1.5rem !important;
     }
 </style>
 @endsection
@@ -1251,9 +1261,9 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 @endif
 
-<!-- Force white backgrounds - Final override -->
+<!-- Force white backgrounds and padding - Final override -->
 <style>
-    /* Final override - Loads last to ensure white backgrounds */
+    /* Final override - Loads last to ensure white backgrounds and padding */
     .card-material {
         background: #ffffff !important;
         background-color: #ffffff !important;
@@ -1261,10 +1271,15 @@ document.addEventListener('DOMContentLoaded', function() {
     .stat-card {
         background: #ffffff !important;
         background-color: #ffffff !important;
+        padding: 1.5rem !important;
     }
     .chart-card-body {
         background: #ffffff !important;
         background-color: #ffffff !important;
+        padding: 1.5rem !important;
+    }
+    .chart-card-header {
+        padding: 1rem 1.5rem !important;
     }
 </style>
 
