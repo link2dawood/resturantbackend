@@ -3,39 +3,7 @@
 
 @section('styles')
 <style>
-    /* Material UI Typography */
-    .material-headline {
-        font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-        font-size: 2rem;
-        font-weight: 400;
-        line-height: 2.5rem;
-        letter-spacing: 0;
-        color: #202124;
-        margin: 0;
-    }
-    
-    .material-subtitle {
-        font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-        font-size: 0.875rem;
-        font-weight: 400;
-        line-height: 1.25rem;
-        color: #5f6368;
-        margin: 0.5rem 0 0 0;
-    }
-    
-    /* Material UI Cards */
-    .card-material {
-        background: #ffffff;
-        border-radius: 4px;
-        box-shadow: 0px 2px 1px -1px rgba(0, 0, 0, 0.2), 0px 1px 1px 0px rgba(0, 0, 0, 0.14), 0px 1px 3px 0px rgba(0, 0, 0, 0.12);
-        transition: box-shadow 0.28s cubic-bezier(0.4, 0, 0.2, 1);
-        overflow: hidden;
-        height: 100%;
-    }
-    
-    .card-material:hover {
-        box-shadow: 0px 2px 4px -1px rgba(0, 0, 0, 0.2), 0px 4px 5px 0px rgba(0, 0, 0, 0.14), 0px 1px 10px 0px rgba(0, 0, 0, 0.12);
-    }
+    /* Dashboard Specific Styles - Extends Global Material UI */
     
     /* Stat Card Styling */
     .stat-card {
@@ -44,14 +12,15 @@
     }
     
     .stat-icon {
-        width: 48px;
-        height: 48px;
+        width: 56px;
+        height: 56px;
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.5rem;
+        font-size: 1.75rem;
         flex-shrink: 0;
+        box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
     }
     
     .stat-value {
@@ -60,7 +29,7 @@
         font-weight: 400;
         line-height: 2.5rem;
         color: #202124;
-        margin: 0.5rem 0 0.25rem 0;
+        margin: 0.75rem 0 0.25rem 0;
     }
     
     .stat-label {
@@ -100,52 +69,41 @@
         padding: 1.5rem;
     }
     
-    /* Material UI Buttons */
-    .btn-material {
-        font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-        font-size: 0.875rem;
-        font-weight: 500;
-        letter-spacing: 0.0892857143em;
-        text-transform: uppercase;
-        padding: 0.625rem 1.5rem;
+    /* Metric Card for Month-over-Month */
+    .metric-card {
+        background: #ffffff;
         border-radius: 4px;
-        border: none;
-        box-shadow: 0px 3px 1px -2px rgba(0, 0, 0, 0.2), 0px 2px 2px 0px rgba(0, 0, 0, 0.14), 0px 1px 5px 0px rgba(0, 0, 0, 0.12);
-        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        min-width: 64px;
-        height: 36px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.5rem;
+        padding: 1.5rem;
+        text-align: center;
+        box-shadow: 0px 2px 1px -1px rgba(0, 0, 0, 0.2), 
+                    0px 1px 1px 0px rgba(0, 0, 0, 0.14), 
+                    0px 1px 3px 0px rgba(0, 0, 0, 0.12);
+        transition: box-shadow 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+        height: 100%;
     }
     
-    .btn-material:hover {
-        box-shadow: 0px 2px 4px -1px rgba(0, 0, 0, 0.2), 0px 4px 5px 0px rgba(0, 0, 0, 0.14), 0px 1px 10px 0px rgba(0, 0, 0, 0.12);
-        transform: translateY(-1px);
+    .metric-card:hover {
+        box-shadow: 0px 2px 4px -1px rgba(0, 0, 0, 0.2), 
+                    0px 4px 5px 0px rgba(0, 0, 0, 0.14), 
+                    0px 1px 10px 0px rgba(0, 0, 0, 0.12);
     }
     
-    .btn-material-primary {
-        background-color: #1976d2;
-        color: #fff;
+    .metric-value {
+        font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+        font-size: 1.75rem;
+        font-weight: 400;
+        color: #202124;
+        margin-bottom: 0.5rem;
     }
     
-    .btn-material-primary:hover {
-        background-color: #1565c0;
-        color: #fff;
-    }
-    
-    .btn-material-outlined {
-        background-color: transparent;
-        border: 1px solid rgba(0, 0, 0, 0.12);
-        color: #1976d2;
-        box-shadow: none;
-    }
-    
-    .btn-material-outlined:hover {
-        background-color: rgba(25, 118, 210, 0.04);
-        border-color: #1976d2;
-        box-shadow: none;
+    .metric-label {
+        font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: rgba(0, 0, 0, 0.6);
+        text-transform: uppercase;
+        letter-spacing: 0.03333em;
+        margin-bottom: 0.5rem;
     }
     
     /* Insight Cards */
@@ -154,6 +112,11 @@
         border-radius: 4px;
         margin-bottom: 0.75rem;
         border-left: 4px solid;
+        transition: all 0.2s ease;
+    }
+    
+    .insight-card:hover {
+        box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
     }
     
     .insight-card.success {
@@ -182,6 +145,9 @@
         font-weight: 500;
         color: #202124;
         margin-bottom: 0.25rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
     }
     
     .insight-message {
@@ -193,31 +159,29 @@
     
     /* Top Days List */
     .top-day-item {
-        padding: 0.75rem;
+        padding: 1rem;
         border-radius: 4px;
-        margin-bottom: 0.5rem;
-        background: #fafafa;
+        margin-bottom: 0.75rem;
+        background: #ffffff;
         border: 1px solid rgba(0, 0, 0, 0.12);
         transition: all 0.2s ease;
+        box-shadow: 0px 1px 3px rgba(0, 0, 0, 0.08);
     }
     
     .top-day-item:hover {
-        background: #f5f5f5;
-        box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+        background: #fafafa;
+        box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.12);
+        transform: translateY(-1px);
     }
     
     .top-day-item.best {
         background: #fff3e0;
-        border-color: #ff9800;
+        border-left: 4px solid #ff9800;
+        box-shadow: 0px 2px 4px rgba(255, 152, 0, 0.2);
     }
     
     /* Responsive adjustments */
     @media (max-width: 768px) {
-        .material-headline {
-            font-size: 1.5rem;
-            line-height: 2rem;
-        }
-        
         .stat-value {
             font-size: 1.5rem;
             line-height: 2rem;
@@ -226,22 +190,25 @@
         .chart-card-body {
             padding: 1rem;
         }
+        
+        .metric-value {
+            font-size: 1.5rem;
+        }
     }
     
     @media (max-width: 576px) {
-        .material-headline {
-            font-size: 1.25rem;
-            line-height: 1.75rem;
-        }
-        
         .stat-card {
             padding: 1rem;
         }
         
         .stat-icon {
-            width: 40px;
-            height: 40px;
-            font-size: 1.25rem;
+            width: 48px;
+            height: 48px;
+            font-size: 1.5rem;
+        }
+        
+        .metric-card {
+            padding: 1rem;
         }
     }
 </style>
