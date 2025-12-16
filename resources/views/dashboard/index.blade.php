@@ -23,9 +23,12 @@
         margin: 0.5rem 0 0 0;
     }
     
-    /* Material UI Cards */
-    .card-material {
+    /* Material UI Cards - Force white background */
+    .card-material,
+    div.card-material,
+    .card.card-material {
         background: #ffffff !important;
+        background-color: #ffffff !important;
         border-radius: 4px;
         box-shadow: 0px 2px 1px -1px rgba(0, 0, 0, 0.2), 0px 1px 1px 0px rgba(0, 0, 0, 0.14), 0px 1px 3px 0px rgba(0, 0, 0, 0.12);
         transition: box-shadow 0.28s cubic-bezier(0.4, 0, 0.2, 1);
@@ -33,15 +36,21 @@
         height: 100%;
     }
     
-    .card-material:hover {
+    .card-material:hover,
+    div.card-material:hover,
+    .card.card-material:hover {
+        background: #ffffff !important;
+        background-color: #ffffff !important;
         box-shadow: 0px 2px 4px -1px rgba(0, 0, 0, 0.2), 0px 4px 5px 0px rgba(0, 0, 0, 0.14), 0px 1px 10px 0px rgba(0, 0, 0, 0.12);
     }
     
     /* Stat Card Styling */
-    .stat-card {
+    .stat-card,
+    div.stat-card {
         padding: 1.5rem;
         height: 100%;
         background: #ffffff !important;
+        background-color: #ffffff !important;
     }
     
     .stat-icon {
@@ -97,9 +106,11 @@
         gap: 0.5rem;
     }
     
-    .chart-card-body {
+    .chart-card-body,
+    div.chart-card-body {
         padding: 1.5rem;
         background: #ffffff !important;
+        background-color: #ffffff !important;
     }
     
     /* Material UI Buttons */
@@ -245,6 +256,22 @@
             height: 40px;
             font-size: 1.25rem;
         }
+    }
+    
+    /* Force white backgrounds - highest priority override */
+    body .card-material {
+        background: #ffffff !important;
+        background-color: #ffffff !important;
+    }
+    
+    body .stat-card {
+        background: #ffffff !important;
+        background-color: #ffffff !important;
+    }
+    
+    body .chart-card-body {
+        background: #ffffff !important;
+        background-color: #ffffff !important;
     }
 </style>
 @endsection
