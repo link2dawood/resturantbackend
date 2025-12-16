@@ -3,6 +3,36 @@
 
 @section('styles')
 <style>
+    /* CRITICAL: Force white backgrounds on all cards - Maximum specificity */
+    html body .container-fluid .row .col-12 .card-material,
+    html body .container-fluid .row .col-sm-6 .card-material,
+    html body .container-fluid .row .col-lg-4 .card-material,
+    html body .container-fluid .row .col-lg-8 .card-material,
+    html body .container-fluid .card-material,
+    html body .card-material,
+    html body div.card-material,
+    body .card-material {
+        background: #ffffff !important;
+        background-color: #ffffff !important;
+        background-image: none !important;
+    }
+    
+    html body .container-fluid .stat-card,
+    html body .stat-card,
+    body .stat-card {
+        background: #ffffff !important;
+        background-color: #ffffff !important;
+        background-image: none !important;
+    }
+    
+    html body .container-fluid .chart-card-body,
+    html body .chart-card-body,
+    body .chart-card-body {
+        background: #ffffff !important;
+        background-color: #ffffff !important;
+        background-image: none !important;
+    }
+    
     /* Material UI Typography */
     .material-headline {
         font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -258,20 +288,33 @@
         }
     }
     
-    /* Force white backgrounds - highest priority override */
-    body .card-material {
+    /* Force white backgrounds - highest priority override - Loads after all other CSS */
+    html body .container-fluid .row [class*="col"] .card-material,
+    html body .container-fluid .card-material,
+    html body .card-material,
+    body .card-material,
+    .card-material {
         background: #ffffff !important;
         background-color: #ffffff !important;
+        background-image: none !important;
     }
     
-    body .stat-card {
+    html body .container-fluid .stat-card,
+    html body .stat-card,
+    body .stat-card,
+    .stat-card {
         background: #ffffff !important;
         background-color: #ffffff !important;
+        background-image: none !important;
     }
     
-    body .chart-card-body {
+    html body .container-fluid .chart-card-body,
+    html body .chart-card-body,
+    body .chart-card-body,
+    .chart-card-body {
         background: #ffffff !important;
         background-color: #ffffff !important;
+        background-image: none !important;
     }
 </style>
 @endsection
@@ -1207,5 +1250,22 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 @endif
+
+<!-- Force white backgrounds - Final override -->
+<style>
+    /* Final override - Loads last to ensure white backgrounds */
+    .card-material {
+        background: #ffffff !important;
+        background-color: #ffffff !important;
+    }
+    .stat-card {
+        background: #ffffff !important;
+        background-color: #ffffff !important;
+    }
+    .chart-card-body {
+        background: #ffffff !important;
+        background-color: #ffffff !important;
+    }
+</style>
 
 @endsection
