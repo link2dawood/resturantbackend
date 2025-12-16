@@ -436,9 +436,8 @@
                         <table class="transaction-table" id="revenueTable">
                             <thead>
                                 <tr>
-                                    <th style="width: 30%;">Revenue Type</th>
-                                    <th style="width: 20%;">Amount ($)</th>
-                                    <th style="width: 35%;">Notes</th>
+                                    <th style="width: 50%;">Revenue Type</th>
+                                    <th style="width: 35%;">Amount ($)</th>
                                     <th style="width: 15%;">Action</th>
                                 </tr>
                             </thead>
@@ -454,9 +453,6 @@
                                     </td>
                                     <td>
                                         <input type="number" class="form-input revenue-amount" name="revenues[0][amount]" step="0.01" min="0" placeholder="0.00">
-                                    </td>
-                                    <td>
-                                        <input type="text" class="form-input" name="revenues[0][notes]" placeholder="Optional notes">
                                     </td>
                                     <td>
                                         <button type="button" class="btn-remove" onclick="removeRevenueRow(this)">×</button>
@@ -871,9 +867,6 @@ function addRevenueRow() {
         </td>
         <td>
             <input type="number" class="form-input revenue-amount" name="revenues[${revenueCount}][amount]" step="0.01" min="0" placeholder="0.00">
-        </td>
-        <td>
-            <input type="text" class="form-input" name="revenues[${revenueCount}][notes]" placeholder="Optional notes">
         </td>
         <td>
             <button type="button" class="btn-remove" onclick="removeRevenueRow(this)">×</button>

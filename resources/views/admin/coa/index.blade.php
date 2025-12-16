@@ -122,6 +122,22 @@
         box-shadow: none;
     }
     
+    /* Override for standard form controls in filters */
+    .card-material .form-control,
+    .card-material .form-select {
+        font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+        border: 1px solid rgba(0, 0, 0, 0.12);
+        border-radius: 4px;
+        padding: 0.5rem 0.75rem;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .card-material .form-control:focus,
+    .card-material .form-select:focus {
+        border-color: #1976d2;
+        box-shadow: 0 0 0 0.2rem rgba(25, 118, 210, 0.25);
+    }
+    
     .form-label-material {
         font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif;
         font-size: 0.75rem;
@@ -249,7 +265,7 @@
             <form action="{{ route('coa.index') }}" method="GET" class="row g-3">
                 <div class="col-12 col-sm-6 col-md-3">
                     <label for="account_type" class="form-label-material">Account Type</label>
-                    <select name="account_type" id="account_type" class="form-select form-select-material">
+                    <select name="account_type" id="account_type" class="form-select">
                         <option value="">All Types</option>
                         @foreach($accountTypes as $type)
                             <option value="{{ $type }}" @selected(request('account_type') === $type)>{{ $type }}</option>
@@ -258,7 +274,7 @@
                 </div>
                 <div class="col-12 col-sm-6 col-md-3">
                     <label for="is_active" class="form-label-material">Status</label>
-                    <select name="is_active" id="is_active" class="form-select form-select-material">
+                    <select name="is_active" id="is_active" class="form-select">
                         <option value="">All Status</option>
                         <option value="1" @selected(request('is_active', '1') === '1')>Active</option>
                         <option value="0" @selected(request('is_active') === '0')>Inactive</option>
@@ -266,7 +282,7 @@
                 </div>
                 <div class="col-12 col-sm-6 col-md-3">
                     <label for="store_id" class="form-label-material">Store</label>
-                    <select name="store_id" id="store_id" class="form-select form-select-material">
+                    <select name="store_id" id="store_id" class="form-select">
                         <option value="">All Stores</option>
                         @foreach($stores as $store)
                             <option value="{{ $store->id }}" @selected((string) request('store_id') === (string) $store->id)>
@@ -278,7 +294,7 @@
                 <div class="col-12 col-sm-6 col-md-3">
                     <label for="search" class="form-label-material">Search</label>
                     <div class="input-group">
-                        <input type="text" name="search" id="search" class="form-control form-control-material" value="{{ request('search') }}" placeholder="Account code or name">
+                        <input type="text" name="search" id="search" class="form-control" value="{{ request('search') }}" placeholder="Account code or name">
                         <button class="btn btn-material btn-material-outlined" type="submit" style="border-radius: 0 4px 4px 0; min-width: auto; padding: 0.5rem 0.75rem;">
                             <i class="bi bi-search"></i>
                         </button>
