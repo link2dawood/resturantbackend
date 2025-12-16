@@ -15,47 +15,64 @@ class RevenueIncomeTypeSeeder extends Seeder
                 'description' => 'Cash Sales',
                 'category' => 'cash',
                 'is_active' => true,
-                'sort_order' => 0,
+                'sort_order' => 1,
             ],
             [
-                'name' => 'Credit Card - Square',
-                'description' => 'Credit card sales through square terminal',
+                'name' => 'Credit Card',
+                'description' => 'Credit card sales',
                 'category' => 'card',
                 'is_active' => true,
-                'sort_order' => 0,
+                'sort_order' => 2,
             ],
             [
-                'name' => 'Ubereats',
-                'description' => 'Ubereats online ordering platform',
-                'category' => 'online',
+                'name' => 'Checks (check #)',
+                'description' => 'Check payments with check number',
+                'category' => 'check',
                 'is_active' => true,
-                'sort_order' => 0,
+                'sort_order' => 3,
             ],
             [
-                'name' => 'Doordash',
-                'description' => 'Doordash online ordering platform',
+                'name' => 'Uber Eats',
+                'description' => 'Uber Eats online ordering platform',
                 'category' => 'online',
                 'is_active' => true,
-                'sort_order' => 0,
+                'sort_order' => 4,
+            ],
+            [
+                'name' => 'DoorDash',
+                'description' => 'DoorDash online ordering platform',
+                'category' => 'online',
+                'is_active' => true,
+                'sort_order' => 5,
+            ],
+            [
+                'name' => 'EZ Catering',
+                'description' => 'EZ Catering online ordering platform',
+                'category' => 'online',
+                'is_active' => true,
+                'sort_order' => 6,
+            ],
+            [
+                'name' => 'Relish',
+                'description' => 'Relish online ordering platform',
+                'category' => 'online',
+                'is_active' => true,
+                'sort_order' => 7,
             ],
             [
                 'name' => 'Grubhub',
                 'description' => 'Grubhub online ordering platform',
                 'category' => 'online',
                 'is_active' => true,
-                'sort_order' => 0,
-            ],
-            [
-                'name' => 'EZ Catering',
-                'description' => 'Relish and EZ Catering online ordering platform',
-                'category' => 'online',
-                'is_active' => true,
-                'sort_order' => 0,
+                'sort_order' => 8,
             ],
         ];
 
         foreach ($revenueTypes as $type) {
-            RevenueIncomeType::create($type);
+            RevenueIncomeType::firstOrCreate(
+                ['name' => $type['name']],
+                $type
+            );
         }
     }
 }

@@ -14,6 +14,11 @@ class ChartOfAccountController extends Controller
      */
     public function index(Request $request)
     {
+        // If browser request (wants HTML), redirect to web UI
+        if (!$request->wantsJson() && $request->accepts(['text/html', 'application/xhtml+xml'])) {
+            return redirect('/chart-of-accounts');
+        }
+
         $query = ChartOfAccount::with(['stores', 'parent', 'creator']);
 
         // Filters
@@ -94,10 +99,18 @@ class ChartOfAccountController extends Controller
     /**
      * Display the specified COA entry
      */
-    public function show($id)
+    public function show(Request $request, $id)
     {
+        // If browser request (wants HTML), redirect to web UI
+        if (!$request->wantsJson() && $request->accepts(['text/html', 'application/xhtml+xml'])) {
+            return redirect()->route('coa.show', $id);
+        }
+
         $coa = ChartOfAccount::with(['stores', 'parent', 'children', 'creator'])->findOrFail($id);
-        return response()->json($coa);
+        
+        return response()->json([
+            'data' => $coa
+        ]);
     }
 
     /**

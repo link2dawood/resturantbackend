@@ -38,7 +38,7 @@
                     <thead style="background-color: #f8f9fa; border-bottom: 2px solid #e0e0e0;">
                         <tr>
                             <th style="font-weight: 500; color: #3c4043; padding: 1rem; border: none; font-size: 0.813rem; letter-spacing: 0.3px; font-family: 'Google Sans', sans-serif;">#</th>
-                            <th style="font-weight: 500; color: #3c4043; padding: 1rem; border: none; font-size: 0.813rem; letter-spacing: 0.3px; font-family: 'Google Sans', sans-serif;">Category</th>
+                            <th style="font-weight: 500; color: #3c4043; padding: 1rem; border: none; font-size: 0.813rem; letter-spacing: 0.3px; font-family: 'Google Sans', sans-serif;">Category Transaction Type</th>
                             <th style="font-weight: 500; color: #3c4043; padding: 1rem; border: none; font-size: 0.813rem; letter-spacing: 0.3px; font-family: 'Google Sans', sans-serif;">Description Name</th>
                             <th style="font-weight: 500; color: #3c4043; padding: 1rem; border: none; font-size: 0.813rem; letter-spacing: 0.3px; font-family: 'Google Sans', sans-serif;">Default COA</th>
                             <th style="font-weight: 500; color: #3c4043; padding: 1rem; border: none; font-size: 0.813rem; letter-spacing: 0.3px; font-family: 'Google Sans', sans-serif; text-align: center;">Actions</th>
@@ -51,10 +51,10 @@
                                 <span class="badge bg-light text-dark" style="font-size: 0.75rem;">{{ $type->id }}</span>
                             </td>
                             <td style="padding: 1rem; vertical-align: middle; color: #202124;">
-                                <div style="font-weight: 500; font-size: 0.875rem;">{{ $type->name }}</div>
+                                <div style="font-weight: 500; font-size: 0.875rem;">{{ $type->parent ? $type->parent->name : 'None' }}</div>
                             </td>
                             <td style="padding: 1rem; vertical-align: middle; color: #5f6368;">
-                                <span class="badge bg-info text-white" style="font-size: 0.75rem;">{{ $type->parent ? $type->parent->name : 'None' }}</span>
+                                <span class="badge bg-info text-white" style="font-size: 0.75rem;">{{ $type->name }}</span>
                             </td>
                             <td style="padding: 1rem; vertical-align: middle; color: #5f6368;">
                                 @if($type->defaultCoa)

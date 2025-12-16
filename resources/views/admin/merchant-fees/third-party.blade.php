@@ -216,9 +216,7 @@
                         </table>
                     </div>
                     <!-- Pagination -->
-                    <div class="card-footer">
-                        {{ $importHistory->links() }}
-                    </div>
+                    <x-pagination :paginator="$importHistory" />
                 </div>
             </div>
         </div>

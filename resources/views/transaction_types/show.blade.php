@@ -46,7 +46,7 @@
                 <div class="card-body">
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label class="form-label text-muted" style="font-size: 0.813rem; font-weight: 500; letter-spacing: 0.3px;">Transaction Type Name</label>
+                            <label class="form-label text-muted" style="font-size: 0.813rem; font-weight: 500; letter-spacing: 0.3px;">Description Name</label>
                             <div style="font-weight: 500; font-size: 1rem; color: var(--google-grey-900, #202124);">{{ $transactionType->name }}</div>
                         </div>
                         <div class="col-md-6 mb-3">
@@ -54,7 +54,7 @@
                             <div><span class="badge bg-light text-dark" style="font-size: 0.875rem;">#{{ $transactionType->id }}</span></div>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label class="form-label text-muted" style="font-size: 0.813rem; font-weight: 500; letter-spacing: 0.3px;">Parent Category</label>
+                            <label class="form-label text-muted" style="font-size: 0.813rem; font-weight: 500; letter-spacing: 0.3px;">Category Transaction Type</label>
                             <div>
                                 @if($transactionType->parent)
                                 <span class="badge bg-info text-white" style="font-size: 0.875rem;">{{ $transactionType->parent->name }}</span>

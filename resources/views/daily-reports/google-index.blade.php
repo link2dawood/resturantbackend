@@ -270,17 +270,7 @@
     </div>
 
     <!-- Pagination -->
-    @if($reports->hasPages())
-    <div class="gd-flex gd-items-center gd-justify-between gd-px-lg gd-py-md gd-bg-surface-1 gd-border-t gd-border-surface-3">
-        <div class="gd-body-medium gd-text-secondary">
-            Showing {{ $reports->firstItem() }} to {{ $reports->lastItem() }} of {{ $reports->total() }} reports
-        </div>
-        <div class="gd-flex gd-gap-xs">
-            {{ $reports->links('pagination::simple-bootstrap-4') }}
-        </div>
-    </div>
-    @endif
-</div>
+    <x-pagination :paginator="$reports" />
 
 @else
 <!-- Empty State - Emotional Design for Motivation -->

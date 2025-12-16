@@ -88,11 +88,7 @@
                     </div>
                 </div>
 
-                @if($revenueIncomeTypes->hasPages())
-                    <div class="card-footer d-flex align-items-center">
-                        {{ $revenueIncomeTypes->links() }}
-                    </div>
-                @endif
+                <x-pagination :paginator="$revenueIncomeTypes" />
             </div>
         </div>
     </div>

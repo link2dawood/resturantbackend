@@ -546,7 +546,7 @@
                                 <td>
                                     <div style="display:flex;justify-content: space-between;align-items: center;">
                                         <span>Average Ticket</span>
-                                        <span style="width:30%;"><input type="number" name="average_ticket" value="{{ $dailyReport->average_ticket }}" class="form-input number-input" step="0.01" style="background: white;"></span>
+                                        <span style="width:30%;"><input type="number" name="average_ticket" id="averageTicketInput" value="{{ $dailyReport->average_ticket }}" class="form-input number-input" step="0.01" style="background: white;" readonly></span>
                                     </div>
                                 </td>
                                 <td><strong>Sales (Pre-tax):</strong></td>
@@ -619,16 +619,21 @@ function calculateTotals() {
     // Calculate revenue totals
     let totalRevenueEntries = 0;
     let onlinePlatformRevenue = 0;
-    document.querySelectorAll('input[name*="revenues"][name*="[amount]"]').forEach(input => {
-        const amount = parseFloat(input.value || 0);
-        totalRevenueEntries += amount;
+    document.querySelectorAll('#revenueTable tbody tr').forEach(row => {
+        const amountInput = row.querySelector('input[name*="revenues"][name*="[amount]"]');
+        const selectElement = row.querySelector('select[name*="[revenue_income_type_id]"]');
         
-        // Check if this is an online platform revenue
-        const select = input.closest('tr').querySelector('select[name*="[revenue_income_type_id]"]');
-        if (select) {
-            const selectedOption = select.options[select.selectedIndex];
-            if (selectedOption && selectedOption.dataset.category === 'online') {
-                onlinePlatformRevenue += amount;
+        if (amountInput && selectElement && selectElement.selectedIndex > 0) {
+            const amount = parseFloat(amountInput.value || 0);
+            
+            if (amount > 0) {
+                totalRevenueEntries += amount;
+                
+                // Check if this is an online platform revenue
+                const selectedOption = selectElement.options[selectElement.selectedIndex];
+                if (selectedOption && selectedOption.dataset.category === 'online') {
+                    onlinePlatformRevenue += amount;
+                }
             }
         }
     });
@@ -641,8 +646,12 @@ function calculateTotals() {
     const tax = netSales * 0.0825 / 1.0825;
     const salesPreTax = netSales - tax;
     
-    // Cash to account for = Net Sales - Total Paid Out
-    const cashToAccountFor = netSales - totalPaidOuts;
+    // Calculate average ticket
+    const totalCustomers = parseFloat(document.querySelector('input[name="total_customers"]').value || 0);
+    const averageTicket = totalCustomers > 0 ? netSales / totalCustomers : 0;
+    
+    // Cash to account for = Net Sales - Total Paid Out - Credit Cards - Online Platform Revenue
+    const cashToAccountFor = netSales - totalPaidOuts - creditCards - onlinePlatformRevenue;
     
     let short = 0;
     let over = 0;
@@ -659,6 +668,13 @@ function calculateTotals() {
     document.getElementById('netSales2').textContent = `$${netSales.toFixed(2)}`;
     document.getElementById('tax').textContent = `$${tax.toFixed(2)}`;
     document.getElementById('salesPreTax').textContent = `$${salesPreTax.toFixed(2)}`;
+    
+    // Update average ticket input
+    const averageTicketInput = document.querySelector('input[name="average_ticket"]');
+    if (averageTicketInput) {
+        averageTicketInput.value = averageTicket.toFixed(2);
+    }
+    
     document.getElementById('cashToAccountFor').textContent = `$${cashToAccountFor.toFixed(2)}`;
     document.getElementById('short').textContent = `$${short.toFixed(2)}`;
     document.getElementById('over').textContent = `$${over.toFixed(2)}`;
@@ -713,7 +729,10 @@ function addTransactionRow() {
     transactionCount++;
     
     // Add event listener for the new amount input
-    newRow.querySelector('input[name*="[amount]"]').addEventListener('input', calculateTotals);
+    const amountInput = newRow.querySelector('input[name*="[amount]"]');
+    if (amountInput) {
+        amountInput.addEventListener('input', calculateTotals);
+    }
 }
 
 function removeTransactionRow(button) {
@@ -725,7 +744,6 @@ function removeTransactionRow(button) {
 
 function addRevenueRow() {
     const tbody = document.querySelector('#revenueTable tbody');
-    const totalRow = tbody.querySelector('.total-row');
 
     // Get dynamic options from hidden select
     const optionsHtml = document.getElementById('revenueTypeTemplate').innerHTML;
@@ -733,13 +751,13 @@ function addRevenueRow() {
     const newRow = document.createElement('tr');
     newRow.innerHTML = `
         <td>
-            <select class="form-input" name="revenues[${revenueCount}][revenue_income_type_id]" onchange="calculateTotals()">
+            <select class="form-input" name="revenues[${revenueCount}][revenue_income_type_id]">
                 <option value="">Select Revenue Type</option>
                 ${optionsHtml}
             </select>
         </td>
         <td>
-            <input type="number" class="form-input number-input" name="revenues[${revenueCount}][amount]" step="0.01" placeholder="0.00">
+            <input type="number" class="form-input revenue-amount" name="revenues[${revenueCount}][amount]" step="0.01" min="0" placeholder="0.00">
         </td>
         <td>
             <input type="text" class="form-input" name="revenues[${revenueCount}][notes]" placeholder="Notes (optional)">
@@ -749,15 +767,23 @@ function addRevenueRow() {
         </td>
     `;
     
-    tbody.insertBefore(newRow, totalRow);
+    tbody.appendChild(newRow);
     revenueCount++;
     
-    // Add event listener for the new amount input
-    newRow.querySelector('input[name*="[amount]"]').addEventListener('input', calculateTotals);
+    // Add event listeners for the new revenue row
+    const amountInput = newRow.querySelector('.revenue-amount');
+    const selectInput = newRow.querySelector('select[name*="[revenue_income_type_id]"]');
+    
+    if (amountInput) {
+        amountInput.addEventListener('input', calculateTotals);
+    }
+    if (selectInput) {
+        selectInput.addEventListener('change', calculateTotals);
+    }
 }
 
 function removeRevenueRow(button) {
-    if (document.querySelectorAll('#revenueTable tbody tr:not(.total-row)').length > 1) {
+    if (document.querySelectorAll('#revenueTable tbody tr').length > 1) {
         button.closest('tr').remove();
         calculateTotals();
     }
@@ -783,8 +809,13 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
+    // Add event listeners for revenue amount inputs
+    document.querySelectorAll('#revenueTable input[name*="revenues"][name*="[amount]"]').forEach(input => {
+        input.addEventListener('input', calculateTotals);
+    });
+
     // Add event listeners for revenue type selects
-    document.querySelectorAll('select[name*="revenues"][name*="[revenue_income_type_id]"]').forEach(select => {
+    document.querySelectorAll('#revenueTable select[name*="[revenue_income_type_id]"]').forEach(select => {
         select.addEventListener('change', calculateTotals);
     });
     

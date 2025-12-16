@@ -135,9 +135,7 @@
             </div>
             
             <!-- Pagination -->
-            <div class="card-footer">
-                {{ $accounts->links() }}
-            </div>
+            <x-pagination :paginator="$accounts" />
         </div>
     </div>
 </div>

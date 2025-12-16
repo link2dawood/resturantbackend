@@ -323,12 +323,7 @@
                             </table>
                         </div>
 
-                        @if($reports->hasPages())
-                            <div class="card-footer bg-light d-flex justify-content-between align-items-center mt-3" style="font-size: 0.875rem; color: #5f6368; font-family: 'Google Sans', sans-serif;">
-                                <div>Showing {{ $reports->firstItem() }} to {{ $reports->lastItem() }} of {{ $reports->total() }} reports</div>
-                                <div>{{ $reports->links() }}</div>
-                            </div>
-                        @endif
+                        <x-pagination :paginator="$reports" />
                     @else
                         <div style="text-align: center; padding: 60px 32px;">
                             <div style="display: inline-flex; padding: 24px; background: var(--google-grey-50); border-radius: 50%; margin-bottom: 24px;">

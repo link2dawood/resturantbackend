@@ -262,17 +262,7 @@
                 </table>
             </div>
             
-            <div class="p-3">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <strong>📊 Results:</strong> 
-                        {{ $logs->firstItem() ?? 0 }} - {{ $logs->lastItem() ?? 0 }} of {{ $logs->total() }} logs
-                    </div>
-                    <div>
-                        {{ $logs->links() }}
-                    </div>
-                </div>
-            </div>
+            <x-pagination :paginator="$logs" />
         @else
             <div class="p-5 text-center">
                 <div class="mb-3">

@@ -136,8 +136,13 @@ class DailyReport extends Model
 
     public function getCashToAccountForAttribute(): float
     {
-        // Cash to account for = Net Sales - Total Paid Out
-        return $this->getNetSalesAttribute() - $this->getTotalTransactionExpensesAttribute();
+        // Cash to account for = Net Sales - Total Paid Out - Credit Cards - Online Platform Revenue
+        $netSales = $this->getNetSalesAttribute();
+        $totalPaidOuts = $this->getTotalTransactionExpensesAttribute();
+        $creditCards = (float) ($this->credit_cards ?? 0);
+        $onlinePlatformRevenue = $this->getOnlinePlatformRevenueAttribute();
+        
+        return $netSales - $totalPaidOuts - $creditCards - $onlinePlatformRevenue;
     }
 
     public function getShortAttribute(): float

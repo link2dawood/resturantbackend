@@ -180,8 +180,8 @@
                     <div class="col-md-6">
                         <strong>Total Expenses:</strong> <span class="text-danger">${{ number_format($total, 2) }}</span>
                     </div>
-                    <div class="col-md-6 text-end">
-                        {{ $expenses->links() }}
+                    <div class="col-md-6">
+                        <x-pagination :paginator="$expenses" />
                     </div>
                 </div>
             </div>

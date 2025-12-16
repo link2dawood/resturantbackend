@@ -406,6 +406,12 @@ class DailyReportController extends Controller
             'transactions.*.vendor_id' => 'nullable|exists:vendors,id',
             'transactions.*.transaction_type' => 'nullable|exists:transaction_types,id',
             'transactions.*.amount' => 'required|numeric|min:0',
+
+            // revenue entries
+            'revenues' => 'nullable|array',
+            'revenues.*.revenue_income_type_id' => 'nullable|exists:revenue_income_types,id',
+            'revenues.*.amount' => 'nullable|numeric|min:0',
+            'revenues.*.notes' => 'nullable|string|max:500',
         ]);
 
         // Validate manager can only update reports for assigned stores
@@ -450,6 +456,14 @@ class DailyReportController extends Controller
             // Store old values for audit log
             $oldValues = $dailyReport->toArray();
 
+            // Validate revenue entries if provided
+            if ($request->has('revenues')) {
+                $this->validateRevenueEntries($request);
+            }
+
+            // Calculate derived fields
+            $validatedData = $this->calculateDerivedFields($validatedData);
+
             $validatedData['created_by'] = auth()->id();
             $dailyReport->update($validatedData);
 
@@ -459,38 +473,18 @@ class DailyReportController extends Controller
                 'report_date' => $dailyReport->report_date->format('Y-m-d'),
             ]);
 
+            // Delete existing transactions and revenues
             $dailyReport->transactions()->delete();
+            $dailyReport->revenues()->delete();
 
+            // Process transactions if provided
             if ($request->has('transactions')) {
-                foreach ($request->transactions as $transactionData) {
-                    if (empty($transactionData['amount'])) {
-                        continue; // Skip empty transaction rows
-                    }
+                $this->processTransactions($request, $dailyReport);
+            }
 
-                    // Get company name from vendor if vendor_id is provided
-                    $companyName = $transactionData['company'] ?? '';
-                    if (!empty($transactionData['vendor_id'])) {
-                        $vendor = \App\Models\Vendor::find($transactionData['vendor_id']);
-                        if ($vendor) {
-                            $companyName = $vendor->vendor_name;
-                        }
-                    }
-
-                    // Validate transaction_type_id
-                    $transactionTypeId = $transactionData['transaction_type'] ?? null;
-                    if ($transactionTypeId && ! TransactionType::find($transactionTypeId)) {
-                        throw ValidationException::withMessages([
-                            'transactions' => "Invalid transaction type ID: {$transactionTypeId}",
-                        ]);
-                    }
-
-                    DailyReportTransaction::create([
-                        'daily_report_id' => $dailyReport->id,
-                        'transaction_type_id' => $transactionTypeId,
-                        'company' => $companyName,
-                        'amount' => (float) ($transactionData['amount'] ?? 0),
-                    ]);
-                }
+            // Process revenue entries if provided
+            if ($request->has('revenues')) {
+                $this->processRevenueEntries($request, $dailyReport);
             }
 
             DB::commit();
@@ -703,8 +697,21 @@ class DailyReportController extends Controller
         // Calculate sales (pre-tax)
         $data['sales'] = $netSales - $tax;
 
-        // Calculate cash to account for = Net Sales - Total Paid Out
-        $cashToAccountFor = $netSales - $totalPaidOuts;
+        // Calculate cash to account for = Net Sales - Total Paid Out - Credit Cards - Online Platform Revenue
+        // Calculate online platform revenue
+        $onlinePlatformRevenue = 0;
+        if (isset($data['revenues']) && is_array($data['revenues'])) {
+            foreach ($data['revenues'] as $revenue) {
+                if (isset($revenue['amount']) && is_numeric($revenue['amount']) && isset($revenue['revenue_income_type_id'])) {
+                    $revenueType = \App\Models\RevenueIncomeType::find($revenue['revenue_income_type_id']);
+                    if ($revenueType && $revenueType->category === 'online') {
+                        $onlinePlatformRevenue += (float) $revenue['amount'];
+                    }
+                }
+            }
+        }
+        
+        $cashToAccountFor = $netSales - $totalPaidOuts - $creditCards - $onlinePlatformRevenue;
         $data['cash_to_account'] = $cashToAccountFor;
 
         // Calculate short/over
@@ -726,6 +733,7 @@ class DailyReportController extends Controller
     {
         $creditCards = (float) ($data['credit_cards'] ?? 0);
         $totalPaidOuts = (float) ($data['total_paid_outs'] ?? 0);
+        $actualDeposit = (float) ($data['actual_deposit'] ?? 0);
 
         // Calculate net sales as sum of revenues
         $netSales = 0;
@@ -738,8 +746,47 @@ class DailyReportController extends Controller
         }
         $data['net_sales'] = $netSales;
 
-        // Calculate cash to account for = Net Sales - Total Paid Out
-        $data['cash_to_account'] = $data['net_sales'] - $totalPaidOuts;
+        // Calculate tax (8.25% sales tax)
+        // If net sales includes tax: tax = netSales * 0.0825 / 1.0825
+        $tax = $netSales * 0.0825 / 1.0825;
+        $data['tax'] = $tax;
+
+        // Calculate sales (pre-tax)
+        $data['sales'] = $netSales - $tax;
+
+        // Calculate cash to account for = Net Sales - Total Paid Out - Credit Cards - Online Platform Revenue
+        // Calculate online platform revenue
+        $onlinePlatformRevenue = 0;
+        if (isset($data['revenues']) && is_array($data['revenues'])) {
+            foreach ($data['revenues'] as $revenue) {
+                if (isset($revenue['amount']) && is_numeric($revenue['amount']) && isset($revenue['revenue_income_type_id'])) {
+                    $revenueType = \App\Models\RevenueIncomeType::find($revenue['revenue_income_type_id']);
+                    if ($revenueType && $revenueType->category === 'online') {
+                        $onlinePlatformRevenue += (float) $revenue['amount'];
+                    }
+                }
+            }
+        }
+        
+        $cashToAccountFor = $netSales - $totalPaidOuts - $creditCards - $onlinePlatformRevenue;
+        $data['cash_to_account'] = $cashToAccountFor;
+
+        // Calculate short/over
+        if ($actualDeposit < $cashToAccountFor) {
+            $data['short'] = $actualDeposit - $cashToAccountFor;
+            $data['over'] = 0;
+        } else {
+            $data['short'] = 0;
+            $data['over'] = $actualDeposit - $cashToAccountFor;
+        }
+
+        // Calculate average ticket if total_customers is provided
+        $totalCustomers = (int) ($data['total_customers'] ?? 0);
+        if ($totalCustomers > 0) {
+            $data['average_ticket'] = $netSales / $totalCustomers;
+        } else {
+            $data['average_ticket'] = 0;
+        }
 
         return $data;
     }

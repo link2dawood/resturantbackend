@@ -7,6 +7,24 @@ WORKDIR /var/www/html
 # Enable Apache mods
 RUN a2enmod rewrite headers
 
+# Create Apache VirtualHost configuration for Laravel
+RUN printf '<VirtualHost *:80>\n\
+    ServerName localhost\n\
+    DocumentRoot /var/www/html/public\n\
+    \n\
+    <Directory /var/www/html/public>\n\
+        Options Indexes FollowSymLinks\n\
+        AllowOverride All\n\
+        Require all granted\n\
+    </Directory>\n\
+    \n\
+    ErrorLog ${APACHE_LOG_DIR}/error.log\n\
+    CustomLog ${APACHE_LOG_DIR}/access.log combined\n\
+</VirtualHost>\n' > /etc/apache2/sites-available/000-default.conf
+
+# Enable the site
+RUN a2ensite 000-default.conf
+
 # Install system dependencies and PHP extensions
 RUN apt-get update && apt-get install -y \
     git \

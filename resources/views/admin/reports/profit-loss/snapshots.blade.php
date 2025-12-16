@@ -75,11 +75,7 @@
                 </table>
             </div>
         </div>
-        @if($snapshots->hasPages())
-        <div class="card-footer">
-            {{ $snapshots->links() }}
-        </div>
-        @endif
+        <x-pagination :paginator="$snapshots" />
     </div>
 </div>
 @endsection

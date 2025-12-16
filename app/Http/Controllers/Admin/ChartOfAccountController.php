@@ -51,7 +51,7 @@ class ChartOfAccountController extends Controller
             });
         }
 
-        $coas = $query->orderBy('account_code')->paginate(25)->withQueryString();
+        $coas = $query->orderBy('account_code')->paginate(25)->onEachSide(1)->withQueryString();
 
         $stores = Store::orderBy('store_info')->get(['id', 'store_info']);
 
