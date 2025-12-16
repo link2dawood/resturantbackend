@@ -10,16 +10,10 @@
     
     .stat-card-simple {
         background: #ffffff;
-        border: 1px solid rgba(0, 0, 0, 0.08);
-        border-radius: 8px;
-        padding: 1.5rem;
+        border: 1px solid rgba(0, 0, 0, 0.06);
+        border-radius: 4px;
+        padding: 1.25rem;
         text-align: center;
-        transition: all 0.2s ease;
-    }
-    
-    .stat-card-simple:hover {
-        border-color: rgba(0, 0, 0, 0.12);
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     }
     
     .stat-value-simple {
@@ -39,20 +33,20 @@
     
     .card-simple {
         background: #ffffff;
-        border: 1px solid rgba(0, 0, 0, 0.08);
-        border-radius: 8px;
-        padding: 1.5rem;
-        margin-bottom: 1.5rem;
+        border: 1px solid rgba(0, 0, 0, 0.06);
+        border-radius: 4px;
+        padding: 1.25rem;
+        margin-bottom: 1.25rem;
     }
     
     .card-title-simple {
         font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-        font-size: 1rem;
+        font-size: 0.9375rem;
         font-weight: 500;
         color: #202124;
-        margin: 0 0 1.5rem 0;
+        margin: 0 0 1.25rem 0;
         padding-bottom: 0.75rem;
-        border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+        border-bottom: 1px solid rgba(0, 0, 0, 0.06);
     }
     
     .metric-simple {
@@ -92,18 +86,18 @@
     
     .table-simple th {
         text-align: left;
-        padding: 0.75rem;
+        padding: 0.75rem 0;
         font-size: 0.75rem;
         font-weight: 500;
         color: #5f6368;
         text-transform: uppercase;
         letter-spacing: 0.5px;
-        border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+        border-bottom: 1px solid rgba(0, 0, 0, 0.06);
     }
     
     .table-simple td {
-        padding: 0.75rem;
-        border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+        padding: 0.75rem 0;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.06);
         color: #202124;
     }
     
@@ -112,29 +106,20 @@
     }
     
     .insight-simple {
-        padding: 0.75rem;
-        margin-bottom: 0.5rem;
-        border-left: 3px solid;
-        background: #fafafa;
-        border-radius: 4px;
+        padding: 0.75rem 0;
+        margin-bottom: 0.75rem;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.06);
     }
     
-    .insight-simple.success {
-        border-left-color: #4caf50;
-    }
-    
-    .insight-simple.info {
-        border-left-color: #2196f3;
-    }
-    
-    .insight-simple.warning {
-        border-left-color: #ff9800;
+    .insight-simple:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
     }
     
     .day-item-simple {
-        padding: 0.75rem;
-        margin-bottom: 0.5rem;
-        border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+        padding: 0.75rem 0;
+        margin-bottom: 0.75rem;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.06);
     }
     
     .day-item-simple:last-child {
@@ -284,8 +269,8 @@
             <div class="card-simple">
                 <h3 class="card-title-simple">Insights</h3>
                 @foreach($analytics['insights'] as $insight)
-                    <div class="insight-simple {{ $insight['type'] }}">
-                        <div style="font-size: 0.875rem; font-weight: 500; color: #202124; margin-bottom: 0.25rem;">{{ $insight['title'] }}</div>
+                    <div class="insight-simple">
+                        <div style="font-size: 0.875rem; color: #202124; margin-bottom: 0.25rem;">{{ $insight['title'] }}</div>
                         <div style="font-size: 0.8125rem; color: #5f6368;">{{ $insight['message'] }}</div>
                     </div>
                 @endforeach
