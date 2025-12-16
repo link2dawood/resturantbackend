@@ -3,137 +3,272 @@
 
 @section('styles')
 <style>
-    /* Minimalist Dashboard Styles */
-    .dashboard-header {
+    /* Modern Dashboard Styles */
+    .dashboard-welcome {
         margin-bottom: 2rem;
     }
     
-    .stat-card-simple {
-        background: #ffffff;
-        border: 1px solid rgba(0, 0, 0, 0.06);
-        border-radius: 4px;
-        padding: 1.25rem;
-        text-align: center;
-    }
-    
-    .stat-value-simple {
+    .welcome-title {
         font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-        font-size: 2rem;
-        font-weight: 400;
+        font-size: 1.75rem;
+        font-weight: 500;
         color: #202124;
-        margin-bottom: 0.5rem;
+        margin: 0 0 0.5rem 0;
     }
     
-    .stat-label-simple {
+    .welcome-subtitle {
         font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif;
         font-size: 0.875rem;
         color: #5f6368;
         margin: 0;
     }
     
-    .card-simple {
-        background: #ffffff;
-        border: 1px solid rgba(0, 0, 0, 0.06);
-        border-radius: 4px;
-        padding: 1.25rem;
-        margin-bottom: 1.25rem;
+    .breadcrumb-custom {
+        background: transparent;
+        padding: 0;
+        margin: 0.5rem 0 0 0;
+        font-size: 0.8125rem;
     }
     
-    .card-title-simple {
-        font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-        font-size: 0.9375rem;
+    .breadcrumb-custom a {
+        color: #5f6368;
+        text-decoration: none;
+    }
+    
+    .breadcrumb-custom .active {
+        color: #1976d2;
         font-weight: 500;
+    }
+    
+    .action-buttons {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+    }
+    
+    .action-btn {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        border: 1px solid rgba(0, 0, 0, 0.12);
+        background: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #5f6368;
+        text-decoration: none;
+        transition: all 0.2s ease;
+    }
+    
+    .action-btn:hover {
+        background: #f5f5f5;
         color: #202124;
-        margin: 0 0 1.25rem 0;
-        padding-bottom: 0.75rem;
-        border-bottom: 1px solid rgba(0, 0, 0, 0.06);
     }
     
-    .metric-simple {
-        text-align: center;
-        padding: 1rem;
+    /* Tabs */
+    .nav-tabs-custom {
+        border-bottom: 2px solid rgba(0, 0, 0, 0.08);
+        margin-bottom: 1.5rem;
     }
     
-    .metric-value-simple {
+    .nav-tabs-custom .nav-link {
+        border: none;
+        border-bottom: 2px solid transparent;
+        color: #5f6368;
         font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-        font-size: 1.5rem;
-        font-weight: 400;
+        font-size: 0.875rem;
+        font-weight: 500;
+        padding: 0.75rem 1.5rem;
+        margin-bottom: -2px;
+        background: transparent;
+    }
+    
+    .nav-tabs-custom .nav-link:hover {
+        border-bottom-color: rgba(0, 0, 0, 0.12);
         color: #202124;
+    }
+    
+    .nav-tabs-custom .nav-link.active {
+        color: #1976d2;
+        border-bottom-color: #1976d2;
+        background: transparent;
+    }
+    
+    /* KPI Cards */
+    .kpi-card {
+        background: #f8f9fa;
+        border: 1px solid rgba(0, 0, 0, 0.06);
+        border-radius: 8px;
+        padding: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    
+    .kpi-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        flex-shrink: 0;
+    }
+    
+    .kpi-content {
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .kpi-label {
+        font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+        font-size: 0.75rem;
+        color: #5f6368;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
         margin-bottom: 0.25rem;
     }
     
-    .metric-label-simple {
+    .kpi-value {
+        font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+        font-size: 1.125rem;
+        font-weight: 500;
+        color: #202124;
+        margin: 0;
+    }
+    
+    /* Data Cards */
+    .data-card {
+        background: #ffffff;
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        border-radius: 8px;
+        padding: 1.5rem;
+        position: relative;
+        height: 100%;
+    }
+    
+    .data-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1rem;
+    }
+    
+    .data-card-title {
+        font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #202124;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin: 0;
+    }
+    
+    .data-card-nav {
+        display: flex;
+        gap: 0.25rem;
+    }
+    
+    .data-card-nav-btn {
+        width: 24px;
+        height: 24px;
+        border: 1px solid rgba(0, 0, 0, 0.12);
+        border-radius: 4px;
+        background: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #5f6368;
+        font-size: 0.75rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    .data-card-nav-btn:hover {
+        background: #f5f5f5;
+        color: #202124;
+    }
+    
+    .data-card-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .data-card-chart {
+        height: 60px;
+        margin: 1rem 0;
+    }
+    
+    .data-card-percentage {
+        font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+        font-size: 1.5rem;
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .data-card-metric {
         font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif;
         font-size: 0.75rem;
         color: #5f6368;
         text-transform: uppercase;
         letter-spacing: 0.5px;
+        margin-bottom: 0.25rem;
     }
     
-    .badge-simple {
-        display: inline-block;
-        padding: 0.25rem 0.5rem;
-        border-radius: 4px;
-        font-size: 0.75rem;
+    .data-card-value {
+        font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+        font-size: 1.5rem;
         font-weight: 500;
-        margin-top: 0.5rem;
-    }
-    
-    .table-simple {
-        width: 100%;
-        border-collapse: collapse;
-    }
-    
-    .table-simple th {
-        text-align: left;
-        padding: 0.75rem 0;
-        font-size: 0.75rem;
-        font-weight: 500;
-        color: #5f6368;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-    }
-    
-    .table-simple td {
-        padding: 0.75rem 0;
-        border-bottom: 1px solid rgba(0, 0, 0, 0.06);
         color: #202124;
+        margin-bottom: 0.5rem;
     }
     
-    .table-simple tr:last-child td {
-        border-bottom: none;
+    .data-card-change {
+        font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+        font-size: 0.8125rem;
+        color: #5f6368;
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
     }
     
-    .insight-simple {
-        padding: 0.75rem 0;
-        margin-bottom: 0.75rem;
-        border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    .data-card-description {
+        font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+        font-size: 0.8125rem;
+        color: #5f6368;
+        line-height: 1.5;
+        margin-top: 0.75rem;
     }
     
-    .insight-simple:last-child {
-        border-bottom: none;
-        margin-bottom: 0;
+    .arrow-up {
+        color: #4caf50;
     }
     
-    .day-item-simple {
-        padding: 0.75rem 0;
-        margin-bottom: 0.75rem;
-        border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-    }
-    
-    .day-item-simple:last-child {
-        border-bottom: none;
-        margin-bottom: 0;
+    .arrow-down {
+        color: #f44336;
     }
     
     @media (max-width: 768px) {
-        .stat-value-simple {
+        .welcome-title {
             font-size: 1.5rem;
         }
         
-        .card-simple {
+        .data-card {
             padding: 1rem;
+        }
+        
+        .kpi-card {
+            padding: 0.75rem;
         }
     }
 </style>
@@ -141,261 +276,312 @@
 
 @section('content')
 <div class="container-fluid px-3 px-md-4 px-lg-5 py-4">
-    <!-- Page Header -->
-    <div class="dashboard-header">
-        <h1 class="material-headline">Dashboard</h1>
-        <p class="material-subtitle">Sales overview and analytics</p>
+    <!-- Welcome Section -->
+    <div class="dashboard-welcome">
+        <div class="row align-items-center">
+            <div class="col-12 col-md-6">
+                <h1 class="welcome-title">Welcome back,</h1>
+                <p class="welcome-subtitle">Your analytics dashboard template.</p>
+                <nav aria-label="breadcrumb" class="breadcrumb-custom">
+                    <ol class="breadcrumb mb-0">
+                        <li class="breadcrumb-item"><a href="{{ route('home') }}">Dashboard</a></li>
+                        <li class="breadcrumb-item active">Analytics</li>
+                    </ol>
+                </nav>
+            </div>
+            <div class="col-12 col-md-6 text-md-end mt-3 mt-md-0">
+                <div class="action-buttons justify-content-md-end">
+                    <a href="{{ route('dashboard.export', ['format' => 'csv']) }}" class="action-btn" title="Download">
+                        <i class="bi bi-download"></i>
+                    </a>
+                    <button class="action-btn" title="Schedule" onclick="alert('Schedule feature coming soon')">
+                        <i class="bi bi-clock"></i>
+                    </button>
+                    <a href="{{ route('daily-reports.create') }}" class="action-btn" title="Create Report">
+                        <i class="bi bi-plus-lg"></i>
+                    </a>
+                    <a href="{{ route('dashboard.export', ['format' => 'pdf']) }}" class="btn btn-material btn-material-primary">
+                        <i class="bi bi-file-pdf me-1"></i>
+                        <span>Download report</span>
+                    </a>
+                </div>
+        </div>
+        </div>
     </div>
 
-    <!-- Overview Statistics -->
+    <!-- Tabs -->
+    <ul class="nav nav-tabs-custom" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview" type="button" role="tab">Overview</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="sales-tab" data-bs-toggle="tab" data-bs-target="#sales" type="button" role="tab">Sales</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="reports-tab" data-bs-toggle="tab" data-bs-target="#reports" type="button" role="tab">Reports</button>
+        </li>
+    </ul>
+
+    <!-- Tab Content -->
+    <div class="tab-content">
+        <!-- Overview Tab -->
+        <div class="tab-pane fade show active" id="overview" role="tabpanel">
+            <!-- KPI Row -->
     <div class="row g-3 mb-4">
-        <div class="col-6 col-md-4">
-            <div class="stat-card-simple">
-                <div class="stat-value-simple">${{ number_format($analytics['overview']['today']['grossSales'], 0) }}</div>
-                <div class="stat-label-simple">Today's Sales</div>
-                <div class="stat-label-simple" style="font-size: 0.75rem; margin-top: 0.25rem;">{{ $analytics['overview']['today']['reports'] }} reports</div>
-            </div>
-        </div>
-        <div class="col-6 col-md-4">
-            <div class="stat-card-simple">
-                <div class="stat-value-simple">${{ number_format($analytics['overview']['thisWeek']['grossSales'], 0) }}</div>
-                <div class="stat-label-simple">This Week</div>
-                <div class="stat-label-simple" style="font-size: 0.75rem; margin-top: 0.25rem;">{{ $analytics['overview']['thisWeek']['reports'] }} reports</div>
-            </div>
-        </div>
-        <div class="col-6 col-md-4">
-            <div class="stat-card-simple">
-                <div class="stat-value-simple">${{ number_format($analytics['overview']['thisMonth']['grossSales'], 0) }}</div>
-                <div class="stat-label-simple">This Month</div>
-                <div class="stat-label-simple" style="font-size: 0.75rem; margin-top: 0.25rem;">{{ $analytics['overview']['thisMonth']['reports'] }} reports</div>
-            </div>
-        </div>
-    </div>
-
-    <div class="row g-3">
-        <!-- Main Content -->
-        <div class="col-12 col-lg-8">
-            <!-- Daily Trends Chart -->
-            <div class="card-simple">
-                <h3 class="card-title-simple">Sales Trends</h3>
-                <canvas id="dailyTrendsChart" style="max-height: 300px;"></canvas>
-            </div>
-
-            <!-- Monthly Comparison -->
-            @if($analytics['monthlyComparison']['changes'])
-            <div class="card-simple">
-                <h3 class="card-title-simple">Monthly Comparison</h3>
-                <div class="row g-3">
-                    <div class="col-6 col-md-3">
-                        <div class="metric-simple">
-                            <div class="metric-value-simple">${{ number_format($analytics['monthlyComparison']['current']->gross_sales ?? 0, 0) }}</div>
-                            <div class="metric-label-simple">Gross Sales</div>
-                            @if($analytics['monthlyComparison']['changes']['gross_sales'])
-                                <span class="badge-simple {{ $analytics['monthlyComparison']['changes']['gross_sales'] >= 0 ? 'bg-success' : 'bg-danger' }} text-white">
-                                    {{ $analytics['monthlyComparison']['changes']['gross_sales'] >= 0 ? '+' : '' }}{{ $analytics['monthlyComparison']['changes']['gross_sales'] }}%
-                                </span>
-                            @endif
+                <div class="col-6 col-md-4 col-lg">
+                    <div class="kpi-card">
+                        <div class="kpi-icon" style="background: #e3f2fd; color: #1976d2;">
+                            <i class="bi bi-calendar3"></i>
+                        </div>
+                        <div class="kpi-content">
+                            <div class="kpi-label">Start date</div>
+                            <div class="kpi-value">{{ now()->format('M d, Y') }}</div>
                         </div>
                     </div>
-                    <div class="col-6 col-md-3">
-                        <div class="metric-simple">
-                            <div class="metric-value-simple">${{ number_format($analytics['monthlyComparison']['current']->net_sales ?? 0, 0) }}</div>
-                            <div class="metric-label-simple">Net Sales</div>
-                            @if($analytics['monthlyComparison']['changes']['net_sales'])
-                                <span class="badge-simple {{ $analytics['monthlyComparison']['changes']['net_sales'] >= 0 ? 'bg-success' : 'bg-danger' }} text-white">
-                                    {{ $analytics['monthlyComparison']['changes']['net_sales'] >= 0 ? '+' : '' }}{{ $analytics['monthlyComparison']['changes']['net_sales'] }}%
-                                </span>
-                            @endif
+                </div>
+                <div class="col-6 col-md-4 col-lg">
+                    <div class="kpi-card">
+                        <div class="kpi-icon" style="background: #e8f5e9; color: #4caf50;">
+                            <i class="bi bi-currency-dollar"></i>
+                        </div>
+                        <div class="kpi-content">
+                            <div class="kpi-label">Revenue</div>
+                            <div class="kpi-value">${{ number_format($analytics['overview']['thisMonth']['grossSales'], 0) }}</div>
                         </div>
                     </div>
-                    <div class="col-6 col-md-3">
-                        <div class="metric-simple">
-                            <div class="metric-value-simple">{{ $analytics['monthlyComparison']['current']->reports ?? 0 }}</div>
-                            <div class="metric-label-simple">Reports</div>
-                            @if($analytics['monthlyComparison']['changes']['reports'])
-                                <span class="badge-simple {{ $analytics['monthlyComparison']['changes']['reports'] >= 0 ? 'bg-success' : 'bg-danger' }} text-white">
-                                    {{ $analytics['monthlyComparison']['changes']['reports'] >= 0 ? '+' : '' }}{{ $analytics['monthlyComparison']['changes']['reports'] }}%
-                                </span>
-                            @endif
+                </div>
+                <div class="col-6 col-md-4 col-lg">
+                    <div class="kpi-card">
+                        <div class="kpi-icon" style="background: #fff3e0; color: #ff9800;">
+                            <i class="bi bi-eye"></i>
+                        </div>
+                        <div class="kpi-content">
+                            <div class="kpi-label">Total views</div>
+                            <div class="kpi-value">{{ number_format($analytics['overview']['thisMonth']['reports'] * 100, 0) }}</div>
                         </div>
                     </div>
-                    <div class="col-6 col-md-3">
-                        <div class="metric-simple">
-                            <div class="metric-value-simple">{{ number_format($analytics['monthlyComparison']['current']->avg_customers ?? 0, 0) }}</div>
-                            <div class="metric-label-simple">Avg Customers</div>
-                            @if($analytics['monthlyComparison']['changes']['avg_customers'])
-                                <span class="badge-simple {{ $analytics['monthlyComparison']['changes']['avg_customers'] >= 0 ? 'bg-success' : 'bg-danger' }} text-white">
-                                    {{ $analytics['monthlyComparison']['changes']['avg_customers'] >= 0 ? '+' : '' }}{{ $analytics['monthlyComparison']['changes']['avg_customers'] }}%
-                                </span>
-                            @endif
+                </div>
+                <div class="col-6 col-md-4 col-lg">
+                    <div class="kpi-card">
+                        <div class="kpi-icon" style="background: #e1f5fe; color: #00bcd4;">
+                            <i class="bi bi-download"></i>
+                        </div>
+                        <div class="kpi-content">
+                            <div class="kpi-label">Downloads</div>
+                            <div class="kpi-value">{{ number_format($analytics['overview']['thisMonth']['reports'], 0) }}</div>
+                </div>
+            </div>
+                </div>
+                <div class="col-6 col-md-4 col-lg">
+                    <div class="kpi-card">
+                        <div class="kpi-icon" style="background: #fce4ec; color: #e91e63;">
+                            <i class="bi bi-flag"></i>
+                        </div>
+                        <div class="kpi-content">
+                            <div class="kpi-label">Reports</div>
+                            <div class="kpi-value">{{ $analytics['overview']['thisMonth']['reports'] }}</div>
                         </div>
                     </div>
                 </div>
             </div>
-            @endif
 
-            <!-- Store Performance -->
-            @if($analytics['storePerformance']->count() > 0)
-            <div class="card-simple">
-                <h3 class="card-title-simple">Store Performance</h3>
-                <div class="table-responsive">
-                    <table class="table-simple">
-                        <thead>
-                            <tr>
-                                <th>Store</th>
-                                <th class="text-end">Sales</th>
-                                <th class="text-end">Reports</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($analytics['storePerformance']->take(5) as $store)
-                                <tr>
-                                    <td>{{ Str::limit($store->store_info, 30) }}</td>
-                                    <td class="text-end">${{ number_format($store->total_gross, 0) }}</td>
-                                    <td class="text-end">{{ $store->report_count }}</td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            @endif
-        </div>
-
-        <!-- Sidebar -->
-        <div class="col-12 col-lg-4">
-            <!-- Insights -->
-            @if($analytics['insights']->count() > 0)
-            <div class="card-simple">
-                <h3 class="card-title-simple">Insights</h3>
-                @foreach($analytics['insights'] as $insight)
-                    <div class="insight-simple">
-                        <div style="font-size: 0.875rem; color: #202124; margin-bottom: 0.25rem;">{{ $insight['title'] }}</div>
-                        <div style="font-size: 0.8125rem; color: #5f6368;">{{ $insight['message'] }}</div>
-                    </div>
-                @endforeach
-            </div>
-            @endif
-
-            <!-- Top Days -->
-            @if($analytics['topDays']->count() > 0)
-            <div class="card-simple">
-                <h3 class="card-title-simple">Top Days</h3>
-                @foreach($analytics['topDays']->take(5) as $day)
-                    <div class="day-item-simple">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <div style="font-size: 0.875rem; color: #202124;">{{ $day->report_date->format('M j, Y') }}</div>
-                                <div style="font-size: 0.75rem; color: #5f6368;">{{ $day->store?->store_info ?? 'N/A' }}</div>
+            <!-- Data Cards Row -->
+            <div class="row g-3">
+                <!-- Cash Sales Card -->
+                <div class="col-12 col-md-6 col-lg-3">
+                    <div class="data-card">
+                        <div class="data-card-header">
+                            <h3 class="data-card-title">Cash Sales</h3>
+                            <div class="data-card-nav">
+                                <button class="data-card-nav-btn"><i class="bi bi-chevron-left"></i></button>
+                                <button class="data-card-nav-btn"><i class="bi bi-chevron-right"></i></button>
                             </div>
-                            <div style="font-size: 0.875rem; font-weight: 500; color: #202124;">${{ number_format($day->gross_sales, 0) }}</div>
+                        </div>
+                        <div class="data-card-icon" style="background: #e3f2fd; color: #1976d2;">
+                            <i class="bi bi-wallet2"></i>
+                        </div>
+                        <div class="data-card-chart">
+                            <canvas id="cashSalesChart" height="60"></canvas>
+                        </div>
+                        @php
+                            $cashSales = $analytics['overview']['thisMonth']['grossSales'] ?? 0;
+                            $cashSalesChange = $analytics['monthlyComparison']['changes']['gross_sales'] ?? 0;
+                        @endphp
+                        <div class="data-card-percentage {{ $cashSalesChange >= 0 ? 'arrow-up' : 'arrow-down' }}">
+                            {{ abs($cashSalesChange) }}%
+                            <i class="bi bi-arrow-{{ $cashSalesChange >= 0 ? 'up' : 'down' }}"></i>
+                        </div>
+                        <div class="data-card-metric">Sales last month</div>
+                        <div class="data-card-value">${{ number_format($cashSales, 0) }}</div>
+                        <div class="data-card-change {{ $cashSalesChange >= 0 ? 'arrow-up' : 'arrow-down' }}">
+                            <i class="bi bi-arrow-{{ $cashSalesChange >= 0 ? 'up' : 'down' }}"></i>
+                            {{ abs($cashSalesChange) }}%
+                        </div>
+                        <div class="data-card-description">
+                            Gross sales of {{ now()->format('F') }}. Track your cash sales performance and monitor daily revenue trends.
                         </div>
                     </div>
-                @endforeach
-            </div>
-            @endif
+                </div>
 
-            <!-- Actions -->
-            @if(Auth::user()->hasPermission('create_reports'))
-            <div class="card-simple">
-                <h3 class="card-title-simple">Actions</h3>
-                <div class="d-grid gap-2">
-                    <a href="{{ route('daily-reports.create') }}" class="btn btn-material btn-material-primary">
-                        <i class="bi bi-plus-circle"></i>
-                        <span>Create Report</span>
-                    </a>
-                    <a href="{{ route('daily-reports.index') }}" class="btn btn-material btn-material-outlined">
-                        <i class="bi bi-list-ul"></i>
-                        <span>View Reports</span>
-                    </a>
+                <!-- Monthly Income Card -->
+                <div class="col-12 col-md-6 col-lg-3">
+                    <div class="data-card">
+                        <div class="data-card-header">
+                            <h3 class="data-card-title">Monthly Income</h3>
+                            <div class="data-card-nav">
+                                <button class="data-card-nav-btn"><i class="bi bi-chevron-left"></i></button>
+                                <button class="data-card-nav-btn"><i class="bi bi-chevron-right"></i></button>
+                            </div>
+                        </div>
+                        <div class="data-card-icon" style="background: #fff3e0; color: #ff9800;">
+                            <i class="bi bi-cash-stack"></i>
+                        </div>
+                        <div class="data-card-chart">
+                            <canvas id="monthlyIncomeChart" height="60"></canvas>
+                            </div>
+                        @php
+                            $monthlyIncome = $analytics['overview']['thisMonth']['grossSales'] ?? 0;
+                            $incomeChange = $analytics['monthlyComparison']['changes']['gross_sales'] ?? 0;
+                        @endphp
+                        <div class="data-card-percentage {{ $incomeChange >= 0 ? 'arrow-up' : 'arrow-down' }}">
+                            {{ abs($incomeChange) }}%
+                            <i class="bi bi-arrow-{{ $incomeChange >= 0 ? 'up' : 'down' }}"></i>
+                        </div>
+                        <div class="data-card-metric">Sales income</div>
+                        <div class="data-card-value">${{ number_format($monthlyIncome, 0) }}</div>
+                        <div class="data-card-change {{ $incomeChange >= 0 ? 'arrow-up' : 'arrow-down' }}">
+                            <i class="bi bi-arrow-{{ $incomeChange >= 0 ? 'up' : 'down' }}"></i>
+                            {{ abs($incomeChange) }}%
+                            </div>
+                        <div class="data-card-description">
+                            Gross sales of {{ now()->format('F') }}. Monitor your monthly income and revenue streams.
+                        </div>
+                    </div>
+        </div>
+
+                <!-- Yearly Sales Card -->
+                <div class="col-12 col-md-6 col-lg-3">
+                    <div class="data-card">
+                        <div class="data-card-header">
+                            <h3 class="data-card-title">Yearly Sales</h3>
+                            <div class="data-card-nav">
+                                <button class="data-card-nav-btn"><i class="bi bi-chevron-left"></i></button>
+                                <button class="data-card-nav-btn"><i class="bi bi-chevron-right"></i></button>
+                            </div>
+                        </div>
+                        <div class="data-card-icon" style="background: #f3e5f5; color: #9c27b0;">
+                            <i class="bi bi-cart3"></i>
+                </div>
+                        <div class="data-card-chart">
+                            <canvas id="yearlySalesChart" height="60"></canvas>
+            </div>
+                        @php
+                            $yearlySales = $analytics['overview']['thisMonth']['grossSales'] * 12 ?? 0;
+                            $yearlyChange = $analytics['monthlyComparison']['changes']['gross_sales'] ?? 0;
+                        @endphp
+                        <div class="data-card-percentage {{ $yearlyChange >= 0 ? 'arrow-up' : 'arrow-down' }}">
+                            {{ abs($yearlyChange) }}%
+                            <i class="bi bi-arrow-{{ $yearlyChange >= 0 ? 'up' : 'down' }}"></i>
+                </div>
+                        <div class="data-card-metric">Purchases</div>
+                        <div class="data-card-value">${{ number_format($yearlySales, 0) }}</div>
+                        <div class="data-card-change {{ $yearlyChange >= 0 ? 'arrow-up' : 'arrow-down' }}">
+                            <i class="bi bi-arrow-{{ $yearlyChange >= 0 ? 'up' : 'down' }}"></i>
+                            {{ abs($yearlyChange) }}%
+                        </div>
+                        <div class="data-card-description">
+                            Projected yearly sales based on current month. Track annual performance and growth trends.
                 </div>
             </div>
-            @endif
+                </div>
 
-            <!-- Admin User Impersonation -->
-            @if(Auth::user()->isAdmin())
-            <div class="card-simple">
-                <h3 class="card-title-simple">User Management</h3>
-                <button type="button" class="btn btn-material btn-material-primary w-100 mb-3" data-bs-toggle="modal" data-bs-target="#userSelectionModal">
-                    <i class="bi bi-search"></i>
-                    <span>Login as User</span>
-                </button>
-                <a href="{{ route('managers.index') }}" class="btn btn-material btn-material-outlined w-100">
-                    <i class="bi bi-people"></i>
-                    <span>Manage Users</span>
-                </a>
+                <!-- Daily Deposits Card -->
+                <div class="col-12 col-md-6 col-lg-3">
+                    <div class="data-card">
+                        <div class="data-card-header">
+                            <h3 class="data-card-title">Daily Deposits</h3>
+                            <div class="data-card-nav">
+                                <button class="data-card-nav-btn"><i class="bi bi-chevron-left"></i></button>
+                                <button class="data-card-nav-btn"><i class="bi bi-chevron-right"></i></button>
+                            </div>
+                        </div>
+                        <div class="data-card-icon" style="background: #e8f5e9; color: #4caf50;">
+                            <i class="bi bi-bank"></i>
+                        </div>
+                        <div class="data-card-chart">
+                            <canvas id="dailyDepositsChart" height="60"></canvas>
+                                </div>
+                        @php
+                            $dailyDeposits = $analytics['overview']['today']['grossSales'] ?? 0;
+                            $depositsChange = 0;
+                            if($analytics['overview']['today']['grossSales'] > 0 && isset($analytics['overview']['yesterday']['grossSales'])) {
+                                $depositsChange = (($analytics['overview']['today']['grossSales'] - $analytics['overview']['yesterday']['grossSales']) / $analytics['overview']['yesterday']['grossSales']) * 100;
+                            }
+                        @endphp
+                        <div class="data-card-percentage {{ $depositsChange >= 0 ? 'arrow-up' : 'arrow-down' }}">
+                            {{ abs(round($depositsChange)) }}%
+                            <i class="bi bi-arrow-{{ $depositsChange >= 0 ? 'up' : 'down' }}"></i>
+                        </div>
+                        <div class="data-card-metric">Security deposits</div>
+                        <div class="data-card-value">${{ number_format($dailyDeposits, 0) }}</div>
+                        <div class="data-card-change {{ $depositsChange >= 0 ? 'arrow-up' : 'arrow-down' }}">
+                            <i class="bi bi-arrow-{{ $depositsChange >= 0 ? 'up' : 'down' }}"></i>
+                            {{ abs(round($depositsChange)) }}%
+                        </div>
+                        <div class="data-card-description">
+                            Daily deposit tracking. Monitor cash flow and daily revenue collection.
+                        </div>
+                    </div>
+                </div>
             </div>
-            @endif
+        </div>
+
+        <!-- Sales Tab -->
+        <div class="tab-pane fade" id="sales" role="tabpanel">
+            <div class="row g-3">
+                <div class="col-12">
+                    <div class="data-card">
+                        <h3 class="data-card-title mb-3">Sales Trends</h3>
+                        <canvas id="salesTrendsChart" style="max-height: 400px;"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reports Tab -->
+        <div class="tab-pane fade" id="reports" role="tabpanel">
+            <div class="row g-3">
+                @if($analytics['storePerformance']->count() > 0)
+                <div class="col-12">
+                    <div class="data-card">
+                        <h3 class="data-card-title mb-3">Store Performance</h3>
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Store</th>
+                                        <th class="text-end">Sales</th>
+                                        <th class="text-end">Reports</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($analytics['storePerformance'] as $store)
+                                        <tr>
+                                            <td>{{ $store->store_info }}</td>
+                                            <td class="text-end">${{ number_format($store->total_gross, 0) }}</td>
+                                            <td class="text-end">{{ $store->report_count }}</td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                @endif
         </div>
     </div>
 </div>
-
-<!-- User Selection Modal -->
-@if(Auth::user()->isAdmin())
-<div class="modal fade" id="userSelectionModal" tabindex="-1" aria-labelledby="userSelectionModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="userSelectionModalLabel">Select User to Impersonate</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div class="mb-3">
-                    <input type="text" id="userSearch" class="form-control" placeholder="Search by name or email...">
-                </div>
-                <div class="row">
-                    <div class="col-md-6">
-                        <h6>Owners</h6>
-                        <div id="ownersList" style="max-height: 300px; overflow-y: auto;">
-                            @php
-                                $owners = \App\Models\User::where('role', \App\Enums\UserRole::OWNER)->orderBy('name')->get();
-                            @endphp
-                            @foreach($owners as $owner)
-                                <div class="d-flex justify-content-between align-items-center mb-2 p-2 border rounded">
-                                    <div>
-                                        <div>{{ $owner->name }}</div>
-                                        <small class="text-muted">{{ $owner->email }}</small>
-                                    </div>
-                                    <form method="POST" action="{{ route('impersonate.start', $owner) }}" class="d-inline">
-                                        @csrf
-                                        <button type="submit" class="btn btn-sm btn-material btn-material-outlined">Login</button>
-                                    </form>
-                                </div>
-                            @endforeach
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <h6>Managers</h6>
-                        <div id="managersList" style="max-height: 300px; overflow-y: auto;">
-                            @php
-                                $managers = \App\Models\User::where('role', \App\Enums\UserRole::MANAGER)->orderBy('name')->get();
-                            @endphp
-                            @foreach($managers as $manager)
-                                <div class="d-flex justify-content-between align-items-center mb-2 p-2 border rounded">
-                                    <div>
-                                        <div>{{ $manager->name }}</div>
-                                        <small class="text-muted">{{ $manager->email }}</small>
-                                        @if($manager->store)
-                                            <div><small class="text-info">{{ $manager->store->store_info }}</small></div>
-                                        @endif
-                                    </div>
-                                    <form method="POST" action="{{ route('impersonate.start', $manager) }}" class="d-inline">
-                                        @csrf
-                                        <button type="submit" class="btn btn-sm btn-material btn-material-outlined">Login</button>
-                                    </form>
-                                </div>
-                            @endforeach
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-material btn-material-outlined" data-bs-dismiss="modal">Close</button>
-            </div>
-        </div>
-    </div>
 </div>
-@endif
 
 <!-- Load Chart.js -->
 <script>
@@ -407,69 +593,112 @@
         document.head.appendChild(script);
     }
 
-    const hasData = @json($analytics['dailyTrends']->count() > 0 || $analytics['storePerformance']->count() > 0);
+    const hasData = @json($analytics['dailyTrends']->count() > 0);
     if (hasData) {
         loadChartJS();
     }
 
-    function initializeCharts() {
-        const dailyTrends = @json($analytics['dailyTrends']);
-        const storePerformance = @json($analytics['storePerformance']);
-
-        // Daily Trends Chart
-        if (document.getElementById('dailyTrendsChart') && dailyTrends.length > 0) {
-            const ctx = document.getElementById('dailyTrendsChart').getContext('2d');
-            new Chart(ctx, {
+function initializeCharts() {
+    const dailyTrends = @json($analytics['dailyTrends']);
+        
+        // Mini charts for data cards
+        const createMiniChart = (canvasId, color, trend) => {
+            const ctx = document.getElementById(canvasId);
+            if (!ctx) return;
+            
+            const data = dailyTrends.length > 0 
+                ? dailyTrends.slice(-7).map(item => parseFloat(item.total_gross || 0))
+                : [0, 0, 0, 0, 0, 0, 0];
+            
+            new Chart(ctx.getContext('2d'), {
                 type: 'line',
                 data: {
-                    labels: dailyTrends.map(item => {
-                        const date = new Date(item.date);
-                        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                    }),
+                    labels: ['', '', '', '', '', '', ''],
                     datasets: [{
-                        label: 'Gross Sales',
-                        data: dailyTrends.map(item => parseFloat(item.total_gross || 0)),
-                        borderColor: '#1976d2',
-                        backgroundColor: 'rgba(25, 118, 210, 0.1)',
+                        data: data,
+                        borderColor: color,
+                        backgroundColor: color + '20',
                         tension: 0.4,
-                        fill: true
-                    }, {
-                        label: 'Net Sales',
-                        data: dailyTrends.map(item => parseFloat(item.total_net || 0)),
-                        borderColor: '#4caf50',
-                        backgroundColor: 'rgba(76, 175, 80, 0.1)',
-                        tension: 0.4,
-                        fill: true
+                        fill: true,
+                        pointRadius: 0,
+                        borderWidth: 2
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: { position: 'top' },
-                        tooltip: {
-                            mode: 'index',
-                            intersect: false,
-                            callbacks: {
-                                label: function(context) {
-                                    return context.dataset.label + ': $' + context.parsed.y.toLocaleString();
-                                }
-                            }
-                        }
+                        legend: { display: false },
+                        tooltip: { enabled: false }
                     },
                     scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                callback: function(value) {
-                                    return '$' + value.toLocaleString();
-                                }
+                        x: { display: false },
+                        y: { display: false }
+                    }
+                }
+            });
+        };
+
+        // Create mini charts
+        createMiniChart('cashSalesChart', '#1976d2', 'up');
+        createMiniChart('monthlyIncomeChart', '#ff9800', 'up');
+        createMiniChart('yearlySalesChart', '#9c27b0', 'down');
+        createMiniChart('dailyDepositsChart', '#4caf50', 'up');
+
+        // Main sales trends chart
+        if (document.getElementById('salesTrendsChart') && dailyTrends.length > 0) {
+            const ctx = document.getElementById('salesTrendsChart').getContext('2d');
+            new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: dailyTrends.map(item => {
+                    const date = new Date(item.date);
+                    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                }),
+                datasets: [{
+                    label: 'Gross Sales',
+                    data: dailyTrends.map(item => parseFloat(item.total_gross || 0)),
+                        borderColor: '#1976d2',
+                        backgroundColor: 'rgba(25, 118, 210, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }, {
+                    label: 'Net Sales',
+                    data: dailyTrends.map(item => parseFloat(item.total_net || 0)),
+                        borderColor: '#4caf50',
+                        backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'top' },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': $' + context.parsed.y.toLocaleString();
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return '$' + value.toLocaleString();
                             }
                         }
                     }
                 }
-            });
-        }
+            }
+        });
+    }
     }
 </script>
 @endsection
