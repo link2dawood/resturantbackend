@@ -25,7 +25,7 @@
     
     /* Material UI Cards */
     .card-material {
-        background: #ffffff;
+        background: #ffffff !important;
         border-radius: 4px;
         box-shadow: 0px 2px 1px -1px rgba(0, 0, 0, 0.2), 0px 1px 1px 0px rgba(0, 0, 0, 0.14), 0px 1px 3px 0px rgba(0, 0, 0, 0.12);
         transition: box-shadow 0.28s cubic-bezier(0.4, 0, 0.2, 1);
@@ -41,6 +41,7 @@
     .stat-card {
         padding: 1.5rem;
         height: 100%;
+        background: #ffffff !important;
     }
     
     .stat-icon {
@@ -82,7 +83,7 @@
     .chart-card-header {
         padding: 1rem 1.5rem;
         border-bottom: 1px solid rgba(0, 0, 0, 0.12);
-        background: #fafafa;
+        background: #fafafa !important;
     }
     
     .chart-card-title {
@@ -98,6 +99,7 @@
     
     .chart-card-body {
         padding: 1.5rem;
+        background: #ffffff !important;
     }
     
     /* Material UI Buttons */
@@ -196,18 +198,18 @@
         padding: 0.75rem;
         border-radius: 4px;
         margin-bottom: 0.5rem;
-        background: #fafafa;
+        background: #fafafa !important;
         border: 1px solid rgba(0, 0, 0, 0.12);
         transition: all 0.2s ease;
     }
     
     .top-day-item:hover {
-        background: #f5f5f5;
+        background: #f5f5f5 !important;
         box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
     }
     
     .top-day-item.best {
-        background: #fff3e0;
+        background: #fff3e0 !important;
         border-color: #ff9800;
     }
     
