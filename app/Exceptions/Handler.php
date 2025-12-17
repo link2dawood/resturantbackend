@@ -136,7 +136,7 @@ class Handler extends ExceptionHandler
         if ($e instanceof ModelNotFoundException) {
             return $isApiRequest
                 ? response()->json(['error' => 'Resource not found'], 404)
-                : abort(404);
+                : parent::render($request, $e);
         }
 
         if ($e instanceof AuthenticationException) {
@@ -148,19 +148,19 @@ class Handler extends ExceptionHandler
         if ($e instanceof AuthorizationException) {
             return $isApiRequest
                 ? response()->json(['error' => 'Forbidden'], 403)
-                : abort(403);
+                : parent::render($request, $e);
         }
 
         if ($e instanceof NotFoundHttpException) {
             return $isApiRequest
                 ? response()->json(['error' => 'Endpoint not found'], 404)
-                : abort(404);
+                : parent::render($request, $e);
         }
 
         if ($e instanceof MethodNotAllowedHttpException) {
             return $isApiRequest
                 ? response()->json(['error' => 'Method not allowed'], 405)
-                : abort(405);
+                : parent::render($request, $e);
         }
 
         // Generic HTTP exceptions (e.g. abort(403), 429, etc.)
@@ -180,7 +180,7 @@ class Handler extends ExceptionHandler
 
             return $isApiRequest
                 ? response()->json(['error' => $message], $statusCode)
-                : abort($statusCode);
+                : parent::render($request, $e);
         }
 
         // Log the error but don't expose details to user
@@ -196,6 +196,6 @@ class Handler extends ExceptionHandler
 
         return $isApiRequest
             ? response()->json(['error' => 'Internal server error'], 500)
-            : abort(500);
+            : parent::render($request, $e);
     }
 }
