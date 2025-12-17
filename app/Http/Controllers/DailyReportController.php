@@ -531,7 +531,7 @@ class DailyReportController extends Controller
         $query = Store::query();
 
         // Filter stores based on user role for security
-        if ($user->role === 'owner') {
+        if ($user->role === \App\Enums\UserRole::OWNER) {
             $query->where('created_by', $user->id);
         } elseif ($user->role === \App\Enums\UserRole::MANAGER) {
             $query->where('store_id', $user->store_id);
@@ -667,66 +667,6 @@ class DailyReportController extends Controller
     }
 
     /**
-     * Validate business rules for daily reports
-     */
-    private function validateBusinessRules($data)
-    {
-        $errors = [];
-
-        // Calculate derived fields
-        $creditCards = (float) ($data['credit_cards'] ?? 0);
-        $actualDeposit = (float) ($data['actual_deposit'] ?? 0);
-        $totalPaidOuts = (float) ($data['total_paid_outs'] ?? 0);
-
-        // Calculate net sales as sum of revenues
-        $netSales = 0;
-        if (isset($data['revenues']) && is_array($data['revenues'])) {
-            foreach ($data['revenues'] as $revenue) {
-                if (isset($revenue['amount']) && is_numeric($revenue['amount'])) {
-                    $netSales += (float) $revenue['amount'];
-                }
-            }
-        }
-        $data['net_sales'] = $netSales;
-
-        // Calculate tax (8.25% sales tax)
-        // If net sales includes tax: tax = netSales * 0.0825 / 1.0825
-        $tax = $netSales * 0.0825 / 1.0825;
-        $data['tax'] = $tax;
-
-        // Calculate sales (pre-tax)
-        $data['sales'] = $netSales - $tax;
-
-        // Calculate cash to account for = Net Sales - Total Paid Out - Credit Cards - Online Platform Revenue
-        // Calculate online platform revenue
-        $onlinePlatformRevenue = 0;
-        if (isset($data['revenues']) && is_array($data['revenues'])) {
-            foreach ($data['revenues'] as $revenue) {
-                if (isset($revenue['amount']) && is_numeric($revenue['amount']) && isset($revenue['revenue_income_type_id'])) {
-                    $revenueType = \App\Models\RevenueIncomeType::find($revenue['revenue_income_type_id']);
-                    if ($revenueType && $revenueType->category === 'online') {
-                        $onlinePlatformRevenue += (float) $revenue['amount'];
-                    }
-                }
-            }
-        }
-        
-        $cashToAccountFor = $netSales - $totalPaidOuts - $creditCards - $onlinePlatformRevenue;
-        $data['cash_to_account'] = $cashToAccountFor;
-
-        // Calculate short/over
-        if ($actualDeposit < $cashToAccountFor) {
-            $data['short'] = $actualDeposit - $cashToAccountFor;
-            $data['over'] = 0;
-        } else {
-            $data['short'] = 0;
-            $data['over'] = $actualDeposit - $cashToAccountFor;
-        }
-
-        return $data;
-    }
-
-    /**
      * Calculate derived fields for the daily report.
      */
     private function calculateDerivedFields(array $data): array
@@ -797,7 +737,13 @@ class DailyReportController extends Controller
     public function submit(DailyReport $dailyReport)
     {
         // Only the creator or owners/admins can submit
-        if ($dailyReport->created_by !== auth()->id() && ! in_array(auth()->user()->role, ['owner', 'admin'])) {
+        if (
+            $dailyReport->created_by !== auth()->id()
+            && ! in_array(
+                auth()->user()->role,
+                [\App\Enums\UserRole::OWNER, \App\Enums\UserRole::ADMIN]
+            )
+        ) {
             abort(403);
         }
 

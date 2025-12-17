@@ -12,6 +12,7 @@ use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
 use Illuminate\Http\Request;
 use Illuminate\Session\TokenMismatchException;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Throwable;
@@ -135,7 +136,7 @@ class Handler extends ExceptionHandler
         if ($e instanceof ModelNotFoundException) {
             return $isApiRequest
                 ? response()->json(['error' => 'Resource not found'], 404)
-                : abort(404);
+                : parent::render($request, $e);
         }
 
         if ($e instanceof AuthenticationException) {
@@ -147,19 +148,39 @@ class Handler extends ExceptionHandler
         if ($e instanceof AuthorizationException) {
             return $isApiRequest
                 ? response()->json(['error' => 'Forbidden'], 403)
-                : abort(403);
+                : parent::render($request, $e);
         }
 
         if ($e instanceof NotFoundHttpException) {
             return $isApiRequest
                 ? response()->json(['error' => 'Endpoint not found'], 404)
-                : abort(404);
+                : parent::render($request, $e);
         }
 
         if ($e instanceof MethodNotAllowedHttpException) {
             return $isApiRequest
                 ? response()->json(['error' => 'Method not allowed'], 405)
-                : abort(405);
+                : parent::render($request, $e);
+        }
+
+        // Generic HTTP exceptions (e.g. abort(403), 429, etc.)
+        if ($e instanceof HttpExceptionInterface) {
+            $statusCode = $e->getStatusCode();
+            $defaultMessage = match ($statusCode) {
+                400 => 'Bad request',
+                401 => 'Unauthorized',
+                403 => 'Forbidden',
+                404 => 'Not found',
+                405 => 'Method not allowed',
+                429 => 'Too many requests',
+                default => 'HTTP error',
+            };
+
+            $message = $e->getMessage() ?: $defaultMessage;
+
+            return $isApiRequest
+                ? response()->json(['error' => $message], $statusCode)
+                : parent::render($request, $e);
         }
 
         // Log the error but don't expose details to user
@@ -175,6 +196,6 @@ class Handler extends ExceptionHandler
 
         return $isApiRequest
             ? response()->json(['error' => 'Internal server error'], 500)
-            : abort(500);
+            : parent::render($request, $e);
     }
 }

@@ -704,8 +704,9 @@ class BankImportController extends Controller
             $amountMin = $bankTransaction->amount - $amountTolerance;
             $amountMax = $bankTransaction->amount + $amountTolerance;
             
-            // Find matching daily reports
-            $dailyReports = DailyReport::where('store_id', $bankAccount->store_id)
+            // Find matching daily reports (with revenues eager loaded to avoid N+1)
+            $dailyReports = DailyReport::with('revenues.revenueIncomeType')
+                ->where('store_id', $bankAccount->store_id)
                 ->whereBetween('report_date', [$dateFrom, $dateTo])
                 ->where('status', 'approved') // Only match to approved reports
                 ->get();

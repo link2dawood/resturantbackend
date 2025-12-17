@@ -181,6 +181,17 @@ class DailyReport extends Model
 
     public function getOnlinePlatformRevenueAttribute(): float
     {
+        // Prefer already-loaded relationships to avoid N+1 queries
+        if ($this->relationLoaded('revenues')) {
+            return $this->revenues
+                ->filter(function ($revenue) {
+                    return $revenue->revenueIncomeType
+                        && $revenue->revenueIncomeType->category === 'online';
+                })
+                ->sum('amount');
+        }
+
+        // Fallback: query database when revenues are not preloaded
         return $this->revenues()
             ->whereHas('revenueIncomeType', function ($query) {
                 $query->where('category', 'online');
