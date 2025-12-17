@@ -12,6 +12,7 @@ use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
 use Illuminate\Http\Request;
 use Illuminate\Session\TokenMismatchException;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Throwable;
@@ -160,6 +161,26 @@ class Handler extends ExceptionHandler
             return $isApiRequest
                 ? response()->json(['error' => 'Method not allowed'], 405)
                 : abort(405);
+        }
+
+        // Generic HTTP exceptions (e.g. abort(403), 429, etc.)
+        if ($e instanceof HttpExceptionInterface) {
+            $statusCode = $e->getStatusCode();
+            $defaultMessage = match ($statusCode) {
+                400 => 'Bad request',
+                401 => 'Unauthorized',
+                403 => 'Forbidden',
+                404 => 'Not found',
+                405 => 'Method not allowed',
+                429 => 'Too many requests',
+                default => 'HTTP error',
+            };
+
+            $message = $e->getMessage() ?: $defaultMessage;
+
+            return $isApiRequest
+                ? response()->json(['error' => $message], $statusCode)
+                : abort($statusCode);
         }
 
         // Log the error but don't expose details to user

@@ -78,10 +78,12 @@ class ExpenseController extends Controller
      */
     public function store(Request $request)
     {
-        // Authorization check - managers, owners, and admins can create
-        if (!auth()->user() || (auth()->user()->isAdmin() || auth()->user()->isOwner() || auth()->user()->isManager())) {
-            // Allow
-        } else {
+        // Authorization check - only authenticated admins, owners, and managers can create
+        if (! auth()->check()) {
+            return response()->json(['error' => 'Unauthenticated'], 401);
+        }
+
+        if (! auth()->user()->isAdmin() && ! auth()->user()->isOwner() && ! auth()->user()->isManager()) {
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 
