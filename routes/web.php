@@ -138,15 +138,7 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:admin')->group(function () {
         Route::resource('chart-of-accounts', ChartOfAccountController::class)
             ->parameters(['chart-of-accounts' => 'chartOfAccount'])
-            ->names([
-                'index' => 'coa.index',
-                'create' => 'coa.create',
-                'store' => 'coa.store',
-                'show' => 'coa.show',
-                'edit' => 'coa.edit',
-                'update' => 'coa.update',
-                'destroy' => 'coa.destroy',
-            ]);
+            ->names('coa');
         // API endpoint for stores (for COA form and other admin tools)
         Route::get('/api/stores', function () {
             return response()->json(App\Models\Store::select('id', 'store_info as name')->get());
@@ -227,13 +219,7 @@ Route::middleware('auth')->group(function () {
     Route::prefix('api')->group(function () {
         // Chart of Accounts API
         Route::middleware('role:admin')->group(function () {
-            Route::apiResource('coa', ApiChartOfAccountController::class)->names([
-                'index' => 'api.coa.index',
-                'store' => 'api.coa.store',
-                'show' => 'api.coa.show',
-                'update' => 'api.coa.update',
-                'destroy' => 'api.coa.destroy',
-            ]);
+            Route::apiResource('coa', ApiChartOfAccountController::class);
         });
         
         // Vendor API

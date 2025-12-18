@@ -1,329 +1,299 @@
 @extends('layouts.tabler')
 @section('title', 'Daily Report - ' . \App\Helpers\DateFormatter::toUSShort($dailyReport->report_date))
+@section('content')
 
-@section('styles')
 <style>
-    /* Material UI Card Styling */
-    .card-material {
-        background: #ffffff;
-        border-radius: 4px;
-        box-shadow: 0px 2px 1px -1px rgba(0, 0, 0, 0.2), 0px 1px 1px 0px rgba(0, 0, 0, 0.14), 0px 1px 3px 0px rgba(0, 0, 0, 0.12);
-        transition: box-shadow 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    .sales-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed; /* force equal widths */
+}
+
+.sales-table td {
+    width: 33.33%;   /* 3 equal columns */
+    padding: 8px;
+    vertical-align: middle;
+}
+    .report-container {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         overflow: hidden;
-        margin-bottom: 1.5rem;
     }
     
-    .card-header-material {
-        background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
-        color: #fff;
-        padding: 1.5rem;
+    .report-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 12px 15px;
         text-align: center;
     }
     
-    .card-title-material {
-        font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    .company-name {
         font-size: 1.5rem;
-        font-weight: 400;
-        margin: 0 0 0.5rem 0;
+        font-weight: bold;
+        margin-bottom: 5px;
     }
     
-    .card-subtitle-material {
-        font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-        font-size: 0.875rem;
+    .company-info {
         opacity: 0.9;
-        margin: 0;
+        font-size: 0.85rem;
     }
     
-    .section-header-material {
-        background: #fafafa;
-        padding: 1rem 1.5rem;
-        border-bottom: 1px solid rgba(0, 0, 0, 0.12);
-        font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    .section-title {
+        background: #f8f9fa;
+        padding: 10px 15px;
+        font-weight: 600;
+        border-bottom: 2px solid #e9ecef;
+        color: #495057;
         font-size: 1rem;
-        font-weight: 500;
-        color: #202124;
     }
     
-    .section-body-material {
-        padding: 1.5rem;
+    .form-section {
+        padding: 12px 15px;
     }
     
-    /* Material UI Table */
-    .table-material {
-        font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    .transaction-table {
         width: 100%;
         border-collapse: collapse;
-        margin-bottom: 1rem;
+        margin-bottom: 12px;
     }
     
-    .table-material thead th {
-        font-size: 0.75rem;
-        font-weight: 500;
-        color: rgba(0, 0, 0, 0.6);
-        text-transform: uppercase;
-        letter-spacing: 0.03333em;
-        border-bottom: 1px solid rgba(0, 0, 0, 0.12);
-        padding: 1rem;
-        text-align: left;
-        background: #fafafa;
+    .transaction-table th {
+        background: #f8f9fa;
+        padding: 8px 6px;
+        border: 1px solid #dee2e6;
+        font-weight: 600;
+        text-align: center;
+        font-size: 0.875rem;
     }
     
-    .table-material tbody td {
-        padding: 1rem;
-        border-bottom: 1px solid rgba(0, 0, 0, 0.12);
-        color: rgba(0, 0, 0, 0.87);
+    .transaction-table td {
+        border: 1px solid #dee2e6;
+        padding: 6px;
     }
     
-    .table-material tbody tr:hover {
-        background-color: rgba(0, 0, 0, 0.04);
+    .form-input {
+        width: 100%;
+        border: none;
+        background: transparent;
+        padding: 8px;
+        font-size: 14px;
     }
     
-    .table-material tbody tr.total-row {
-        background: #e3f2fd;
-        font-weight: 500;
+    .readonly-input {
+        width: 100%;
+        border: none;
+        background: transparent;
+        padding: 8px;
+        font-size: 14px;
+        color: #495057;
     }
     
     .number-input {
         text-align: right;
-        font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif;
     }
     
-    /* Material UI Buttons */
-    .btn-material {
-        font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-        font-size: 0.875rem;
-        font-weight: 500;
-        letter-spacing: 0.0892857143em;
-        text-transform: uppercase;
-        padding: 0.625rem 1.5rem;
-        border-radius: 4px;
-        border: none;
-        box-shadow: 0px 3px 1px -2px rgba(0, 0, 0, 0.2), 0px 2px 2px 0px rgba(0, 0, 0, 0.14), 0px 1px 5px 0px rgba(0, 0, 0, 0.12);
-        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        min-width: 64px;
-        height: 36px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.5rem;
-        text-decoration: none;
+    .total-row {
+        background: #e7f3ff;
+        font-weight: 600;
     }
     
-    .btn-material:hover {
-        box-shadow: 0px 2px 4px -1px rgba(0, 0, 0, 0.2), 0px 4px 5px 0px rgba(0, 0, 0, 0.14), 0px 1px 10px 0px rgba(0, 0, 0, 0.12);
-        transform: translateY(-1px);
+    .side-panel {
+        background: #f8f9fa;
+        padding: 12px 15px;
+        border-radius: 8px;
+        margin-bottom: 12px;
     }
     
-    .btn-material-danger {
-        background-color: #d32f2f;
-        color: #fff;
+    .side-panel .form-group {
+        margin-bottom: 10px;
     }
     
-    .btn-material-warning {
-        background-color: #f57c00;
-        color: #fff;
-    }
-    
-    .btn-material-secondary {
-        background-color: #757575;
-        color: #fff;
-    }
-    
-    /* Info Cards */
-    .info-card-material {
-        background: #fafafa;
-        border-radius: 4px;
-        padding: 1rem;
-        margin-bottom: 1rem;
-        border: 1px solid rgba(0, 0, 0, 0.12);
-    }
-    
-    .info-card-material.success {
-        background: #e8f5e9;
-        border-color: #4caf50;
-    }
-    
-    .info-card-material.info {
-        background: #e3f2fd;
-        border-color: #2196f3;
-    }
-    
-    .info-label {
-        font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-        font-size: 0.875rem;
-        font-weight: 500;
-        color: rgba(0, 0, 0, 0.6);
-        margin-bottom: 0.25rem;
-    }
-    
-    .info-value {
-        font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-        font-size: 1.25rem;
-        font-weight: 400;
-        color: #202124;
-    }
-    
-    /* Side Panel */
-    .side-panel-material {
-        background: #fafafa;
-        border-radius: 4px;
-        padding: 1.5rem;
-        border: 1px solid rgba(0, 0, 0, 0.12);
-    }
-    
-    .form-group-material {
-        margin-bottom: 1rem;
-    }
-    
-    .form-group-material:last-child {
-        margin-bottom: 0;
-    }
-    
-    .form-label-material {
-        font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-        font-size: 0.75rem;
-        font-weight: 500;
-        color: rgba(0, 0, 0, 0.6);
-        text-transform: uppercase;
-        letter-spacing: 0.03333em;
-        margin-bottom: 0.5rem;
+    .side-panel label {
+        font-weight: 600;
+        color: #495057;
+        margin-bottom: 4px;
         display: block;
-    }
-    
-    .form-control-material {
-        font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif;
         font-size: 0.875rem;
+    }
+    
+    .side-panel input {
         width: 100%;
-        padding: 0.75rem;
-        border: 1px solid rgba(0, 0, 0, 0.12);
+        padding: 6px 10px;
+        border: 1px solid #ced4da;
         border-radius: 4px;
-        background: #fff;
-        color: rgba(0, 0, 0, 0.87);
+        background: white;
     }
     
-    .form-control-material:read-only {
-        background: #f5f5f5;
-        color: rgba(0, 0, 0, 0.6);
+    .category-labels {
+        background: #e9ecef;
+        padding: 10px 12px;
+        border-radius: 8px;
+        margin-top: 12px;
     }
     
-    /* Badge Material */
-    .badge-material {
-        font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-        font-size: 0.75rem;
+    .category-labels .category {
+        display: inline-block;
+        background: #6c757d;
+        color: white;
+        padding: 5px 10px;
+        border-radius: 15px;
+        font-size: 12px;
+        margin: 3px;
         font-weight: 500;
-        padding: 0.25rem 0.75rem;
-        border-radius: 16px;
+    }
+    
+    .sales-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+        margin-top: 12px;
+    }
+    
+    .sales-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .sales-table td {
+        padding: 8px 10px;
+        border: 1px solid #dee2e6;
+    }
+    
+    .sales-table td:first-child {
+        background: #f8f9fa;
+        font-weight: 600;
+        color: #495057;
+        width: 60%;
+    }
+    
+    .calculated-field {
+        background: #e7f3ff !important;
+        color: #004085;
+        font-weight: 600;
+    }
+    
+    .export-buttons {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+    }
+    
+    .export-btn {
+        padding: 10px 20px;
+        border-radius: 5px;
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.2s;
         display: inline-flex;
         align-items: center;
+        gap: 8px;
     }
     
-    /* Responsive */
-    @media (max-width: 768px) {
-        .card-title-material {
-            font-size: 1.25rem;
-        }
-        
-        .section-body-material {
-            padding: 1rem;
-        }
-        
-        .table-material thead th,
-        .table-material tbody td {
-            padding: 0.75rem 0.5rem;
-            font-size: 0.8125rem;
-        }
+    .export-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    
+    .export-btn-pdf {
+        background: #dc3545;
+        color: white;
+    }
+    
+    .export-btn-csv {
+        background: #28a745;
+        color: white;
+    }
+    
+    .export-btn-edit {
+        background: #ffc107;
+        color: #000;
+    }
+    
+    .export-btn-back {
+        background: #6c757d;
+        color: white;
     }
 </style>
-@endsection
 
-@section('content')
-<div class="container-fluid px-3 px-md-4 px-lg-5 py-4">
-    <!-- Action Buttons -->
-    <div class="d-flex flex-wrap gap-2 mb-4">
-        <a href="{{ route('daily-reports.export-pdf', $dailyReport) }}" class="btn btn-material btn-material-danger" target="_blank">
-            <i class="bi bi-file-pdf"></i>
-            <span>Export PDF</span>
+<div class="container-xl mt-4">
+    <div class="export-buttons">
+        <a href="{{ route('daily-reports.export-pdf', $dailyReport) }}" class="export-btn export-btn-pdf" target="_blank">
+            📄 Export PDF
         </a>
-        <a href="{{ route('daily-reports.edit', $dailyReport) }}" class="btn btn-material btn-material-warning">
-            <i class="bi bi-pencil"></i>
-            <span>Edit Report</span>
+        <a href="{{ route('daily-reports.edit', $dailyReport) }}" class="export-btn export-btn-edit">
+            ✏️ Edit Report
         </a>
-        <a href="{{ route('daily-reports.index') }}" class="btn btn-material btn-material-secondary">
-            <i class="bi bi-arrow-left"></i>
-            <span>Back to List</span>
+        <a href="{{ route('daily-reports.index') }}" class="export-btn export-btn-back">
+            ← Back to List
         </a>
     </div>
 
-    <!-- Main Report Card -->
-    <div class="card-material">
+    <div class="report-container">
         <!-- Header Section -->
-        <div class="card-header-material">
-            <div class="card-title-material">{{ $dailyReport->store->store_info ?? 'N/A' }}</div>
-            <div class="card-subtitle-material">
+        <div class="report-header">
+            <div class="company-name">{{ $dailyReport->store->store_info ?? 'N/A' }}</div>
+            <div class="company-info">
                 <div>{{ $dailyReport->store->address ?? 'N/A' }}</div>
                 <div>Phone: {{ $dailyReport->store->phone ?? 'N/A' }}</div>
             </div>
         </div>
 
         <!-- Transaction Expenses Section -->
-        <div class="section-header-material">
-            <i class="bi bi-receipt me-2"></i>Transaction Expenses
-        </div>
-        <div class="section-body-material">
-            <div class="row g-4">
-                <div class="col-12 col-lg-8">
+        <div class="section-title">Transaction Expenses</div>
+        <div class="form-section">
+            <div class="row">
+                <div class="col-lg-8">
                     @if($dailyReport->transactions->count() > 0)
-                        <div class="table-responsive">
-                            <table class="table-material">
-                                <thead>
+                        <table class="transaction-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 15%;">Transaction ID</th>
+                                    <th style="width: 30%;">Company</th>
+                                    <th style="width: 25%;">Transaction Type</th>
+                                    <th style="width: 20%;">Amount ($)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($dailyReport->transactions as $transaction)
                                     <tr>
-                                        <th style="width: 40%;">Company</th>
-                                        <th style="width: 35%;">Transaction Type</th>
-                                        <th style="width: 25%;">Amount ($)</th>
+                                        <td>{{ $transaction->transaction_id }}</td>
+                                        <td>{{ $transaction->company }}</td>
+                                        <td>{{ $transaction->transactionType->name ?? 'N/A' }}</td>
+                                        <td class="number-input">${{ number_format($transaction->amount, 2) }}</td>
                                     </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach($dailyReport->transactions as $transaction)
-                                        <tr>
-                                            <td>{{ $transaction->company }}</td>
-                                            <td>{{ $transaction->transactionType->name ?? 'N/A' }}</td>
-                                            <td class="number-input">${{ number_format($transaction->amount, 2) }}</td>
-                                        </tr>
-                                    @endforeach
-                                    <tr class="total-row">
-                                        <td colspan="2"><strong>Total Transaction Expenses:</strong></td>
-                                        <td class="number-input"><strong>${{ number_format($dailyReport->total_paid_outs, 2) }}</strong></td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
+                                @endforeach
+                                <tr class="total-row">
+                                    <td colspan="3"><strong>Total Transaction Expenses:</strong></td>
+                                    <td class="number-input"><strong>${{ number_format($dailyReport->total_paid_outs, 2) }}</strong></td>
+                                </tr>
+                            </tbody>
+                        </table>
                     @else
-                        <div class="text-center text-muted py-4">
-                            <i class="bi bi-inbox" style="font-size: 2rem; opacity: 0.3; display: block; margin-bottom: 0.5rem;"></i>
-                            <p class="mb-0">No transactions recorded.</p>
-                        </div>
+                        <p class="text-muted">No transactions recorded.</p>
                     @endif
-                    <div class="info-card-material success mt-3">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <span class="info-label">Total Transaction Expenses:</span>
-                            <span class="info-value" style="color: #4caf50;">${{ number_format($dailyReport->total_paid_outs, 2) }}</span>
+                    <div style="margin-top: 8px; padding: 8px; background: #fff3cd; border-radius: 4px; border: 1px solid #ffeaa7;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-weight: 600; color: #856404;">Total Transaction Expenses:</span>
+                            <span style="font-weight: 600; color: #856404; font-size: 1.1rem;">${{ number_format($dailyReport->total_paid_outs, 2) }}</span>
                         </div>
                     </div>
                 </div>
                 
-                <div class="col-12 col-lg-4">
-                    <div class="side-panel-material">
-                        <div class="form-group-material">
-                            <label class="form-label-material">Date</label>
-                            <input type="text" class="form-control-material" value="{{ \App\Helpers\DateFormatter::toUSDisplay($dailyReport->report_date) }}" readonly>
+                <div class="col-lg-4">
+                    <div class="side-panel">
+                        <div class="form-group">
+                            <label>Date:</label>
+                            <input type="text" class="form-control" value="{{ \App\Helpers\DateFormatter::toUSDisplay($dailyReport->report_date) }}" readonly>
                         </div>
-                        <div class="form-group-material">
-                            <label class="form-label-material">Weather</label>
-                            <input type="text" class="form-control-material" value="{{ $dailyReport->weather ?? 'N/A' }}" readonly>
+                        <div class="form-group">
+                            <label>Weather:</label>
+                            <input type="text" class="form-control" value="{{ $dailyReport->weather ?? 'N/A' }}" readonly>
                         </div>
-                        <div class="form-group-material">
-                            <label class="form-label-material">Holiday/Special Event</label>
-                            <input type="text" class="form-control-material" value="{{ $dailyReport->holiday_event ?? 'N/A' }}" readonly>
+                        <div class="form-group">
+                            <label>Holiday/Special Event:</label>
+                            <input type="text" class="form-control" value="{{ $dailyReport->holiday_event ?? 'N/A' }}" readonly>
                         </div>
                     </div>
                 </div>
@@ -331,57 +301,44 @@
         </div>
 
         <!-- Revenue Types Section -->
-        <div class="section-header-material">
-            <i class="bi bi-cash-coin me-2"></i>Revenue Income Tracking
-        </div>
-        <div class="section-body-material">
+        <div class="section-title">Revenue Income Tracking</div>
+        <div class="form-section">
             <div class="row">
-                <div class="col-12">
+                <div class="col-lg-12">
                     @if($dailyReport->revenues->count() > 0)
-                        <div class="table-responsive">
-                            <table class="table-material">
-                                <thead>
+                        <table class="transaction-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 30%;">Revenue Type</th>
+                                    <th style="width: 20%;">Amount ($)</th>
+                                    <th style="width: 50%;">Notes</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($dailyReport->revenues as $revenue)
                                     <tr>
-                                        <th style="width: 50%;">Revenue Type</th>
-                                        <th style="width: 50%;">Amount ($)</th>
+                                        <td>
+                                            <span class="badge badge-outline text-{{ $revenue->revenueIncomeType->category == 'online' ? 'info' : ($revenue->revenueIncomeType->category == 'cash' ? 'success' : 'secondary') }}">
+                                                {{ $revenue->revenueIncomeType->name }}
+                                            </span>
+                                        </td>
+                                        <td class="number-input">${{ number_format($revenue->amount, 2) }}</td>
+                                        <td>{{ $revenue->notes ?? '-' }}</td>
                                     </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach($dailyReport->revenues as $revenue)
-                                        <tr>
-                                            <td>
-                                                <span class="badge-material bg-{{ $revenue->revenueIncomeType->category == 'online' ? 'info' : ($revenue->revenueIncomeType->category == 'cash' ? 'success' : 'secondary') }} text-white">
-                                                    {{ $revenue->revenueIncomeType->name }}
-                                                </span>
-                                            </td>
-                                            <td class="number-input">${{ number_format($revenue->amount, 2) }}</td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
+                                @endforeach
+                            </tbody>
+                        </table>
                     @else
-                        <div class="text-center text-muted py-4">
-                            <i class="bi bi-inbox" style="font-size: 2rem; opacity: 0.3; display: block; margin-bottom: 0.5rem;"></i>
-                            <p class="mb-0">No revenue entries recorded.</p>
-                        </div>
+                        <p class="text-muted">No revenue entries recorded.</p>
                     @endif
-                    <div class="row g-3 mt-3">
-                        <div class="col-12 col-md-6">
-                            <div class="info-card-material success">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <span class="info-label">Total Revenue Income:</span>
-                                    <span class="info-value" style="color: #4caf50;">${{ number_format($dailyReport->total_revenue_entries, 2) }}</span>
-                                </div>
-                            </div>
+                    <div style="margin-top: 8px; padding: 8px; background: #f8f9fa; border-radius: 4px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-weight: 600; color: #495057;">Total Revenue Income:</span>
+                            <span style="font-weight: 600; color: #28a745; font-size: 1.1rem;">${{ number_format($dailyReport->total_revenue_entries, 2) }}</span>
                         </div>
-                        <div class="col-12 col-md-6">
-                            <div class="info-card-material info">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <span class="info-label">Online Platform Revenue:</span>
-                                    <span class="info-value" style="color: #2196f3;">${{ number_format($dailyReport->online_platform_revenue, 2) }}</span>
-                                </div>
-                            </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 5px;">
+                            <span style="font-weight: 600; color: #495057;">Online Platform Revenue:</span>
+                            <span style="font-weight: 600; color: #17a2b8; font-size: 1.1rem;">${{ number_format($dailyReport->online_platform_revenue, 2) }}</span>
                         </div>
                     </div>
                 </div>
@@ -389,134 +346,124 @@
         </div>
 
         <!-- Sales Section -->
-        <div class="section-header-material">
-            <i class="bi bi-graph-up me-2"></i>Sales Information
-        </div>
-        <div class="section-body-material">
+        <div class="section-title">Sales Information</div>
+        <div class="form-section">
             <div class="row">
-                <div class="col-12 col-md-6">
-                    <table class="table-material">
-                        <tbody>
-                            <tr>
-                                <td style="width: 60%;"><strong>Projected Sales</strong></td>
-                                <td class="number-input">${{ number_format($dailyReport->projected_sales, 2) }}</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Amount of Cancels</strong></td>
-                                <td class="number-input">${{ number_format($dailyReport->amount_of_cancels, 2) }}</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Amount of Voids</strong></td>
-                                <td class="number-input">${{ number_format($dailyReport->amount_of_voids, 2) }}</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Number of No Sales</strong></td>
-                                <td class="number-input">{{ $dailyReport->number_of_no_sales }}</td>
-                            </tr>
-                        </tbody>
+                <div class="col-md-6">
+                    <table class="sales-table">
+                        <tr>
+                            <td>Projected Sales</td>
+                            <td class="number-input">${{ number_format($dailyReport->projected_sales, 2) }}</td>
+                        </tr>
+                        <tr>
+                            <td>Amount of Cancels</td>
+                            <td class="number-input">${{ number_format($dailyReport->amount_of_cancels, 2) }}</td>
+                        </tr>
+                        <tr>
+                            <td>Amount of Voids</td>
+                            <td class="number-input">${{ number_format($dailyReport->amount_of_voids, 2) }}</td>
+                        </tr>
+                        <tr>
+                            <td>Number of No Sales</td>
+                            <td class="number-input">{{ $dailyReport->number_of_no_sales }}</td>
+                        </tr>
                     </table>
                 </div>
             </div>
         </div>
 
         <!-- Financial Summary Section -->
-        <div class="section-header-material">
-            <i class="bi bi-calculator me-2"></i>Financial Summary
-        </div>
-        <div class="section-body-material">
-            <div class="row g-4">
-                <div class="col-12 col-lg-8">
-                    <table class="table-material">
-                        <tbody>
-                            <tr>
-                                <td style="width: 40%;">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <span>Total # of Coupons</span>
-                                        <span class="number-input">{{ $dailyReport->total_coupons }}</span>
-                                    </div>
-                                </td>
-                                <td style="width: 30%;"><strong>Gross Sales:</strong></td>
-                                <td class="number-input">${{ number_format($dailyReport->gross_sales, 2) }}</td>
-                            </tr>
-                            <tr>
-                                <td>
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <span><strong>Total Amount of Coupons Received:</strong></span>
-                                        <span class="number-input">${{ number_format($dailyReport->coupons_received, 2) }}</span>
-                                    </div>
-                                </td>
-                                <td></td>
-                                <td></td>
-                            </tr>
-                            <tr>
-                                <td></td>
-                                <td><strong>Adjustments: Overrings/Returns:</strong></td>
-                                <td class="number-input">${{ number_format($dailyReport->adjustments_overrings, 2) }}</td>
-                            </tr>
-                            <tr>
-                                <td rowspan="2">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <span>Total # of Customers</span>
-                                        <span class="number-input">{{ $dailyReport->total_customers }}</span>
-                                    </div>
-                                </td>
-                                <td><strong>Net Sales:</strong></td>
-                                <td class="number-input" style="background: #e3f2fd; font-weight: 500;">${{ number_format($dailyReport->net_sales, 2) }}</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Tax:</strong></td>
-                                <td class="number-input" style="background: #e3f2fd; font-weight: 500;">${{ number_format($dailyReport->tax, 2) }}</td>
-                            </tr>
-                            <tr>
-                                <td>
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <span>Average Ticket</span>
-                                        <span class="number-input">${{ number_format($dailyReport->average_ticket, 2) }}</span>
-                                    </div>
-                                </td>
-                                <td><strong>Sales (Pre-tax):</strong></td>
-                                <td class="number-input" style="background: #e3f2fd; font-weight: 500;">${{ number_format($dailyReport->sales_pre_tax, 2) }}</td>
-                            </tr>
-                        </tbody>
+        <div class="section-title">Financial Summary</div>
+        <div class="form-section">
+            <div class="row">
+                <div class="col-8">
+                    <table class="sales-table">
+                        <tr>
+                            <td>
+                                <div style="display:flex;justify-content: space-between;align-items: center;">
+                                    <span>Total # of Coupons</span>
+                                    <span style="width:30%;" class="number-input">{{ $dailyReport->total_coupons }}</span>
+                                </div>
+                            </td>
+                            <td><strong>Gross Sales:</strong></td>
+                            <td class="number-input">${{ number_format($dailyReport->gross_sales, 2) }}</td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div style="display:flex;justify-content: space-between;align-items: center;">
+                                    <span><strong>Total Amount of Coupons Received:</strong></span>
+                                    <span style="width:30%;" class="number-input">${{ number_format($dailyReport->coupons_received, 2) }}</span>
+                                </div>
+                            </td>
+                            <td></td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td></td>
+                            <td><strong>Adjustments: Overrings/Returns:</strong></td>
+                            <td class="number-input">${{ number_format($dailyReport->adjustments_overrings, 2) }}</td>
+                        </tr>
+                        <tr>
+                            <td rowspan="2">
+                                <div style="display:flex;justify-content: space-between;align-items: center;">
+                                    <span>Total # of Customers</span>
+                                    <span style="width:30%;" class="number-input">{{ $dailyReport->total_customers }}</span>
+                                </div>
+                            </td>
+                            <td><strong>Net Sales:</strong></td>
+                            <td id="netSales" class="calculated-field number-input">${{ number_format($dailyReport->net_sales, 2) }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Tax:</strong></td>
+                            <td id="tax" class="calculated-field number-input">${{ number_format($dailyReport->tax, 2) }}</td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div style="display:flex;justify-content: space-between;align-items: center;">
+                                    <span>Average Ticket</span>
+                                    <span style="width:30%;" class="number-input">${{ number_format($dailyReport->average_ticket, 2) }}</span>
+                                </div>
+                            </td>
+                            <td><strong>Sales (Pre-tax):</strong></td>
+                            <td id="salesPreTax" class="calculated-field number-input">${{ number_format($dailyReport->sales_pre_tax, 2) }}</td>
+                        </tr>
                     </table>
                 </div>
                 
-                <div class="col-12 col-lg-4">
-                    <table class="table-material">
-                        <tbody>
-                            <tr>
-                                <td style="width: 60%;"><strong>Net Sales:</strong></td>
-                                <td class="number-input" style="background: #e3f2fd; font-weight: 500;">${{ number_format($dailyReport->net_sales, 2) }}</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Total Transaction Expenses:</strong></td>
-                                <td class="number-input" style="background: #e3f2fd; font-weight: 500;">${{ number_format($dailyReport->total_paid_outs, 2) }}</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Online Platform Revenue:</strong></td>
-                                <td class="number-input" style="background: #e3f2fd; font-weight: 500;">${{ number_format($dailyReport->online_platform_revenue, 2) }}</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Credit Cards:</strong></td>
-                                <td class="number-input">${{ number_format($dailyReport->credit_cards, 2) }}</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Cash To Account For:</strong></td>
-                                <td class="number-input" style="background: #e3f2fd; font-weight: 500;">${{ number_format($dailyReport->cash_to_account_for, 2) }}</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Actual Deposit:</strong></td>
-                                <td class="number-input">${{ number_format($dailyReport->actual_deposit, 2) }}</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Short:</strong></td>
-                                <td class="number-input" style="color: {{ $dailyReport->short < 0 ? '#d32f2f' : '#495057' }}; font-weight: 500;">${{ number_format($dailyReport->short, 2) }}</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Over:</strong></td>
-                                <td class="number-input" style="color: {{ $dailyReport->over > 0 ? '#4caf50' : '#495057' }}; font-weight: 500;">${{ number_format($dailyReport->over, 2) }}</td>
-                            </tr>
-                        </tbody>
+                <div class="col-4">
+                    <table class="sales-table">
+                        <tr>
+                            <td><strong>Net Sales:</strong></td>
+                            <td id="netSales2" class="calculated-field number-input">${{ number_format($dailyReport->net_sales, 2) }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Total Transaction Expenses:</strong></td>
+                            <td id="totalPaidOuts2" class="calculated-field number-input">${{ number_format($dailyReport->total_paid_outs, 2) }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Online Platform Revenue:</strong></td>
+                            <td id="onlineRevenue2" class="calculated-field number-input">${{ number_format($dailyReport->online_platform_revenue, 2) }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Credit Cards:</strong></td>
+                            <td class="number-input">${{ number_format($dailyReport->credit_cards, 2) }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Cash To Account For:</strong></td>
+                            <td id="cashToAccountFor" class="calculated-field number-input">${{ number_format($dailyReport->cash_to_account_for, 2) }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Actual Deposit:</strong></td>
+                            <td class="number-input">${{ number_format($dailyReport->actual_deposit, 2) }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Short:</strong></td>
+                            <td id="short" class="calculated-field number-input" style="color: {{ $dailyReport->short < 0 ? '#dc3545' : '#495057' }};">${{ number_format($dailyReport->short, 2) }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Over:</strong></td>
+                            <td id="over" class="calculated-field number-input" style="color: {{ $dailyReport->over > 0 ? '#28a745' : '#495057' }};">${{ number_format($dailyReport->over, 2) }}</td>
+                        </tr>
                     </table>
                 </div>
             </div>

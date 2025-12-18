@@ -14,125 +14,76 @@
     padding: 8px;
     vertical-align: middle;
 }
-    /* Material UI Card Styling */
-    .card-material {
-        background: #ffffff;
-        border-radius: 4px;
-        box-shadow: 0px 2px 1px -1px rgba(0, 0, 0, 0.2), 0px 1px 1px 0px rgba(0, 0, 0, 0.14), 0px 1px 3px 0px rgba(0, 0, 0, 0.12);
-        transition: box-shadow 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    .report-container {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         overflow: hidden;
-        margin-bottom: 1.5rem;
     }
     
-    .card-header-material {
-        background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
-        color: #fff;
-        padding: 1.5rem;
+    .report-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 12px 15px;
         text-align: center;
     }
     
-    .card-title-material {
-        font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    .company-name {
         font-size: 1.5rem;
-        font-weight: 400;
-        margin: 0 0 0.5rem 0;
+        font-weight: bold;
+        margin-bottom: 5px;
     }
     
-    .card-subtitle-material {
-        font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-        font-size: 0.875rem;
+    .company-info {
         opacity: 0.9;
-        margin: 0;
+        font-size: 0.85rem;
     }
     
-    .section-header-material {
-        background: #fafafa;
-        padding: 1rem 1.5rem;
-        border-bottom: 1px solid rgba(0, 0, 0, 0.12);
-        font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    .section-title {
+        background: #f8f9fa;
+        padding: 10px 15px;
+        font-weight: 600;
+        border-bottom: 2px solid #e9ecef;
+        color: #495057;
         font-size: 1rem;
-        font-weight: 500;
-        color: #202124;
     }
     
-    .section-body-material {
-        padding: 1.5rem;
-    }
-    
-    /* Material UI Table */
-    .table-material {
-        font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-        width: 100%;
-        border-collapse: collapse;
-        margin-bottom: 1rem;
-    }
-    
-    .table-material thead th {
-        font-size: 0.75rem;
-        font-weight: 500;
-        color: rgba(0, 0, 0, 0.6);
-        text-transform: uppercase;
-        letter-spacing: 0.03333em;
-        border-bottom: 1px solid rgba(0, 0, 0, 0.12);
-        padding: 1rem;
-        text-align: left;
-        background: #fafafa;
-    }
-    
-    .table-material tbody td {
-        padding: 1rem;
-        border-bottom: 1px solid rgba(0, 0, 0, 0.12);
-    }
-    
-    .table-material tbody tr:hover {
-        background-color: rgba(0, 0, 0, 0.04);
+    .form-section {
+        padding: 12px 15px;
     }
     
     .transaction-table {
-        font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif;
         width: 100%;
         border-collapse: collapse;
-        margin-bottom: 1rem;
+        margin-bottom: 20px;
     }
     
     .transaction-table th {
-        font-size: 0.75rem;
-        font-weight: 500;
-        color: rgba(0, 0, 0, 0.6);
-        text-transform: uppercase;
-        letter-spacing: 0.03333em;
-        border-bottom: 1px solid rgba(0, 0, 0, 0.12);
-        padding: 1rem;
-        text-align: left;
-        background: #fafafa;
+        background: #f8f9fa;
+        padding: 8px 6px;
+        border: 1px solid #dee2e6;
+        font-weight: 600;
+        text-align: center;
+        font-size: 0.875rem;
     }
     
     .transaction-table td {
-        padding: 1rem;
-        border-bottom: 1px solid rgba(0, 0, 0, 0.12);
-    }
-    
-    .transaction-table tbody tr:hover {
-        background-color: rgba(0, 0, 0, 0.04);
+        border: 1px solid #dee2e6;
+        padding: 6px;
     }
     
     .form-input {
         width: 100%;
-        border: 1px solid rgba(0, 0, 0, 0.12);
-        background: #f5f5f5;
-        padding: 0.75rem;
-        border-radius: 4px 4px 0 0;
-        border-bottom: 2px solid rgba(0, 0, 0, 0.42);
-        font-size: 0.875rem;
-        font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        border: none;
+        background: transparent;
+        padding: 8px;
+        font-size: 14px;
     }
     
     .form-input:focus {
         outline: none;
-        background: #fff;
-        border-bottom-color: #1976d2;
-        box-shadow: 0 1px 0 0 #1976d2;
+        background: rgba(0,123,255,0.1);
+        border-radius: 4px;
     }
     
     .number-input {
@@ -140,37 +91,12 @@
     }
     
     .total-row {
-        background: #e3f2fd;
-        font-weight: 500;
-    }
-    
-    /* Material UI Buttons */
-    .btn-material {
-        font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-        font-size: 0.875rem;
-        font-weight: 500;
-        letter-spacing: 0.0892857143em;
-        text-transform: uppercase;
-        padding: 0.625rem 1.5rem;
-        border-radius: 4px;
-        border: none;
-        box-shadow: 0px 3px 1px -2px rgba(0, 0, 0, 0.2), 0px 2px 2px 0px rgba(0, 0, 0, 0.14), 0px 1px 5px 0px rgba(0, 0, 0, 0.12);
-        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        min-width: 64px;
-        height: 36px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-    }
-    
-    .btn-material:hover {
-        box-shadow: 0px 2px 4px -1px rgba(0, 0, 0, 0.2), 0px 4px 5px 0px rgba(0, 0, 0, 0.14), 0px 1px 10px 0px rgba(0, 0, 0, 0.12);
-        transform: translateY(-1px);
+        background: #e7f3ff;
+        font-weight: 600;
     }
     
     .btn-add-row {
-        background: #1976d2;
+        background: #28a745;
         color: white;
         border: none;
         padding: 8px 12px;
@@ -181,67 +107,49 @@
     }
     
     .btn-add-row:hover {
-        background: #1565c0;
-        box-shadow: 0px 2px 4px -1px rgba(0, 0, 0, 0.2), 0px 4px 5px 0px rgba(0, 0, 0, 0.14), 0px 1px 10px 0px rgba(0, 0, 0, 0.12);
+        background: #218838;
         transform: translateY(-1px);
     }
     
-    .btn-remove,
     .btn-remove-row {
-        background: #d32f2f;
+        background: #dc3545;
         color: white;
         border: none;
-        padding: 0.5rem 0.75rem;
+        padding: 6px 10px;
         border-radius: 4px;
         cursor: pointer;
-        font-size: 0.875rem;
-        font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        box-shadow: 0px 3px 1px -2px rgba(0, 0, 0, 0.2), 0px 2px 2px 0px rgba(0, 0, 0, 0.14), 0px 1px 5px 0px rgba(0, 0, 0, 0.12);
+        font-size: 12px;
     }
     
-    .btn-remove:hover,
     .btn-remove-row:hover {
-        background: #c62828;
-        box-shadow: 0px 2px 4px -1px rgba(0, 0, 0, 0.2), 0px 4px 5px 0px rgba(0, 0, 0, 0.14), 0px 1px 10px 0px rgba(0, 0, 0, 0.12);
-        transform: translateY(-1px);
+        background: #c82333;
     }
     
-    .side-panel-material {
-        background: #fafafa;
-        border-radius: 4px;
-        padding: 1.5rem;
-        border: 1px solid rgba(0, 0, 0, 0.12);
+    .side-panel {
+        background: #f8f9fa;
+        padding: 12px 15px;
+        border-radius: 8px;
+        margin-bottom: 12px;
     }
     
-    .form-group-material {
-        margin-bottom: 1rem;
+    .side-panel .form-group {
+        margin-bottom: 10px;
     }
     
-    .form-group-material:last-child {
-        margin-bottom: 0;
-    }
-    
-    .form-label-material {
-        font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-        font-size: 0.75rem;
-        font-weight: 500;
-        color: rgba(0, 0, 0, 0.6);
-        text-transform: uppercase;
-        letter-spacing: 0.03333em;
-        margin-bottom: 0.5rem;
+    .side-panel label {
+        font-weight: 600;
+        color: #495057;
+        margin-bottom: 4px;
         display: block;
+        font-size: 0.875rem;
     }
     
-    .form-control-material {
-        font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-        font-size: 0.875rem;
+    .side-panel input {
         width: 100%;
-        padding: 0.75rem;
-        border: 1px solid rgba(0, 0, 0, 0.12);
+        padding: 6px 10px;
+        border: 1px solid #ced4da;
         border-radius: 4px;
-        background: #fff;
-        color: rgba(0, 0, 0, 0.87);
+        font-size: 14px;
     }
     
     .category-labels {
@@ -293,59 +201,21 @@
     }
     
     .save-btn {
-        background-color: #1976d2;
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
         color: white;
         border: none;
-        padding: 0.625rem 1.5rem;
-        border-radius: 4px;
-        font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-        font-size: 0.875rem;
-        font-weight: 500;
-        letter-spacing: 0.0892857143em;
-        text-transform: uppercase;
+        padding: 10px 30px;
+        border-radius: 25px;
+        font-size: 15px;
+        font-weight: 600;
         cursor: pointer;
-        box-shadow: 0px 3px 1px -2px rgba(0, 0, 0, 0.2), 0px 2px 2px 0px rgba(0, 0, 0, 0.14), 0px 1px 5px 0px rgba(0, 0, 0, 0.12);
-        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+        transition: all 0.3s;
     }
     
     .save-btn:hover {
-        background-color: #1565c0;
-        box-shadow: 0px 2px 4px -1px rgba(0, 0, 0, 0.2), 0px 4px 5px 0px rgba(0, 0, 0, 0.14), 0px 1px 10px 0px rgba(0, 0, 0, 0.12);
-        transform: translateY(-1px);
-    }
-    
-    /* Info Cards */
-    .info-card-material {
-        background: #fafafa;
-        border-radius: 4px;
-        padding: 1rem;
-        margin-bottom: 1rem;
-        border: 1px solid rgba(0, 0, 0, 0.12);
-    }
-    
-    .info-card-material.success {
-        background: #e8f5e9;
-        border-left: 4px solid #4caf50;
-    }
-    
-    .info-card-material.info {
-        background: #e3f2fd;
-        border-left: 4px solid #2196f3;
-    }
-    
-    .info-label {
-        font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-        font-size: 0.875rem;
-        font-weight: 500;
-        color: rgba(0, 0, 0, 0.6);
-        margin-bottom: 0.25rem;
-    }
-    
-    .info-value {
-        font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-        font-size: 1.25rem;
-        font-weight: 400;
-        color: #202124;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
     }
     
     @media (max-width: 768px) {
@@ -453,34 +323,36 @@
 
 
         
-        <div class="card-material">
+        <div class="report-container">
             <!-- Header Section -->
-            <div class="card-header-material">
-                <div class="card-title-material">{{@$store->store_info}}</div>
-                <div class="card-subtitle-material">
+            <div class="report-header">
+                <div class="company-name">{{@$store->store_info}}</div>
+                <div class="company-info">
                     <div>{{@$store->address}}</div>
                     <div>Phone: {{@$store->phone}}</div>
                 </div>
             </div>
 
             <!-- Transaction Expenses Section -->
-            <div class="section-header-material">
-                <i class="bi bi-receipt me-2"></i>Transaction Expenses
-            </div>
-            <div class="section-body-material">
+            <div class="section-title">Transaction Expenses</div>
+            <div class="form-section">
                 <div class="row">
                     <div class="col-lg-8">
                         <table class="transaction-table" id="transactionTable">
                             <thead>
                                 <tr>
-                                    <th style="width: 40%;">Company</th>
-                                    <th style="width: 35%;">Transaction Type</th>
+                                    <th style="width: 15%;">Transaction ID</th>
+                                    <th style="width: 30%;">Company</th>
+                                    <th style="width: 25%;">Transaction Type</th>
                                     <th style="width: 20%;">Amount ($)</th>
-                                    <th style="width: 5%;">Action</th>
+                                    <th style="width: 10%;">Action</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr>
+                                    <td>
+                                        <input type="number" class="form-input" name="transactions[0][transaction_id]" value="1">
+                                    </td>
                                     <td>
                                         <select class="form-input vendor-select" name="transactions[0][company]" data-row="0" onchange="handleVendorChange(this)">
                                             <option value="">Select Company</option>
@@ -511,7 +383,7 @@
                                     </td>
                                 </tr>
                                 <tr class="total-row">
-                                    <td colspan="2"><strong>Total Transaction Expenses:</strong></td>
+                                    <td colspan="3"><strong>Total Transaction Expenses:</strong></td>
                                     <td id="totalPaidOuts" class="number-input"><strong>$0.00</strong></td>
                                     <td></td>
                                 </tr>
@@ -526,23 +398,23 @@
                     </div>
                     
                     <div class="col-lg-4">
-                        <div class="side-panel-material">
-                            <div class="form-group-material">
-                                <label class="form-label-material">Date</label>
-                                <input type="text" name="report_date" class="form-control-material date-input {{ isset($reportDate) ? 'bg-light' : '' }}" value="{{ isset($reportDate) ? \Carbon\Carbon::parse($reportDate)->format('m-d-Y') : date('m-d-Y') }}" placeholder="MM-DD-YYYY" maxlength="10" required {{ isset($reportDate) ? 'readonly' : '' }}>
+                        <div class="side-panel">
+                            <div class="form-group">
+                                <label>Date:</label>
+                                <input type="text" name="report_date" class="form-control date-input {{ isset($reportDate) ? 'bg-light' : '' }}" value="{{ isset($reportDate) ? \Carbon\Carbon::parse($reportDate)->format('m-d-Y') : date('m-d-Y') }}" placeholder="MM-DD-YYYY" maxlength="10" required {{ isset($reportDate) ? 'readonly' : '' }}>
                                 @if(isset($reportDate))
-                                    <small class="text-muted d-block mt-1">
-                                        <i class="bi bi-lock me-1"></i>Date pre-selected from multi-step process
+                                    <small class="text-muted">
+                                        <i class="fas fa-lock me-1"></i>Date pre-selected from multi-step process
                                     </small>
                                 @endif
                             </div>
-                            <div class="form-group-material">
-                                <label class="form-label-material">Weather</label>
-                                <input type="text" name="weather" class="form-control-material" placeholder="e.g., Sunny, Rainy">
+                            <div class="form-group">
+                                <label>Weather:</label>
+                                <input type="text" name="weather" class="form-control" placeholder="e.g., Sunny, Rainy">
                             </div>
-                            <div class="form-group-material">
-                                <label class="form-label-material">Holiday/Special Event</label>
-                                <input type="text" name="holiday_event" class="form-control-material" placeholder="Special events">
+                            <div class="form-group">
+                                <label>Holiday/Special Event:</label>
+                                <input type="text" name="holiday_event" class="form-control" placeholder="Special events">
                             </div>
                         </div>
                         
@@ -557,17 +429,16 @@
             </div>
 
             <!-- Revenue Types Section -->
-            <div class="section-header-material">
-                <i class="bi bi-cash-coin me-2"></i>Revenue Income Tracking
-            </div>
-            <div class="section-body-material">
+            <div class="section-title">Revenue Income Tracking</div>
+            <div class="form-section">
                 <div class="row">
                     <div class="col-lg-12">
                         <table class="transaction-table" id="revenueTable">
                             <thead>
                                 <tr>
-                                    <th style="width: 50%;">Revenue Type</th>
-                                    <th style="width: 35%;">Amount ($)</th>
+                                    <th style="width: 30%;">Revenue Type</th>
+                                    <th style="width: 20%;">Amount ($)</th>
+                                    <th style="width: 35%;">Notes</th>
                                     <th style="width: 15%;">Action</th>
                                 </tr>
                             </thead>
@@ -585,28 +456,23 @@
                                         <input type="number" class="form-input revenue-amount" name="revenues[0][amount]" step="0.01" min="0" placeholder="0.00">
                                     </td>
                                     <td>
+                                        <input type="text" class="form-input" name="revenues[0][notes]" placeholder="Optional notes">
+                                    </td>
+                                    <td>
                                         <button type="button" class="btn-remove" onclick="removeRevenueRow(this)">×</button>
                                     </td>
                                 </tr>
                             </tbody>
                         </table>
                         <button type="button" id="addRevenueRow" class="btn-add-row" style="margin-top: 10px;">+ Add Revenue Entry</button>
-                        <div class="row g-3 mt-3">
-                            <div class="col-12 col-md-6">
-                                <div class="info-card-material success">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <span class="info-label">Total Revenue Income:</span>
-                                        <span id="totalRevenue" class="info-value" style="color: #4caf50;">$0.00</span>
-                                    </div>
-                                </div>
+                        <div style="margin-top: 8px; padding: 8px; background: #f8f9fa; border-radius: 4px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="font-weight: 600; color: #495057;">Total Revenue Income:</span>
+                                <span id="totalRevenue" style="font-weight: 600; color: #28a745; font-size: 1.1rem;">$0.00</span>
                             </div>
-                            <div class="col-12 col-md-6">
-                                <div class="info-card-material info">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <span class="info-label">Online Platform Revenue:</span>
-                                        <span id="onlineRevenue" class="info-value" style="color: #2196f3;">$0.00</span>
-                                    </div>
-                                </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 5px;">
+                                <span style="font-weight: 600; color: #495057;">Online Platform Revenue:</span>
+                                <span id="onlineRevenue" style="font-weight: 600; color: #17a2b8; font-size: 1.1rem;">$0.00</span>
                             </div>
                         </div>
                     </div>
@@ -614,10 +480,8 @@
             </div>
 
             <!-- Sales Section -->
-            <div class="section-header-material">
-                <i class="bi bi-graph-up me-2"></i>Sales Information
-            </div>
-            <div class="section-body-material">
+            <div class="section-title">Sales Information</div>
+            <div class="form-section">
                 <div class="row">
                     <div class="col-md-6">
                         <table class="sales-table">
@@ -643,10 +507,8 @@
             </div>
 
             <!-- Financial Summary Section -->
-            <div class="section-header-material">
-                <i class="bi bi-calculator me-2"></i>Financial Summary
-            </div>
-            <div class="section-body-material">
+            <div class="section-title">Financial Summary</div>
+            <div class="form-section">
                 <div class="row">
                     <div class="col-8">
                         <table class="sales-table">
@@ -848,6 +710,9 @@ window.addTransactionRow = function () {
     const newRow = document.createElement('tr');
     newRow.innerHTML = `
         <td>
+            <input type="number" class="form-input" name="transactions[${transactionCount}][transaction_id]" value="${transactionCount + 1}">
+        </td>
+        <td>
             <select class="form-input vendor-select" name="transactions[${transactionCount}][company]" data-row="${transactionCount}" onchange="handleVendorChange(this)">
                 ${document.getElementById('vendorTemplate').innerHTML}
             </select>
@@ -1006,6 +871,9 @@ function addRevenueRow() {
         </td>
         <td>
             <input type="number" class="form-input revenue-amount" name="revenues[${revenueCount}][amount]" step="0.01" min="0" placeholder="0.00">
+        </td>
+        <td>
+            <input type="text" class="form-input" name="revenues[${revenueCount}][notes]" placeholder="Optional notes">
         </td>
         <td>
             <button type="button" class="btn-remove" onclick="removeRevenueRow(this)">×</button>

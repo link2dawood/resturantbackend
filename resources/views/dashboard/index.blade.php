@@ -3,36 +3,6 @@
 
 @section('styles')
 <style>
-    /* CRITICAL: Force white backgrounds on all cards - Maximum specificity */
-    html body .container-fluid .row .col-12 .card-material,
-    html body .container-fluid .row .col-sm-6 .card-material,
-    html body .container-fluid .row .col-lg-4 .card-material,
-    html body .container-fluid .row .col-lg-8 .card-material,
-    html body .container-fluid .card-material,
-    html body .card-material,
-    html body div.card-material,
-    body .card-material {
-        background: #ffffff !important;
-        background-color: #ffffff !important;
-        background-image: none !important;
-    }
-    
-    html body .container-fluid .stat-card,
-    html body .stat-card,
-    body .stat-card {
-        background: #ffffff !important;
-        background-color: #ffffff !important;
-        background-image: none !important;
-    }
-    
-    html body .container-fluid .chart-card-body,
-    html body .chart-card-body,
-    body .chart-card-body {
-        background: #ffffff !important;
-        background-color: #ffffff !important;
-        background-image: none !important;
-    }
-    
     /* Material UI Typography */
     .material-headline {
         font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -53,35 +23,24 @@
         margin: 0.5rem 0 0 0;
     }
     
-    /* Material UI Cards - Force white background */
-    .card-material,
-    div.card-material,
-    .card.card-material {
-        background: #ffffff !important;
-        background-color: #ffffff !important;
+    /* Material UI Cards */
+    .card-material {
+        background: #ffffff;
         border-radius: 4px;
         box-shadow: 0px 2px 1px -1px rgba(0, 0, 0, 0.2), 0px 1px 1px 0px rgba(0, 0, 0, 0.14), 0px 1px 3px 0px rgba(0, 0, 0, 0.12);
         transition: box-shadow 0.28s cubic-bezier(0.4, 0, 0.2, 1);
         overflow: hidden;
         height: 100%;
-        padding: 0 !important;
     }
     
-    .card-material:hover,
-    div.card-material:hover,
-    .card.card-material:hover {
-        background: #ffffff !important;
-        background-color: #ffffff !important;
+    .card-material:hover {
         box-shadow: 0px 2px 4px -1px rgba(0, 0, 0, 0.2), 0px 4px 5px 0px rgba(0, 0, 0, 0.14), 0px 1px 10px 0px rgba(0, 0, 0, 0.12);
     }
     
     /* Stat Card Styling */
-    .stat-card,
-    div.stat-card {
-        padding: 1.5rem !important;
+    .stat-card {
+        padding: 1.5rem;
         height: 100%;
-        background: #ffffff !important;
-        background-color: #ffffff !important;
     }
     
     .stat-icon {
@@ -121,9 +80,9 @@
     
     /* Chart Card Header */
     .chart-card-header {
-        padding: 1rem 1.5rem !important;
+        padding: 1rem 1.5rem;
         border-bottom: 1px solid rgba(0, 0, 0, 0.12);
-        background: #fafafa !important;
+        background: #fafafa;
     }
     
     .chart-card-title {
@@ -137,11 +96,8 @@
         gap: 0.5rem;
     }
     
-    .chart-card-body,
-    div    .chart-card-body {
-        padding: 1.5rem !important;
-        background: #ffffff !important;
-        background-color: #ffffff !important;
+    .chart-card-body {
+        padding: 1.5rem;
     }
     
     /* Material UI Buttons */
@@ -240,18 +196,18 @@
         padding: 0.75rem;
         border-radius: 4px;
         margin-bottom: 0.5rem;
-        background: #fafafa !important;
+        background: #fafafa;
         border: 1px solid rgba(0, 0, 0, 0.12);
         transition: all 0.2s ease;
     }
     
     .top-day-item:hover {
-        background: #f5f5f5 !important;
+        background: #f5f5f5;
         box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
     }
     
     .top-day-item.best {
-        background: #fff3e0 !important;
+        background: #fff3e0;
         border-color: #ff9800;
     }
     
@@ -287,44 +243,6 @@
             height: 40px;
             font-size: 1.25rem;
         }
-    }
-    
-    /* Force white backgrounds and padding - highest priority override - Loads after all other CSS */
-    html body .container-fluid .row [class*="col"] .card-material,
-    html body .container-fluid .card-material,
-    html body .card-material,
-    body .card-material,
-    .card-material {
-        background: #ffffff !important;
-        background-color: #ffffff !important;
-        background-image: none !important;
-    }
-    
-    html body .container-fluid .stat-card,
-    html body .stat-card,
-    body .stat-card,
-    .stat-card {
-        background: #ffffff !important;
-        background-color: #ffffff !important;
-        background-image: none !important;
-        padding: 1.5rem !important;
-    }
-    
-    html body .container-fluid .chart-card-body,
-    html body .chart-card-body,
-    body .chart-card-body,
-    .chart-card-body {
-        background: #ffffff !important;
-        background-color: #ffffff !important;
-        background-image: none !important;
-        padding: 1.5rem !important;
-    }
-    
-    html body .container-fluid .chart-card-header,
-    html body .chart-card-header,
-    body .chart-card-header,
-    .chart-card-header {
-        padding: 1rem 1.5rem !important;
     }
 </style>
 @endsection
@@ -1260,27 +1178,5 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 @endif
-
-<!-- Force white backgrounds and padding - Final override -->
-<style>
-    /* Final override - Loads last to ensure white backgrounds and padding */
-    .card-material {
-        background: #ffffff !important;
-        background-color: #ffffff !important;
-    }
-    .stat-card {
-        background: #ffffff !important;
-        background-color: #ffffff !important;
-        padding: 1.5rem !important;
-    }
-    .chart-card-body {
-        background: #ffffff !important;
-        background-color: #ffffff !important;
-        padding: 1.5rem !important;
-    }
-    .chart-card-header {
-        padding: 1rem 1.5rem !important;
-    }
-</style>
 
 @endsection

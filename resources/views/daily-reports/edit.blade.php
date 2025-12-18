@@ -16,102 +16,75 @@
 </select>
 
 <style>
-    /* Material UI Card Styling */
-    .card-material {
-        background: #ffffff;
-        border-radius: 4px;
-        box-shadow: 0px 2px 1px -1px rgba(0, 0, 0, 0.2), 0px 1px 1px 0px rgba(0, 0, 0, 0.14), 0px 1px 3px 0px rgba(0, 0, 0, 0.12);
-        transition: box-shadow 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    .report-container {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         overflow: hidden;
-        margin-bottom: 1.5rem;
     }
     
-    .card-header-material {
-        background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
-        color: #fff;
-        padding: 1.5rem;
+    .report-header {
+        background: linear-gradient(135deg, #fd7e14 0%, #e83e8c 100%);
+        color: white;
+        padding: 20px;
         text-align: center;
     }
     
-    .card-title-material {
-        font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-        font-size: 1.5rem;
-        font-weight: 400;
-        margin: 0 0 0.5rem 0;
+    .company-name {
+        font-size: 1.8rem;
+        font-weight: bold;
+        margin-bottom: 10px;
     }
     
-    .card-subtitle-material {
-        font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-        font-size: 0.875rem;
+    .company-info {
         opacity: 0.9;
-        margin: 0;
+        font-size: 0.9rem;
     }
     
-    .section-header-material {
-        background: #fafafa;
-        padding: 1rem 1.5rem;
-        border-bottom: 1px solid rgba(0, 0, 0, 0.12);
-        font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-        font-size: 1rem;
-        font-weight: 500;
-        color: #202124;
+    .section-title {
+        background: #f8f9fa;
+        padding: 15px 20px;
+        font-weight: 600;
+        border-bottom: 2px solid #e9ecef;
+        color: #495057;
+        font-size: 1.1rem;
     }
     
-    .section-body-material {
-        padding: 1.5rem;
+    .form-section {
+        padding: 20px;
     }
     
-    /* Material UI Table */
-    .table-material {
-        font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    .transaction-table {
         width: 100%;
         border-collapse: collapse;
-        margin-bottom: 1rem;
+        margin-bottom: 20px;
     }
     
-    .table-material thead th {
-        font-size: 0.75rem;
-        font-weight: 500;
-        color: rgba(0, 0, 0, 0.6);
-        text-transform: uppercase;
-        letter-spacing: 0.03333em;
-        border-bottom: 1px solid rgba(0, 0, 0, 0.12);
-        padding: 1rem;
-        text-align: left;
-        background: #fafafa;
+    .transaction-table th {
+        background: #f8f9fa;
+        padding: 12px 8px;
+        border: 1px solid #dee2e6;
+        font-weight: 600;
+        text-align: center;
     }
     
-    .table-material tbody td {
-        padding: 1rem;
-        border-bottom: 1px solid rgba(0, 0, 0, 0.12);
-    }
-    
-    .table-material tbody tr:hover {
-        background-color: rgba(0, 0, 0, 0.04);
-    }
-    
-    .table-material tbody tr.total-row {
-        background: #e3f2fd;
-        font-weight: 500;
+    .transaction-table td {
+        border: 1px solid #dee2e6;
+        padding: 8px;
     }
     
     .form-input {
         width: 100%;
-        border: 1px solid rgba(0, 0, 0, 0.12);
-        background: #f5f5f5;
-        padding: 0.75rem;
-        border-radius: 4px 4px 0 0;
-        border-bottom: 2px solid rgba(0, 0, 0, 0.42);
-        font-size: 0.875rem;
-        font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        border: none;
+        background: transparent;
+        padding: 8px;
+        font-size: 14px;
     }
     
     .form-input:focus {
         outline: none;
-        background: #fff;
-        border-bottom-color: #1976d2;
-        box-shadow: 0 1px 0 0 #1976d2;
+        background: rgba(253,126,20,0.1);
+        border-radius: 4px;
     }
     
     .number-input {
@@ -119,125 +92,64 @@
     }
     
     .total-row {
-        background: #e3f2fd;
-        font-weight: 500;
-    }
-    
-    /* Material UI Buttons */
-    .btn-material {
-        font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-        font-size: 0.875rem;
-        font-weight: 500;
-        letter-spacing: 0.0892857143em;
-        text-transform: uppercase;
-        padding: 0.625rem 1.5rem;
-        border-radius: 4px;
-        border: none;
-        box-shadow: 0px 3px 1px -2px rgba(0, 0, 0, 0.2), 0px 2px 2px 0px rgba(0, 0, 0, 0.14), 0px 1px 5px 0px rgba(0, 0, 0, 0.12);
-        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        min-width: 64px;
-        height: 36px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-    }
-    
-    .btn-material:hover {
-        box-shadow: 0px 2px 4px -1px rgba(0, 0, 0, 0.2), 0px 4px 5px 0px rgba(0, 0, 0, 0.14), 0px 1px 10px 0px rgba(0, 0, 0, 0.12);
-        transform: translateY(-1px);
+        background: #fff3cd;
+        font-weight: 600;
     }
     
     .btn-add-row {
-        background: #1976d2;
+        background: #fd7e14;
         color: white;
+        border: none;
+        padding: 8px 12px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.2s;
     }
     
     .btn-add-row:hover {
-        background: #1565c0;
+        background: #e8681a;
+        transform: translateY(-1px);
     }
     
     .btn-remove-row {
-        background: #d32f2f;
+        background: #dc3545;
         color: white;
-        padding: 0.5rem 0.75rem;
-        min-width: auto;
-        height: auto;
+        border: none;
+        padding: 6px 10px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
     }
     
     .btn-remove-row:hover {
-        background: #c62828;
+        background: #c82333;
     }
     
-    .side-panel-material {
-        background: #fafafa;
-        border-radius: 4px;
-        padding: 1.5rem;
-        border: 1px solid rgba(0, 0, 0, 0.12);
+    .side-panel {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
     }
     
-    .form-group-material {
-        margin-bottom: 1rem;
+    .side-panel .form-group {
+        margin-bottom: 15px;
     }
     
-    .form-group-material:last-child {
-        margin-bottom: 0;
-    }
-    
-    .form-label-material {
-        font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-        font-size: 0.75rem;
-        font-weight: 500;
-        color: rgba(0, 0, 0, 0.6);
-        text-transform: uppercase;
-        letter-spacing: 0.03333em;
-        margin-bottom: 0.5rem;
+    .side-panel label {
+        font-weight: 600;
+        color: #495057;
+        margin-bottom: 5px;
         display: block;
     }
     
-    .form-control-material {
-        font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-        font-size: 0.875rem;
+    .side-panel input {
         width: 100%;
-        padding: 0.75rem;
-        border: 1px solid rgba(0, 0, 0, 0.12);
+        padding: 8px 12px;
+        border: 1px solid #ced4da;
         border-radius: 4px;
-        background: #fff;
-        color: rgba(0, 0, 0, 0.87);
-    }
-    
-    /* Info Cards */
-    .info-card-material {
-        background: #fafafa;
-        border-radius: 4px;
-        padding: 1rem;
-        margin-bottom: 1rem;
-        border: 1px solid rgba(0, 0, 0, 0.12);
-    }
-    
-    .info-card-material.success {
-        background: #e8f5e9;
-        border-left: 4px solid #4caf50;
-    }
-    
-    .info-card-material.info {
-        background: #e3f2fd;
-        border-left: 4px solid #2196f3;
-    }
-    
-    .info-label {
-        font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-        font-size: 0.875rem;
-        font-weight: 500;
-        color: rgba(0, 0, 0, 0.6);
-        margin-bottom: 0.25rem;
-    }
-    
-    .info-value {
-        font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-        font-size: 1.25rem;
-        font-weight: 400;
-        color: #202124;
+        font-size: 14px;
     }
     
     .category-labels {
@@ -266,50 +178,44 @@
     }
     
     .sales-table {
-        font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif;
         width: 100%;
         border-collapse: collapse;
     }
     
     .sales-table td {
-        padding: 1rem;
-        border-bottom: 1px solid rgba(0, 0, 0, 0.12);
-        color: rgba(0, 0, 0, 0.87);
+        padding: 12px 15px;
+        border: 1px solid #dee2e6;
     }
     
     .sales-table td:first-child {
-        background: #fafafa;
-        font-weight: 500;
-        color: rgba(0, 0, 0, 0.6);
+        background: #f8f9fa;
+        font-weight: 600;
+        color: #495057;
         width: 60%;
     }
     
     .calculated-field {
-        background: #e3f2fd !important;
-        color: #1976d2;
-        font-weight: 500;
+        background: #fff3cd !important;
+        color: #856404;
+        font-weight: 600;
     }
     
     .update-btn {
-        background-color: #1976d2;
+        background: linear-gradient(135deg, #fd7e14 0%, #e83e8c 100%);
         color: white;
         border: none;
-        padding: 0.625rem 1.5rem;
-        border-radius: 4px;
-        font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-        font-size: 0.875rem;
-        font-weight: 500;
-        letter-spacing: 0.0892857143em;
-        text-transform: uppercase;
+        padding: 15px 40px;
+        border-radius: 25px;
+        font-size: 16px;
+        font-weight: 600;
         cursor: pointer;
-        box-shadow: 0px 3px 1px -2px rgba(0, 0, 0, 0.2), 0px 2px 2px 0px rgba(0, 0, 0, 0.14), 0px 1px 5px 0px rgba(0, 0, 0, 0.12);
-        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 4px 15px rgba(253, 126, 20, 0.3);
+        transition: all 0.3s;
     }
     
     .update-btn:hover {
-        background-color: #1565c0;
-        box-shadow: 0px 2px 4px -1px rgba(0, 0, 0, 0.2), 0px 4px 5px 0px rgba(0, 0, 0, 0.14), 0px 1px 10px 0px rgba(0, 0, 0, 0.12);
-        transform: translateY(-1px);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(253, 126, 20, 0.4);
     }
     
     @media (max-width: 768px) {
@@ -353,22 +259,17 @@
         }
     }
 </style>
-<div class="container-fluid px-3 px-md-4 px-lg-5 py-4">
-    <!-- Page Header -->
-    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 gap-3">
-        <div>
-            <h1 class="material-headline" style="font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif; font-size: 2rem; font-weight: 400; line-height: 2.5rem; color: #202124; margin: 0;">
-                Edit Daily Report
-            </h1>
-            <p class="material-subtitle" style="font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif; font-size: 0.875rem; color: #5f6368; margin: 0.5rem 0 0 0;">
-                {{ $dailyReport->report_date->format('M d, Y') }}
-            </p>
+<div class="container">
+    <div class="page-header">
+        <div class="page-title">
+            <h1>Edit Daily Report - {{ $dailyReport->report_date->format('M d, Y') }}</h1>
         </div>
-        <a href="{{ route('daily-reports.show', $dailyReport) }}" class="btn btn-material btn-material-outlined" style="background-color: transparent; border: 1px solid rgba(0, 0, 0, 0.12); color: #1976d2; box-shadow: none;">
-            <i class="bi bi-x-circle me-2"></i>
-            <span>Cancel</span>
-        </a>
+        <div class="page-actions">
+        <a href="{{ route('daily-reports.show', $dailyReport) }}" class="btn btn-secondary">Cancel</a>
     </div>
+</div>
+
+<div class="container-fluid p-4">
     <form id="dailyReportForm" method="POST" action="{{ route('daily-reports.update', $dailyReport) }}">
         @csrf
         @method('PUT')
@@ -382,36 +283,37 @@
         <input type="hidden" class="ShortInput" name="short" value="">
         <input type="hidden" class="OverInput" name="over" value="">
 
-        <div class="card-material">
+        <div class="report-container">
             <!-- Header Section -->
-            <div class="card-header-material">
-                <div class="card-title-material">{{ $dailyReport->store->store_info ?? 'Store Information' }}</div>
-                <div class="card-subtitle-material">
+            <div class="report-header">
+                <div class="company-name">{{ $dailyReport->store->store_info ?? 'Store Information' }}</div>
+                <div class="company-info">
                     <div>{{ $dailyReport->store->address ?? '' }}</div>
                     <div>Phone: {{ $dailyReport->store->phone ?? '' }}</div>
                 </div>
             </div>
 
             <!-- Transaction Expenses Section -->
-            <div class="section-header-material">
-                <i class="bi bi-receipt me-2"></i>Transaction Expenses
-            </div>
-            <div class="section-body-material">
+            <div class="section-title">Transaction Expenses</div>
+            <div class="form-section">
                 <div class="row">
                     <div class="col-lg-8">
-                        <div class="table-responsive">
-                            <table class="table-material" id="transactionTable">
+                        <table class="transaction-table" id="transactionTable">
                             <thead>
                                 <tr>
-                                    <th style="width: 40%;">Company</th>
-                                    <th style="width: 35%;">Transaction Type</th>
+                                    <th style="width: 15%;">Transaction ID</th>
+                                    <th style="width: 30%;">Company</th>
+                                    <th style="width: 25%;">Transaction Type</th>
                                     <th style="width: 20%;">Amount ($)</th>
-                                    <th style="width: 5%;">Action</th>
+                                    <th style="width: 10%;">Action</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @foreach($dailyReport->transactions as $index => $transaction)
                                     <tr>
+                                        <td>
+                                            <input type="number" class="form-input" name="transactions[{{ $index }}][transaction_id]" value="{{ $transaction->transaction_id }}">
+                                        </td>
                                         <td>
                                             <input type="text" class="form-input" name="transactions[{{ $index }}][company]" value="{{ $transaction->company }}">
                                         </td>
@@ -439,6 +341,9 @@
                                 @if($dailyReport->transactions->count() === 0)
                                     <tr>
                                         <td>
+                                            <input type="number" class="form-input" name="transactions[0][transaction_id]" value="1">
+                                        </td>
+                                        <td>
                                             <input type="text" class="form-input" name="transactions[0][company]" placeholder="Company name">
                                         </td>
                                         <td>
@@ -459,7 +364,7 @@
                                 @endif
                                 
                                 <tr class="total-row">
-                                    <td colspan="2"><strong>Total Paid Outs:</strong></td>
+                                    <td colspan="3"><strong>Total Paid Outs:</strong></td>
                                     <td id="totalPaidOuts" class="number-input"><strong>$0.00</strong></td>
                                     <td></td>
                                 </tr>
@@ -468,18 +373,18 @@
                     </div>
                     
                     <div class="col-lg-4">
-                        <div class="side-panel-material">
-                            <div class="form-group-material">
-                                <label class="form-label-material">Date</label>
-                                <input type="text" name="report_date" class="form-control-material date-input" value="{{ $dailyReport->report_date->format('m-d-Y') }}" placeholder="MM-DD-YYYY" maxlength="10" required>
+                        <div class="side-panel">
+                            <div class="form-group">
+                                <label>Date:</label>
+                                <input type="text" name="report_date" class="form-control date-input" value="{{ $dailyReport->report_date->format('m-d-Y') }}" placeholder="MM-DD-YYYY" maxlength="10" required>
                             </div>
-                            <div class="form-group-material">
-                                <label class="form-label-material">Weather</label>
-                                <input type="text" name="weather" class="form-control-material" value="{{ $dailyReport->weather }}">
+                            <div class="form-group">
+                                <label>Weather:</label>
+                                <input type="text" name="weather" class="form-control" value="{{ $dailyReport->weather }}">
                             </div>
-                            <div class="form-group-material">
-                                <label class="form-label-material">Holiday/Special Event</label>
-                                <input type="text" name="holiday_event" class="form-control-material" value="{{ $dailyReport->holiday_event }}">
+                            <div class="form-group">
+                                <label>Holiday/Special Event:</label>
+                                <input type="text" name="holiday_event" class="form-control" value="{{ $dailyReport->holiday_event }}">
                             </div>
                         </div>
                         
@@ -494,21 +399,19 @@
             </div>
 
             <!-- Revenue Types Section -->
-            <div class="section-header-material">
-                <i class="bi bi-cash-coin me-2"></i>Revenue Income Tracking
-            </div>
-            <div class="section-body-material">
+            <div class="section-title">Revenue Income Tracking</div>
+            <div class="form-section">
                 <div class="row">
                     <div class="col-lg-12">
-                        <div class="table-responsive">
-                            <table class="table-material" id="revenueTable">
-                                <thead>
-                                    <tr>
-                                        <th style="width: 50%;">Revenue Type</th>
-                                        <th style="width: 35%;">Amount ($)</th>
-                                        <th style="width: 15%;">Action</th>
-                                    </tr>
-                                </thead>
+                        <table class="transaction-table" id="revenueTable">
+                            <thead>
+                                <tr>
+                                    <th style="width: 30%;">Revenue Type</th>
+                                    <th style="width: 20%;">Amount ($)</th>
+                                    <th style="width: 35%;">Notes</th>
+                                    <th style="width: 15%;">Action</th>
+                                </tr>
+                            </thead>
                             <tbody>
                                 @foreach($dailyReport->revenues as $index => $revenue)
                                     <tr>
@@ -522,6 +425,9 @@
                                         </td>
                                         <td>
                                             <input type="number" class="form-input revenue-amount" name="revenues[{{ $index }}][amount]" step="0.01" min="0" value="{{ $revenue->amount }}">
+                                        </td>
+                                        <td>
+                                            <input type="text" class="form-input" name="revenues[{{ $index }}][notes]" value="{{ $revenue->notes }}" placeholder="Optional notes">
                                         </td>
                                         <td>
                                             @if($loop->first)
@@ -547,29 +453,23 @@
                                             <input type="number" class="form-input revenue-amount" name="revenues[0][amount]" step="0.01" min="0" placeholder="0.00">
                                         </td>
                                         <td>
+                                            <input type="text" class="form-input" name="revenues[0][notes]" placeholder="Optional notes">
+                                        </td>
+                                        <td>
                                             <button type="button" class="btn-add-row" onclick="addRevenueRow()">+</button>
                                         </td>
                                     </tr>
                                 @endif
-                                </tbody>
-                            </table>
-                        </div>
-                        <div class="row g-3 mt-3">
-                            <div class="col-12 col-md-6">
-                                <div class="info-card-material success">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <span class="info-label">Total Revenue Entries:</span>
-                                        <span id="totalRevenue" class="info-value" style="color: #4caf50;">$0.00</span>
-                                    </div>
-                                </div>
+                            </tbody>
+                        </table>
+                        <div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 4px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="font-weight: 600; color: #495057;">Total Revenue Entries:</span>
+                                <span id="totalRevenue" style="font-weight: 600; color: #28a745; font-size: 1.1rem;">$0.00</span>
                             </div>
-                            <div class="col-12 col-md-6">
-                                <div class="info-card-material info">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <span class="info-label">Online Platform Revenue:</span>
-                                        <span id="onlineRevenue" class="info-value" style="color: #2196f3;">$0.00</span>
-                                    </div>
-                                </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 5px;">
+                                <span style="font-weight: 600; color: #495057;">Online Platform Revenue:</span>
+                                <span id="onlineRevenue" style="font-weight: 600; color: #17a2b8; font-size: 1.1rem;">$0.00</span>
                             </div>
                         </div>
                     </div>
@@ -577,10 +477,8 @@
             </div>
 
             <!-- Sales Section -->
-            <div class="section-header-material">
-                <i class="bi bi-graph-up me-2"></i>Sales Information
-            </div>
-            <div class="section-body-material">
+            <div class="section-title">Sales Information</div>
+            <div class="form-section">
                 <div class="row">
                     <div class="col-md-6">
                         <table class="sales-table">
@@ -606,10 +504,8 @@
             </div>
 
             <!-- Financial Summary Section -->
-            <div class="section-header-material">
-                <i class="bi bi-calculator me-2"></i>Financial Summary
-            </div>
-            <div class="section-body-material">
+            <div class="section-title">Financial Summary</div>
+            <div class="form-section">
                 <div class="row">
                     <div class="col-8">
                         <table class="sales-table">
@@ -694,10 +590,7 @@
                 </div>
 
                 <div class="text-center mt-4">
-                    <button type="submit" class="btn btn-material btn-material-primary">
-                        <i class="bi bi-save me-2"></i>
-                        <span>Update Daily Report</span>
-                    </button>
+                    <button type="submit" class="update-btn">Update Daily Report</button>
                 </div>
             </div>
         </div>
@@ -814,6 +707,9 @@ function addTransactionRow() {
     const newRow = document.createElement('tr');
     newRow.innerHTML = `
         <td>
+            <input type="number" class="form-input" name="transactions[${transactionCount}][transaction_id]" value="${transactionCount + 1}">
+        </td>
+        <td>
             <input type="text" class="form-input" name="transactions[${transactionCount}][company]" placeholder="Company name">
         </td>
         <td>
@@ -862,6 +758,9 @@ function addRevenueRow() {
         </td>
         <td>
             <input type="number" class="form-input revenue-amount" name="revenues[${revenueCount}][amount]" step="0.01" min="0" placeholder="0.00">
+        </td>
+        <td>
+            <input type="text" class="form-input" name="revenues[${revenueCount}][notes]" placeholder="Notes (optional)">
         </td>
         <td>
             <button type="button" class="btn-remove-row" onclick="removeRevenueRow(this)">×</button>

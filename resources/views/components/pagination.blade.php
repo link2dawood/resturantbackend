@@ -155,6 +155,7 @@
                                 @endforeach
                             @endif
                         @endforeach
+                    @endif
 
                     {{-- Next Page Link --}}
                     @if ($paginator->hasMorePages())
