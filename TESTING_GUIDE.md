@@ -1,368 +1,183 @@
-# Testing Guide for Restaurant Backend System
+# Testing Guide: Admin Store Assignment Prevention & Franchisor Owner
 
-## Overview
+## Prerequisites
+1. Make sure you have at least one Admin user
+2. Make sure you have at least one Owner user (not Franchisor)
+3. Have some stores created in the system
 
-This document outlines the comprehensive testing strategy for the Restaurant Backend Phase 2 features: Expense Management and P&L Module.
+## Test 1: Verify Franchisor Owner is Created
 
-## Test Structure
+### Steps:
+1. Log in as Admin
+2. Go to Owners section
+3. Look for an owner named "Franchisor"
+4. If it doesn't exist, try assigning/unassigning stores to an owner (this will trigger creation)
 
-### Test Categories
+### Expected Result:
+- A "Franchisor" owner should exist with email "franchisor@system.local"
+- This owner should appear in the owners list
 
-1. **Unit Tests** (`tests/Unit/`)
-   - Model business logic
-   - Utility functions
-   - Calculation methods
+---
 
-2. **Feature Tests** (`tests/Feature/`)
-   - API endpoints
-   - Integration flows
-   - Permission checks
-   - End-to-end scenarios
+## Test 2: Admin Cannot Be Assigned When Creating a Store
 
-## Key Test Files
+### Steps:
+1. Log in as Admin
+2. Go to Stores → Create Store
+3. Fill in all required fields
+4. In the "Owners" dropdown, try to select an Admin user
+5. Submit the form
 
-### Created Test Files
+### Expected Result:
+- The dropdown should ONLY show Owner users (not Admin users)
+- If you somehow submit with an admin ID, you should get validation error: "Only owners can be assigned to stores. Admins cannot be assigned."
 
-1. **ProfitLossCalculationTest.php**
-   - Tests P&L calculation accuracy
-   - Revenue, COGS, and expense calculations
-   - Store access filtering
-   - Summary generation
+---
 
-2. **PermissionMiddlewareTest.php**
-   - Role-based access control
-   - Manager permissions
-   - Owner permissions
-   - Admin full access
+## Test 3: Admin Cannot Be Assigned via Store Assignment Form
 
-3. **ExpenseImportTest.php**
-   - CSV upload functionality
-   - Duplicate detection
-   - Vendor matching
-   - Auto-categorization
+### Steps:
+1. Log in as Admin
+2. Go to Stores → Select any store
+3. Click "Assign Owners" (or similar button)
+4. Check the list of available owners
 
-4. **BankReconciliationTest.php**
-   - Bank transaction matching
-   - Merchant fee calculation
-   - Expected deposit creation
+### Expected Result:
+- Only Owner users should appear in the checkbox list
+- Admin users should NOT be visible
+- If you try to submit with an admin ID (via form manipulation), validation should fail
 
-### Factory Files Created
+---
 
-All factories are set up for generating test data:
+## Test 4: Owner Store Assignment Works Correctly
 
-- `DailyReportFactory.php` - Daily sales reports
-- `ExpenseTransactionFactory.php` - Expense transactions
-- `BankAccountFactory.php` - Bank accounts
-- `BankTransactionFactory.php` - Bank transactions
-- `ThirdPartyStatementFactory.php` - Third-party platform statements
+### Steps:
+1. Log in as Admin
+2. Go to Owners → Select an owner
+3. Click "Assign Stores" or "Manage Stores"
+4. Select some stores and save
+5. Go back to the owner profile page
 
-## Running Tests
+### Expected Result:
+- Selected stores should appear in the "Assigned Stores" section on the owner profile
+- Stores should be properly linked via the pivot table
 
-### Run All Tests
-```bash
-php artisan test
+---
+
+## Test 5: Unassigned Stores Go to Franchisor
+
+### Steps:
+1. Log in as Admin
+2. Go to Owners → Select an owner that has stores assigned
+3. Click "Assign Stores"
+4. Uncheck all stores (deselect everything)
+5. Save
+6. Go to Stores → Check one of those unassigned stores
+7. Go to "Assign Owners" for that store
+
+### Expected Result:
+- The unassigned store should now be assigned to "Franchisor" owner
+- When viewing the store's owners, "Franchisor" should appear
+
+---
+
+## Test 6: Store Creation Also Assigns via Pivot Table
+
+### Steps:
+1. Log in as Admin
+2. Go to Stores → Create Store
+3. Fill in all fields including selecting an Owner
+4. Create the store
+5. Go to the newly created store
+6. Click "Assign Owners" or view owners
+
+### Expected Result:
+- The selected owner should appear in the store's assigned owners list
+- This should work via the pivot table, not just `created_by`
+
+---
+
+## Test 7: Validation at API/Form Level
+
+### Steps (Using Browser DevTools):
+1. Log in as Admin
+2. Go to Stores → Create Store
+3. Open Browser DevTools (F12) → Network tab
+4. Fill form and submit
+5. Before submitting, intercept the request or modify form data
+6. Try to set `created_by` to an admin user ID
+7. Submit
+
+### Expected Result:
+- Server should return validation error: "Only owners can be assigned to stores. Admins cannot be assigned."
+- Store should NOT be created
+
+---
+
+## Test 8: Update Store with Owner Validation
+
+### Steps:
+1. Log in as Admin
+2. Go to Stores → Edit a store
+3. Try to change the owner to an Admin user (if dropdown shows admins, which it shouldn't)
+4. Save
+
+### Expected Result:
+- If admin is somehow selected, validation should fail
+- Error message: "Only owners can be assigned to stores. Admins cannot be assigned."
+
+---
+
+## Quick Test Checklist
+
+- [ ] Franchisor owner exists in system
+- [ ] Store creation form only shows owners (not admins)
+- [ ] Store assignment form only shows owners (not admins)
+- [ ] Cannot assign admin to store via validation
+- [ ] Owner-store assignments appear on owner profile
+- [ ] Unassigned stores automatically go to Franchisor
+- [ ] Store creation assigns owner via pivot table
+- [ ] Store update validates owner-only assignment
+
+---
+
+## Database Verification (Optional)
+
+### Check Pivot Table:
+```sql
+SELECT * FROM owner_store;
 ```
+- Should show owner-store relationships
+- Should NOT have any admin user IDs
 
-### Run Specific Test Suite
-```bash
-php artisan test --testsuite=Unit
-php artisan test --testsuite=Feature
+### Check Franchisor:
+```sql
+SELECT * FROM users WHERE LOWER(name) = 'franchisor' AND role = 'owner';
 ```
+- Should return one row with the Franchisor owner
 
-### Run Specific Test Class
-```bash
-php artisan test --filter=ProfitLossCalculationTest
+### Check Store Assignments:
+```sql
+SELECT s.id, s.store_info, u.name as owner_name, u.role 
+FROM stores s 
+LEFT JOIN owner_store os ON s.id = os.store_id 
+LEFT JOIN users u ON os.owner_id = u.id;
 ```
+- All stores should have at least one owner assigned
+- No admin users should appear as owners
 
-### Run with Coverage
-```bash
-php artisan test --coverage
-```
-
-### Run and Stop on First Failure
-```bash
-php artisan test --stop-on-failure
-```
-
-## Test Data Setup
-
-### Seeders Required
-
-Before running tests, ensure seeders are run:
-
-```bash
-php artisan db:seed --class=ChartOfAccountsSeeder
-php artisan db:seed --class=VendorsSeeder
-```
-
-### Test Database
-
-Tests use SQLite in-memory database by default. Configuration is in `phpunit.xml`:
-
-```xml
-<env name="DB_CONNECTION" value="sqlite"/>
-<env name="DB_DATABASE" value=":memory:"/>
-```
-
-## Test Coverage Goals
-
-### Target Coverage: 85%+
-
-**Current Coverage Breakdown:**
-- API Endpoints: 60%+ (in progress)
-- Business Logic: 80%+ (in progress)
-- Utility Functions: 90%+ (in progress)
-- Frontend Components: Manual testing
-
-### Critical Paths to Test
-
-1. **P&L Calculation Engine**
-   - Revenue aggregation from daily reports
-   - COGS calculations
-   - Operating expenses
-   - Margin calculations
-   - Multi-store scenarios
-
-2. **Permission System**
-   - Manager access restrictions
-   - Owner store access
-   - Admin full access
-   - Store-level data filtering
-
-3. **Bank Reconciliation**
-   - Transaction matching algorithms
-   - Merchant fee auto-calculation
-   - Expected deposit creation
-   - Duplicate detection
-
-4. **Import System**
-   - CSV parsing
-   - Vendor matching (exact, fuzzy, alias)
-   - Duplicate detection
-   - Auto-categorization
-
-## Manual Testing Checklist
-
-### Chart of Accounts (COA)
-
-- [ ] Create new account
-- [ ] Edit account
-- [ ] Assign to stores
-- [ ] Deactivate account
-- [ ] Search and filter
-- [ ] Permission checks
-
-### Vendor Management
-
-- [ ] Create vendor
-- [ ] Add aliases
-- [ ] Assign default COA
-- [ ] Store assignment
-- [ ] Fuzzy matching test
-- [ ] Bulk operations
-
-### Expense Ledger
-
-- [ ] Sync cash expenses from daily reports
-- [ ] Manual expense entry
-- [ ] Filter and search
-- [ ] Export to CSV
-- [ ] Categorize expense
-- [ ] View details
-
-### Review Queue
-
-- [ ] View pending reviews
-- [ ] Resolve transaction
-- [ ] Create mapping rule
-- [ ] Bulk categorization
-- [ ] Filter by reason
-
-### Bank Reconciliation
-
-- [ ] Add bank account
-- [ ] Upload statement
-- [ ] Auto-match transactions
-- [ ] Manual match
-- [ ] Mark as reviewed
-- [ ] Reconciliation summary
-
-### P&L Reports
-
-- [ ] Generate P&L
-- [ ] Date range filtering
-- [ ] Store selection
-- [ ] Comparison period
-- [ ] Drill-down details
-- [ ] Save snapshot
-- [ ] Export to PDF/Excel
-- [ ] Multi-store comparison
-
-### Third-Party Integration
-
-- [ ] Upload Grubhub statement
-- [ ] Upload UberEats CSV
-- [ ] Upload DoorDash CSV
-- [ ] Fee parsing
-- [ ] Expected deposit creation
-
-## Performance Testing
-
-### Large Dataset Tests
-
-```bash
-# Create 1000+ expense transactions
-php artisan tinker
->>> ExpenseTransaction::factory()->count(1000)->create();
-
-# Generate P&L with 1 year of data
-# Test should complete in < 5 seconds
-```
-
-### Load Testing with JMeter
-
-1. Set up JMeter test plan
-2. Test concurrent user scenarios
-3. Monitor response times
-4. Check database query performance
-
-## Security Testing
-
-### SQL Injection
-- Test all user inputs
-- Verify parameterized queries
-- Check raw query usage
-
-### XSS Prevention
-- Test form inputs
-- Verify output escaping
-- Check file upload handling
-
-### CSRF Protection
-- Verify CSRF tokens on forms
-- Test POST/PUT/DELETE endpoints
-- Check middleware application
-
-### Permission Bypass
-- Attempt unauthorized access
-- Try store access violations
-- Test role elevation
-
-## Integration Testing
-
-### CSV Import Flow
-1. Upload sample CSV
-2. Verify format detection
-3. Check preview
-4. Complete import
-5. Verify transactions
-6. Check review queue
-
-### Bank Reconciliation Flow
-1. Create bank account
-2. Upload statement
-3. Auto-match transactions
-4. Review unmatched items
-5. Complete reconciliation
-6. Generate report
-
-### P&L Generation Flow
-1. Create transactions
-2. Select date range
-3. Generate P&L
-4. Verify calculations
-5. Drill-down details
-6. Save snapshot
-
-## Continuous Integration
-
-### GitHub Actions Setup
-
-```yaml
-name: Tests
-
-on: [push, pull_request]
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    
-    steps:
-      - uses: actions/checkout@v2
-      
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.2'
-      
-      - name: Install Dependencies
-        run: composer install
-      
-      - name: Run Tests
-        run: php artisan test --coverage
-```
-
-## Test Data Management
-
-### Factory States
-
-Factories support states for common scenarios:
-
-```php
-// Create reconciled transaction
-ExpenseTransaction::factory()->reconciled()->create();
-
-// Create transaction needing review
-ExpenseTransaction::factory()->needsReview()->create();
-
-// Create active vendor with COA
-Vendor::factory()->active()->withCoa()->create();
-```
-
-### Test Fixtures
-
-Reusable test fixtures in `tests/Fixtures/`:
-
-- Sample CSV files
-- Test PDF statements
-- Expected outputs
+---
 
 ## Troubleshooting
 
-### Common Issues
+### If Franchisor doesn't exist:
+- Try assigning/unassigning stores to trigger creation
+- Or manually create via: `php artisan tinker` → `\App\Models\User::getOrCreateFranchisor();`
 
-1. **Seeder not found**
-   - Run `php artisan db:seed` first
-   - Check seeder file exists
+### If validation isn't working:
+- Clear cache: `php artisan cache:clear`
+- Check that validation rules are in place in StoreController and UpdateStoreRequest
 
-2. **Factory not found**
-   - Run `composer dump-autoload`
-   - Check factory class name
-
-3. **Observer not firing**
-   - Verify AppServiceProvider registration
-   - Check model events
-
-4. **Permission failures**
-   - Verify user role setup
-   - Check middleware registration
-   - Verify store assignments
-
-## Next Steps
-
-1. Complete missing test implementations
-2. Achieve 85%+ code coverage
-3. Add performance benchmarks
-4. Set up CI/CD pipeline
-5. Document edge cases
-6. Create test report template
-
-## Resources
-
-- [Laravel Testing Documentation](https://laravel.com/docs/testing)
-- [PHPUnit Documentation](https://phpunit.de/documentation.html)
-- [Faker Documentation](https://github.com/FakerPHP/Faker)
-
-
-
-
+### If stores don't show on owner profile:
+- Verify pivot table has entries: `SELECT * FROM owner_store WHERE owner_id = [owner_id];`
+- Check that OwnerController::show() uses `$owner->ownedStores`

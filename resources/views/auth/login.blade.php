@@ -5,11 +5,11 @@
 @section('content')
 <div class="text-center mb-4">
     <img src="{{ asset('images/logo.jpg') }}" height="36" alt="Restaurant Logo">
-    <h1 class="h2 text-white mt-3">Login to your account</h1>
-    <p class="text-white-50">Enter your email address and password to access your account</p>
+    <h1 class="h2 mt-3" style="color: #1b1b18;">Login to your account</h1>
+    <p style="color: #706f6c;">Enter your email address and password to access your account</p>
 </div>
 
-<div class="card card-md">
+<div class="card card-md" style="background: white; border: 1px solid #e0e0e0; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
     <div class="card-body">
         <form action="{{ route('login') }}" method="POST" autocomplete="off" novalidate>
             @csrf
