@@ -770,7 +770,7 @@
                     </div>
                 </div>
             </div>
-            <form method="POST" action="{{ route('impersonate.stop') }}" class="m-0">
+            <form method="POST" action="{{ route('impersonate.stop') }}" class="m-0" id="exit-impersonation-form">
                 @csrf
                 <button type="submit" class="btn btn-sm btn-outline-danger" style="font-family: 'Google Sans', sans-serif; border-radius: 20px; padding: 6px 16px;" title="Stop impersonating and return to admin account">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-1">
@@ -780,6 +780,43 @@
                     Exit Impersonation
                 </button>
             </form>
+            <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    const form = document.getElementById('exit-impersonation-form');
+                    if (form) {
+                        form.addEventListener('submit', function(e) {
+                            e.preventDefault();
+                            
+                            // Show loading state
+                            const button = form.querySelector('button[type="submit"]');
+                            const originalText = button.innerHTML;
+                            button.disabled = true;
+                            button.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Exiting...';
+                            
+                            // Submit form via fetch
+                            fetch(form.action, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/x-www-form-urlencoded',
+                                    'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value,
+                                    'X-Requested-With': 'XMLHttpRequest'
+                                },
+                                body: new URLSearchParams(new FormData(form))
+                            })
+                            .then(response => {
+                                // Force a hard redirect to /home regardless of response
+                                // This ensures the page always refreshes
+                                window.location.replace('/home');
+                            })
+                            .catch(error => {
+                                console.error('Error:', error);
+                                // Even on error, redirect to home
+                                window.location.replace('/home');
+                            });
+                        });
+                    }
+                });
+            </script>
         </div>
         @endif
 

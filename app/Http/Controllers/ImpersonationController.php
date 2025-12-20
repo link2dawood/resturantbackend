@@ -108,9 +108,16 @@ class ImpersonationController extends Controller
 
         // Login back as admin
         Auth::login($admin);
+        
+        // Save session to ensure changes are persisted
+        Session::save();
 
-        // Redirect to home route - use URL directly to avoid route resolution issues
-        return redirect(url('/home'))->with('success', 'Stopped impersonating. You are now back to your admin account');
+        // Redirect to home route with cache control headers to force page reload
+        return redirect(url('/home'))
+            ->with('success', 'Stopped impersonating. You are now back to your admin account')
+            ->header('Cache-Control', 'no-cache, no-store, must-revalidate')
+            ->header('Pragma', 'no-cache')
+            ->header('Expires', '0');
     }
 
     /**
