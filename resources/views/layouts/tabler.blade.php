@@ -120,6 +120,11 @@
             background: var(--surface, #ffffff);
         }
         
+        /* Hide Bootstrap's default dropdown caret for user profile dropdown */
+        .user-profile-dropdown::after {
+            display: none !important;
+        }
+        
         .dropdown-item {
             padding: 0.75rem 1rem;
             font-family: 'Google Sans', sans-serif;
@@ -704,7 +709,7 @@
                     <div class="d-flex align-items-center">
                         <div class="dropdown">
                             @if(Auth::user()->avatar_url && Auth::user()->name && Auth::user()->email)
-                            <a href="#" class="d-flex align-items-center text-decoration-none dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" style="padding: 6px 12px; border-radius: 25px; transition: all 0.2s ease;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='transparent'">
+                            <a href="#" class="d-flex align-items-center text-decoration-none dropdown-toggle user-profile-dropdown" data-bs-toggle="dropdown" aria-expanded="false" style="padding: 6px 12px; border-radius: 25px; transition: all 0.2s ease;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='transparent'">
                                 <img src="{{ Auth::user()->avatar_url }}" alt="{{ Auth::user()->name }}" class="rounded-circle me-2" style="width: 32px; height: 32px; object-fit: cover; border: 2px solid #e0e0e0;">
                                 <div class="d-none d-lg-block text-start">
                                     <div style="font-family: 'Google Sans', sans-serif; font-size: 14px; font-weight: 500; color: #202124; line-height: 1.2;">{{ Auth::user()->name }}</div>
