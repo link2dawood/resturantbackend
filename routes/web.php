@@ -199,8 +199,9 @@ Route::middleware('auth')->group(function () {
 
     // Impersonation Routes - Admin only (controller handles role checking)
     // Note: These routes must be accessible even during impersonation
-    Route::post('/impersonate/{user}', [ImpersonationController::class, 'start'])->name('impersonate.start');
+    // IMPORTANT: /impersonate/stop must come BEFORE /impersonate/{user} to avoid route conflicts
     Route::match(['get', 'post'], '/impersonate/stop', [ImpersonationController::class, 'stop'])->name('impersonate.stop');
+    Route::post('/impersonate/{user}', [ImpersonationController::class, 'start'])->name('impersonate.start');
     Route::get('/debug-user', [ImpersonationController::class, 'debug'])->name('debug.user');
 
     // Audit Log Routes (Admin and Owner only) with date conversion
