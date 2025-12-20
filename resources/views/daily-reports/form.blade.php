@@ -664,8 +664,12 @@ function calculateTotals() {
     const salesPreTax = netSales - tax;
     const averageTicket = totalCustomers > 0 ? netSales / totalCustomers : 0;
     
-    // Cash to account for = Net Sales - Total Paid Out - Credit Cards - Online Platform Revenue
-    const cashToAccountFor = netSales - totalPaidOuts - creditCards - onlinePlatformRevenue;
+    // Cash to account for = Net Sales - Transaction Expenses - Online Platform Revenue - Credit Cards
+    // Formula: Net Sales - transaction expenses - online platforms - credit card
+    let cashToAccountFor = netSales - totalPaidOuts - onlinePlatformRevenue - creditCards;
+    
+    // Ensure result is not negative (numbers cannot go negative)
+    cashToAccountFor = Math.max(0, Math.round(cashToAccountFor * 100) / 100);
     
     let short = 0;
     let over = 0;

@@ -694,7 +694,8 @@ class DailyReportController extends Controller
         // Calculate sales (pre-tax)
         $data['sales'] = $netSales - $tax;
 
-        // Calculate cash to account for = Net Sales - Total Paid Out - Credit Cards - Online Platform Revenue
+        // Calculate cash to account for = Net Sales - Transaction Expenses - Online Platform Revenue - Credit Cards
+        // Formula: Net Sales - transaction expenses - online platforms - credit card
         // Calculate online platform revenue
         $onlinePlatformRevenue = 0;
         if (isset($data['revenues']) && is_array($data['revenues'])) {
@@ -708,7 +709,12 @@ class DailyReportController extends Controller
             }
         }
         
-        $cashToAccountFor = $netSales - $totalPaidOuts - $creditCards - $onlinePlatformRevenue;
+        // Calculate: Net Sales - Transaction Expenses - Online Platform Revenue - Credit Cards
+        $cashToAccountFor = $netSales - $totalPaidOuts - $onlinePlatformRevenue - $creditCards;
+        
+        // Ensure result is not negative (numbers cannot go negative)
+        $cashToAccountFor = max(0, round($cashToAccountFor, 2));
+        
         $data['cash_to_account'] = $cashToAccountFor;
 
         // Calculate short/over
