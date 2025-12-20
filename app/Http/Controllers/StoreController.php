@@ -49,12 +49,24 @@ class StoreController extends Controller
             'city' => 'required|string|max:100',
             'state' => 'required|string|max:100',
             'zip' => 'required|string|max:20',
-            'created_by' => 'required',
+            'created_by' => [
+                'required',
+                'exists:users,id',
+                function ($attribute, $value, $fail) {
+                    $user = User::find($value);
+                    if (! $user || ! $user->isOwner()) {
+                        $fail('Only owners can be assigned to stores. Admins cannot be assigned.');
+                    }
+                },
+            ],
             'sales_tax_rate' => 'required|numeric|min:0',
             'medicare_tax_rate' => 'nullable|numeric|min:0',
         ]);
 
-        Store::create($validatedData);
+        $store = Store::create($validatedData);
+        
+        // Also assign the owner via pivot table
+        $store->owners()->attach($validatedData['created_by']);
 
         return redirect()->route('stores.index')->with('success', 'Store created successfully.');
     }
@@ -120,7 +132,15 @@ class StoreController extends Controller
     {
         $request->validate([
             'owner_ids' => 'required|array',
-            'owner_ids.*' => 'exists:users,id',
+            'owner_ids.*' => [
+                'exists:users,id',
+                function ($attribute, $value, $fail) {
+                    $user = User::find($value);
+                    if (! $user || ! $user->isOwner()) {
+                        $fail('Only owners can be assigned to stores. Admins cannot be assigned.');
+                    }
+                },
+            ],
         ]);
 
         // Sync the owners - this will replace all current assignments

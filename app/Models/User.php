@@ -166,6 +166,41 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * Check if user is the Franchisor owner
+     */
+    public function isFranchisor(): bool
+    {
+        return $this->isOwner() && strtolower($this->name) === 'franchisor';
+    }
+
+    /**
+     * Get or create the Franchisor owner
+     */
+    public static function getOrCreateFranchisor(): self
+    {
+        $franchisor = self::where('role', UserRole::OWNER)
+            ->whereRaw('LOWER(name) = ?', ['franchisor'])
+            ->first();
+
+        if (! $franchisor) {
+            $franchisor = self::create([
+                'name' => 'Franchisor',
+                'email' => 'franchisor@system.local',
+                'password' => bcrypt('changeme123'),
+                'role' => UserRole::OWNER,
+                'email_verified_at' => now(),
+            ]);
+
+            Log::info('Franchisor owner created', [
+                'franchisor_id' => $franchisor->id,
+                'email' => $franchisor->email,
+            ]);
+        }
+
+        return $franchisor;
+    }
+
+    /**
      * Check if user has a specific permission
      */
     public function hasPermission(string $permission): bool

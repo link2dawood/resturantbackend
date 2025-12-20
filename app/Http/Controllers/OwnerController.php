@@ -136,8 +136,8 @@ class OwnerController extends Controller
     public function assignStoresForm(User $owner)
     {
         $stores = \App\Models\Store::all();
-        // For owners, get stores they created (owned stores)
-        $assignedStores = \App\Models\Store::where('created_by', $owner->id)->pluck('id')->toArray();
+        // Get stores assigned via pivot table
+        $assignedStores = $owner->ownedStores->pluck('id')->toArray();
 
         return view('owners.assign-stores', compact('owner', 'stores', 'assignedStores'));
     }
@@ -150,43 +150,39 @@ class OwnerController extends Controller
         ]);
 
         try {
-            \DB::beginTransaction();
+            // Get the Franchisor owner for unassigned stores
+            $franchisor = \App\Models\User::getOrCreateFranchisor();
 
-            // Get admin user (first user with admin role) to assign unselected stores to
-            $adminUser = \App\Models\User::where('role', \App\Enums\UserRole::ADMIN)->first();
-
-            if (! $adminUser) {
-                throw new \Exception('No admin user found to reassign stores.');
-            }
-
-            // Get currently owned stores
-            $currentlyOwnedStores = \App\Models\Store::where('created_by', $owner->id)->pluck('id')->toArray();
+            // Get currently assigned stores
+            $currentlyAssignedStoreIds = $owner->ownedStores->pluck('id')->toArray();
             $newStoreIds = $validatedData['store_ids'];
 
-            // Find stores to unassign (currently owned but not in new selection)
-            $storesToUnassign = array_diff($currentlyOwnedStores, $newStoreIds);
+            // Find stores to unassign (currently assigned but not in new selection)
+            $storesToUnassign = array_diff($currentlyAssignedStoreIds, $newStoreIds);
 
-            // Find stores to assign (in new selection but not currently owned)
-            $storesToAssign = array_diff($newStoreIds, $currentlyOwnedStores);
-
-            // Unassign stores by transferring them to admin
+            // Unassign stores by removing from pivot table
+            // If a store has no owners after unassignment, assign it to Franchisor
             if (! empty($storesToUnassign)) {
-                \App\Models\Store::whereIn('id', $storesToUnassign)
-                    ->update(['created_by' => $adminUser->id]);
+                foreach ($storesToUnassign as $storeId) {
+                    $store = \App\Models\Store::find($storeId);
+                    if ($store) {
+                        // Remove this owner from the store
+                        $store->owners()->detach($owner->id);
+                        
+                        // If store has no owners, assign to Franchisor
+                        if ($store->owners()->count() === 0) {
+                            $store->owners()->attach($franchisor->id);
+                        }
+                    }
+                }
             }
 
-            // Assign new stores to this owner
-            if (! empty($storesToAssign)) {
-                \App\Models\Store::whereIn('id', $storesToAssign)
-                    ->update(['created_by' => $owner->id]);
-            }
+            // Sync the stores using the pivot table - this will replace all current assignments
+            $owner->ownedStores()->sync($validatedData['store_ids']);
 
-            \DB::commit();
-
-            return redirect()->back()->with('success', 'Stores assigned successfully.');
+            return redirect()->route('owners.show', $owner)->with('success', 'Stores assigned successfully.');
 
         } catch (\Exception $e) {
-            \DB::rollBack();
             \Log::error('Error assigning stores to owner', [
                 'owner_id' => $owner->id,
                 'error' => $e->getMessage(),

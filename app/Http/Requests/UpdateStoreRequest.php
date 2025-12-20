@@ -49,7 +49,16 @@ class UpdateStoreRequest extends FormRequest
             'city' => 'required|string|max:100',
             'state' => 'required|string|max:100',
             'zip' => 'required|string|max:20',
-            'created_by' => 'required|exists:users,id',
+            'created_by' => [
+                'required',
+                'exists:users,id',
+                function ($attribute, $value, $fail) {
+                    $user = \App\Models\User::find($value);
+                    if (! $user || ! $user->isOwner()) {
+                        $fail('Only owners can be assigned to stores. Admins cannot be assigned.');
+                    }
+                },
+            ],
             'sales_tax_rate' => 'required|numeric|min:0|max:100',
             'medicare_tax_rate' => 'nullable|numeric|min:0|max:100',
         ];
