@@ -219,7 +219,7 @@ Route::middleware('auth')->group(function () {
     Route::prefix('api')->group(function () {
         // Chart of Accounts API
         Route::middleware('role:admin')->group(function () {
-            Route::apiResource('coa', ApiChartOfAccountController::class);
+            Route::apiResource('coa', ApiChartOfAccountController::class)->names('api.coa');
         });
         
         // Vendor API

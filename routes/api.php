@@ -8,7 +8,7 @@ use App\Http\Controllers\Api\ExpenseController;
 
 // Chart of Accounts Routes - using web auth for now
 Route::middleware(['auth:web'])->group(function () {
-    Route::apiResource('coa', ChartOfAccountController::class);
+    Route::apiResource('coa', ChartOfAccountController::class)->names('api.coa');
 });
 
 // Vendor Routes - using web auth for now
