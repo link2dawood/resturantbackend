@@ -70,7 +70,7 @@ class ImpersonationController extends Controller
         // Login as the target user
         Auth::login($user);
 
-        return redirect()->route('home')->with('success', "You are now impersonating {$user->name}");
+        return redirect(url('/home'))->with('success', "You are now impersonating {$user->name}");
     }
 
     /**
@@ -82,7 +82,7 @@ class ImpersonationController extends Controller
         $adminId = Session::get('impersonating_admin_id');
 
         if (! $adminId || ! $impersonatedUserId) {
-            return redirect()->route('home')->with('error', 'No active impersonation session found');
+            return redirect(url('/home'))->with('error', 'No active impersonation session found');
         }
 
         $admin = User::find($adminId);
@@ -109,7 +109,8 @@ class ImpersonationController extends Controller
         // Login back as admin
         Auth::login($admin);
 
-        return redirect()->route('home')->with('success', 'Stopped impersonating. You are now back to your admin account');
+        // Redirect to home route - use URL directly to avoid route resolution issues
+        return redirect(url('/home'))->with('success', 'Stopped impersonating. You are now back to your admin account');
     }
 
     /**

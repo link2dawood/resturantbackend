@@ -252,6 +252,11 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function hasStoreAccess(int $storeId): bool
     {
+        // If user is being impersonated by an admin, grant admin-level access
+        if ($this->isBeingImpersonated()) {
+            return true;
+        }
+
         if ($this->isAdmin()) {
             return true;
         }
@@ -284,6 +289,11 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function accessibleStores()
     {
+        // If user is being impersonated by an admin, grant admin-level access
+        if ($this->isBeingImpersonated()) {
+            return Store::whereNull('deleted_at');
+        }
+
         if ($this->isAdmin()) {
             return Store::whereNull('deleted_at');
         }
@@ -313,6 +323,11 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function getAccessibleStoreIds(): array
     {
+        // If user is being impersonated by an admin, grant admin-level access
+        if ($this->isBeingImpersonated()) {
+            return Store::whereNull('deleted_at')->pluck('id')->toArray();
+        }
+
         if ($this->isAdmin()) {
             return Store::whereNull('deleted_at')->pluck('id')->toArray();
         }
@@ -331,6 +346,16 @@ class User extends Authenticatable implements MustVerifyEmail
         }
 
         return [];
+    }
+
+    /**
+     * Check if the current user is being impersonated by an admin
+     */
+    public function isBeingImpersonated(): bool
+    {
+        return \Illuminate\Support\Facades\Session::has('impersonating_admin_id') 
+            && \Illuminate\Support\Facades\Session::has('impersonating_user_id')
+            && \Illuminate\Support\Facades\Session::get('impersonating_user_id') == $this->id;
     }
 
     /**
