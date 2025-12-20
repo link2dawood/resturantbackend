@@ -263,7 +263,7 @@
     <!-- Overview Statistics -->
     <div class="row g-3 g-md-4 mb-4">
         <div class="col-12 col-sm-6 col-lg-4">
-            <div class="card-material" style="background: white;">
+            <div class="card-material" style="background: white; padding: 1.5rem;">
                 <div class="stat-card">
                     <div class="d-flex align-items-start">
                         <div class="stat-icon" style="background: #e6f4ea; color: #34a853;">
@@ -280,7 +280,7 @@
         </div>
 
         <div class="col-12 col-sm-6 col-lg-4">
-            <div class="card-material" style="background: white;">
+            <div class="card-material" style="background: white; padding: 1.5rem;">
                 <div class="stat-card">
                     <div class="d-flex align-items-start">
                         <div class="stat-icon" style="background: #e8f0fe; color: #4285f4;">
@@ -297,7 +297,7 @@
         </div>
 
         <div class="col-12 col-sm-6 col-lg-4">
-            <div class="card-material" style="background: white;">
+            <div class="card-material" style="background: white; padding: 1.5rem;">
                 <div class="stat-card">
                     <div class="d-flex align-items-start">
                         <div class="stat-icon" style="background: #fff3e0; color: #f57c00;">
@@ -318,7 +318,7 @@
         <!-- Charts Column -->
         <div class="col-12 col-lg-8">
             <!-- Daily Trends Chart -->
-            <div class="card-material mb-3 mb-md-4" style="background: white;">
+            <div class="card-material mb-3 mb-md-4" style="background: white; padding: 1.5rem;">
                 <div class="chart-card-header">
                     <h3 class="chart-card-title">
                         <i class="bi bi-graph-up"></i>
@@ -331,7 +331,7 @@
             </div>
 
             <!-- Monthly Comparison -->
-            <div class="card-material mb-3 mb-md-4" style="background: white;">
+            <div class="card-material mb-3 mb-md-4" style="background: white; padding: 1.5rem;">
                 <div class="chart-card-header">
                     <h3 class="chart-card-title">
                         <i class="bi bi-bar-chart"></i>
@@ -397,7 +397,7 @@
 
             <!-- Store Performance Chart -->
             @if($analytics['storePerformance']->count() > 0)
-            <div class="card-material mb-3 mb-md-4" style="background: white;">
+            <div class="card-material mb-3 mb-md-4" style="background: white; padding: 1.5rem;">
                 <div class="chart-card-header">
                     <h3 class="chart-card-title">
                         <i class="bi bi-shop"></i>
@@ -438,7 +438,7 @@
 
             <!-- Financial Analysis -->
             @if(!empty($analytics['financialAnalysis']))
-            <div class="card-material mb-3 mb-md-4" style="background: white;">
+            <div class="card-material mb-3 mb-md-4" style="background: white; padding: 1.5rem;">
                 <div class="chart-card-header">
                     <h3 class="chart-card-title">
                         <i class="bi bi-cash-coin"></i>
@@ -492,7 +492,7 @@
 
             <!-- Customer Analytics -->
             @if(!empty($analytics['customerAnalytics']))
-            <div class="card-material mb-3 mb-md-4" style="background: white;">
+            <div class="card-material mb-3 mb-md-4" style="background: white; padding: 1.5rem;">
                 <div class="chart-card-header">
                     <h3 class="chart-card-title">
                         <i class="bi bi-people"></i>
@@ -529,7 +529,7 @@
         <!-- Sidebar Column -->
         <div class="col-12 col-lg-4">
             <!-- Insights and Alerts -->
-            <div class="card-material mb-3 mb-md-4" style="background: white;">
+            <div class="card-material mb-3 mb-md-4" style="background: white; padding: 1.5rem;">
                 <div class="chart-card-header">
                     <h3 class="chart-card-title">
                         <i class="bi bi-lightbulb"></i>
@@ -557,7 +557,7 @@
             </div>
 
             <!-- Top Performing Days -->
-            <div class="card-material mb-3 mb-md-4" style="background: white;">
+            <div class="card-material mb-3 mb-md-4" style="background: white; padding: 1.5rem;">
                 <div class="chart-card-header">
                     <h3 class="chart-card-title">
                         <i class="bi bi-trophy"></i>
@@ -595,7 +595,7 @@
 
             <!-- Admin User Management -->
             @if(Auth::user()->isAdmin())
-            <div class="card-material mb-3 mb-md-4" style="background: white;">
+            <div class="card-material mb-3 mb-md-4" style="background: white; padding: 1.5rem;">
                 <div class="chart-card-header">
                     <h3 class="chart-card-title">
                         <i class="bi bi-people"></i>
@@ -692,7 +692,7 @@
             @endif
 
             <!-- Export & Actions -->
-            <div class="card-material" style="background: white;">
+            <div class="card-material" style="background: white; padding: 1.5rem;">
                 <div class="chart-card-header">
                     <h3 class="chart-card-title">
                         <i class="bi bi-download"></i>

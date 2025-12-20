@@ -380,12 +380,7 @@ class ResponsiveEnhancer {
      * Setup accessibility features
      */
     setupAccessibilityFeatures() {
-        // Add skip to main content link
-        const skipLink = document.createElement('a');
-        skipLink.href = '#main-content';
-        skipLink.className = 'skip-link';
-        skipLink.textContent = 'Skip to main content';
-        document.body.insertBefore(skipLink, document.body.firstChild);
+        // Skip link removed per user request
 
         // Add main content ID if not exists
         const mainContent = document.querySelector('.page-wrapper') || document.querySelector('main') || document.querySelector('.container-xl');
