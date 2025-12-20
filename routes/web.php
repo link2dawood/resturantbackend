@@ -200,7 +200,7 @@ Route::middleware('auth')->group(function () {
     // Impersonation Routes - Admin only (controller handles role checking)
     Route::middleware('auth')->group(function () {
         Route::post('/impersonate/{user}', [ImpersonationController::class, 'start'])->name('impersonate.start');
-        Route::post('/impersonate/stop', [ImpersonationController::class, 'stop'])->name('impersonate.stop');
+        Route::match(['get', 'post'], '/impersonate/stop', [ImpersonationController::class, 'stop'])->name('impersonate.stop');
         Route::get('/debug-user', [ImpersonationController::class, 'debug'])->name('debug.user');
     });
 
