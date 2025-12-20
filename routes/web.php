@@ -217,10 +217,7 @@ Route::middleware('auth')->group(function () {
 
     // API Routes - JSON endpoints for AJAX calls (using web session auth)
     Route::prefix('api')->group(function () {
-        // Chart of Accounts API
-        Route::middleware('role:admin')->group(function () {
-            Route::apiResource('coa', ApiChartOfAccountController::class)->names('api.coa');
-        });
+        // Chart of Accounts API routes are defined in routes/api.php to avoid duplication
         
         // Vendor API
         // Vendors - Admin and Owner can manage

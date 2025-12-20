@@ -1073,22 +1073,17 @@ textarea:focus {
   border-radius: 4px;
 }
 
-/* Skip link for keyboard navigation */
-.gd-skip-link {
-  position: absolute;
-  top: -40px;
-  left: 6px;
-  background: var(--trust-500);
-  color: white;
-  padding: 8px 16px;
-  text-decoration: none;
-  border-radius: 4px;
-  z-index: 1000;
-  font-weight: 500;
-}
-
-.gd-skip-link:focus {
-  top: 6px;
+/* Skip link for keyboard navigation - removed per user request */
+.gd-skip-link,
+.skip-link,
+.skip-to-main,
+a[href="#main-content"],
+a.skip-link {
+    display: none !important;
+    visibility: hidden !important;
+    position: absolute !important;
+    left: -9999px !important;
+    opacity: 0 !important;
 }
 
 /* Keyboard navigation indicators */

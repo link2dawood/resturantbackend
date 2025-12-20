@@ -829,6 +829,35 @@
     <!-- Responsive JavaScript -->
     <script src="{{ asset('js/responsive.js') }}"></script>
     
+    <!-- Remove skip-link elements -->
+    <script>
+        (function() {
+            // Remove skip-link elements immediately
+            function removeSkipLinks() {
+                const skipLinks = document.querySelectorAll('.skip-link, .skip-to-main, .gd-skip-link, a[href="#main-content"]');
+                skipLinks.forEach(link => {
+                    if (link.textContent && link.textContent.toLowerCase().includes('skip')) {
+                        link.remove();
+                    }
+                });
+            }
+            
+            // Run immediately
+            removeSkipLinks();
+            
+            // Run on DOM ready
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', removeSkipLinks);
+            } else {
+                removeSkipLinks();
+            }
+            
+            // Run after a short delay to catch dynamically added elements
+            setTimeout(removeSkipLinks, 100);
+            setTimeout(removeSkipLinks, 500);
+        })();
+    </script>
+    
     <!-- Performance Optimizations -->
     <script>
         // Defer non-critical scripts

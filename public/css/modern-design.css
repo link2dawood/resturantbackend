@@ -1881,27 +1881,17 @@ tr:hover {
     background: var(--google-blue-50) !important;
 }
 
-/* Skip to main content link */
-.skip-to-main {
-    position: absolute;
-    display: none;
-    top: -40px;
-    left: 6px;
-    background: var(--accent-color);
-    color: white;
-    padding: 8px;
-    text-decoration: none;
-    border-radius: 0 0 4px 4px;
-    z-index: 10000;
-    font-family: 'Google Sans', sans-serif;
-    font-size: 0.875rem;
-    font-weight: 500;
-}
-
-.skip-to-main:focus {
-    top: 6px;
-    outline: 2px solid white;
-    outline-offset: 2px;
+/* Skip to main content link - removed per user request */
+.skip-link,
+.skip-to-main,
+.gd-skip-link,
+a[href="#main-content"],
+a.skip-link {
+    display: none !important;
+    visibility: hidden !important;
+    position: absolute !important;
+    left: -9999px !important;
+    opacity: 0 !important;
 }
 
 /* Ensure minimum color contrast ratios */
