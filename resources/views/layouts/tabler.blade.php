@@ -621,8 +621,8 @@
                         </li>
                         @endif
 
-                        <!-- Managers (Business - Owners/Franchisor Only) -->
-                        @if(!Auth::user()->isAdmin() && Auth::user()->hasPermission('manage_managers'))
+                        <!-- Managers (Admin, Owners/Franchisor Only) -->
+                        @if(Auth::user()->isAdmin() || (!Auth::user()->isAdmin() && Auth::user()->hasPermission('manage_managers')))
                         <li class="nav-item">
                             <a class="nav-link d-flex align-items-center {{ request()->routeIs('managers.*') ? 'active' : '' }}" href="{{ route('managers.index') }}" style="padding: 8px 16px; border-radius: 20px; font-family: 'Google Sans', sans-serif; font-weight: 500; font-size: 14px; transition: all 0.2s ease; {{ request()->routeIs('managers.*') ? 'background: #4285f4; color: white;' : 'color: #5f6368;' }}" onmouseover="if(!this.classList.contains('active')) { this.style.background='#f1f3f4'; this.style.color='#1a73e8'; }" onmouseout="if(!this.classList.contains('active')) { this.style.background='transparent'; this.style.color='#5f6368'; }">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
@@ -636,8 +636,8 @@
                         </li>
                         @endif
 
-                        <!-- Transaction Management (Business - Owners/Franchisor Only) -->
-                        @if(!Auth::user()->isAdmin() && Auth::user()->hasPermission('manage_transaction_types'))
+                        <!-- Transaction Management (Admin, Owners/Franchisor Only) -->
+                        @if(Auth::user()->isAdmin() || (!Auth::user()->isAdmin() && Auth::user()->hasPermission('manage_transaction_types')))
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle d-flex align-items-center {{ request()->routeIs('transaction-types.*') || request()->routeIs('revenue-income-types.*') || request()->routeIs('coa.*') ? 'active' : '' }}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="padding: 8px 16px; border-radius: 20px; font-family: 'Google Sans', sans-serif; font-weight: 500; font-size: 14px; transition: all 0.2s ease; {{ request()->routeIs('transaction-types.*') || request()->routeIs('revenue-income-types.*') || request()->routeIs('coa.*') ? 'background: #4285f4; color: white;' : 'color: #5f6368;' }}" onmouseover="if(!this.classList.contains('active')) { this.style.background='#f1f3f4'; this.style.color='#1a73e8'; }" onmouseout="if(!this.classList.contains('active')) { this.style.background='transparent'; this.style.color='#5f6368'; }">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
@@ -677,7 +677,8 @@
                         @endif
 
                         <!-- Daily Reports -->
-                        @if(!Auth::user()->isAdmin() && (Auth::user()->hasPermission('create_reports') || Auth::user()->hasPermission('manage_reports') || Auth::user()->hasPermission('view_daily_reports')))
+                        <!-- Daily Reports (Admin, Owners/Franchisor Only) -->
+                        @if(Auth::user()->isAdmin() || (!Auth::user()->isAdmin() && (Auth::user()->hasPermission('create_reports') || Auth::user()->hasPermission('manage_reports') || Auth::user()->hasPermission('view_daily_reports'))))
                         <li class="nav-item">
                             <a class="nav-link d-flex align-items-center {{ request()->routeIs('daily-reports.*') ? 'active' : '' }}" href="{{ route('daily-reports.index') }}" style="padding: 8px 16px; border-radius: 20px; font-family: 'Google Sans', sans-serif; font-weight: 500; font-size: 14px; transition: all 0.2s ease; {{ request()->routeIs('daily-reports.*') ? 'background: #4285f4; color: white;' : 'color: #5f6368;' }}" onmouseover="if(!this.classList.contains('active')) { this.style.background='#f1f3f4'; this.style.color='#1a73e8'; }" onmouseout="if(!this.classList.contains('active')) { this.style.background='transparent'; this.style.color='#5f6368'; }">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
@@ -690,8 +691,8 @@
                             </a>
                         </li>
                         @endif
-                        <!-- Reports (Business - Owners/Franchisor Only) -->
-                        @if(!Auth::user()->isAdmin() && Auth::user()->hasPermission('view_reports'))
+                        <!-- Reports (Admin, Owners/Franchisor Only) -->
+                        @if(Auth::user()->isAdmin() || (!Auth::user()->isAdmin() && Auth::user()->hasPermission('view_reports')))
                         <li class="nav-item">
                             <a class="nav-link d-flex align-items-center {{ request()->routeIs('reports.*') ? 'active' : '' }}" href="{{ route('reports.index') }}" style="padding: 8px 16px; border-radius: 20px; font-family: 'Google Sans', sans-serif; font-weight: 500; font-size: 14px; transition: all 0.2s ease; {{ request()->routeIs('daily-reports.*') ? 'background: #4285f4; color: white;' : 'color: #5f6368;' }}" onmouseover="if(!this.classList.contains('active')) { this.style.background='#f1f3f4'; this.style.color='#1a73e8'; }" onmouseout="if(!this.classList.contains('active')) { this.style.background='transparent'; this.style.color='#5f6368'; }">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">

@@ -49,6 +49,11 @@ class PermissionMiddleware
             return redirect()->route('login')->with('error', 'Your account is no longer active.');
         }
 
+        // Admin controls entire dashboard - bypass all permission checks
+        if ($user->isAdmin()) {
+            return $next($request);
+        }
+
         if (! $user->hasPermission($permission)) {
             Log::warning('Insufficient permissions access attempt', [
                 'user_id' => $user->id,

@@ -24,6 +24,11 @@ enum UserRole: string
 
     public function hasPermission(string $permission): bool
     {
+        // Admin controls entire dashboard - has all permissions
+        if ($this === self::ADMIN) {
+            return true;
+        }
+
         // Check database permissions first
         $hasDbPermission = \App\Models\RolePermission::where('role', $this->value)
             ->whereHas('permission', function ($query) use ($permission) {
@@ -37,13 +42,6 @@ enum UserRole: string
 
         // Fallback to hardcoded permissions for backward compatibility
         return match ($this) {
-            // ADMIN: Technical/System Administration ONLY - No business operations
-            self::ADMIN => in_array($permission, [
-                'view_audit_logs',           // System audit logs
-                'manage_transaction_types',   // System configuration
-                'manage_system_settings',      // System settings
-                'view_system_logs',           // System logs
-            ]),
             // OWNER (including Franchisor): Full business control
             self::OWNER => in_array($permission, [
                 'view_stores',

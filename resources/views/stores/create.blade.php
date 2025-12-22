@@ -35,8 +35,8 @@
                 <option value="franchisee" {{ old('store_type') == 'franchisee' ? 'selected' : '' }}>Franchisee Location (Owner)</option>
             </select>
             <small class="form-text text-muted">
-                <strong>Corporate Store:</strong> Controlled by Franchisor, run by Managers<br>
-                <strong>Franchisee Location:</strong> Controlled by Owner (Franchisee), can have Managers, reports to Franchisor
+                <strong>Corporate Store:</strong> Controlled by Franchisor, reports to Franchisor, run by Managers<br>
+                <strong>Franchisee Location:</strong> Controlled by Owner (Franchisee), reports to Franchisor, can have Managers running a location
             </small>
         </div>
         
@@ -139,7 +139,7 @@
                         <p class="text-muted"><strong>Store Types:</strong></p>
                         <ul class="text-muted small">
                             <li><strong>Corporate Store:</strong> Controlled by Franchisor, reports to Franchisor, run by Managers</li>
-                            <li><strong>Franchisee Location:</strong> Controlled by Owner (Franchisee), reports to Franchisor, can have Managers</li>
+                            <li><strong>Franchisee Location:</strong> Controlled by Owner (Franchisee), reports to Franchisor, can have Managers running a location</li>
                         </ul>
                     </div>
                 </div>

@@ -24,7 +24,13 @@ class UpdateStoreRequest extends FormRequest
             return true;
         }
 
-        // Owner can update stores they created
+        // Corporate Stores: Controlled by Franchisor, report to Franchisor, run by Managers
+        // Only Franchisor (or Admin) can update Corporate Stores
+        if ($store && $store->isCorporateStore()) {
+            return $user->isFranchisor();
+        }
+
+        // Franchisee locations: Owner can update stores they created
         if ($user->isOwner() && $store && $store->created_by === $user->id) {
             return true;
         }
@@ -53,10 +59,15 @@ class UpdateStoreRequest extends FormRequest
             'created_by' => [
                 'required',
                 'exists:users,id',
-                function ($attribute, $value, $fail) {
+                function ($attribute, $value, $fail) use ($request) {
                     $user = \App\Models\User::find($value);
                     if (! $user || ! $user->isOwner()) {
                         $fail('Only owners can be assigned to stores. Admins cannot be assigned.');
+                    }
+                    
+                    // Corporate Stores must be controlled by Franchisor
+                    if ($request->input('store_type') === 'corporate' && !$user->isFranchisor()) {
+                        $fail('Corporate Stores must be controlled by the Franchisor.');
                     }
                 },
             ],

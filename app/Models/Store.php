@@ -107,7 +107,8 @@ class Store extends Model
     }
 
     /**
-     * Check if this is a Corporate Store (controlled by Franchisor)
+     * Check if this is a Corporate Store
+     * Corporate Stores: Controlled by Franchisor, report to Franchisor, run by Managers
      */
     public function isCorporateStore(): bool
     {
@@ -115,7 +116,8 @@ class Store extends Model
     }
 
     /**
-     * Check if this is a Franchisee location (controlled by Owner/Franchisee)
+     * Check if this is a Franchisee location
+     * Franchisee (Owner): Controls one or more locations, reports to Franchisor, can have Managers running a location
      */
     public function isFranchiseeLocation(): bool
     {
@@ -124,8 +126,8 @@ class Store extends Model
 
     /**
      * Get the Franchisor owner (for reporting purposes)
-     * Corporate Stores report to Franchisor
-     * Franchisee locations also report to Franchisor
+     * Corporate Stores: Controlled by Franchisor, report to Franchisor, run by Managers
+     * Franchisee locations: Controlled by Owner (Franchisee), reports to Franchisor, can have Managers running a location
      */
     public function franchisor(): ?User
     {
@@ -134,16 +136,18 @@ class Store extends Model
 
     /**
      * Get the controlling owner
-     * Corporate Stores: Franchisor
-     * Franchisee locations: The Owner (Franchisee)
+     * Corporate Stores: Franchisor (controls the store, reports to Franchisor, run by Managers)
+     * Franchisee locations: Owner (Franchisee) controls the location, reports to Franchisor, can have Managers running it
      */
     public function controllingOwner(): ?User
     {
         if ($this->isCorporateStore()) {
+            // Corporate Stores are controlled by Franchisor
             return $this->franchisor();
         }
         
-        // For Franchisee locations, return the primary owner
+        // For Franchisee locations, return the primary owner (Franchisee)
+        // Franchisee (Owner) controls one or more locations, reports to Franchisor
         return $this->owners()->first() ?? $this->owner;
     }
 }

@@ -167,6 +167,11 @@ class User extends Authenticatable implements MustVerifyEmail
 
     /**
      * Check if user is the Franchisor owner
+     * Franchisor controls the entire business brand (Fann's Philly Grill)
+     * - Can see all stores (Corporate and Franchisee)
+     * - Can see all owners
+     * - Can see all managers
+     * - Controls the entire business operations
      */
     public function isFranchisor(): bool
     {
@@ -175,6 +180,8 @@ class User extends Authenticatable implements MustVerifyEmail
 
     /**
      * Get or create the Franchisor owner
+     * Franchisor represents the brand owner (Fann's Philly Grill)
+     * who controls the entire business operations
      */
     public static function getOrCreateFranchisor(): self
     {
@@ -299,12 +306,19 @@ class User extends Authenticatable implements MustVerifyEmail
             return true;
         }
 
-        // Franchisor has full business access to all stores (Corporate and Franchisee)
+        // Admin has full access to all stores (controls entire dashboard)
+        if ($this->isAdmin()) {
+            return Store::where('id', $storeId)->whereNull('deleted_at')->exists();
+        }
+
+        // Franchisor controls the entire business brand (Fann's Philly Grill)
+        // Has full business access to all stores (Corporate and Franchisee)
         if ($this->isFranchisor()) {
             return Store::where('id', $storeId)->whereNull('deleted_at')->exists();
         }
 
-        // Franchisee (Owner): can see their stores (created by them or assigned via pivot)
+        // Franchisee (Owner): Controls one or more locations, reports to Franchisor
+        // Can see their stores (created by them or assigned via pivot)
         if ($this->isOwner()) {
             // Check if store was created by this owner
             $createdByOwner = Store::where('id', $storeId)
@@ -347,18 +361,19 @@ class User extends Authenticatable implements MustVerifyEmail
             return Store::whereNull('deleted_at');
         }
 
-        // Franchisor has full business access to all stores (Corporate and Franchisee)
+        // Admin has full access to all stores (controls entire dashboard)
+        if ($this->isAdmin()) {
+            return Store::whereNull('deleted_at');
+        }
+
+        // Franchisor controls the entire business brand (Fann's Philly Grill)
+        // Has full business access to all stores (Corporate and Franchisee)
         if ($this->isFranchisor()) {
             return Store::whereNull('deleted_at');
         }
 
-        // Admin has technical access but NOT business store access
-        // (Admin should not access business operations)
-        // if ($this->isAdmin()) {
-        //     return Store::whereNull('deleted_at');
-        // }
-
-        // Franchisee (Owner): can see their stores (created by them or assigned via pivot)
+        // Franchisee (Owner): Controls one or more locations, reports to Franchisor
+        // Can see their stores (created by them or assigned via pivot)
         // Owners can see stores they created OR stores assigned to them via owner_store pivot table
         if ($this->isOwner()) {
             $storeIds = $this->ownedStores()->pluck('stores.id')->toArray();
@@ -406,6 +421,11 @@ class User extends Authenticatable implements MustVerifyEmail
         // if ($this->isAdmin()) {
         //     return Store::whereNull('deleted_at')->pluck('id')->toArray();
         // }
+
+        // Admin has full access to all stores (controls entire dashboard)
+        if ($this->isAdmin()) {
+            return Store::whereNull('deleted_at')->pluck('id')->toArray();
+        }
 
         // Franchisor has full business access to all stores
         if ($this->isFranchisor()) {
@@ -466,12 +486,19 @@ class User extends Authenticatable implements MustVerifyEmail
 
     /**
      * Get all accessible owners for the user
-     * Franchisor: sees all owners
+     * Admin: sees all owners (controls entire dashboard)
+     * Franchisor: sees all owners (controls entire Fann's Philly Grill brand)
      * Others: see only themselves or their related owners
      */
     public function accessibleOwners()
     {
-        // Franchisor can see every owner
+        // Admin can see every owner (controls entire dashboard)
+        if ($this->isAdmin()) {
+            return User::where('role', UserRole::OWNER)->whereNull('deleted_at');
+        }
+
+        // Franchisor controls the entire business brand (Fann's Philly Grill)
+        // Can see every owner in the brand
         if ($this->isFranchisor()) {
             return User::where('role', UserRole::OWNER)->whereNull('deleted_at');
         }
@@ -487,18 +514,26 @@ class User extends Authenticatable implements MustVerifyEmail
 
     /**
      * Get all accessible managers for the user
-     * Franchisor: sees all managers
-     * Franchisee (Owner): sees managers of their stores
+     * Admin: sees all managers (controls entire dashboard)
+     * Franchisor: sees all managers (controls entire Fann's Philly Grill brand)
+     * Franchisee (Owner): Controls one or more locations, reports to Franchisor, can have Managers running a location
      * Managers: see only themselves
      */
     public function accessibleManagers()
     {
-        // Franchisor can see every manager
+        // Admin can see every manager (controls entire dashboard)
+        if ($this->isAdmin()) {
+            return User::where('role', UserRole::MANAGER)->whereNull('deleted_at');
+        }
+
+        // Franchisor controls the entire business brand (Fann's Philly Grill)
+        // Can see every manager across all stores
         if ($this->isFranchisor()) {
             return User::where('role', UserRole::MANAGER)->whereNull('deleted_at');
         }
 
-        // Franchisee (Owner): can see managers of their stores
+        // Franchisee (Owner): Controls one or more locations, reports to Franchisor
+        // Can have Managers running a location - can see managers of their stores
         // Owners can see all managers assigned to stores they own (via direct store_id or pivot table)
         if ($this->isOwner()) {
             $storeIds = $this->getAccessibleStoreIds();

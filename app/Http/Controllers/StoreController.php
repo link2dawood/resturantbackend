@@ -12,6 +12,7 @@ class StoreController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
+        // Only Admin and Franchisor (controls entire Fann's Philly Grill brand) can manage stores
         $this->middleware(function ($request, $next) {
             $user = auth()->user();
             if (!$user->isAdmin() && !$user->isFranchisor()) {
@@ -28,8 +29,8 @@ class StoreController extends Controller
     {
         $user = auth()->user();
         
-        // Franchisor: can see every store (Corporate and Franchisee)
-        // Franchisee (Owner): can see their stores
+        // Franchisor (controls entire Fann's Philly Grill brand): can see every store (Corporate and Franchisee)
+        // Franchisee (Owner): Controls one or more locations, reports to Franchisor - can see their stores
         // Manager: can only see their assigned stores
         $stores = $user->accessibleStores()->with('owners')->get();
 
@@ -83,14 +84,22 @@ class StoreController extends Controller
 
         $store = Store::create($validatedData);
         
-        // Assign the owner via pivot table
-        $store->owners()->attach($validatedData['created_by']);
-        
-        // Corporate Stores: Controlled by Franchisor, report to Franchisor
-        // Franchisee locations: Controlled by Owner, but also report to Franchisor
         $franchisor = User::getOrCreateFranchisor();
-        if (!$store->owners()->where('users.id', $franchisor->id)->exists()) {
-            $store->owners()->attach($franchisor->id);
+        
+        // Corporate Stores: Controlled by Franchisor, report to Franchisor, run by Managers
+        // The Franchisor is the controlling owner for Corporate Stores
+        if ($validatedData['store_type'] === 'corporate') {
+            // Corporate Stores are controlled by Franchisor
+            // Remove any other owners and set Franchisor as the controlling owner
+            $store->owners()->sync([$franchisor->id]);
+        } else {
+            // Franchisee locations: Controlled by Owner (Franchisee), reports to Franchisor, can have Managers running a location
+            // Assign the owner (Franchisee) via pivot table
+            $store->owners()->attach($validatedData['created_by']);
+            // Also attach Franchisor for reporting purposes (Franchisee reports to Franchisor)
+            if (!$store->owners()->where('users.id', $franchisor->id)->exists()) {
+                $store->owners()->attach($franchisor->id);
+            }
         }
 
         return redirect()->route('stores.index')->with('success', 'Store created successfully.');
@@ -137,6 +146,28 @@ class StoreController extends Controller
     public function update(UpdateStoreRequest $request, Store $store)
     {
         $validatedData = $request->validated();
+        
+        $franchisor = User::getOrCreateFranchisor();
+        
+        // If changing to Corporate Store, ensure Franchisor is the controlling owner
+        if ($validatedData['store_type'] === 'corporate') {
+            // Corporate Stores: Controlled by Franchisor, report to Franchisor, run by Managers
+            // Ensure Franchisor is the only controlling owner
+            $store->owners()->sync([$franchisor->id]);
+        } elseif ($store->isCorporateStore() && $validatedData['store_type'] === 'franchisee') {
+            // If changing from Corporate to Franchisee, assign the created_by owner
+            // Franchisee (Owner): Controls one or more locations, reports to Franchisor, can have Managers running a location
+            // Also attach Franchisor for reporting purposes (Franchisee reports to Franchisor)
+            $store->owners()->sync([$validatedData['created_by'], $franchisor->id]);
+        } elseif ($validatedData['store_type'] === 'franchisee') {
+            // For Franchisee locations: Controlled by Owner (Franchisee), reports to Franchisor, can have Managers running a location
+            // Ensure both the owner and Franchisor are attached
+            $ownerIds = [$validatedData['created_by']];
+            if (!$store->owners()->where('users.id', $franchisor->id)->exists()) {
+                $ownerIds[] = $franchisor->id;
+            }
+            $store->owners()->sync($ownerIds);
+        }
 
         $store->update($validatedData);
 
