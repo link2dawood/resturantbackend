@@ -45,8 +45,8 @@
                         Dashboard
                     </a>
 
-                    <!-- Stores (Admin Only) -->
-                    @if(Auth::user()->role === 'admin')
+                    <!-- Stores (Admin and Franchisor Only) -->
+                    @if(Auth::user()->isAdmin() || Auth::user()->isFranchisor())
                     <a href="{{ route('stores.index') }}" style="display: flex; align-items: center; padding: 0.5rem 1rem; border-radius: 1.25rem; text-decoration: none; font-family: 'Google Sans', sans-serif; font-size: 0.875rem; font-weight: 500; color: {{ request()->routeIs('stores.*') ? 'white' : 'var(--google-grey-700, #3c4043)' }}; background: {{ request()->routeIs('stores.*') ? 'var(--google-blue, #4285f4)' : 'transparent' }}; transition: all 0.2s ease;"
                        onmouseover="if (!this.style.background.includes('#4285f4')) { this.style.background = 'var(--google-blue-50, #e8f0fe)'; this.style.color = 'var(--google-blue-700, #1967d2)'; }"
                        onmouseout="if (!this.style.background.includes('#4285f4')) { this.style.background = 'transparent'; this.style.color = 'var(--google-grey-700, #3c4043)'; }">

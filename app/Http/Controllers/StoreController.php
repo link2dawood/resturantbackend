@@ -12,7 +12,13 @@ class StoreController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
-        $this->middleware('role:admin');
+        $this->middleware(function ($request, $next) {
+            $user = auth()->user();
+            if (!$user->isAdmin() && !$user->isFranchisor()) {
+                abort(403, 'Unauthorized access. Only Administrators and Franchisor can manage stores.');
+            }
+            return $next($request);
+        });
     }
 
     /**
