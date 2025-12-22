@@ -178,23 +178,65 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public static function getOrCreateFranchisor(): self
     {
+        // First, try to find by name (case-insensitive) with owner role
         $franchisor = self::where('role', UserRole::OWNER)
             ->whereRaw('LOWER(name) = ?', ['franchisor'])
             ->first();
 
+        // If not found by name, try to find by email (regardless of role)
         if (! $franchisor) {
-            $franchisor = self::create([
-                'name' => 'Franchisor',
-                'email' => 'franchisor@system.local',
-                'password' => bcrypt('changeme123'),
-                'role' => UserRole::OWNER,
-                'email_verified_at' => now(),
-            ]);
+            $franchisor = self::where('email', 'franchisor@system.local')
+                ->first();
+        }
 
-            Log::info('Franchisor owner created', [
-                'franchisor_id' => $franchisor->id,
-                'email' => $franchisor->email,
+        // If found by email but wrong role/name, update it
+        if ($franchisor && (strtolower($franchisor->name) !== 'franchisor' || $franchisor->role !== UserRole::OWNER)) {
+            $franchisor->update([
+                'name' => 'Franchisor',
+                'role' => UserRole::OWNER,
             ]);
+        }
+
+        // If still not found, create it
+        if (! $franchisor) {
+            try {
+                $franchisor = self::create([
+                    'name' => 'Franchisor',
+                    'email' => 'franchisor@system.local',
+                    'password' => bcrypt('changeme123'),
+                    'role' => UserRole::OWNER,
+                    'email_verified_at' => now(),
+                ]);
+
+                Log::info('Franchisor owner created', [
+                    'franchisor_id' => $franchisor->id,
+                    'email' => $franchisor->email,
+                ]);
+            } catch (\Illuminate\Database\QueryException $e) {
+                // If duplicate entry error, try to find it again (race condition)
+                if ($e->getCode() == 23000) {
+                    $franchisor = self::where('email', 'franchisor@system.local')
+                        ->orWhere(function($query) {
+                            $query->where('role', UserRole::OWNER)
+                                  ->whereRaw('LOWER(name) = ?', ['franchisor']);
+                        })
+                        ->first();
+                    
+                    if ($franchisor) {
+                        // Ensure correct name and role
+                        if (strtolower($franchisor->name) !== 'franchisor' || $franchisor->role !== UserRole::OWNER) {
+                            $franchisor->update([
+                                'name' => 'Franchisor',
+                                'role' => UserRole::OWNER,
+                            ]);
+                        }
+                    } else {
+                        throw $e; // Re-throw if still not found
+                    }
+                } else {
+                    throw $e; // Re-throw other exceptions
+                }
+            }
         }
 
         return $franchisor;
