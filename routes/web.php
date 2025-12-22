@@ -69,8 +69,8 @@ Route::middleware('auth')->group(function () {
         Route::post('owners/{owner}/assign-stores', [OwnerController::class, 'assignStores'])->name('owners.assign-stores');
     });
 
-    // Store management - Owners/Franchisor only (business control)
-    Route::middleware('role:owner')->group(function () {
+    // Store management - Admin and Franchisor only (business control)
+    Route::middleware('role:admin,owner')->group(function () {
         Route::get('/stores', [StoreController::class, 'index'])->name('stores.index');
         Route::get('/stores/create', [StoreController::class, 'create'])->name('stores.create');
         Route::post('/stores', [StoreController::class, 'store'])->name('stores.store');
