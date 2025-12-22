@@ -57,7 +57,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile/avatar', [ProfileController::class, 'removeAvatar'])->name('profile.avatar.remove');
 
     // Owner management - Owners/Franchisor only (business control)
-    Route::middleware(['role:owner', 'convert_date_format'])->group(function () {
+    Route::middleware(['role:admin', 'convert_date_format'])->group(function () {
         Route::get('/owners', [OwnerController::class, 'index'])->name('owners.index');
         Route::get('owners/create', [OwnerController::class, 'create'])->name('owners.create');
         Route::post('owners/create', [OwnerController::class, 'create'])->name('owners.store');

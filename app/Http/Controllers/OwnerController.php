@@ -11,7 +11,7 @@ class OwnerController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
-        $this->middleware('permission:manage_owners');
+        $this->middleware('role:admin');
     }
 
     public function index()
