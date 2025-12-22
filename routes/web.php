@@ -134,8 +134,8 @@ Route::middleware('auth')->group(function () {
         Route::post('transaction-types/{transactionType}/assign-stores', [TransactionTypeController::class, 'assignStores'])->name('transaction-types.assign.stores');
     });
 
-    // Chart of Accounts - Owners/Franchisor only (business configuration)
-    Route::middleware('role:owner')->group(function () {
+    // Chart of Accounts - Admin and Owners/Franchisor (business configuration)
+    Route::middleware('role:admin,owner')->group(function () {
         Route::resource('chart-of-accounts', ChartOfAccountController::class)
             ->parameters(['chart-of-accounts' => 'chartOfAccount'])
             ->names('coa');
