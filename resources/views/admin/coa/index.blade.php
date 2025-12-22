@@ -189,12 +189,7 @@
             </div>
 
             @if($coas->hasPages())
-                <div class="card-footer d-flex justify-content-between align-items-center">
-                    <small class="text-muted">
-                        Showing {{ $coas->firstItem() }} to {{ $coas->lastItem() }} of {{ $coas->total() }} accounts
-                    </small>
-                    {{ $coas->onEachSide(1)->links() }}
-                </div>
+                <x-pagination :paginator="$coas" />
             @endif
         </div>
     </div>
