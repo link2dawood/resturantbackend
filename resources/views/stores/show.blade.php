@@ -130,6 +130,58 @@
                 </div>
             </div>
 
+            <!-- Assigned Managers -->
+            <div class="card mt-4">
+                <div class="card-header border-0 pb-0">
+                    <h3 class="card-title" style="font-family: 'Google Sans', sans-serif; font-size: 1.125rem; font-weight: 500;">Assigned Managers</h3>
+                </div>
+                <div class="card-body">
+                    @if(isset($managers) && $managers->count() > 0)
+                        <div class="list-group list-group-flush">
+                            @foreach($managers as $manager)
+                            <div class="list-group-item border-0 px-0 d-flex align-items-center">
+                                <div class="avatar avatar-sm me-3" style="background-color: var(--google-green-100, #c8e6c9); color: var(--google-green, #34a853); font-weight: 500;">
+                                    {{ substr($manager->name, 0, 1) }}
+                                </div>
+                                <div class="flex-grow-1">
+                                    <div style="font-weight: 500; font-size: 0.875rem; color: var(--google-grey-900, #202124);">{{ $manager->name }}</div>
+                                    <div style="font-size: 0.813rem; color: var(--google-grey-600, #5f6368);">{{ $manager->email }}</div>
+                                    @if($manager->store)
+                                        <div style="font-size: 0.75rem; color: var(--google-grey-500, #9aa0a6); margin-top: 2px;">
+                                            Primary Store: {{ $manager->store->store_info }}
+                                        </div>
+                                    @endif
+                                </div>
+                                <a href="{{ route('managers.show', $manager) }}" class="btn btn-sm btn-outline-primary" title="View Manager">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                        <circle cx="12" cy="12" r="3"/>
+                                    </svg>
+                                </a>
+                            </div>
+                            @endforeach
+                        </div>
+                    @else
+                        <div class="text-center py-4">
+                            <div class="mb-3">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--google-grey-400, #9aa0a6)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+                                    <circle cx="9" cy="7" r="4"/>
+                                    <path d="M23 21v-2a4 4 0 00-3-3"/>
+                                    <path d="M16 3.13a4 4 0 010 7.75"/>
+                                </svg>
+                            </div>
+                            <p style="font-family: 'Google Sans', sans-serif; color: var(--google-grey-600, #5f6368); margin-bottom: 1rem; font-size: 0.875rem;">No managers assigned</p>
+                            @if(Auth::user()->isAdmin() || Auth::user()->isFranchisor())
+                            <a href="{{ route('managers.create') }}?store_id={{ $store->id }}" class="btn btn-sm btn-outline-primary">
+                                Assign Manager
+                            </a>
+                            @endif
+                        </div>
+                    @endif
+                </div>
+            </div>
+
             <!-- Quick Actions -->
             <div class="card mt-4">
                 <div class="card-header border-0 pb-0">

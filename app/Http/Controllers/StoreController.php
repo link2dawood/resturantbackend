@@ -103,8 +103,21 @@ class StoreController extends Controller
     {
         $store->load('owners');
         $availableOwners = User::where('role', 'owner')->get();
+        
+        // Get all managers assigned to this store (via direct store_id or pivot table)
+        $managerIds = User::where('role', 'manager')
+            ->where(function($query) use ($store) {
+                $query->where('store_id', $store->id)
+                    ->orWhereHas('assignedStoresPivot', function($q) use ($store) {
+                        $q->where('stores.id', $store->id);
+                    });
+            })
+            ->pluck('id')
+            ->toArray();
+        
+        $managers = User::whereIn('id', $managerIds)->with(['store', 'assignedStoresPivot'])->get();
 
-        return view('stores.show', compact('store', 'availableOwners'));
+        return view('stores.show', compact('store', 'availableOwners', 'managers'));
     }
 
     /**
@@ -113,8 +126,9 @@ class StoreController extends Controller
     public function edit(Store $store)
     {
         $owners = User::where('role', 'owner')->get();
+        $franchisor = User::getOrCreateFranchisor();
 
-        return view('stores.edit', compact('store', 'owners'));
+        return view('stores.edit', compact('store', 'owners', 'franchisor'));
     }
 
     /**

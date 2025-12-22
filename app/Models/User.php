@@ -359,6 +359,7 @@ class User extends Authenticatable implements MustVerifyEmail
         // }
 
         // Franchisee (Owner): can see their stores (created by them or assigned via pivot)
+        // Owners can see stores they created OR stores assigned to them via owner_store pivot table
         if ($this->isOwner()) {
             $storeIds = $this->ownedStores()->pluck('stores.id')->toArray();
             $createdStoreIds = Store::where('created_by', $this->id)->pluck('id')->toArray();
@@ -372,15 +373,18 @@ class User extends Authenticatable implements MustVerifyEmail
         }
 
         if ($this->isManager()) {
-            // Get stores from both direct assignment and pivot table
+            // Managers can only see stores they are assigned to
+            // Corporate store managers: only see their assigned corporate store locations
+            // Franchisee store managers: only see their assigned franchisee locations
             $storeIds = collect([$this->store_id])->filter();
             $pivotStoreIds = $this->assignedStoresPivot()->pluck('stores.id');
             $allStoreIds = $storeIds->merge($pivotStoreIds)->unique()->filter();
             
             if ($allStoreIds->isEmpty()) {
-                return Store::whereRaw('1 = 0'); // Return empty query
+                return Store::whereRaw('1 = 0'); // Return empty query - no stores assigned
             }
             
+            // Return only the stores assigned to this manager
             return Store::whereIn('id', $allStoreIds)->whereNull('deleted_at');
         }
 
@@ -495,6 +499,7 @@ class User extends Authenticatable implements MustVerifyEmail
         }
 
         // Franchisee (Owner): can see managers of their stores
+        // Owners can see all managers assigned to stores they own (via direct store_id or pivot table)
         if ($this->isOwner()) {
             $storeIds = $this->getAccessibleStoreIds();
             

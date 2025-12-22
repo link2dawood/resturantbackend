@@ -40,7 +40,7 @@
             </small>
         </div>
         
-        @if(Auth::user()->hasPermission('manage_owners'))
+        @if(Auth::user()->isAdmin() || Auth::user()->isFranchisor())
         <div class="mb-3">
             <label for="created_by" class="form-label">Controlling Owner <span class="text-danger">*</span></label>
             <select class="form-control" id="created_by" name="created_by" required>

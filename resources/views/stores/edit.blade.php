@@ -10,20 +10,37 @@
     <form action="{{ route('stores.update', $store->id) }}" method="POST">
         @csrf
         @method('PUT')
-         @if(Auth::user()->hasPermission('manage_owners'))
+        @if(Auth::user()->isAdmin() || Auth::user()->isFranchisor())
         <div class="mb-3">
-            <label for="store_info" class="form-label">Owners</label>
-            <select class="form-control"  name="created_by"  required>
+            <label for="created_by" class="form-label">Controlling Owner <span class="text-danger">*</span></label>
+            <select class="form-control" id="created_by" name="created_by" required>
                <option value="">Select Owner</option>
+                @if(Auth::user()->isFranchisor())
+                    <option value="{{ $franchisor->id }}" data-store-type="corporate" @if($store->created_by == $franchisor->id) selected @endif>{{ $franchisor->name }} (Franchisor - for Corporate Stores)</option>
+                @endif
                 @foreach ($owners as $owner)
-                    <option value="{{ $owner->id }}" @if($store->created_by == $owner->id) selected @endif>{{ $owner->name }}</option>
+                    @if(!$owner->isFranchisor())
+                        <option value="{{ $owner->id }}" data-store-type="franchisee" @if($store->created_by == $owner->id) selected @endif>{{ $owner->name }} (Franchisee - for Franchisee Locations)</option>
+                    @endif
                 @endforeach
             </select>
-            
+            <small class="form-text text-muted">Corporate Stores must be assigned to Franchisor. Franchisee locations are assigned to the Owner (Franchisee).</small>
         </div>
         @else
-        <input type="hidden" class="form-control"  name="created_by" value="{{Auth::user()->id}}" >
+        <input type="hidden" class="form-control" name="created_by" value="{{Auth::user()->id}}">
         @endif
+        <div class="mb-3">
+            <label for="store_type" class="form-label">Store Type <span class="text-danger">*</span></label>
+            <select class="form-control" id="store_type" name="store_type" required>
+                <option value="">Select Store Type</option>
+                <option value="corporate" {{ old('store_type', $store->store_type) == 'corporate' ? 'selected' : '' }}>Corporate Store (Franchisor)</option>
+                <option value="franchisee" {{ old('store_type', $store->store_type) == 'franchisee' ? 'selected' : '' }}>Franchisee Location (Owner)</option>
+            </select>
+            <small class="form-text text-muted">
+                <strong>Corporate Store:</strong> Controlled by Franchisor, run by Managers<br>
+                <strong>Franchisee Location:</strong> Controlled by Owner (Franchisee), can have Managers, reports to Franchisor
+            </small>
+        </div>
         <div class="mb-3">
             <label for="store_info" class="form-label">Store Info</label>
             <input type="text" class="form-control" id="store_info" name="store_info" value="{{ $store->store_info }}" required>
@@ -71,4 +88,40 @@
         <button type="submit" class="btn btn-primary">Update Store</button>
     </form>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const storeTypeSelect = document.getElementById('store_type');
+    const ownerSelect = document.getElementById('created_by');
+    
+    if (storeTypeSelect && ownerSelect) {
+        storeTypeSelect.addEventListener('change', function() {
+            const selectedType = this.value;
+            const options = ownerSelect.querySelectorAll('option[data-store-type]');
+            
+            // Show/hide options based on store type
+            options.forEach(option => {
+                if (selectedType === '') {
+                    option.style.display = '';
+                } else if (option.getAttribute('data-store-type') === selectedType) {
+                    option.style.display = '';
+                } else {
+                    option.style.display = 'none';
+                }
+            });
+            
+            // Reset selection if current selection doesn't match store type
+            if (selectedType && ownerSelect.value) {
+                const selectedOption = ownerSelect.options[ownerSelect.selectedIndex];
+                if (selectedOption.getAttribute('data-store-type') !== selectedType) {
+                    ownerSelect.value = '';
+                }
+            }
+        });
+        
+        // Trigger on page load to set initial state
+        storeTypeSelect.dispatchEvent(new Event('change'));
+    }
+});
+</script>
 @endsection
