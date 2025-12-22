@@ -55,6 +55,7 @@
                                 <th style="font-weight: 500; color: var(--google-grey-700, #3c4043); padding: 1rem; border: none; font-size: 0.813rem; letter-spacing: 0.3px;">Owner</th>
                                 @endif
                                 <th style="font-weight: 500; color: var(--google-grey-700, #3c4043); padding: 1rem; border: none; font-size: 0.813rem; letter-spacing: 0.3px;">Store Information</th>
+                                <th style="font-weight: 500; color: var(--google-grey-700, #3c4043); padding: 1rem; border: none; font-size: 0.813rem; letter-spacing: 0.3px;">Type</th>
                                 <th style="font-weight: 500; color: var(--google-grey-700, #3c4043); padding: 1rem; border: none; font-size: 0.813rem; letter-spacing: 0.3px;">Address</th>
                                 <th style="font-weight: 500; color: var(--google-grey-700, #3c4043); padding: 1rem; border: none; font-size: 0.813rem; letter-spacing: 0.3px;">Sales Tax</th>
                                 <th style="font-weight: 500; color: var(--google-grey-700, #3c4043); padding: 1rem; border: none; font-size: 0.813rem; letter-spacing: 0.3px;">Medicare Tax</th>
@@ -82,6 +83,15 @@
                                 @endif
                                 <td style="padding: 1rem; vertical-align: middle; color: var(--google-grey-900, #202124);">
                                     <div style="font-weight: 500; font-size: 0.875rem;">{{ $store->store_info }}</div>
+                                </td>
+                                <td style="padding: 1rem; vertical-align: middle;">
+                                    @if($store->store_type === 'corporate')
+                                        <span class="badge bg-primary" style="font-size: 0.75rem;">Corporate Store</span>
+                                        <small class="d-block text-muted mt-1" style="font-size: 0.7rem;">Franchisor</small>
+                                    @else
+                                        <span class="badge bg-success" style="font-size: 0.75rem;">Franchisee Location</span>
+                                        <small class="d-block text-muted mt-1" style="font-size: 0.7rem;">Owner</small>
+                                    @endif
                                 </td>
                                 <td style="padding: 1rem; vertical-align: middle; color: var(--google-grey-700, #3c4043);">
                                     <div style="font-size: 0.875rem; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ $store->address }}">{{ $store->address }}</div>

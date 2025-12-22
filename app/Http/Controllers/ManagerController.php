@@ -22,7 +22,12 @@ class ManagerController extends Controller
      */
     public function index()
     {
-        $managers = User::where('role', UserRole::MANAGER)->with('store')->get();
+        $user = auth()->user();
+        
+        // Franchisor: can see every manager
+        // Franchisee (Owner): can see managers of their stores
+        // Manager: can only see themselves
+        $managers = $user->accessibleManagers()->with(['store', 'assignedStoresPivot'])->get();
 
         return view('managers.index', compact('managers'));
     }
@@ -279,12 +284,14 @@ class ManagerController extends Controller
         $user = auth()->user();
 
         // Filter stores based on current user's permissions
-        if ($user->isAdmin()) {
-            // Admins can assign managers to any store
-            $stores = Store::all();
+        // Franchisor: can assign managers to any store (Corporate or Franchisee)
+        // Franchisee (Owner): can only assign managers to their stores
+        // Managers: cannot assign stores
+        if ($user->isFranchisor()) {
+            $stores = Store::whereNull('deleted_at')->get();
         } elseif ($user->isOwner()) {
-            // Owners can only assign managers to stores they own
-            $stores = Store::where('created_by', $user->id)->get();
+            // Owners can only assign managers to their stores
+            $stores = $user->accessibleStores()->get();
         } else {
             // Managers shouldn't be able to assign stores to other managers
             $stores = collect();

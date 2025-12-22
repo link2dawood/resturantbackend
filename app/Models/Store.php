@@ -21,6 +21,7 @@ class Store extends Model
         'sales_tax_rate',
         'medicare_tax_rate',
         'created_by',
+        'store_type',
     ];
 
     /**
@@ -103,5 +104,46 @@ class Store extends Model
         return $this->belongsToMany(Vendor::class, 'vendor_store_assignments', 'store_id', 'vendor_id')
                     ->withPivot('is_global')
                     ->withTimestamps();
+    }
+
+    /**
+     * Check if this is a Corporate Store (controlled by Franchisor)
+     */
+    public function isCorporateStore(): bool
+    {
+        return $this->store_type === 'corporate';
+    }
+
+    /**
+     * Check if this is a Franchisee location (controlled by Owner/Franchisee)
+     */
+    public function isFranchiseeLocation(): bool
+    {
+        return $this->store_type === 'franchisee';
+    }
+
+    /**
+     * Get the Franchisor owner (for reporting purposes)
+     * Corporate Stores report to Franchisor
+     * Franchisee locations also report to Franchisor
+     */
+    public function franchisor(): ?User
+    {
+        return User::getOrCreateFranchisor();
+    }
+
+    /**
+     * Get the controlling owner
+     * Corporate Stores: Franchisor
+     * Franchisee locations: The Owner (Franchisee)
+     */
+    public function controllingOwner(): ?User
+    {
+        if ($this->isCorporateStore()) {
+            return $this->franchisor();
+        }
+        
+        // For Franchisee locations, return the primary owner
+        return $this->owners()->first() ?? $this->owner;
     }
 }

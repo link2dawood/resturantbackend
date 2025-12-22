@@ -56,8 +56,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/profile/avatar', [ProfileController::class, 'updateAvatar'])->name('profile.avatar.update');
     Route::delete('/profile/avatar', [ProfileController::class, 'removeAvatar'])->name('profile.avatar.remove');
 
-    // Owner management - Admin only with date conversion
-    Route::middleware(['role:admin', 'convert_date_format'])->group(function () {
+    // Owner management - Owners/Franchisor only (business control)
+    Route::middleware(['role:owner', 'convert_date_format'])->group(function () {
         Route::get('/owners', [OwnerController::class, 'index'])->name('owners.index');
         Route::get('owners/create', [OwnerController::class, 'create'])->name('owners.create');
         Route::post('owners/create', [OwnerController::class, 'create'])->name('owners.store');
@@ -69,8 +69,8 @@ Route::middleware('auth')->group(function () {
         Route::post('owners/{owner}/assign-stores', [OwnerController::class, 'assignStores'])->name('owners.assign-stores');
     });
 
-    // Store management - Admin only
-    Route::middleware('role:admin')->group(function () {
+    // Store management - Owners/Franchisor only (business control)
+    Route::middleware('role:owner')->group(function () {
         Route::get('/stores', [StoreController::class, 'index'])->name('stores.index');
         Route::get('/stores/create', [StoreController::class, 'create'])->name('stores.create');
         Route::post('/stores', [StoreController::class, 'store'])->name('stores.store');
@@ -122,8 +122,8 @@ Route::middleware('auth')->group(function () {
         Route::post('managers/{manager}/assign-stores', [ManagerController::class, 'assignStores'])->name('managers.assign-stores');
     });
 
-    // Transaction Types - Admin only
-    Route::middleware('role:admin')->group(function () {
+    // Transaction Types - Owners/Franchisor only (business configuration)
+    Route::middleware('role:owner')->group(function () {
         Route::get('/transaction-types', [TransactionTypeController::class, 'index'])->name('transaction-types.index');
         Route::get('/transaction-types/create', [TransactionTypeController::class, 'create'])->name('transaction-types.create');
         Route::post('/transaction-types', [TransactionTypeController::class, 'store'])->name('transaction-types.store');
@@ -134,8 +134,8 @@ Route::middleware('auth')->group(function () {
         Route::post('transaction-types/{transactionType}/assign-stores', [TransactionTypeController::class, 'assignStores'])->name('transaction-types.assign.stores');
     });
 
-    // Chart of Accounts - Admin only
-    Route::middleware('role:admin')->group(function () {
+    // Chart of Accounts - Owners/Franchisor only (business configuration)
+    Route::middleware('role:owner')->group(function () {
         Route::resource('chart-of-accounts', ChartOfAccountController::class)
             ->parameters(['chart-of-accounts' => 'chartOfAccount'])
             ->names('coa');
@@ -184,8 +184,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/bank-accounts/{accountId}/reconciliation', [BankAccountViewController::class, 'reconciliation'])->name('admin.bank.reconciliation.index');
     });
 
-    // Revenue Income Types Routes - Admin only
-    Route::middleware('role:admin')->group(function () {
+    // Revenue Income Types Routes - Owners/Franchisor only (business configuration)
+    Route::middleware('role:owner')->group(function () {
         Route::get('/revenue-income-types', [RevenueIncomeTypeController::class, 'index'])->name('revenue-income-types.index');
         Route::get('/revenue-income-types/create', [RevenueIncomeTypeController::class, 'create'])->name('revenue-income-types.create');
         Route::post('/revenue-income-types', [RevenueIncomeTypeController::class, 'store'])->name('revenue-income-types.store');

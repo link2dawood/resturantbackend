@@ -24,10 +24,11 @@
     }
     
     .report-header {
-        background: linear-gradient(135deg, #fd7e14 0%, #e83e8c 100%);
-        color: white;
+        background: #f8f9fa;
+        color: #202124;
         padding: 20px;
         text-align: center;
+        border: 1px solid #e0e0e0;
     }
     
     .company-name {

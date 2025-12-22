@@ -27,19 +27,37 @@
                         <h3 class="card-title">Store Information</h3>
                     </div>
                     <div class="card-body">
-          @if(Auth::user()->hasPermission('manage_owners'))
+          <div class="mb-3">
+            <label for="store_type" class="form-label">Store Type <span class="text-danger">*</span></label>
+            <select class="form-control" id="store_type" name="store_type" required>
+                <option value="">Select Store Type</option>
+                <option value="corporate" {{ old('store_type') == 'corporate' ? 'selected' : '' }}>Corporate Store (Franchisor)</option>
+                <option value="franchisee" {{ old('store_type') == 'franchisee' ? 'selected' : '' }}>Franchisee Location (Owner)</option>
+            </select>
+            <small class="form-text text-muted">
+                <strong>Corporate Store:</strong> Controlled by Franchisor, run by Managers<br>
+                <strong>Franchisee Location:</strong> Controlled by Owner (Franchisee), can have Managers, reports to Franchisor
+            </small>
+        </div>
+        
+        @if(Auth::user()->hasPermission('manage_owners'))
         <div class="mb-3">
-            <label for="store_info" class="form-label">Owners</label>
-            <select class="form-control"  name="created_by"  required>
+            <label for="created_by" class="form-label">Controlling Owner <span class="text-danger">*</span></label>
+            <select class="form-control" id="created_by" name="created_by" required>
                <option value="">Select Owner</option>
+                @if(Auth::user()->isFranchisor())
+                    <option value="{{ $franchisor->id }}" data-store-type="corporate">{{ $franchisor->name }} (Franchisor - for Corporate Stores)</option>
+                @endif
                 @foreach ($owners as $owner)
-                    <option value="{{ $owner->id }}">{{ $owner->name }}</option>
+                    @if(!$owner->isFranchisor())
+                        <option value="{{ $owner->id }}" data-store-type="franchisee">{{ $owner->name }} (Franchisee - for Franchisee Locations)</option>
+                    @endif
                 @endforeach
             </select>
-            
+            <small class="form-text text-muted">Corporate Stores must be assigned to Franchisor. Franchisee locations are assigned to the Owner (Franchisee).</small>
         </div>
         @else
-        <input type="hidden" class="form-control"  name="created_by" value="{{Auth::user()->id}}" >
+        <input type="hidden" class="form-control" name="created_by" value="{{Auth::user()->id}}">
         @endif
         <div class="mb-3">
             <label for="store_info" class="form-label">Store Info</label>
@@ -117,10 +135,49 @@
                     <div class="card-body">
                         <p class="text-muted">Fill in all store information. Fields marked with <span class="text-danger">*</span> are required.</p>
                         <p class="text-muted">Tax rates can be updated later if needed.</p>
+                        <hr>
+                        <p class="text-muted"><strong>Store Types:</strong></p>
+                        <ul class="text-muted small">
+                            <li><strong>Corporate Store:</strong> Controlled by Franchisor, reports to Franchisor, run by Managers</li>
+                            <li><strong>Franchisee Location:</strong> Controlled by Owner (Franchisee), reports to Franchisor, can have Managers</li>
+                        </ul>
                     </div>
                 </div>
             </div>
         </div>
     </form>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const storeTypeSelect = document.getElementById('store_type');
+    const ownerSelect = document.getElementById('created_by');
+    
+    if (storeTypeSelect && ownerSelect) {
+        storeTypeSelect.addEventListener('change', function() {
+            const selectedType = this.value;
+            const options = ownerSelect.querySelectorAll('option[data-store-type]');
+            
+            // Show/hide options based on store type
+            options.forEach(option => {
+                if (selectedType === '') {
+                    option.style.display = '';
+                } else if (option.getAttribute('data-store-type') === selectedType) {
+                    option.style.display = '';
+                } else {
+                    option.style.display = 'none';
+                }
+            });
+            
+            // Reset selection if current selection doesn't match store type
+            if (selectedType && ownerSelect.value) {
+                const selectedOption = ownerSelect.options[ownerSelect.selectedIndex];
+                if (selectedOption.getAttribute('data-store-type') !== selectedType) {
+                    ownerSelect.value = '';
+                }
+            }
+        });
+    }
+});
+</script>
 @endsection

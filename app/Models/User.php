@@ -257,15 +257,26 @@ class User extends Authenticatable implements MustVerifyEmail
             return true;
         }
 
-        if ($this->isAdmin()) {
-            return true;
+        // Franchisor has full business access to all stores (Corporate and Franchisee)
+        if ($this->isFranchisor()) {
+            return Store::where('id', $storeId)->whereNull('deleted_at')->exists();
         }
 
+        // Franchisee (Owner): can see their stores (created by them or assigned via pivot)
         if ($this->isOwner()) {
-            return Store::where('id', $storeId)
+            // Check if store was created by this owner
+            $createdByOwner = Store::where('id', $storeId)
                 ->where('created_by', $this->id)
                 ->whereNull('deleted_at')
                 ->exists();
+            
+            // Check if store is assigned via pivot table
+            $assignedViaPivot = $this->ownedStores()
+                ->where('stores.id', $storeId)
+                ->whereNull('stores.deleted_at')
+                ->exists();
+            
+            return $createdByOwner || $assignedViaPivot;
         }
 
         if ($this->isManager()) {
@@ -294,12 +305,28 @@ class User extends Authenticatable implements MustVerifyEmail
             return Store::whereNull('deleted_at');
         }
 
-        if ($this->isAdmin()) {
+        // Franchisor has full business access to all stores (Corporate and Franchisee)
+        if ($this->isFranchisor()) {
             return Store::whereNull('deleted_at');
         }
 
+        // Admin has technical access but NOT business store access
+        // (Admin should not access business operations)
+        // if ($this->isAdmin()) {
+        //     return Store::whereNull('deleted_at');
+        // }
+
+        // Franchisee (Owner): can see their stores (created by them or assigned via pivot)
         if ($this->isOwner()) {
-            return Store::where('created_by', $this->id)->whereNull('deleted_at');
+            $storeIds = $this->ownedStores()->pluck('stores.id')->toArray();
+            $createdStoreIds = Store::where('created_by', $this->id)->pluck('id')->toArray();
+            $allStoreIds = array_unique(array_merge($storeIds, $createdStoreIds));
+            
+            if (empty($allStoreIds)) {
+                return Store::whereRaw('1 = 0');
+            }
+            
+            return Store::whereIn('id', $allStoreIds)->whereNull('deleted_at');
         }
 
         if ($this->isManager()) {
@@ -328,15 +355,22 @@ class User extends Authenticatable implements MustVerifyEmail
             return Store::whereNull('deleted_at')->pluck('id')->toArray();
         }
 
-        if ($this->isAdmin()) {
+        // Admin has technical access but NOT business store access
+        // (Admin should not access business operations)
+        // if ($this->isAdmin()) {
+        //     return Store::whereNull('deleted_at')->pluck('id')->toArray();
+        // }
+
+        // Franchisor has full business access to all stores
+        if ($this->isFranchisor()) {
             return Store::whereNull('deleted_at')->pluck('id')->toArray();
         }
 
+        // Franchisee (Owner): can see their stores (created by them or assigned via pivot)
         if ($this->isOwner()) {
-            return Store::where('created_by', $this->id)
-                ->whereNull('deleted_at')
-                ->pluck('id')
-                ->toArray();
+            $storeIds = $this->ownedStores()->pluck('stores.id')->toArray();
+            $createdStoreIds = Store::where('created_by', $this->id)->pluck('id')->toArray();
+            return array_unique(array_merge($storeIds, $createdStoreIds));
         }
 
         if ($this->isManager()) {
@@ -382,5 +416,69 @@ class User extends Authenticatable implements MustVerifyEmail
         }
 
         return $this->last_online->diffForHumans();
+    }
+
+    /**
+     * Get all accessible owners for the user
+     * Franchisor: sees all owners
+     * Others: see only themselves or their related owners
+     */
+    public function accessibleOwners()
+    {
+        // Franchisor can see every owner
+        if ($this->isFranchisor()) {
+            return User::where('role', UserRole::OWNER)->whereNull('deleted_at');
+        }
+
+        // Franchisee (Owner): can see themselves
+        if ($this->isOwner()) {
+            return User::where('id', $this->id)->whereNull('deleted_at');
+        }
+
+        // Managers: cannot see owners directly
+        return User::whereRaw('1 = 0');
+    }
+
+    /**
+     * Get all accessible managers for the user
+     * Franchisor: sees all managers
+     * Franchisee (Owner): sees managers of their stores
+     * Managers: see only themselves
+     */
+    public function accessibleManagers()
+    {
+        // Franchisor can see every manager
+        if ($this->isFranchisor()) {
+            return User::where('role', UserRole::MANAGER)->whereNull('deleted_at');
+        }
+
+        // Franchisee (Owner): can see managers of their stores
+        if ($this->isOwner()) {
+            $storeIds = $this->getAccessibleStoreIds();
+            
+            if (empty($storeIds)) {
+                return User::whereRaw('1 = 0');
+            }
+
+            // Get managers assigned to their stores (via direct store_id or pivot table)
+            $managerIds = User::where('role', UserRole::MANAGER)
+                ->where(function($query) use ($storeIds) {
+                    $query->whereIn('store_id', $storeIds)
+                        ->orWhereHas('assignedStoresPivot', function($q) use ($storeIds) {
+                            $q->whereIn('stores.id', $storeIds);
+                        });
+                })
+                ->pluck('id')
+                ->toArray();
+
+            return User::whereIn('id', $managerIds)->whereNull('deleted_at');
+        }
+
+        // Manager: can only see themselves
+        if ($this->isManager()) {
+            return User::where('id', $this->id)->whereNull('deleted_at');
+        }
+
+        return User::whereRaw('1 = 0');
     }
 }

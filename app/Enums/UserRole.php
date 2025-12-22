@@ -37,25 +37,28 @@ enum UserRole: string
 
         // Fallback to hardcoded permissions for backward compatibility
         return match ($this) {
+            // ADMIN: Technical/System Administration ONLY - No business operations
             self::ADMIN => in_array($permission, [
-                'view_stores',
-                'view_assigned_stores',
-                'manage_reports',
-                'view_reports',
-                'manage_managers',
-                'view_audit_logs',
-                'manage_owners',
-                'manage_stores',
-                'manage_transaction_types',
+                'view_audit_logs',           // System audit logs
+                'manage_transaction_types',   // System configuration
+                'manage_system_settings',      // System settings
+                'view_system_logs',           // System logs
             ]),
+            // OWNER (including Franchisor): Full business control
             self::OWNER => in_array($permission, [
                 'view_stores',
+                'manage_stores',
                 'view_daily_reports',
                 'create_reports',
                 'manage_reports',
+                'view_reports',
                 'manage_managers',
+                'manage_owners',
                 'view_audit_logs',
+                'manage_transaction_types',
+                'manage_revenue_income_types',
             ]),
+            // MANAGER: Limited business operations for assigned stores
             self::MANAGER => in_array($permission, [
                 'view_assigned_stores',
                 'view_daily_reports',

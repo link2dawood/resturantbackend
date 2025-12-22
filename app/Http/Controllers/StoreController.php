@@ -20,7 +20,12 @@ class StoreController extends Controller
      */
     public function index()
     {
-        $stores = Store::with('owners')->get();
+        $user = auth()->user();
+        
+        // Franchisor: can see every store (Corporate and Franchisee)
+        // Franchisee (Owner): can see their stores
+        // Manager: can only see their assigned stores
+        $stores = $user->accessibleStores()->with('owners')->get();
 
         return view('stores.index', compact('stores'));
     }
@@ -31,8 +36,9 @@ class StoreController extends Controller
     public function create()
     {
         $owners = User::where('role', 'owner')->get();
+        $franchisor = User::getOrCreateFranchisor();
 
-        return view('stores.create', compact('owners'));
+        return view('stores.create', compact('owners', 'franchisor'));
     }
 
     /**
@@ -49,13 +55,19 @@ class StoreController extends Controller
             'city' => 'required|string|max:100',
             'state' => 'required|string|max:100',
             'zip' => 'required|string|max:20',
+            'store_type' => 'required|in:corporate,franchisee',
             'created_by' => [
                 'required',
                 'exists:users,id',
-                function ($attribute, $value, $fail) {
+                function ($attribute, $value, $fail) use ($request) {
                     $user = User::find($value);
                     if (! $user || ! $user->isOwner()) {
                         $fail('Only owners can be assigned to stores. Admins cannot be assigned.');
+                    }
+                    
+                    // Corporate Stores must be created by Franchisor
+                    if ($request->input('store_type') === 'corporate' && !$user->isFranchisor()) {
+                        $fail('Corporate Stores must be created by the Franchisor.');
                     }
                 },
             ],
@@ -65,8 +77,15 @@ class StoreController extends Controller
 
         $store = Store::create($validatedData);
         
-        // Also assign the owner via pivot table
+        // Assign the owner via pivot table
         $store->owners()->attach($validatedData['created_by']);
+        
+        // Corporate Stores: Controlled by Franchisor, report to Franchisor
+        // Franchisee locations: Controlled by Owner, but also report to Franchisor
+        $franchisor = User::getOrCreateFranchisor();
+        if (!$store->owners()->where('users.id', $franchisor->id)->exists()) {
+            $store->owners()->attach($franchisor->id);
+        }
 
         return redirect()->route('stores.index')->with('success', 'Store created successfully.');
     }

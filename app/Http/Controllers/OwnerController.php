@@ -16,7 +16,11 @@ class OwnerController extends Controller
 
     public function index()
     {
-        $owners = User::where('role', UserRole::OWNER)->get();
+        $user = auth()->user();
+        
+        // Franchisor: can see every owner
+        // Others: filtered by access rules
+        $owners = $user->accessibleOwners()->get();
 
         return view('owners.index', ['owners' => $owners]);
     }
@@ -135,7 +139,16 @@ class OwnerController extends Controller
 
     public function assignStoresForm(User $owner)
     {
-        $stores = \App\Models\Store::all();
+        $user = auth()->user();
+        
+        // Only Franchisor can assign stores to owners
+        // Franchisor: can assign any store (Corporate or Franchisee) to any owner
+        if ($user->isFranchisor()) {
+            $stores = \App\Models\Store::whereNull('deleted_at')->get();
+        } else {
+            $stores = collect();
+        }
+        
         // Get stores assigned via pivot table
         $assignedStores = $owner->ownedStores->pluck('id')->toArray();
 

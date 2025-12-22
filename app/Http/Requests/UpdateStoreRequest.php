@@ -49,6 +49,7 @@ class UpdateStoreRequest extends FormRequest
             'city' => 'required|string|max:100',
             'state' => 'required|string|max:100',
             'zip' => 'required|string|max:20',
+            'store_type' => 'required|in:corporate,franchisee',
             'created_by' => [
                 'required',
                 'exists:users,id',
