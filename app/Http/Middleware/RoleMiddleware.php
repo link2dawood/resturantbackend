@@ -42,6 +42,11 @@ class RoleMiddleware
             return response()->json(['error' => 'Account no longer active'], 401);
         }
 
+        // Admin controls entire dashboard - bypass all role checks
+        if ($user->isAdmin()) {
+            return $next($request);
+        }
+
         // Convert string roles to UserRole enums for comparison
         $allowedRoles = array_map(function ($role) {
             return is_string($role) ? UserRole::from($role) : $role;
