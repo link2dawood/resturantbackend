@@ -45,9 +45,7 @@
             <label for="created_by" class="form-label">Controlling Owner <span class="text-danger">*</span></label>
             <select class="form-control" id="created_by" name="created_by" required>
                <option value="">Select Owner</option>
-                @if(Auth::user()->isFranchisor())
-                    <option value="{{ $franchisor->id }}" data-store-type="corporate">{{ $franchisor->name }} (Franchisor - for Corporate Stores)</option>
-                @endif
+                <option value="{{ $franchisor->id }}" data-store-type="corporate">{{ $franchisor->name }} (Franchisor - for Corporate Stores)</option>
                 @foreach ($owners as $owner)
                     @if(!$owner->isFranchisor())
                         <option value="{{ $owner->id }}" data-store-type="franchisee">{{ $owner->name }} (Franchisee - for Franchisee Locations)</option>
@@ -154,8 +152,41 @@ document.addEventListener('DOMContentLoaded', function() {
     const ownerSelect = document.getElementById('created_by');
     
     if (storeTypeSelect && ownerSelect) {
-        storeTypeSelect.addEventListener('change', function() {
-            const selectedType = this.value;
+        // Function to update store type options based on owner selection
+        function updateStoreTypeFromOwner() {
+            const selectedOwnerOption = ownerSelect.options[ownerSelect.selectedIndex];
+            const requiredStoreType = selectedOwnerOption.getAttribute('data-store-type');
+            
+            if (requiredStoreType && ownerSelect.value) {
+                // Restrict store type to match the selected owner
+                const storeTypeOptions = storeTypeSelect.querySelectorAll('option');
+                storeTypeOptions.forEach(option => {
+                    if (option.value === '') {
+                        // Keep the "Select Store Type" option visible
+                        option.style.display = '';
+                    } else if (option.value === requiredStoreType) {
+                        option.style.display = '';
+                    } else {
+                        option.style.display = 'none';
+                    }
+                });
+                
+                // Auto-select the matching store type if not already selected
+                if (storeTypeSelect.value !== requiredStoreType) {
+                    storeTypeSelect.value = requiredStoreType;
+                }
+            } else {
+                // If no owner selected, show all store type options
+                const storeTypeOptions = storeTypeSelect.querySelectorAll('option');
+                storeTypeOptions.forEach(option => {
+                    option.style.display = '';
+                });
+            }
+        }
+        
+        // Function to update owner options based on store type selection
+        function updateOwnerFromStoreType() {
+            const selectedType = storeTypeSelect.value;
             const options = ownerSelect.querySelectorAll('option[data-store-type]');
             
             // Show/hide options based on store type
@@ -176,6 +207,16 @@ document.addEventListener('DOMContentLoaded', function() {
                     ownerSelect.value = '';
                 }
             }
+        }
+        
+        // When owner is selected, restrict store type
+        ownerSelect.addEventListener('change', function() {
+            updateStoreTypeFromOwner();
+        });
+        
+        // When store type is selected, filter owner options
+        storeTypeSelect.addEventListener('change', function() {
+            updateOwnerFromStoreType();
         });
     }
 });
