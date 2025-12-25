@@ -35,69 +35,62 @@
         </div>
     @endif
 
-    <div class="card">
-        <div class="card-header border-0">
-            <h3 class="card-title" style="font-family: 'Google Sans', sans-serif; font-size: 1.125rem; font-weight: 500;">All Transaction Types</h3>
-        </div>
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-striped table-hover mb-0" style="font-size: 0.875rem;">
-                    <thead style="background-color: #f8f9fa; border-bottom: 2px solid #e0e0e0;">
-                        <tr>
-                            <th style="font-weight: 500; color: #3c4043; padding: 1rem; border: none; font-size: 0.813rem; letter-spacing: 0.3px; font-family: 'Google Sans', sans-serif;">#</th>
-                            <th style="font-weight: 500; color: #3c4043; padding: 1rem; border: none; font-size: 0.813rem; letter-spacing: 0.3px; font-family: 'Google Sans', sans-serif;">Category Transaction Type</th>
-                            <th style="font-weight: 500; color: #3c4043; padding: 1rem; border: none; font-size: 0.813rem; letter-spacing: 0.3px; font-family: 'Google Sans', sans-serif;">Description Name</th>
-                            <th style="font-weight: 500; color: #3c4043; padding: 1rem; border: none; font-size: 0.813rem; letter-spacing: 0.3px; font-family: 'Google Sans', sans-serif;">Default COA</th>
-                            <th style="font-weight: 500; color: #3c4043; padding: 1rem; border: none; font-size: 0.813rem; letter-spacing: 0.3px; font-family: 'Google Sans', sans-serif; text-align: center;">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach($transactionTypes as $type)
-                        <tr style="border-bottom: 1px solid #f1f3f4;">
-                            <td style="padding: 1rem; vertical-align: middle; color: #3c4043;">
-                                <span class="badge bg-light text-dark" style="font-size: 0.75rem;">{{ $type->id }}</span>
-                            </td>
-                            <td style="padding: 1rem; vertical-align: middle; color: #202124;">
-                                @if($type->p_id === null)
-                                    <div style="font-weight: 500; font-size: 0.875rem;">— (Category)</div>
-                                @else
-                                    <form action="{{ route('transaction-types.update-category', $type->id) }}" method="POST" class="d-inline" style="display: inline-block;">
-                                        @csrf
-                                        @method('PATCH')
-                                        <select name="p_id" class="form-control form-control-sm" style="min-width: 150px; display: inline-block;" onchange="this.form.submit()">
-                                            <option value="">None</option>
-                                            @foreach($parentTransactionTypes as $parent)
-                                                <option value="{{ $parent->id }}" {{ $type->p_id == $parent->id ? 'selected' : '' }}>{{ $parent->name }}</option>
-                                            @endforeach
-                                        </select>
-                                    </form>
-                                @endif
-                            </td>
-                            <td style="padding: 1rem; vertical-align: middle; color: #5f6368;">
-                                <span class="badge bg-info text-white" style="font-size: 0.75rem;">{{ $type->name }}</span>
-                            </td>
-                            <td style="padding: 1rem; vertical-align: middle; color: #5f6368;">
-                                @if($type->defaultCoa)
-                                    <span class="badge bg-success" style="font-size: 0.75rem;">
-                                        {{ $type->defaultCoa->account_code }} - {{ $type->defaultCoa->account_name }}
-                                    </span>
-                                @else
-                                    <span class="text-muted" style="font-size: 0.813rem;">Not assigned</span>
-                                @endif
-                            </td>
-                            <td style="padding: 1rem; vertical-align: middle; text-align: center;">
-                                <x-button-group-actions
-                                    viewHref="{{ route('transaction-types.show', $type->id) }}"
-                                    editHref="{{ route('transaction-types.edit', $type->id) }}"
-                                    showDelete="false"
-                                />
-                            </td>
-                        </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
+    <x-table 
+        :headers="['#', 'Category Transaction Type', 'Description Name', 'Default COA', ['label' => 'Actions', 'align' => 'center']]"
+        cardTitle="All Transaction Types"
+        emptyMessage="No transaction types found"
+        emptyDescription="Get started by creating your first transaction type."
+        emptyActionHref="{{ route('transaction-types.create') }}"
+        emptyActionText="Create Transaction Type">
+        @if($transactionTypes->count() > 0)
+            @foreach($transactionTypes as $type)
+                <x-table-row>
+                    <x-table-cell>
+                        <span class="badge bg-light text-dark" style="font-size: 0.75rem;">{{ $type->id }}</span>
+                    </x-table-cell>
+                    <x-table-cell>
+                        @php
+                            $isCategory = $type->p_id === null && $type->children()->count() > 0;
+                        @endphp
+                        {{-- Show select box for all items (assigned, unassigned, and categories) --}}
+                        <form action="{{ route('transaction-types.update-category', $type->id) }}" method="POST" class="d-inline" style="display: inline-block;">
+                            @csrf
+                            @method('PATCH')
+                            <select name="p_id" class="form-control form-control-sm" style="min-width: 150px; display: inline-block;" onchange="this.form.submit()">
+                                <option value="">None</option>
+                                @foreach($parentTransactionTypes as $parent)
+                                    @if($parent->id != $type->id)
+                                        <option value="{{ $parent->id }}" {{ $type->p_id == $parent->id ? 'selected' : '' }}>{{ $parent->name }}</option>
+                                    @endif
+                                @endforeach
+                            </select>
+                            @if($isCategory)
+                                <small class="d-block text-muted mt-1" style="font-size: 0.7rem;">(Category - has children)</small>
+                            @endif
+                        </form>
+                    </x-table-cell>
+                    <x-table-cell>
+                        <span class="badge bg-info text-white" style="font-size: 0.75rem;">{{ $type->name }}</span>
+                    </x-table-cell>
+                    <x-table-cell>
+                        @if($type->defaultCoa)
+                            <span class="badge bg-success" style="font-size: 0.75rem;">
+                                {{ $type->defaultCoa->account_code }} - {{ $type->defaultCoa->account_name }}
+                            </span>
+                        @else
+                            <span class="text-muted" style="font-size: 0.813rem;">Not assigned</span>
+                        @endif
+                    </x-table-cell>
+                    <x-table-cell align="center">
+                        <x-button-group-actions
+                            viewHref="{{ route('transaction-types.show', $type->id) }}"
+                            editHref="{{ route('transaction-types.edit', $type->id) }}"
+                            showDelete="false"
+                        />
+                    </x-table-cell>
+                </x-table-row>
+            @endforeach
+        @endif
+    </x-table>
 </div>
 @endsection
