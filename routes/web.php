@@ -127,9 +127,11 @@ Route::middleware('auth')->group(function () {
         Route::get('/transaction-types', [TransactionTypeController::class, 'index'])->name('transaction-types.index');
         Route::get('/transaction-types/create', [TransactionTypeController::class, 'create'])->name('transaction-types.create');
         Route::post('/transaction-types', [TransactionTypeController::class, 'store'])->name('transaction-types.store');
+        Route::post('/transaction-types/auto-assign-categories', [TransactionTypeController::class, 'autoAssignCategories'])->name('transaction-types.auto-assign-categories');
         Route::get('/transaction-types/{transactionType}', [TransactionTypeController::class, 'show'])->name('transaction-types.show');
         Route::get('/transaction-types/{transactionType}/edit', [TransactionTypeController::class, 'edit'])->name('transaction-types.edit');
         Route::put('/transaction-types/{transactionType}', [TransactionTypeController::class, 'update'])->name('transaction-types.update');
+        Route::patch('/transaction-types/{transactionType}/update-category', [TransactionTypeController::class, 'updateCategory'])->name('transaction-types.update-category');
         Route::delete('/transaction-types/{transactionType}', [TransactionTypeController::class, 'destroy'])->name('transaction-types.destroy');
         Route::post('transaction-types/{transactionType}/assign-stores', [TransactionTypeController::class, 'assignStores'])->name('transaction-types.assign.stores');
     });
