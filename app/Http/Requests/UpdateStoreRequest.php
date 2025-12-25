@@ -59,14 +59,14 @@ class UpdateStoreRequest extends FormRequest
             'created_by' => [
                 'required',
                 'exists:users,id',
-                function ($attribute, $value, $fail) use ($request) {
+                function ($attribute, $value, $fail) {
                     $user = \App\Models\User::find($value);
                     if (! $user || ! $user->isOwner()) {
                         $fail('Only owners can be assigned to stores. Admins cannot be assigned.');
                     }
                     
                     // Corporate Stores must be controlled by Franchisor
-                    if ($request->input('store_type') === 'corporate' && !$user->isFranchisor()) {
+                    if ($this->input('store_type') === 'corporate' && !$user->isFranchisor()) {
                         $fail('Corporate Stores must be controlled by the Franchisor.');
                     }
                 },

@@ -141,9 +141,10 @@ class OwnerController extends Controller
     {
         $user = auth()->user();
         
-        // Only Franchisor can assign stores to owners
+        // Admin and Franchisor can assign stores to owners
+        // Admin: can assign any store to any owner
         // Franchisor: can assign any store (Corporate or Franchisee) to any owner
-        if ($user->isFranchisor()) {
+        if ($user->isAdmin() || $user->isFranchisor()) {
             $stores = \App\Models\Store::whereNull('deleted_at')->get();
         } else {
             $stores = collect();
@@ -158,9 +159,12 @@ class OwnerController extends Controller
     public function assignStores(Request $request, User $owner)
     {
         $validatedData = $request->validate([
-            'store_ids' => 'required|array',
+            'store_ids' => 'nullable|array',
             'store_ids.*' => 'exists:stores,id',
         ]);
+        
+        // Ensure store_ids is always an array (even if empty)
+        $validatedData['store_ids'] = $validatedData['store_ids'] ?? [];
 
         try {
             // Get the Franchisor owner for unassigned stores

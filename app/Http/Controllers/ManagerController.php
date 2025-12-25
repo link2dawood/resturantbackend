@@ -284,10 +284,11 @@ class ManagerController extends Controller
         $user = auth()->user();
 
         // Filter stores based on current user's permissions
+        // Admin: can assign managers to any store
         // Franchisor: can assign managers to any store (Corporate Stores are run by Managers, Franchisee locations can have Managers)
         // Franchisee (Owner): Controls one or more locations, reports to Franchisor, can have Managers running a location - can assign managers to their stores
         // Managers: cannot assign stores
-        if ($user->isFranchisor()) {
+        if ($user->isAdmin() || $user->isFranchisor()) {
             $stores = Store::whereNull('deleted_at')->get();
         } elseif ($user->isOwner()) {
             // Owners can only assign managers to their stores

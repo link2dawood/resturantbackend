@@ -102,8 +102,8 @@
                                         @enderror
                                         @if ($owner->avatar)
                                             <div class="mt-2">
-                                                <img src="{{ asset('storage/avatars/' . $owner->avatar) }}" alt="Current Picture" 
-                                                     class="avatar avatar-md">
+                                                <img src="{{ $owner->avatar_url }}" alt="Current Picture" 
+                                                     class="avatar avatar-md" onerror="this.src='https://ui-avatars.com/api/?name={{ urlencode($owner->name) }}&background=206bc4&color=fff&size=128'">
                                             </div>
                                         @endif
                                     </div>
