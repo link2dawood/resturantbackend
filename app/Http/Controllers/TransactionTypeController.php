@@ -117,32 +117,50 @@ class TransactionTypeController extends Controller
      */
     public function autoAssignCategories()
     {
-        $parentCategories = TransactionType::whereNull('p_id')->get()->keyBy(function($item) {
+        // Get all potential parent categories (all items where p_id is null)
+        // These can be categories (have children) or potential categories (no children yet)
+        $allParentCategories = TransactionType::whereNull('p_id')->get();
+        
+        // Build a lookup by lowercase name, excluding items that will be assigned
+        $parentCategories = $allParentCategories->keyBy(function($item) {
             return strtolower($item->name);
         });
 
-        // Get transaction types that don't have a parent (children, not categories themselves)
+        // Get all transaction types that need categories assigned:
+        // 1. Don't have a parent assigned (p_id is null)
+        // 2. Are NOT categories themselves (don't have children)
         $transactionTypes = TransactionType::whereNull('p_id')
-            ->whereDoesntHave('children') // Not a category (has no children)
+            ->whereDoesntHave('children')
             ->get();
 
         $assigned = 0;
         $skipped = 0;
+        $skippedReasons = [];
 
         foreach ($transactionTypes as $type) {
-            // Skip if already has a category
-            if ($type->p_id !== null) {
+            // Skip if this type is itself a category (has children) - shouldn't happen due to query but safety check
+            if ($type->children()->count() > 0) {
                 $skipped++;
+                $skippedReasons[] = "{$type->name}: Is a category (has children)";
                 continue;
             }
 
-            $matchedCategory = $this->findMatchingCategory($type->name, $parentCategories);
+            // Find matching category, excluding self
+            $availableCategories = $parentCategories->filter(function($cat) use ($type) {
+                return $cat->id != $type->id;
+            });
+            
+            $matchedCategory = $this->findMatchingCategory($type->name, $availableCategories);
             
             if ($matchedCategory && $matchedCategory->id != $type->id) {
                 $type->update(['p_id' => $matchedCategory->id]);
                 $assigned++;
             } else {
                 $skipped++;
+                // Log for debugging
+                \Log::info("Could not match category for: {$type->name}", [
+                    'available_categories' => $availableCategories->pluck('name')->toArray()
+                ]);
             }
         }
 
@@ -156,37 +174,78 @@ class TransactionTypeController extends Controller
      */
     private function findMatchingCategory(string $descriptionName, $parentCategories)
     {
+        if (empty($descriptionName) || $parentCategories->isEmpty()) {
+            return null;
+        }
+
         $descLower = strtolower(trim($descriptionName));
+        $descWords = array_filter(explode(' ', $descLower), function($word) {
+            return strlen($word) >= 2; // Filter out very short words
+        });
 
         // Exact match (case-insensitive)
         if (isset($parentCategories[$descLower])) {
             return $parentCategories[$descLower];
         }
 
-        // Partial match
-        foreach ($parentCategories as $category) {
-            $catLower = strtolower($category->name);
-            if (strpos($descLower, $catLower) !== false || strpos($catLower, $descLower) !== false) {
-                return $category;
-            }
-        }
+        // Try to find best match
+        $bestMatch = null;
+        $bestScore = 0;
 
-        // Word-by-word matching
-        $descWords = explode(' ', $descLower);
         foreach ($parentCategories as $category) {
-            $catWords = explode(' ', strtolower($category->name));
-            foreach ($descWords as $descWord) {
-                foreach ($catWords as $catWord) {
-                    if (strlen($descWord) >= 3 && strlen($catWord) >= 3) {
-                        if (strpos($descWord, $catWord) !== false || strpos($catWord, $descWord) !== false) {
-                            return $category;
+            $catLower = strtolower(trim($category->name));
+            
+            // Skip if trying to match to itself
+            if ($catLower === $descLower) {
+                continue;
+            }
+
+            $score = 0;
+
+            // Exact match gets highest score
+            if ($catLower === $descLower) {
+                $score = 100;
+            }
+            // Full word match
+            elseif (strpos($descLower, $catLower) !== false || strpos($catLower, $descLower) !== false) {
+                $score = 80;
+            }
+            // Word-by-word matching
+            else {
+                $catWords = array_filter(explode(' ', $catLower), function($word) {
+                    return strlen($word) >= 2;
+                });
+                
+                $matchedWords = 0;
+                foreach ($descWords as $descWord) {
+                    foreach ($catWords as $catWord) {
+                        if (strlen($descWord) >= 3 && strlen($catWord) >= 3) {
+                            // Check if words are similar
+                            if ($descWord === $catWord) {
+                                $matchedWords++;
+                                $score += 30;
+                            } elseif (strpos($descWord, $catWord) !== false || strpos($catWord, $descWord) !== false) {
+                                $matchedWords++;
+                                $score += 20;
+                            }
                         }
                     }
                 }
+                
+                // Bonus for multiple word matches
+                if ($matchedWords > 1) {
+                    $score += 10;
+                }
+            }
+
+            if ($score > $bestScore) {
+                $bestScore = $score;
+                $bestMatch = $category;
             }
         }
 
-        return null;
+        // Only return match if score is above threshold
+        return $bestScore >= 20 ? $bestMatch : null;
     }
 
     /**
