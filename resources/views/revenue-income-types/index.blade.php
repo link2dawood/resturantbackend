@@ -10,87 +10,71 @@
             <h1 class="mb-0" style="font-family: 'Google Sans', sans-serif; font-size: 1.75rem; font-weight: 400; color: var(--on-surface, #202124);">Revenue Income Types</h1>
             <p class="text-muted mb-0" style="font-family: 'Google Sans', sans-serif; margin-top: 0.25rem;">Manage revenue income types for daily reports</p>
         </div>
-        <a href="{{ route('revenue-income-types.create') }}" class="btn btn-primary d-flex align-items-center" style="gap: 0.5rem;">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 5v14M5 12h14"/>
+        <x-button-add href="{{ route('revenue-income-types.create') }}" text="Add Revenue Type" />
+    </div>
+
+    @if(session('success'))
+        <div class="alert alert-success d-flex align-items-center mb-4" role="alert" style="border-radius: 0.75rem; border-left: 4px solid var(--google-green, #34a853);">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--google-green, #34a853)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                <polyline points="22,4 12,14.01 9,11.01"/>
             </svg>
-            Add Revenue Type
-        </a>
-    </div>
-
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-body">
-                    @if(session('success'))
-                        <div class="alert alert-success" role="alert">
-                            {{ session('success') }}
-                        </div>
-                    @endif
-
-                    <div class="table-responsive">
-                        <table class="table table-vcenter table-mobile-md card-table">
-                            <thead>
-                                <tr>
-                                    <th>Name</th>
-                                    <th>Description</th>
-                                    <th>Category</th>
-                                    <th>Sort Order</th>
-                                    <th>Status</th>
-                                    <th class="w-1">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @forelse($revenueIncomeTypes as $type)
-                                    <tr>
-                                        <td>
-                                            <div class="d-flex align-items-center">
-                                                <strong>{{ $type->name }}</strong>
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <div class="text-muted">{{ $type->description ?? 'No description' }}</div>
-                                        </td>
-                                        <td>
-                                            <span class="badge badge-outline text-{{ $type->category == 'cash' ? 'success' : ($type->category == 'online' ? 'info' : 'secondary') }}">
-                                                {{ ucfirst($type->category) }}
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <span class="text-muted">{{ $type->sort_order }}</span>
-                                        </td>
-                                        <td>
-                                            @if($type->is_active)
-                                                <span class="badge bg-success">Active</span>
-                                            @else
-                                                <span class="badge bg-secondary">Inactive</span>
-                                            @endif
-                                        </td>
-                                        <td>
-                                            <a href="{{ route('revenue-income-types.show', $type) }}" class="btn btn-sm btn-outline-primary d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;" title="View Details">
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                                                    <circle cx="12" cy="12" r="3"/>
-                                                </svg>
-                                            </a>
-                                        </td>
-                                    </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="6" class="text-center py-4 text-muted">
-                                            No revenue income types found. 
-                                            <a href="{{ route('revenue-income-types.create') }}" class="link-primary">Create your first one!</a>
-                                        </td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <x-pagination :paginator="$revenueIncomeTypes" />
-            </div>
+            {{ session('success') }}
         </div>
-    </div>
+    @endif
+
+    @php
+        $headers = [
+            'Name',
+            'Description',
+            'Category',
+            'Sort Order',
+            'Status',
+            ['label' => 'Actions', 'align' => 'center']
+        ];
+    @endphp
+
+    <x-table 
+        :headers="$headers"
+        emptyMessage="No revenue income types found."
+        emptyActionHref="{{ route('revenue-income-types.create') }}"
+        emptyActionText="Create your first one!">
+        @if($revenueIncomeTypes->count() > 0)
+            @foreach($revenueIncomeTypes as $type)
+                <x-table-row>
+                    <x-table-cell>
+                        <strong>{{ $type->name }}</strong>
+                    </x-table-cell>
+                    <x-table-cell>
+                        <div class="text-muted">{{ $type->description ?? 'No description' }}</div>
+                    </x-table-cell>
+                    <x-table-cell>
+                        <span class="badge badge-outline text-{{ $type->category == 'cash' ? 'success' : ($type->category == 'online' ? 'info' : 'secondary') }}">
+                            {{ ucfirst($type->category) }}
+                        </span>
+                    </x-table-cell>
+                    <x-table-cell>
+                        <span class="text-muted">{{ $type->sort_order }}</span>
+                    </x-table-cell>
+                    <x-table-cell>
+                        @if($type->is_active)
+                            <span class="badge bg-success">Active</span>
+                        @else
+                            <span class="badge bg-secondary">Inactive</span>
+                        @endif
+                    </x-table-cell>
+                    <x-table-cell align="center">
+                        <x-button-view href="{{ route('revenue-income-types.show', $type) }}" iconOnly="true" />
+                    </x-table-cell>
+                </x-table-row>
+            @endforeach
+        @endif
+    </x-table>
+
+    @if($revenueIncomeTypes->hasPages())
+        <div class="mt-3">
+            <x-pagination :paginator="$revenueIncomeTypes" />
+        </div>
+    @endif
 </div>
 @endsection

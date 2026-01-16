@@ -9,14 +9,7 @@
             <h1 class="mb-0">Chart of Accounts</h1>
             <p class="text-muted mb-0">Manage and categorize the financial accounts used across your restaurants.</p>
         </div>
-        <a href="{{ route('coa.create') }}" class="btn btn-primary d-flex align-items-center">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
-                <circle cx="12" cy="12" r="10"/>
-                <line x1="12" y1="8" x2="12" y2="16"/>
-                <line x1="8" y1="12" x2="16" y2="12"/>
-            </svg>
-            Add Chart of Account
-        </a>
+        <x-button-add href="{{ route('coa.create') }}" text="Add Chart of Account" />
     </div>
 
     @if(session('success'))
@@ -96,103 +89,73 @@
         </div>
     </div>
 
-    <div class="card">
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="table-light">
-                        <tr>
-                            <th scope="col">Code</th>
-                            <th scope="col">Account Name</th>
-                            <th scope="col">Type</th>
-                            <th scope="col">Stores</th>
-                            <th scope="col">Status</th>
-                            <th scope="col" class="text-end">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($coas as $coa)
-                            <tr>
-                                <td><strong>{{ $coa->account_code }}</strong></td>
-                                <td>
-                                    {{ $coa->account_name }}
-                                    @if($coa->is_system_account)
-                                        <span class="badge bg-info ms-2">System</span>
-                                    @endif
-                                </td>
-                                <td><span class="badge bg-secondary">{{ $coa->account_type }}</span></td>
-                                <td>
-                                    @if($coa->stores->isEmpty())
-                                        <span class="text-muted">All Stores</span>
-                                    @else
-                                        <span class="text-muted">{{ $coa->stores->pluck('store_info')->implode(', ') }}</span>
-                                    @endif
-                                </td>
-                                <td>
-                                    @if($coa->is_active)
-                                        <span class="badge bg-success">Active</span>
-                                    @else
-                                        <span class="badge bg-danger">Inactive</span>
-                                    @endif
-                                </td>
-                                <td class="text-end">
-                                    <div class="btn-group btn-group-sm" role="group">
-                                        <a href="{{ route('coa.show', $coa) }}" class="btn btn-outline-secondary" title="View">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                                                <circle cx="12" cy="12" r="3"/>
-                                            </svg>
-                                        </a>
-                                        <a href="{{ route('coa.edit', $coa) }}" class="btn btn-outline-primary" title="Edit">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                                            </svg>
-                                        </a>
-                                        @if(!$coa->is_system_account)
-                                            <form action="{{ route('coa.destroy', $coa) }}" method="POST" class="d-inline" onsubmit="return confirm('Deactivate this account?');">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="btn btn-outline-danger" title="Deactivate">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                        <polyline points="3 6 5 6 21 6"/>
-                                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                                                    </svg>
-                                                </button>
-                                            </form>
-                                        @endif
-                                    </div>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="6" class="text-center text-muted py-5">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="d-block mb-3 mx-auto" style="opacity: 0.5;">
-                                        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-                                    </svg>
-                                    No accounts found with the current filters.
-                                    <div class="mt-3">
-                                        <a href="{{ route('coa.create') }}" class="btn btn-primary d-flex align-items-center mx-auto" style="width: fit-content;">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
-                                                <circle cx="12" cy="12" r="10"/>
-                                                <line x1="12" y1="8" x2="12" y2="16"/>
-                                                <line x1="8" y1="12" x2="16" y2="12"/>
-                                            </svg>
-                                            Add First Account
-                                        </a>
-                                    </div>
-                                </td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
+    @php
+        $headers = [
+            'Code',
+            'Account Name',
+            'Type',
+            'Stores',
+            'Status',
+            ['label' => 'Actions', 'align' => 'end']
+        ];
+    @endphp
 
-            @if($coas->hasPages())
-                <x-pagination :paginator="$coas" />
-            @endif
+    <x-table 
+        :headers="$headers"
+        emptyMessage="No accounts found with the current filters."
+        emptyActionHref="{{ route('coa.create') }}"
+        emptyActionText="Add First Account">
+        @if($coas->count() > 0)
+            @foreach($coas as $coa)
+                <x-table-row>
+                    <x-table-cell>
+                        <strong>{{ $coa->account_code }}</strong>
+                    </x-table-cell>
+                    <x-table-cell>
+                        {{ $coa->account_name }}
+                        @if($coa->is_system_account)
+                            <span class="badge bg-info ms-2">System</span>
+                        @endif
+                    </x-table-cell>
+                    <x-table-cell>
+                        <span class="badge bg-secondary">{{ $coa->account_type }}</span>
+                    </x-table-cell>
+                    <x-table-cell>
+                        @if($coa->stores->isEmpty())
+                            <span class="text-muted">All Stores</span>
+                        @else
+                            <span class="text-muted">{{ $coa->stores->pluck('store_info')->implode(', ') }}</span>
+                        @endif
+                    </x-table-cell>
+                    <x-table-cell>
+                        @if($coa->is_active)
+                            <span class="badge bg-success">Active</span>
+                        @else
+                            <span class="badge bg-danger">Inactive</span>
+                        @endif
+                    </x-table-cell>
+                    <x-table-cell align="end">
+                        <div class="d-flex gap-1 justify-content-end">
+                            <x-button-view href="{{ route('coa.show', $coa) }}" iconOnly="true" />
+                            <x-button-edit href="{{ route('coa.edit', $coa) }}" iconOnly="true" />
+                            @if(!$coa->is_system_account)
+                                <x-button-delete 
+                                    action="{{ route('coa.destroy', $coa) }}" 
+                                    iconOnly="true" 
+                                    confirmMessage="Deactivate this account?" />
+                            @endif
+                        </div>
+                    </x-table-cell>
+                </x-table-row>
+            @endforeach
+        @endif
+    </x-table>
+
+    @if($coas->hasPages())
+        <div class="mt-3">
+            <x-pagination :paginator="$coas" />
         </div>
-    </div>
+    @endif
 </div>
 @endsection
 

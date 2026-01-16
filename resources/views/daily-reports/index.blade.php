@@ -10,12 +10,7 @@
             <p class="text-muted mb-0" style="font-family: 'Google Sans', sans-serif; margin-top: 0.25rem;">Select a year and month to view daily reports</p>
         </div>
         @if(auth()->user()->hasPermission('create_reports'))
-            <a href="{{ route('daily-reports.create') }}" class="btn btn-primary d-flex align-items-center" style="gap: 0.5rem;">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M12 5v14M5 12h14"/>
-                </svg>
-                Create Daily Report
-            </a>
+            <x-button-add href="{{ route('daily-reports.create') }}" text="Create Daily Report" />
         @endif
     </div>
 
@@ -220,125 +215,94 @@
                             </div>
                         </div>
 
-                        <!-- Reports Table -->
-                        <div class="table-responsive">
-                            <table class="table table-hover mb-0" style="font-size: 0.875rem;">
-                                <thead style="background-color: #f8f9fa; border-bottom: 2px solid #e0e0e0;">
-                                    <tr>
-                                        <th style="font-weight: 500; color: #3c4043; padding: 1rem; border: none; font-size: 0.813rem; letter-spacing: 0.3px; font-family: 'Google Sans', sans-serif;">Date</th>
-                                        <th style="font-weight: 500; color: #3c4043; padding: 1rem; border: none; font-size: 0.813rem; letter-spacing: 0.3px; font-family: 'Google Sans', sans-serif;">Store</th>
-                                        <th style="font-weight: 500; color: #3c4043; padding: 1rem; border: none; font-size: 0.813rem; letter-spacing: 0.3px; font-family: 'Google Sans', sans-serif;">Status</th>
-                                        <th style="font-weight: 500; color: #3c4043; padding: 1rem; border: none; font-size: 0.813rem; letter-spacing: 0.3px; font-family: 'Google Sans', sans-serif;">Gross Sales</th>
-                                        <th style="font-weight: 500; color: #3c4043; padding: 1rem; border: none; font-size: 0.813rem; letter-spacing: 0.3px; font-family: 'Google Sans', sans-serif;">Net Sales</th>
-                                        <th style="font-weight: 500; color: #3c4043; padding: 1rem; border: none; font-size: 0.813rem; letter-spacing: 0.3px; font-family: 'Google Sans', sans-serif;">Created By</th>
-                                        <th style="font-weight: 500; color: #3c4043; padding: 1rem; border: none; font-size: 0.813rem; letter-spacing: 0.3px; font-family: 'Google Sans', sans-serif; text-align: center;">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach($reports as $report)
-                                        <tr style="border-bottom: 1px solid var(--google-grey-100); transition: background-color 0.2s;"
-                                            onmouseover="this.style.backgroundColor='var(--google-grey-50)'"
-                                            onmouseout="this.style.backgroundColor='transparent'">
-                                            <td style="padding: 16px 24px; color: var(--google-grey-900);">
-                                                <div style="font-weight: 500;">{{ $report->report_date->format('M j, Y') }}</div>
-                                                <div style="font-size: 12px; color: var(--google-grey-600); margin-top: 2px;">{{ $report->report_date->format('l') }}</div>
-                                            </td>
-                                            <td style="padding: 16px 24px; color: var(--google-grey-900);">
-                                                <div style="font-weight: 500;">{{ $report->store->store_info ?? 'N/A' }}</div>
-                                                @if($report->page_number)
-                                                    <div style="font-size: 12px; color: var(--google-grey-600); margin-top: 2px;">Page #{{ $report->page_number }}</div>
-                                                @endif
-                                            </td>
-                                            <td style="padding: 16px 24px;">
-                                                @php
-                                                    $statusStyles = [
-                                                        'draft' => 'background: var(--google-grey-100); color: var(--google-grey-700);',
-                                                        'submitted' => 'background: #fef7e0; color: #f57c00;',
-                                                        'approved' => 'background: var(--google-green-50); color: var(--google-green);',
-                                                        'rejected' => 'background: var(--google-red-50); color: var(--google-red);'
-                                                    ];
-                                                    $statusStyle = $statusStyles[$report->status] ?? 'background: var(--google-grey-100); color: var(--google-grey-700);';
-                                                @endphp
-                                                <span style="padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 500; {{ $statusStyle }}">
-                                                    {{ ucfirst($report->status) }}
-                                                </span>
-                                            </td>
-                                            <td style="padding: 16px 24px; color: var(--google-grey-900);">
-                                                <div style="font-weight: 500; font-size: 15px;">${{ number_format($report->gross_sales, 0) }}</div>
-                                                @if($report->projected_sales)
-                                                    <div style="font-size: 12px; color: var(--google-grey-600); margin-top: 2px;">Projected: ${{ number_format($report->projected_sales, 0) }}</div>
-                                                @endif
-                                            </td>
-                                            <td style="padding: 16px 24px; color: var(--google-grey-900);">
-                                                <div style="font-weight: 500; font-size: 15px;">${{ number_format($report->net_sales, 0) }}</div>
-                                                @if($report->total_customers)
-                                                    <div style="font-size: 12px; color: var(--google-grey-600); margin-top: 2px;">{{ $report->total_customers }} customers</div>
-                                                @endif
-                                            </td>
-                                            <td style="padding: 16px 24px; color: var(--google-grey-900);">
-                                                <div style="font-weight: 500;">{{ $report->creator->name ?? 'N/A' }}</div>
-                                                <div style="font-size: 12px; color: var(--google-grey-600); margin-top: 2px;">{{ $report->created_at->format('M j, g:i A') }}</div>
-                                            </td>
-                                            <td style="padding: 16px 24px;">
-                                                <div style="display: flex; gap: 8px; justify-content: center;">
-                                                    <a href="{{ route('daily-reports.show', $report) }}"
-                                                       style="padding: 8px; border-radius: 50%; background: var(--google-blue-50); color: var(--google-blue); transition: all 0.2s; text-decoration: none; display: flex; align-items: center; justify-content: center;"
-                                                       title="View Report"
-                                                       onmouseover="this.style.background='var(--google-blue-100)'"
-                                                       onmouseout="this.style.background='var(--google-blue-50)'">
-                                                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                                                            <circle cx="12" cy="12" r="3"/>
-                                                        </svg>
-                                                    </a>
-                                                    @if(auth()->user()->hasPermission('manage_reports') && in_array($report->status, ['draft', 'rejected']))
-                                                        <a href="{{ route('daily-reports.edit', $report) }}"
-                                                           style="padding: 8px; border-radius: 50%; background: #fff3e0; color: #f57c00; transition: all 0.2s; text-decoration: none; display: flex; align-items: center; justify-content: center;"
-                                                           title="Edit Report"
-                                                           onmouseover="this.style.background='#ffe0b2'"
-                                                           onmouseout="this.style.background='#fff3e0'">
-                                                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                                                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                                                            </svg>
-                                                        </a>
-                                                    @endif
-                                                    <a href="{{ route('daily-reports.export-pdf', $report) }}"
-                                                       style="padding: 8px; border-radius: 50%; background: var(--google-grey-100); color: var(--google-grey-700); transition: all 0.2s; text-decoration: none; display: flex; align-items: center; justify-content: center;"
-                                                       title="Export PDF"
-                                                       onmouseover="this.style.background='var(--google-grey-200)'"
-                                                       onmouseout="this.style.background='var(--google-grey-100)'">
-                                                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                                                            <polyline points="14,2 14,8 20,8"/>
-                                                            <line x1="16" y1="13" x2="8" y2="13"/>
-                                                            <line x1="16" y1="17" x2="8" y2="17"/>
-                                                        </svg>
-                                                    </a>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
+                        @php
+                            $headers = [
+                                'Date',
+                                'Store',
+                                'Status',
+                                'Gross Sales',
+                                'Net Sales',
+                                'Created By',
+                                ['label' => 'Actions', 'align' => 'center']
+                            ];
+                        @endphp
 
-                        <x-pagination :paginator="$reports" />
-                    @else
-                        <div style="text-align: center; padding: 60px 32px;">
-                            <div style="display: inline-flex; padding: 24px; background: var(--google-grey-50); border-radius: 50%; margin-bottom: 24px;">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--google-grey-400);">
-                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                                    <polyline points="14,2 14,8 20,8"/>
-                                    <line x1="16" y1="13" x2="8" y2="13"/>
-                                    <line x1="16" y1="17" x2="8" y2="17"/>
-                                </svg>
+                        <x-table 
+                            :headers="$headers"
+                            emptyMessage="No Reports Found"
+                            emptyDescription="No daily reports found for {{ $months[$selectedMonth] }} {{ $selectedYear }}.">
+                            @if($reports->count() > 0)
+                                @foreach($reports as $report)
+                                    <x-table-row>
+                                        <x-table-cell>
+                                            <div style="font-weight: 500;">{{ $report->report_date->format('M j, Y') }}</div>
+                                            <div style="font-size: 12px; color: var(--google-grey-600); margin-top: 2px;">{{ $report->report_date->format('l') }}</div>
+                                        </x-table-cell>
+                                        <x-table-cell>
+                                            <div style="font-weight: 500;">{{ $report->store->store_info ?? 'N/A' }}</div>
+                                            @if($report->page_number)
+                                                <div style="font-size: 12px; color: var(--google-grey-600); margin-top: 2px;">Page #{{ $report->page_number }}</div>
+                                            @endif
+                                        </x-table-cell>
+                                        <x-table-cell>
+                                            @php
+                                                $statusStyles = [
+                                                    'draft' => 'background: var(--google-grey-100); color: var(--google-grey-700);',
+                                                    'submitted' => 'background: #fef7e0; color: #f57c00;',
+                                                    'approved' => 'background: var(--google-green-50); color: var(--google-green);',
+                                                    'rejected' => 'background: var(--google-red-50); color: var(--google-red);'
+                                                ];
+                                                $statusStyle = $statusStyles[$report->status] ?? 'background: var(--google-grey-100); color: var(--google-grey-700);';
+                                            @endphp
+                                            <span style="padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 500; {{ $statusStyle }}">
+                                                {{ ucfirst($report->status) }}
+                                            </span>
+                                        </x-table-cell>
+                                        <x-table-cell>
+                                            <div style="font-weight: 500; font-size: 15px;">${{ number_format($report->gross_sales, 0) }}</div>
+                                            @if($report->projected_sales)
+                                                <div style="font-size: 12px; color: var(--google-grey-600); margin-top: 2px;">Projected: ${{ number_format($report->projected_sales, 0) }}</div>
+                                            @endif
+                                        </x-table-cell>
+                                        <x-table-cell>
+                                            <div style="font-weight: 500; font-size: 15px;">${{ number_format($report->net_sales, 0) }}</div>
+                                            @if($report->total_customers)
+                                                <div style="font-size: 12px; color: var(--google-grey-600); margin-top: 2px;">{{ $report->total_customers }} customers</div>
+                                            @endif
+                                        </x-table-cell>
+                                        <x-table-cell>
+                                            <div style="font-weight: 500;">{{ $report->creator->name ?? 'N/A' }}</div>
+                                            <div style="font-size: 12px; color: var(--google-grey-600); margin-top: 2px;">{{ $report->created_at->format('M j, g:i A') }}</div>
+                                        </x-table-cell>
+                                        <x-table-cell align="center">
+                                            <div class="d-flex gap-1 justify-content-center">
+                                                <x-button-view href="{{ route('daily-reports.show', $report) }}" iconOnly="true" />
+                                                @if(auth()->user()->hasPermission('manage_reports') && in_array($report->status, ['draft', 'rejected']))
+                                                    <x-button-edit href="{{ route('daily-reports.edit', $report) }}" iconOnly="true" />
+                                                @endif
+                                                <a href="{{ route('daily-reports.export-pdf', $report) }}"
+                                                   class="btn btn-sm btn-outline-secondary d-flex align-items-center justify-content-center"
+                                                   style="width: 32px; height: 32px;"
+                                                   title="Export PDF">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                                        <polyline points="14,2 14,8 20,8"/>
+                                                        <line x1="16" y1="13" x2="8" y2="13"/>
+                                                        <line x1="16" y1="17" x2="8" y2="17"/>
+                                                    </svg>
+                                                </a>
+                                            </div>
+                                        </x-table-cell>
+                                    </x-table-row>
+                                @endforeach
+                            @endif
+                        </x-table>
+
+                        @if($reports->hasPages())
+                            <div class="mt-3">
+                                <x-pagination :paginator="$reports" />
                             </div>
-                            <h2 style="font-size: 22px; font-weight: 400; color: var(--google-grey-900); margin: 0 0 8px 0;">No Reports Found</h2>
-                            <p style="font-size: 16px; color: var(--google-grey-600); margin: 0;">
-                                No daily reports found for {{ $months[$selectedMonth] }} {{ $selectedYear }}.
-                            </p>
-                        </div>
+                        @endif
                     @endif
                 </div>
             </div>
