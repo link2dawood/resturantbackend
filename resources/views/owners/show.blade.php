@@ -171,15 +171,22 @@
                     <h3 class="card-title" style="font-family: 'Google Sans', sans-serif; font-size: 1.125rem; font-weight: 500;">Assigned Stores</h3>
                 </div>
                 <div class="card-body">
-                    @if($assignedStores->count() > 0)
+                    @if($assignedStores && $assignedStores->count() > 0)
                         <div class="list-group list-group-flush">
                             @foreach($assignedStores as $store)
-                            <div class="list-group-item border-0 px-0 d-flex align-items-center">
+                            <div class="list-group-item border-0 px-0 d-flex align-items-center mb-2" style="padding: 0.75rem 0;">
                                 <div class="flex-grow-1">
-                                    <div style="font-weight: 500; font-size: 0.875rem; color: var(--google-grey-900, #202124);">{{ $store->store_info }}</div>
-                                    <div style="font-size: 0.813rem; color: var(--google-grey-600, #5f6368);">{{ $store->city }}, {{ $store->state }}</div>
+                                    <div style="font-weight: 500; font-size: 0.875rem; color: var(--google-grey-900, #202124); margin-bottom: 0.25rem;">{{ $store->store_info ?? 'N/A' }}</div>
+                                    @if($store->city || $store->state)
+                                        <div style="font-size: 0.813rem; color: var(--google-grey-600, #5f6368);">
+                                            {{ trim(($store->city ?? '') . ', ' . ($store->state ?? ''), ', ') }}
+                                        </div>
+                                    @endif
+                                    @if($store->phone)
+                                        <div style="font-size: 0.75rem; color: var(--google-grey-500, #9aa0a6); margin-top: 0.25rem;">{{ $store->phone }}</div>
+                                    @endif
                                 </div>
-                                <a href="{{ route('stores.show', $store) }}" class="btn btn-sm btn-outline-primary">
+                                <a href="{{ route('stores.show', $store->id) }}" class="btn btn-sm btn-outline-primary ms-2" title="View Store">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                                         <circle cx="12" cy="12" r="3"/>

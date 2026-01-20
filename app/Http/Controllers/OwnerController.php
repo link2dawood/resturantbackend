@@ -77,8 +77,10 @@ class OwnerController extends Controller
 
     public function show(User $owner)
     {
+        // Eager load the owned stores relationship to ensure proper display
+        $owner->load('ownedStores');
         $assignedStores = $owner->ownedStores;
-        $availableStores = \App\Models\Store::all();
+        $availableStores = \App\Models\Store::whereNull('deleted_at')->get();
 
         return view('owners.show', compact('owner', 'assignedStores', 'availableStores'));
     }
