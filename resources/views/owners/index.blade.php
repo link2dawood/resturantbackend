@@ -16,13 +16,12 @@
     </div>
     @php
         $headers = [
-            'Owner',
-            'Contact',
-            'State',
-            'Last Login',
-            'Permissions',
-            'Business Info',
-            ['label' => 'Actions', 'align' => 'center']
+            'Name',
+            'Email',
+            'Assigned Stores',
+            'Last Online',
+            'Member Since',
+            ['label' => '', 'align' => 'center']
         ];
     @endphp
 
@@ -36,84 +35,39 @@
             @foreach ($owners as $owner)
                 <x-table-row>
                     <x-table-cell>
-                        <div class="d-flex py-1 align-items-center">
-                            <span class="avatar me-2" style="background-image: url({{ $owner->avatar_url }})"></span>
-                            <div class="flex-fill">
-                                <div class="font-weight-medium">{{ $owner->name }}</div>
-                                <div class="text-muted">
-                                    <small>Owner ID: #{{ $owner->id }}</small>
-                                </div>
-                            </div>
-                        </div>
+                        <div style="font-weight: 500; font-size: 0.875rem;">{{ $owner->name }}</div>
                     </x-table-cell>
                     <x-table-cell>
-                        <div>
-                            <div class="text-dark">{{ $owner->email }}</div>
-                            @if($owner->personal_phone)
-                            <div class="text-muted">
-                                <small>{{ $owner->personal_phone }}</small>
-                            </div>
-                            @endif
-                            @if($owner->corporate_email && $owner->corporate_email != $owner->email)
-                            <div class="text-muted">
-                                <small>Corporate: {{ $owner->corporate_email }}</small>
-                            </div>
-                            @endif
-                        </div>
+                        <div style="font-size: 0.875rem;">{{ $owner->email }}</div>
                     </x-table-cell>
                     <x-table-cell>
-                        @if($owner->state)
-                        <div>
-                            <span class="badge badge-outline text-blue">{{ $owner->state }}</span>
-                            <div class="text-muted">
-                                <small>{{ \App\Helpers\USStates::getStateName($owner->state) }}</small>
+                        @if($owner->ownedStores->count() > 0)
+                            <div style="font-size: 0.875rem;">
+                                @foreach($owner->ownedStores as $store)
+                                    <div>{{ $store->store_info }}</div>
+                                @endforeach
                             </div>
-                        </div>
                         @else
-                        <span class="text-muted">—</span>
+                            <span class="text-muted" style="font-size: 0.875rem;">No stores assigned</span>
                         @endif
                     </x-table-cell>
                     <x-table-cell>
-                        <div class="text-muted">
+                        <div style="font-size: 0.875rem; color: var(--google-grey-600, #5f6368);">
                             {{ $owner->last_online_human }}
                         </div>
                     </x-table-cell>
                     <x-table-cell>
-                        <div class="d-flex flex-wrap gap-1">
-                            <span class="badge bg-yellow">Owner</span>
-                            @if($owner->hasPermission('manage_stores'))
-                            <span class="badge bg-orange">Store Mgmt</span>
-                            @endif
-                            @if($owner->hasPermission('manage_managers'))
-                            <span class="badge bg-green">Manager Mgmt</span>
-                            @endif
-                            @if($owner->hasPermission('create_reports'))
-                            <span class="badge bg-blue">Reports</span>
-                            @endif
-                            @if($owner->hasPermission('manage_transaction_types'))
-                            <span class="badge bg-purple">Transactions</span>
-                            @endif
-                        </div>
-                    </x-table-cell>
-                    <x-table-cell>
-                        <div>
-                            @if($owner->corporate_ein)
-                            <div class="text-dark">EIN: {{ $owner->corporate_ein }}</div>
-                            @endif
-                            @if($owner->corporate_creation_date)
-                            <div class="text-muted">
-                                <small>Est. {{ \Carbon\Carbon::parse($owner->corporate_creation_date)->format('Y') }}</small>
-                            </div>
-                            @endif
-                            @if($owner->corporate_phone)
-                            <div class="text-muted">
-                                <small>{{ $owner->corporate_phone }}</small>
-                            </div>
-                            @endif
+                        <div style="font-size: 0.875rem; color: var(--google-grey-600, #5f6368);">
+                            {{ $owner->created_at->format('M d, Y') }}
                         </div>
                     </x-table-cell>
                     <x-table-cell align="center">
-                        <x-button-view href="{{ route('owners.show', $owner->id) }}" iconOnly="true" />
+                        <a href="{{ route('owners.show', $owner->id) }}" class="btn btn-sm btn-outline-primary" title="View Details">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                <circle cx="12" cy="12" r="3"/>
+                            </svg>
+                        </a>
                     </x-table-cell>
                 </x-table-row>
             @endforeach

@@ -50,8 +50,8 @@
                         @if($owners->count() > 0)
                             <div class="mb-4">
                                 <label class="form-label" style="font-family: 'Google Sans', sans-serif; font-weight: 500; color: var(--google-grey-700, #3c4043);">
-                                    Available Owners
-                                    <span class="text-muted" style="font-weight: 400;">(Select one or more)</span>
+                                    Select Owner
+                                    <span class="text-muted" style="font-weight: 400;">(One store can have only one owner)</span>
                                 </label>
 
                                 <div class="row">
@@ -62,11 +62,11 @@
                                              onmouseout="if(!this.querySelector('input').checked) { this.style.borderColor='var(--google-grey-300, #dadce0)'; this.style.backgroundColor='transparent' }">
                                             <input
                                                 class="form-check-input"
-                                                type="checkbox"
+                                                type="radio"
                                                 value="{{ $owner->id }}"
                                                 id="owner{{ $owner->id }}"
-                                                name="owner_ids[]"
-                                                {{ $assignedOwners->contains('id', $owner->id) ? 'checked' : '' }}
+                                                name="owner_id"
+                                                {{ $assignedOwner && $assignedOwner->id === $owner->id ? 'checked' : '' }}
                                                 onchange="updateCardStyle(this)"
                                                 style="border: 2px solid var(--google-grey-400, #9aa0a6);">
                                             <label class="form-check-label d-flex align-items-center w-100" for="owner{{ $owner->id }}" style="cursor: pointer;">
@@ -145,14 +145,13 @@
                 </div>
             </div>
 
-            @if($assignedOwners->count() > 0)
+            @if($assignedOwner)
             <div class="card mt-4">
                 <div class="card-header border-0 pb-0">
                     <h3 class="card-title" style="font-family: 'Google Sans', sans-serif; font-size: 1.125rem; font-weight: 500;">Currently Assigned</h3>
                 </div>
                 <div class="card-body">
                     <div class="list-group list-group-flush">
-                        @foreach($assignedOwners as $assignedOwner)
                         <div class="list-group-item border-0 px-0 d-flex align-items-center">
                             <div class="avatar avatar-sm me-3" style="background-color: var(--google-green-100, #c8e6c9); color: var(--google-green, #34a853); font-weight: 500;">
                                 {{ substr($assignedOwner->name, 0, 1) }}
@@ -162,7 +161,6 @@
                                 <div style="font-size: 0.813rem; color: var(--google-grey-600, #5f6368);">{{ $assignedOwner->email }}</div>
                             </div>
                         </div>
-                        @endforeach
                     </div>
                 </div>
             </div>
@@ -172,21 +170,25 @@
 </div>
 
 <script>
-function updateCardStyle(checkbox) {
-    const card = checkbox.closest('.form-check');
-    if (checkbox.checked) {
-        card.style.borderColor = 'var(--google-blue, #4285f4)';
-        card.style.backgroundColor = 'var(--google-blue-50, #e8f0fe)';
-    } else {
+function updateCardStyle(radio) {
+    // Remove styling from all cards
+    document.querySelectorAll('.form-check').forEach(function(card) {
         card.style.borderColor = 'var(--google-grey-300, #dadce0)';
         card.style.backgroundColor = 'transparent';
+    });
+    
+    // Apply styling to selected card
+    const card = radio.closest('.form-check');
+    if (radio.checked) {
+        card.style.borderColor = 'var(--google-blue, #4285f4)';
+        card.style.backgroundColor = 'var(--google-blue-50, #e8f0fe)';
     }
 }
 
-// Initialize card styles for pre-checked items
+// Initialize card styles for pre-selected items
 document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('input[type="checkbox"]:checked').forEach(function(checkbox) {
-        updateCardStyle(checkbox);
+    document.querySelectorAll('input[type="radio"]:checked').forEach(function(radio) {
+        updateCardStyle(radio);
     });
 });
 </script>

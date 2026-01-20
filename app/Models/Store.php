@@ -78,12 +78,31 @@ class Store extends Model
     }
 
     /**
-     * The owners assigned to the store (many-to-many relationship).
+     * The owners assigned to the store.
+     * 
+     * NOTE: One store can have only one owner (enforced by unique constraint on store_id in owner_store table).
+     * This relationship is defined as belongsToMany for flexibility, but the database constraint ensures
+     * only one owner can be assigned to each store.
+     * 
+     * Use assignedOwner() to get the single owner assigned via the pivot table.
      */
     public function owners()
     {
         return $this->belongsToMany(User::class, 'owner_store', 'store_id', 'owner_id')
             ->where('role', 'owner');
+    }
+
+    /**
+     * Get the single owner assigned to this store via the pivot table.
+     * 
+     * One store can have only one owner (enforced by database unique constraint on store_id).
+     * This is different from owner() which returns the creator (created_by).
+     * 
+     * @return User|null
+     */
+    public function assignedOwner(): ?User
+    {
+        return $this->owners()->first();
     }
 
     /**

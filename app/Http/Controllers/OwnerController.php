@@ -20,7 +20,7 @@ class OwnerController extends Controller
         
         // Franchisor: can see every owner
         // Others: filtered by access rules
-        $owners = $user->accessibleOwners()->get();
+        $owners = $user->accessibleOwners()->with('ownedStores')->get();
 
         return view('owners.index', ['owners' => $owners]);
     }
@@ -160,7 +160,19 @@ class OwnerController extends Controller
     {
         $validatedData = $request->validate([
             'store_ids' => 'nullable|array',
-            'store_ids.*' => 'exists:stores,id',
+            'store_ids.*' => [
+                'exists:stores,id',
+                function ($attribute, $value, $fail) use ($owner) {
+                    $store = \App\Models\Store::find($value);
+                    if ($store) {
+                        $currentOwner = $store->owners()->first();
+                        // Allow if store has no owner, or if the current owner is the same owner being assigned
+                        if ($currentOwner && $currentOwner->id !== $owner->id) {
+                            $fail("Store '{$store->store_info}' is already assigned to another owner. One store can have only one owner.");
+                        }
+                    }
+                },
+            ],
         ]);
         
         // Ensure store_ids is always an array (even if empty)
@@ -188,17 +200,42 @@ class OwnerController extends Controller
                         
                         // If store has no owners, assign to Franchisor
                         if ($store->owners()->count() === 0) {
-                            $store->owners()->attach($franchisor->id);
+                            $store->owners()->sync([$franchisor->id]);
                         }
                     }
                 }
             }
 
-            // Sync the stores using the pivot table - this will replace all current assignments
+            // For each new store being assigned, ensure only one owner
+            // The database unique constraint on store_id will enforce this at the root level
+            foreach ($newStoreIds as $storeId) {
+                $store = \App\Models\Store::find($storeId);
+                if ($store) {
+                    // Sync ensures only this owner is assigned (removes any existing owner)
+                    // The unique constraint on store_id in owner_store table prevents multiple owners
+                    $store->owners()->sync([$owner->id]);
+                }
+            }
+
+            // Update the owner's owned stores list
             $owner->ownedStores()->sync($validatedData['store_ids']);
 
             return redirect()->route('owners.show', $owner)->with('success', 'Stores assigned successfully.');
 
+        } catch (\Illuminate\Database\QueryException $e) {
+            // Handle database constraint violations
+            if ($e->getCode() === '23000' || str_contains($e->getMessage(), 'unq_owner_store_store_id')) {
+                \Log::error('Database constraint violation when assigning stores to owner', [
+                    'owner_id' => $owner->id,
+                    'error' => $e->getMessage(),
+                    'store_ids' => $validatedData['store_ids'],
+                ]);
+
+                return redirect()->back()->withErrors([
+                    'store_ids' => 'One or more stores are already assigned to another owner. One store can have only one owner.'
+                ]);
+            }
+            throw $e;
         } catch (\Exception $e) {
             \Log::error('Error assigning stores to owner', [
                 'owner_id' => $owner->id,

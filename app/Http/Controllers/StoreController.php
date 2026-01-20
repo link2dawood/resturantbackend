@@ -90,16 +90,14 @@ class StoreController extends Controller
         // The Franchisor is the controlling owner for Corporate Stores
         if ($validatedData['store_type'] === 'corporate') {
             // Corporate Stores are controlled by Franchisor
-            // Remove any other owners and set Franchisor as the controlling owner
+            // One store can have only one owner - set Franchisor as the owner
+            // Database unique constraint on store_id ensures this at the root level
             $store->owners()->sync([$franchisor->id]);
         } else {
             // Franchisee locations: Controlled by Owner (Franchisee), reports to Franchisor, can have Managers running a location
-            // Assign the owner (Franchisee) via pivot table
-            $store->owners()->attach($validatedData['created_by']);
-            // Also attach Franchisor for reporting purposes (Franchisee reports to Franchisor)
-            if (!$store->owners()->where('users.id', $franchisor->id)->exists()) {
-                $store->owners()->attach($franchisor->id);
-            }
+            // One store can have only one owner - assign the owner (Franchisee) only
+            // Database unique constraint on store_id ensures this at the root level
+            $store->owners()->sync([$validatedData['created_by']]);
         }
 
         return redirect()->route('stores.index')->with('success', 'Store created successfully.');
@@ -152,21 +150,20 @@ class StoreController extends Controller
         // If changing to Corporate Store, ensure Franchisor is the controlling owner
         if ($validatedData['store_type'] === 'corporate') {
             // Corporate Stores: Controlled by Franchisor, report to Franchisor, run by Managers
-            // Ensure Franchisor is the only controlling owner
+            // One store can have only one owner - set Franchisor as the owner
+            // Database unique constraint on store_id ensures this at the root level
             $store->owners()->sync([$franchisor->id]);
         } elseif ($store->isCorporateStore() && $validatedData['store_type'] === 'franchisee') {
             // If changing from Corporate to Franchisee, assign the created_by owner
             // Franchisee (Owner): Controls one or more locations, reports to Franchisor, can have Managers running a location
-            // Also attach Franchisor for reporting purposes (Franchisee reports to Franchisor)
-            $store->owners()->sync([$validatedData['created_by'], $franchisor->id]);
+            // One store can have only one owner - assign the owner (Franchisee) only
+            // Database unique constraint on store_id ensures this at the root level
+            $store->owners()->sync([$validatedData['created_by']]);
         } elseif ($validatedData['store_type'] === 'franchisee') {
             // For Franchisee locations: Controlled by Owner (Franchisee), reports to Franchisor, can have Managers running a location
-            // Ensure both the owner and Franchisor are attached
-            $ownerIds = [$validatedData['created_by']];
-            if (!$store->owners()->where('users.id', $franchisor->id)->exists()) {
-                $ownerIds[] = $franchisor->id;
-            }
-            $store->owners()->sync($ownerIds);
+            // One store can have only one owner - ensure the owner is assigned
+            // Database unique constraint on store_id ensures this at the root level
+            $store->owners()->sync([$validatedData['created_by']]);
         }
 
         $store->update($validatedData);
@@ -190,9 +187,10 @@ class StoreController extends Controller
     public function assignOwnerForm(Store $store)
     {
         $owners = User::where('role', 'owner')->get();
-        $assignedOwners = $store->owners;
+        // One store can have only one owner (enforced by database constraint)
+        $assignedOwner = $store->assignedOwner();
 
-        return view('stores.assign-owner', compact('store', 'owners', 'assignedOwners'));
+        return view('stores.assign-owner', compact('store', 'owners', 'assignedOwner'));
     }
 
     /**
@@ -201,8 +199,8 @@ class StoreController extends Controller
     public function assignOwner(Request $request, Store $store)
     {
         $request->validate([
-            'owner_ids' => 'required|array',
-            'owner_ids.*' => [
+            'owner_id' => [
+                'required',
                 'exists:users,id',
                 function ($attribute, $value, $fail) {
                     $user = User::find($value);
@@ -213,9 +211,40 @@ class StoreController extends Controller
             ],
         ]);
 
-        // Sync the owners - this will replace all current assignments
-        $store->owners()->sync($request->owner_ids);
+        try {
+            // Validate that the owner exists and is actually an owner
+            $owner = User::findOrFail($request->owner_id);
+            if (!$owner->isOwner()) {
+                return redirect()->back()->withErrors([
+                    'owner_id' => 'Only owners can be assigned to stores.'
+                ]);
+            }
 
-        return redirect()->route('stores.show', $store)->with('success', 'Store owners updated successfully.');
+            // One store can have only one owner - sync with single owner
+            // The unique constraint on store_id in the pivot table ensures this at the database level
+            // This will automatically remove any existing owner and assign the new one
+            $store->owners()->sync([$request->owner_id]);
+
+            return redirect()->route('stores.show', $store)->with('success', 'Store owner updated successfully.');
+        } catch (\Illuminate\Database\QueryException $e) {
+            // Handle database constraint violations
+            // The unique constraint on store_id should prevent multiple owners
+            if ($e->getCode() === '23000' || str_contains($e->getMessage(), 'unq_owner_store_store_id')) {
+                return redirect()->back()->withErrors([
+                    'owner_id' => 'This store already has an owner assigned. The database constraint prevents multiple owners per store.'
+                ]);
+            }
+            throw $e;
+        } catch (\Exception $e) {
+            \Log::error('Error assigning owner to store', [
+                'store_id' => $store->id,
+                'owner_id' => $request->owner_id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return redirect()->back()->withErrors([
+                'owner_id' => 'Failed to assign owner. Please try again.'
+            ]);
+        }
     }
 }

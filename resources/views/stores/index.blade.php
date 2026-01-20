@@ -35,18 +35,12 @@
     @endif
 
     @php
-        $headers = ['#'];
-        if(Auth::user()->hasPermission('manage_owners')) {
-            $headers[] = 'Owner';
-        }
-        $headers = array_merge($headers, [
-            'Store Information',
+        $headers = [
             'Type',
+            'Store Name',
             'Address',
-            'Sales Tax',
-            'Medicare Tax',
-            ['label' => 'Actions', 'align' => 'center']
-        ]);
+            'Phone'
+        ];
     @endphp
 
     <x-table 
@@ -58,46 +52,22 @@
         emptyActionText="Create Your First Store">
         @if($stores->count() > 0)
             @foreach ($stores as $store)
-                @php
-                    $owner = App\Models\User::find($store->created_by);
-                @endphp
                 <x-table-row>
                     <x-table-cell>
-                        <span class="badge bg-light text-dark" style="font-size: 0.75rem;">{{ $store->id }}</span>
+                        @if($store->store_type === 'corporate')
+                            <span class="badge bg-primary" style="font-size: 0.75rem;">Corporate Store</span>
+                        @else
+                            <span class="badge bg-success" style="font-size: 0.75rem;">Franchisee Location</span>
+                        @endif
                     </x-table-cell>
-                    @if(Auth::user()->hasPermission('manage_owners'))
-                    <x-table-cell>
-                        <div class="d-flex align-items-center">
-                            <div class="avatar avatar-xs me-2" style="background-color: var(--google-blue-100, #d2e3fc); color: var(--google-blue, #4285f4);">
-                                {{ substr($owner->name ?? 'U', 0, 1) }}
-                            </div>
-                            <span style="font-weight: 500;">{{ $owner->name ?? 'Unknown' }}</span>
-                        </div>
-                    </x-table-cell>
-                    @endif
                     <x-table-cell>
                         <div style="font-weight: 500; font-size: 0.875rem;">{{ $store->store_info }}</div>
                     </x-table-cell>
                     <x-table-cell>
-                        @if($store->store_type === 'corporate')
-                            <span class="badge bg-primary" style="font-size: 0.75rem;">Corporate Store</span>
-                            <small class="d-block text-muted mt-1" style="font-size: 0.7rem;">Franchisor</small>
-                        @else
-                            <span class="badge bg-success" style="font-size: 0.75rem;">Franchisee Location</span>
-                            <small class="d-block text-muted mt-1" style="font-size: 0.7rem;">Owner</small>
-                        @endif
+                        <div style="font-size: 0.875rem;">{{ $store->address ?? 'N/A' }}</div>
                     </x-table-cell>
                     <x-table-cell>
-                        <div style="font-size: 0.875rem; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ $store->address }}">{{ $store->address }}</div>
-                    </x-table-cell>
-                    <x-table-cell>
-                        <span class="badge bg-info text-white" style="font-size: 0.75rem;">{{ $store->sales_tax_rate }}%</span>
-                    </x-table-cell>
-                    <x-table-cell>
-                        <span class="badge bg-warning text-dark" style="font-size: 0.75rem;">{{ $store->medicare_tax_rate }}%</span>
-                    </x-table-cell>
-                    <x-table-cell align="center">
-                        <x-button-view href="{{ route('stores.show', $store->id) }}" iconOnly="true" />
+                        <div style="font-size: 0.875rem;">{{ $store->phone ?? 'N/A' }}</div>
                     </x-table-cell>
                 </x-table-row>
             @endforeach
