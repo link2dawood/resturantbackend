@@ -84,6 +84,11 @@ Route::middleware('auth')->group(function () {
 
     // Daily Reports Routes - with access control and date conversion
     Route::middleware(['daily_report_access', 'convert_date_format'])->group(function () {
+        // Admin-only summary route
+        Route::middleware('role:admin')->group(function () {
+            Route::get('/daily-reports/summary', [DailyReportController::class, 'summary'])->name('daily-reports.summary');
+        });
+        
         Route::get('/daily-reports', [DailyReportController::class, 'index'])->name('daily-reports.index');
 
         // Multi-step creation process

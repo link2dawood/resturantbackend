@@ -37,10 +37,16 @@ class DailyReportController extends Controller
     /**
      * Display a listing of the resource.
      * Hierarchical selection: Year -> Month -> Reports
+     * Admins are redirected to summary page
      */
     public function index(Request $request)
     {
         $user = auth()->user();
+        
+        // Admins should only see summary, not individual reports
+        if ($user->isAdmin()) {
+            return redirect()->route('daily-reports.summary');
+        }
         
         // Get selected year and month from request
         $selectedYear = $request->get('year');
@@ -328,10 +334,19 @@ class DailyReportController extends Controller
 
     /**
      * Display the specified resource.
+     * Admins cannot view individual reports, only summary
      */
     public function show(DailyReport $dailyReport)
     {
-        $dailyReport->load(['store', 'creator', 'transactions', 'revenues.revenueIncomeType']);
+        $user = auth()->user();
+        
+        // Admins should only see summary, not individual reports
+        if ($user->isAdmin()) {
+            return redirect()->route('daily-reports.summary')
+                ->with('info', 'Administrators can only view daily report summaries, not individual reports.');
+        }
+
+        $dailyReport->load(['store', 'creator', 'approver', 'transactions.transactionType', 'revenues.revenueIncomeType']);
 
         return view('daily-reports.show', compact('dailyReport'));
     }
@@ -957,5 +972,243 @@ class DailyReportController extends Controller
                 'metadata' => isset($revenueData['metadata']) ? $revenueData['metadata'] : null,
             ]);
         }
+    }
+
+    /**
+     * Display daily report summary for admins
+     * Admin can only see summary, not individual reports
+     */
+    public function summary(Request $request)
+    {
+        $user = auth()->user();
+        
+        // Only admins can access summary
+        if (!$user->isAdmin()) {
+            abort(403, 'Only administrators can access daily report summary.');
+        }
+
+        $stores = Store::whereNull('deleted_at')->orderBy('store_info')->get();
+        $summaryData = null;
+
+        // If form is submitted, generate summary
+        if ($request->has('get_report')) {
+            $validated = $request->validate([
+                'from_date' => 'required|date',
+                'to_date' => 'required|date|after_or_equal:from_date',
+                'store_ids' => 'required|array|min:1',
+                'store_ids.*' => 'exists:stores,id',
+                'data_items' => 'required|array|min:1',
+                'report_type' => 'required|in:daily,totals',
+            ]);
+
+            $fromDate = $validated['from_date'];
+            $toDate = $validated['to_date'];
+            $storeIds = $validated['store_ids'];
+            $dataItems = $validated['data_items'];
+            $reportType = $validated['report_type'];
+
+            // Get reports for selected stores and date range
+            $reports = DailyReport::with(['store', 'transactions', 'revenues'])
+                ->withSum('transactions', 'amount')
+                ->withSum('revenues', 'amount')
+                ->whereIn('store_id', $storeIds)
+                ->whereBetween('report_date', [$fromDate, $toDate])
+                ->orderBy('report_date')
+                ->orderBy('store_id')
+                ->get();
+
+            // Calculate summary data
+            $summaryData = $this->calculateSummary($reports, $dataItems, $reportType, $storeIds);
+        }
+
+        return view('daily-reports.summary', compact('stores', 'summaryData'));
+    }
+
+    /**
+     * Calculate summary data from reports
+     */
+    private function calculateSummary($reports, $dataItems, $reportType, $storeIds)
+    {
+        $selectedStores = Store::whereIn('id', $storeIds)->get()->keyBy('id');
+        
+        if ($reportType === 'daily') {
+            // Daily Breakdown: Group by date and store
+            $dailyData = [];
+            
+            foreach ($reports as $report) {
+                $dateKey = $report->report_date->format('Y-m-d');
+                $storeId = $report->store_id;
+                
+                if (!isset($dailyData[$dateKey])) {
+                    $dailyData[$dateKey] = [];
+                }
+                
+                if (!isset($dailyData[$dateKey][$storeId])) {
+                    $dailyData[$dateKey][$storeId] = [
+                        'store' => $selectedStores[$storeId] ?? null,
+                        'date' => $report->report_date,
+                        'data' => $this->getReportData($report, $dataItems),
+                    ];
+                }
+            }
+            
+            return [
+                'type' => 'daily',
+                'data' => $dailyData,
+                'stores' => $selectedStores,
+            ];
+        } else {
+            // Totals Breakdown: Aggregate all data
+            $totals = [];
+            $storeTotals = [];
+            
+            foreach ($reports as $report) {
+                $storeId = $report->store_id;
+                
+                if (!isset($storeTotals[$storeId])) {
+                    $storeTotals[$storeId] = [
+                        'store' => $selectedStores[$storeId] ?? null,
+                        'data' => $this->initializeDataItems($dataItems),
+                    ];
+                }
+                
+                $reportData = $this->getReportData($report, $dataItems);
+                foreach ($reportData as $key => $value) {
+                    if (is_numeric($value)) {
+                        $storeTotals[$storeId]['data'][$key] = ($storeTotals[$storeId]['data'][$key] ?? 0) + $value;
+                    }
+                }
+            }
+            
+            // Calculate grand totals
+            $grandTotals = $this->initializeDataItems($dataItems);
+            foreach ($storeTotals as $storeTotal) {
+                foreach ($storeTotal['data'] as $key => $value) {
+                    if (is_numeric($value)) {
+                        // Average ticket should be calculated, not summed
+                        if ($key === 'average_ticket') {
+                            // Calculate average ticket from total net sales and total customers
+                            $totalNetSales = 0;
+                            $totalCustomers = 0;
+                            foreach ($storeTotals as $st) {
+                                $totalNetSales += $st['data']['net_sales'] ?? 0;
+                                $totalCustomers += $st['data']['total_customers'] ?? 0;
+                            }
+                            $grandTotals[$key] = $totalCustomers > 0 ? round($totalNetSales / $totalCustomers, 2) : 0;
+                        } else {
+                            $grandTotals[$key] = ($grandTotals[$key] ?? 0) + $value;
+                        }
+                    }
+                }
+            }
+            
+            // Recalculate average ticket for each store
+            foreach ($storeTotals as $storeId => &$storeTotal) {
+                if (in_array('average_ticket', $dataItems)) {
+                    $netSales = $storeTotal['data']['net_sales'] ?? 0;
+                    $customers = $storeTotal['data']['total_customers'] ?? 0;
+                    $storeTotal['data']['average_ticket'] = $customers > 0 ? round($netSales / $customers, 2) : 0;
+                }
+            }
+            
+            return [
+                'type' => 'totals',
+                'store_totals' => $storeTotals,
+                'grand_totals' => $grandTotals,
+                'stores' => $selectedStores,
+            ];
+        }
+    }
+
+    /**
+     * Get data items for a single report
+     */
+    private function getReportData($report, $dataItems)
+    {
+        $data = [];
+        
+        $netSales = $report->revenues_sum_amount ?? $report->revenues()->sum('amount');
+        $totalPaidOuts = $report->transactions_sum_amount ?? $report->transactions()->sum('amount');
+        $tax = $netSales * 0.0825 / 1.0825;
+        $salesPreTax = $netSales - $tax;
+        $onlinePlatformRevenue = $report->online_platform_revenue;
+        $creditCards = (float) ($report->credit_cards ?? 0);
+        $cashToAccount = max(0, round($netSales - $totalPaidOuts - $onlinePlatformRevenue - $creditCards, 2));
+        $short = $report->actual_deposit < $cashToAccount ? $report->actual_deposit - $cashToAccount : 0;
+        $over = $report->actual_deposit > $cashToAccount ? $report->actual_deposit - $cashToAccount : 0;
+        $averageTicket = $report->total_customers > 0 ? $netSales / $report->total_customers : 0;
+
+        foreach ($dataItems as $item) {
+            switch ($item) {
+                case 'total_sales':
+                    $data['total_sales'] = $report->total_customers ?? 0;
+                    break;
+                case 'average_ticket':
+                    $data['average_ticket'] = round($averageTicket, 2);
+                    break;
+                case 'voids':
+                    $data['voids'] = $report->amount_of_voids ?? 0;
+                    break;
+                case 'adjustments':
+                    $data['adjustments'] = $report->adjustments_overrings ?? 0;
+                    break;
+                case 'net_sales':
+                    $data['net_sales'] = round($netSales, 2);
+                    break;
+                case 'cash_to_account':
+                    $data['cash_to_account'] = round($cashToAccount, 2);
+                    break;
+                case 'total_coupons':
+                    $data['total_coupons'] = $report->total_coupons ?? 0;
+                    break;
+                case 'projected_sales':
+                    $data['projected_sales'] = $report->projected_sales ?? 0;
+                    break;
+                case 'gross_sales':
+                    $data['gross_sales'] = $report->gross_sales ?? 0;
+                    break;
+                case 'sales_tax':
+                    $data['sales_tax'] = round($tax, 2);
+                    break;
+                case 'total_paidout':
+                    $data['total_paidout'] = round($totalPaidOuts, 2);
+                    break;
+                case 'actual_deposit':
+                    $data['actual_deposit'] = $report->actual_deposit ?? 0;
+                    break;
+                case 'total_customers':
+                    $data['total_customers'] = $report->total_customers ?? 0;
+                    break;
+                case 'cancels':
+                    $data['cancels'] = $report->amount_of_cancels ?? 0;
+                    break;
+                case 'coupons_amount':
+                    $data['coupons_amount'] = $report->coupons_received ?? 0;
+                    break;
+                case 'sales':
+                    $data['sales'] = round($salesPreTax, 2);
+                    break;
+                case 'credit_cards':
+                    $data['credit_cards'] = round($creditCards, 2);
+                    break;
+                case 'short_over':
+                    $data['short_over'] = round($over - abs($short), 2);
+                    break;
+            }
+        }
+        
+        return $data;
+    }
+
+    /**
+     * Initialize data items with zero values
+     */
+    private function initializeDataItems($dataItems)
+    {
+        $data = [];
+        foreach ($dataItems as $item) {
+            $data[$item] = 0;
+        }
+        return $data;
     }
 }
