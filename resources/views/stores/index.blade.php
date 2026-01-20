@@ -39,7 +39,8 @@
             'Type',
             'Store Name',
             'Address',
-            'Phone'
+            'Phone',
+            ['label' => 'Actions', 'align' => 'center']
         ];
     @endphp
 
@@ -68,6 +69,9 @@
                     </x-table-cell>
                     <x-table-cell>
                         <div style="font-size: 0.875rem;">{{ $store->phone ?? 'N/A' }}</div>
+                    </x-table-cell>
+                    <x-table-cell align="center">
+                        <x-button-view href="{{ route('stores.show', $store->id) }}" iconOnly="true" />
                     </x-table-cell>
                 </x-table-row>
             @endforeach
