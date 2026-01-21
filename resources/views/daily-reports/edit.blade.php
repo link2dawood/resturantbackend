@@ -16,6 +16,17 @@
 </select>
 
 <style>
+    .sales-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed; /* force equal widths */
+}
+
+.sales-table td {
+    width: 33.33%;   /* 3 equal columns */
+    padding: 8px;
+    vertical-align: middle;
+}
     .report-container {
         background: white;
         border-radius: 8px;
@@ -26,52 +37,53 @@
     .report-header {
         background: #f8f9fa;
         color: #202124;
-        padding: 20px;
+        padding: 12px 15px;
         text-align: center;
         border: 1px solid #e0e0e0;
     }
     
     .company-name {
-        font-size: 1.8rem;
+        font-size: 1.5rem;
         font-weight: bold;
-        margin-bottom: 10px;
+        margin-bottom: 5px;
     }
     
     .company-info {
         opacity: 0.9;
-        font-size: 0.9rem;
+        font-size: 0.85rem;
     }
     
     .section-title {
         background: #f8f9fa;
-        padding: 15px 20px;
+        padding: 10px 15px;
         font-weight: 600;
         border-bottom: 2px solid #e9ecef;
         color: #495057;
-        font-size: 1.1rem;
+        font-size: 1rem;
     }
     
     .form-section {
-        padding: 20px;
+        padding: 12px 15px;
     }
     
     .transaction-table {
         width: 100%;
         border-collapse: collapse;
-        margin-bottom: 20px;
+        margin-bottom: 12px;
     }
     
     .transaction-table th {
         background: #f8f9fa;
-        padding: 12px 8px;
+        padding: 8px 6px;
         border: 1px solid #dee2e6;
         font-weight: 600;
         text-align: center;
+        font-size: 0.875rem;
     }
     
     .transaction-table td {
         border: 1px solid #dee2e6;
-        padding: 8px;
+        padding: 6px;
     }
     
     .form-input {
@@ -82,15 +94,19 @@
         font-size: 14px;
     }
     
-    .sales-table .form-input {
-        min-width: 120px;
-        padding: 8px 12px;
-    }
-    
     .form-input:focus {
         outline: none;
         background: rgba(253,126,20,0.1);
         border-radius: 4px;
+    }
+    
+    .readonly-input {
+        width: 100%;
+        border: none;
+        background: transparent;
+        padding: 8px;
+        font-size: 14px;
+        color: #495057;
     }
     
     .number-input {
@@ -109,7 +125,7 @@
     }
     
     .total-row {
-        background: #fff3cd;
+        background: #e7f3ff;
         font-weight: 600;
     }
     
@@ -117,10 +133,10 @@
         background: #fd7e14;
         color: white;
         border: none;
-        padding: 8px 12px;
+        padding: 6px 10px;
         border-radius: 4px;
         cursor: pointer;
-        font-size: 14px;
+        font-size: 12px;
         transition: all 0.2s;
     }
     
@@ -133,7 +149,7 @@
         background: #dc3545;
         color: white;
         border: none;
-        padding: 6px 10px;
+        padding: 4px 8px;
         border-radius: 4px;
         cursor: pointer;
         font-size: 12px;
@@ -145,35 +161,36 @@
     
     .side-panel {
         background: #f8f9fa;
-        padding: 20px;
+        padding: 12px 15px;
         border-radius: 8px;
-        margin-bottom: 20px;
+        margin-bottom: 12px;
     }
     
     .side-panel .form-group {
-        margin-bottom: 15px;
+        margin-bottom: 10px;
     }
     
     .side-panel label {
         font-weight: 600;
         color: #495057;
-        margin-bottom: 5px;
+        margin-bottom: 4px;
         display: block;
+        font-size: 0.875rem;
     }
     
     .side-panel input {
         width: 100%;
-        padding: 8px 12px;
+        padding: 6px 10px;
         border: 1px solid #ced4da;
         border-radius: 4px;
-        font-size: 14px;
+        background: white;
     }
     
     .category-labels {
         background: #e9ecef;
-        padding: 15px;
+        padding: 10px 12px;
         border-radius: 8px;
-        margin-top: 20px;
+        margin-top: 12px;
     }
     
     .category-labels .category {
@@ -190,8 +207,8 @@
     .sales-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 30px;
-        margin-top: 20px;
+        gap: 15px;
+        margin-top: 12px;
     }
     
     .sales-table {
@@ -201,7 +218,7 @@
     }
     
     .sales-table td {
-        padding: 12px 15px;
+        padding: 8px 10px;
         border: 1px solid #dee2e6;
     }
     
@@ -228,8 +245,8 @@
     }
     
     .calculated-field {
-        background: #fff3cd !important;
-        color: #856404;
+        background: #e7f3ff !important;
+        color: #004085;
         font-weight: 600;
     }
     
@@ -251,58 +268,55 @@
         box-shadow: 0 6px 20px rgba(253, 126, 20, 0.4);
     }
     
-    @media (max-width: 768px) {
-        .sales-grid {
-            grid-template-columns: 1fr;
-            gap: 20px;
-        }
-        
-        .transaction-table th,
-        .transaction-table td {
-            padding: 8px 4px;
-            font-size: 12px;
-        }
-        
-        .company-name {
-            font-size: 1.4rem;
-        }
-        
-        .section-title {
-            padding: 10px 15px;
-            font-size: 1rem;
-        }
-        
-        .form-section {
-            padding: 15px;
-        }
+    .export-buttons {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
     }
     
-    @media (max-width: 480px) {
-        .transaction-table {
-            font-size: 11px;
-        }
-        
-        .transaction-table th,
-        .transaction-table td {
-            padding: 6px 3px;
-        }
-        
-        .side-panel {
-            padding: 15px;
-        }
+    .export-btn {
+        padding: 10px 20px;
+        border-radius: 5px;
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .export-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    
+    .export-btn-pdf {
+        background: #dc3545;
+        color: white;
+    }
+    
+    .export-btn-csv {
+        background: #28a745;
+        color: white;
+    }
+    
+    .export-btn-edit {
+        background: #ffc107;
+        color: #000;
+    }
+    
+    .export-btn-back {
+        background: #6c757d;
+        color: white;
     }
 </style>
-<div class="container-fluid" style="max-width: 95%; margin-left: auto; margin-right: auto;">
-    <div class="page-header">
-        <div class="page-title">
-            <h1>Edit Daily Report - {{ $dailyReport->report_date->format('M d, Y') }}</h1>
-        </div>
-        <div class="page-actions">
-        <a href="{{ route('daily-reports.show', $dailyReport) }}" class="btn btn-secondary">Cancel</a>
+<div class="container-fluid mt-4" style="max-width: 95%; margin-left: auto; margin-right: auto;">
+    <div class="export-buttons">
+        <a href="{{ route('daily-reports.show', $dailyReport) }}" class="export-btn export-btn-back">
+            ← Cancel
+        </a>
     </div>
-</div>
-
-<div class="p-4">
     <form id="dailyReportForm" method="POST" action="{{ route('daily-reports.update', $dailyReport) }}">
         @csrf
         @method('PUT')
@@ -397,12 +411,18 @@
                                 @endif
                                 
                                 <tr class="total-row">
-                                    <td colspan="3"><strong>Total Paid Outs:</strong></td>
+                                    <td colspan="3"><strong>Total Transaction Expenses:</strong></td>
                                     <td id="totalPaidOuts" class="number-input"><strong>$0.00</strong></td>
                                     <td></td>
                                 </tr>
                             </tbody>
                         </table>
+                        <div style="margin-top: 8px; padding: 8px; background: #fff3cd; border-radius: 4px; border: 1px solid #ffeaa7;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="font-weight: 600; color: #856404;">Total Transaction Expenses:</span>
+                                <span id="totalPaidOutsDisplay" style="font-weight: 600; color: #856404; font-size: 1.1rem;">$0.00</span>
+                            </div>
+                        </div>
                     </div>
                     
                     <div class="col-lg-4">
@@ -441,8 +461,7 @@
                                 <tr>
                                     <th style="width: 30%;">Revenue Type</th>
                                     <th style="width: 20%;">Amount ($)</th>
-                                    <th style="width: 35%;">Notes</th>
-                                    <th style="width: 15%;">Action</th>
+                                    <th style="width: 50%;">Notes</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -462,11 +481,11 @@
                                         <td>
                                             <input type="text" class="form-input" name="revenues[{{ $index }}][notes]" value="{{ $revenue->notes }}" placeholder="Optional notes">
                                         </td>
-                                        <td>
+                                        <td style="display: none;">
                                             @if($loop->first)
                                                 <button type="button" class="btn-add-row" onclick="addRevenueRow()">+</button>
                                             @else
-                                                <button type="button" class="btn-remove" onclick="removeRevenueRow(this)">×</button>
+                                                <button type="button" class="btn-remove-row" onclick="removeRevenueRow(this)">×</button>
                                             @endif
                                         </td>
                                     </tr>
@@ -488,16 +507,16 @@
                                         <td>
                                             <input type="text" class="form-input" name="revenues[0][notes]" placeholder="Optional notes">
                                         </td>
-                                        <td>
+                                        <td style="display: none;">
                                             <button type="button" class="btn-add-row" onclick="addRevenueRow()">+</button>
                                         </td>
                                     </tr>
                                 @endif
                             </tbody>
                         </table>
-                        <div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 4px;">
+                        <div style="margin-top: 8px; padding: 8px; background: #f8f9fa; border-radius: 4px;">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <span style="font-weight: 600; color: #495057;">Total Revenue Entries:</span>
+                                <span style="font-weight: 600; color: #495057;">Total Revenue Income:</span>
                                 <span id="totalRevenue" style="font-weight: 600; color: #28a745; font-size: 1.1rem;">$0.00</span>
                             </div>
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 5px;">
@@ -543,12 +562,6 @@
                     <div class="col-8">
                         <table class="sales-table">
                             <tr>
-                                <td rowspan="2">
-                                    <div style="display:flex;justify-content: space-between;align-items: center;">
-                                        <span>Total # of Coupons</span>
-                                        <span style="width:30%;"><input type="number" name="total_coupons" value="{{ $dailyReport->total_coupons }}" class="form-input number-input" step="0.01" style="background: white;"></span>
-                                    </div>
-                                </td>
                                 <td><strong>Gross Sales:</strong></td>
                                 <td><input type="number" name="gross_sales" class="form-input number-input" step="0.01" value="{{ $dailyReport->gross_sales }}" required></td>
                             </tr>
@@ -557,7 +570,15 @@
                                 <td><input type="number" name="coupons_received" class="form-input number-input" step="0.01" value="{{ $dailyReport->coupons_received }}"></td>
                             </tr>
                             <tr>
+                                <td>
+                                    <div style="display:flex;justify-content: space-between;align-items: center;">
+                                        <span>Total # of Coupons</span>
+                                        <span style="width:30%;"><input type="number" name="total_coupons" value="{{ $dailyReport->total_coupons }}" class="form-input number-input" step="0.01" style="background: white;"></span>
+                                    </div>
+                                </td>
                                 <td></td>
+                            </tr>
+                            <tr>
                                 <td><strong>Adjustments: Overrings/Returns:</strong></td>
                                 <td><input type="number" name="adjustments_overrings" class="form-input number-input" step="0.01" value="{{ $dailyReport->adjustments_overrings }}"></td>
                             </tr>
@@ -595,8 +616,12 @@
                                 <td id="netSales2" class="calculated-field number-input">$0.00</td>
                             </tr>
                             <tr>
-                                <td><strong>Total Paid Outs:</strong></td>
+                                <td><strong>Total Transaction Expenses:</strong></td>
                                 <td id="totalPaidOuts2" class="calculated-field number-input">$0.00</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Online Platform Revenue:</strong></td>
+                                <td id="onlineRevenue2" class="calculated-field number-input">$0.00</td>
                             </tr>
                             <tr>
                                 <td><strong>Credit Cards:</strong></td>
@@ -612,11 +637,11 @@
                             </tr>
                             <tr>
                                 <td><strong>Short:</strong></td>
-                                <td id="short" class="calculated-field number-input">$0.00</td>
+                                <td id="short" class="calculated-field number-input" style="color: #495057;">$0.00</td>
                             </tr>
                             <tr>
                                 <td><strong>Over:</strong></td>
-                                <td id="over" class="calculated-field number-input">$0.00</td>
+                                <td id="over" class="calculated-field number-input" style="color: #495057;">$0.00</td>
                             </tr>
                         </table>
                     </div>
@@ -700,7 +725,13 @@ function calculateTotals() {
 
     // Update display
     document.getElementById('totalPaidOuts').innerHTML = `<strong>$${totalPaidOuts.toFixed(2)}</strong>`;
+    if (document.getElementById('totalPaidOutsDisplay')) {
+        document.getElementById('totalPaidOutsDisplay').textContent = `$${totalPaidOuts.toFixed(2)}`;
+    }
     document.getElementById('totalPaidOuts2').textContent = `$${totalPaidOuts.toFixed(2)}`;
+    if (document.getElementById('onlineRevenue2')) {
+        document.getElementById('onlineRevenue2').textContent = `$${onlinePlatformRevenue.toFixed(2)}`;
+    }
     document.getElementById('netSales').textContent = `$${netSales.toFixed(2)}`;
     document.getElementById('netSales2').textContent = `$${netSales.toFixed(2)}`;
     document.getElementById('tax').textContent = `$${tax.toFixed(2)}`;
@@ -713,8 +744,16 @@ function calculateTotals() {
     }
     
     document.getElementById('cashToAccountFor').textContent = `$${cashToAccountFor.toFixed(2)}`;
-    document.getElementById('short').textContent = `$${short.toFixed(2)}`;
-    document.getElementById('over').textContent = `$${over.toFixed(2)}`;
+    const shortElement = document.getElementById('short');
+    const overElement = document.getElementById('over');
+    if (shortElement) {
+        shortElement.textContent = `$${short.toFixed(2)}`;
+        shortElement.style.color = short < 0 ? '#dc3545' : '#495057';
+    }
+    if (overElement) {
+        overElement.textContent = `$${over.toFixed(2)}`;
+        overElement.style.color = over > 0 ? '#28a745' : '#495057';
+    }
     
     // Update revenue totals
     if (document.getElementById('totalRevenue')) {
@@ -799,7 +838,7 @@ function addRevenueRow() {
         <td>
             <input type="text" class="form-input" name="revenues[${revenueCount}][notes]" placeholder="Notes (optional)">
         </td>
-        <td>
+        <td style="display: none;">
             <button type="button" class="btn-remove-row" onclick="removeRevenueRow(this)">×</button>
         </td>
     `;

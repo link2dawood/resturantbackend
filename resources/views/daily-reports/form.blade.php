@@ -525,27 +525,23 @@
                     <div class="col-8">
                         <table class="sales-table">
                             <tr>
-                                <td>
-                                    <div style="display:flex;justify-content: space-between;align-items: anchor-center;">
-                                        <span>Total # of Coupons</span>
-                                        <span style="width:30%;"><input type="number" name="total_coupons" value="0" class="form-input number-input" step="0.01" style="background: white;"></span>
-                                    </div>
-                                </td>
                                 <td><strong>Gross Sales:</strong></td>
                                 <td><input type="number" name="gross_sales" class="form-input number-input" step="0.01" required></td>
                             </tr>
                             <tr>
+                                <td><strong>Total Amount of Coupons Received:</strong></td>
+                                <td><input type="number" name="coupons_received" class="form-input number-input" step="0.01" value="0.00"></td>
+                            </tr>
+                            <tr>
                                 <td>
-                                    <div style="display:flex;justify-content: space-between;align-items: anchor-center;">
-                                        <span><strong>Total Amount of Coupons Received:</strong></span>
-                                        <span style="width:30%;"><input type="number" name="coupons_received" class="form-input number-input" step="0.01" value="0.00" style="background: white;"></span>
+                                    <div style="display:flex;justify-content: space-between;align-items: center;">
+                                        <span>Total # of Coupons</span>
+                                        <span style="width:30%;"><input type="number" name="total_coupons" value="0" class="form-input number-input" step="0.01" style="background: white;"></span>
                                     </div>
                                 </td>
                                 <td></td>
-                                <td></td>
                             </tr>
                             <tr>
-                                <td></td>
                                 <td><strong>Adjustments: Overrings/Returns:</strong></td>
                                 <td><input type="number" name="adjustments_overrings" class="form-input number-input" step="0.01" value="0.00"></td>
                             </tr>
