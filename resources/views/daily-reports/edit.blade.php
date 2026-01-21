@@ -579,7 +579,8 @@
                             <tr>
                                 <td><strong>Gross Sales:</strong></td>
                                 <td></td>
-                                <td><input type="number" name="gross_sales" class="form-input number-input" step="0.01" value="{{ $dailyReport->gross_sales }}" required></td>
+                                <td id="grossSales" class="calculated-field number-input">$0.00</td>
+                                <input type="hidden" name="gross_sales" id="grossSalesHidden" value="0">
                             </tr>
                             <tr>
                                 <td><strong>Total Amount of Coupons Received:</strong></td>
@@ -681,10 +682,9 @@ let revenueCount = {{ $dailyReport->revenues->count() }};
 // Auto-calculation functions
 function calculateTotals() {
     // Get form values
-    const grossSales = parseFloat(document.querySelector('input[name="gross_sales"]').value || 0);
     const couponsReceived = parseFloat(document.querySelector('input[name="coupons_received"]').value || 0);
     const adjustmentsOverrings = parseFloat(document.querySelector('input[name="adjustments_overrings"]').value || 0);
-    const creditCards = parseFloat(document.querySelector('input[name="credit_cards"]').value || 0);
+    let creditCards = parseFloat(document.querySelector('input[name="credit_cards"]').value || 0);
     const actualDeposit = parseFloat(document.querySelector('input[name="actual_deposit"]').value || 0);
 
     // Calculate total paid outs from transactions
@@ -724,11 +724,13 @@ function calculateTotals() {
         }
     });
 
-    // Calculate derived values
-    // Net sales = sum of revenues
-    const netSales = totalRevenueEntries;
+    // Calculate Gross Sales = Total revenue + Total Amount of Coupons Received
+    const grossSales = totalRevenueEntries + couponsReceived;
     
-    // Calculate 8.25% sales tax
+    // Calculate Net Sales = Total revenue - Total Amount of Coupons Received - Adjustments: Overrings/Returns
+    const netSales = totalRevenueEntries - couponsReceived - adjustmentsOverrings;
+    
+    // Calculate 8.25% sales tax (based on Net Sales)
     const tax = netSales * 0.0825 / 1.0825;
     const salesPreTax = netSales - tax;
     
@@ -811,6 +813,15 @@ function calculateTotals() {
     if (document.getElementById('onlineRevenue2')) {
         formatAmount(onlinePlatformRevenue, document.getElementById('onlineRevenue2'));
     }
+    
+    // Update Gross Sales
+    if (document.getElementById('grossSales')) {
+        formatAmount(grossSales, document.getElementById('grossSales'));
+    }
+    if (document.getElementById('grossSalesHidden')) {
+        document.getElementById('grossSalesHidden').value = grossSales.toFixed(2);
+    }
+    
     formatAmount(netSales, document.getElementById('netSales'));
     formatAmount(netSales, document.getElementById('netSales2'));
     formatAmount(tax, document.getElementById('tax'));
@@ -966,7 +977,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Add event listeners for all inputs that affect calculations
     const inputs = [
-        'input[name="gross_sales"]',
         'input[name="coupons_received"]', 
         'input[name="adjustments_overrings"]',
         'input[name="credit_cards"]',
