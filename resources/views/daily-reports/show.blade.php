@@ -180,12 +180,16 @@
         width: 40%;
     }
     
+    .sales-table td:nth-child(2) {
+        width: 25%;
+    }
+    
     .sales-table td:last-child {
         width: 35%;
     }
     
-    .sales-table td:nth-child(2) {
-        width: 25%;
+    .sales-table td:empty {
+        background: transparent;
     }
     
     .calculated-field {
@@ -401,10 +405,12 @@
                     <table class="sales-table">
                         <tr>
                             <td><strong>Gross Sales:</strong></td>
+                            <td></td>
                             <td class="number-input">${{ number_format($dailyReport->gross_sales, 2) }}</td>
                         </tr>
                         <tr>
                             <td><strong>Total Amount of Coupons Received:</strong></td>
+                            <td></td>
                             <td class="number-input">${{ number_format($dailyReport->coupons_received, 2) }}</td>
                         </tr>
                         <tr>
@@ -415,9 +421,11 @@
                                 </div>
                             </td>
                             <td></td>
+                            <td></td>
                         </tr>
                         <tr>
                             <td><strong>Adjustments: Overrings/Returns:</strong></td>
+                            <td></td>
                             <td class="number-input">${{ number_format($dailyReport->adjustments_overrings, 2) }}</td>
                         </tr>
                         <tr>

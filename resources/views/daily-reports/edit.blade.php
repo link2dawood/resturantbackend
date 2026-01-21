@@ -229,12 +229,16 @@
         width: 40%;
     }
     
+    .sales-table td:nth-child(2) {
+        width: 25%;
+    }
+    
     .sales-table td:last-child {
         width: 35%;
     }
     
-    .sales-table td:nth-child(2) {
-        width: 25%;
+    .sales-table td:empty {
+        background: transparent;
     }
     
     .sales-table input[type="number"].form-input {
@@ -563,10 +567,12 @@
                         <table class="sales-table">
                             <tr>
                                 <td><strong>Gross Sales:</strong></td>
+                                <td></td>
                                 <td><input type="number" name="gross_sales" class="form-input number-input" step="0.01" value="{{ $dailyReport->gross_sales }}" required></td>
                             </tr>
                             <tr>
                                 <td><strong>Total Amount of Coupons Received:</strong></td>
+                                <td></td>
                                 <td><input type="number" name="coupons_received" class="form-input number-input" step="0.01" value="{{ $dailyReport->coupons_received }}"></td>
                             </tr>
                             <tr>
@@ -577,9 +583,11 @@
                                     </div>
                                 </td>
                                 <td></td>
+                                <td></td>
                             </tr>
                             <tr>
                                 <td><strong>Adjustments: Overrings/Returns:</strong></td>
+                                <td></td>
                                 <td><input type="number" name="adjustments_overrings" class="form-input number-input" step="0.01" value="{{ $dailyReport->adjustments_overrings }}"></td>
                             </tr>
                             <tr>
