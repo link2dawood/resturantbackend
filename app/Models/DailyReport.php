@@ -190,14 +190,8 @@ class DailyReport extends Model
 
     public function getTotalRevenueIncomeAttribute(): float
     {
-        // Use cached sum if available to avoid N+1 queries
-        return $this->revenues_sum_amount ?? $this->revenues()->sum('amount');
-    }
-
-    public function getTotalRevenueEntriesAttribute(): float
-    {
-        // Alias for backward compatibility
-        return $this->getTotalRevenueIncomeAttribute();
+        // Alias for backward compatibility - same as Total Revenue Entries
+        return $this->getTotalRevenueEntriesAttribute();
     }
 
     public function getOnlinePlatformRevenueAttribute(): float
