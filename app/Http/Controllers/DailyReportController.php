@@ -690,23 +690,31 @@ class DailyReportController extends Controller
         $totalPaidOuts = (float) ($data['total_paid_outs'] ?? 0);
         $actualDeposit = (float) ($data['actual_deposit'] ?? 0);
 
-        // Calculate net sales as sum of revenues
-        $netSales = 0;
+        // Calculate Total Revenue Entries = sum of all revenue entries
+        $totalRevenueEntries = 0;
         if (isset($data['revenues']) && is_array($data['revenues'])) {
             foreach ($data['revenues'] as $revenue) {
                 if (isset($revenue['amount']) && is_numeric($revenue['amount'])) {
-                    $netSales += (float) $revenue['amount'];
+                    $totalRevenueEntries += (float) $revenue['amount'];
                 }
             }
         }
+
+        // Calculate Gross Sales = Total Revenue Entries + Coupons Received
+        $couponsReceived = (float) ($data['coupons_received'] ?? 0);
+        $grossSales = $totalRevenueEntries + $couponsReceived;
+        $data['gross_sales'] = $grossSales;
+
+        // Calculate Net Sales = Total Revenue Entries - Coupons Received - Adjustments: Overrings/Returns
+        $adjustmentsOverrings = (float) ($data['adjustments_overrings'] ?? 0);
+        $netSales = $totalRevenueEntries - $couponsReceived - $adjustmentsOverrings;
         $data['net_sales'] = $netSales;
 
-        // Calculate tax (8.25% sales tax)
-        // If net sales includes tax: tax = netSales * 0.0825 / 1.0825
+        // Calculate Tax = Net Sales × 0.0825 / 1.0825
         $tax = $netSales * 0.0825 / 1.0825;
         $data['tax'] = $tax;
 
-        // Calculate sales (pre-tax)
+        // Calculate Sales (Pre-tax) = Net Sales - Tax
         $data['sales'] = $netSales - $tax;
 
         // Calculate cash to account for = Net Sales - Transaction Expenses - Online Platform Revenue - Credit Cards

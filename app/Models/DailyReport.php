@@ -113,10 +113,27 @@ class DailyReport extends Model
         return $this->getTotalTransactionExpensesAttribute();
     }
 
+    public function getTotalRevenueEntriesAttribute(): float
+    {
+        // Total Revenue Entries = sum of all revenue entries
+        return $this->revenues_sum_amount ?? $this->revenues()->sum('amount');
+    }
+
+    public function getGrossSalesAttribute(): float
+    {
+        // Gross Sales = Total Revenue Entries + Coupons Received
+        $totalRevenueEntries = $this->getTotalRevenueEntriesAttribute();
+        $couponsReceived = (float) ($this->coupons_received ?? 0);
+        return $totalRevenueEntries + $couponsReceived;
+    }
+
     public function getNetSalesAttribute(): float
     {
-        // Net sales = sum of revenues
-        return $this->revenues_sum_amount ?? $this->revenues()->sum('amount');
+        // Net Sales = Total Revenue Entries - Coupons Received - Adjustments: Overrings/Returns
+        $totalRevenueEntries = $this->getTotalRevenueEntriesAttribute();
+        $couponsReceived = (float) ($this->coupons_received ?? 0);
+        $adjustmentsOverrings = (float) ($this->adjustments_overrings ?? 0);
+        return $totalRevenueEntries - $couponsReceived - $adjustmentsOverrings;
     }
 
     public function getTaxAttribute(): float

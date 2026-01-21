@@ -700,15 +700,19 @@ function calculateTotals() {
         }
     });
 
-    // Calculate Gross Sales = Total revenue + Total Amount of Coupons Received
+    // Gross Sales = Total Revenue Entries + Coupons Received
     const grossSales = totalRevenueIncome + couponsReceived;
     
-    // Calculate Net Sales = Total revenue - Total Amount of Coupons Received - Adjustments: Overrings/Returns
+    // Net Sales = Total Revenue Entries - Coupons Received - Adjustments: Overrings/Returns
     const netSales = totalRevenueIncome - couponsReceived - adjustmentsOverrings;
     
-    // Calculate 8.25% sales tax
+    // Tax = Net Sales × 0.0825 / 1.0825
     const tax = netSales * 0.0825 / 1.0825;
+    
+    // Sales (Pre-tax) = Net Sales - Tax
     const salesPreTax = netSales - tax;
+    
+    // Average Ticket = Net Sales / Total Customers
     const averageTicket = totalCustomers > 0 ? netSales / totalCustomers : 0;
     
     // Auto-fill Credit Cards from card category revenues
@@ -732,14 +736,15 @@ function calculateTotals() {
         creditCards = parseFloat(creditCardsInput.value || 0);
     }
     
-    // Cash to account for = Net Sales - Transaction Expenses - Online Platform Revenue - Credit Cards
-    // Formula: Net Sales - transaction expenses - online platforms - credit card
+    // Cash To Account For = Net Sales - Total Transaction Expenses - Online Platform Revenue - Credit Cards
     let cashToAccountFor = netSales - totalPaidOuts - onlinePlatformRevenue - creditCards;
     
     // Ensure result is not negative (numbers cannot go negative)
     cashToAccountFor = Math.max(0, Math.round(cashToAccountFor * 100) / 100);
     
+    // Short = Actual Deposit - Cash To Account For
     let short = 0;
+    // Over = Actual Deposit - Cash To Account For
     let over = 0;
     if (actualDeposit < cashToAccountFor) {
         short = actualDeposit - cashToAccountFor;
