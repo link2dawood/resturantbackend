@@ -124,6 +124,17 @@
         -moz-appearance: textfield;
     }
     
+    /* Negative amounts in red */
+    input[type="number"].negative,
+    .number-input.negative,
+    .calculated-field.negative {
+        color: #dc3545 !important;
+    }
+    
+    input[type="number"]:invalid {
+        color: #dc3545;
+    }
+    
     .total-row {
         background: #e7f3ff;
         font-weight: 600;
@@ -633,7 +644,7 @@
                             </tr>
                             <tr>
                                 <td><strong>Credit Cards:</strong></td>
-                                <td><input type="number" name="credit_cards" class="form-input number-input" step="0.01" value="{{ $dailyReport->credit_cards }}"></td>
+                                <td><input type="number" name="credit_cards" id="creditCardsInput" class="form-input number-input" step="0.01" value="{{ $dailyReport->credit_cards }}"></td>
                             </tr>
                             <tr>
                                 <td><strong>Cash To Account For:</strong></td>
@@ -685,6 +696,7 @@ function calculateTotals() {
     // Calculate revenue totals
     let totalRevenueEntries = 0;
     let onlinePlatformRevenue = 0;
+    let creditCardRevenue = 0;
     document.querySelectorAll('#revenueTable tbody tr').forEach(row => {
         const amountInput = row.querySelector('input[name*="revenues"][name*="[amount]"]');
         const selectElement = row.querySelector('select[name*="[revenue_income_type_id]"]');
@@ -695,10 +707,18 @@ function calculateTotals() {
             if (amount > 0) {
                 totalRevenueEntries += amount;
                 
-                // Check if this is an online platform revenue
+                // Check the category of the revenue
                 const selectedOption = selectElement.options[selectElement.selectedIndex];
-                if (selectedOption && selectedOption.dataset.category === 'online') {
+                const category = selectedOption ? selectedOption.dataset.category : '';
+                
+                // Check if this is an online platform revenue
+                if (category === 'online') {
                     onlinePlatformRevenue += amount;
+                }
+                
+                // Check if this is a credit card revenue
+                if (category === 'card') {
+                    creditCardRevenue += amount;
                 }
             }
         }
@@ -716,6 +736,35 @@ function calculateTotals() {
     const totalCustomers = parseFloat(document.querySelector('input[name="total_customers"]').value || 0);
     const averageTicket = totalCustomers > 0 ? netSales / totalCustomers : 0;
     
+    // Auto-fill Credit Cards from card category revenues
+    const creditCardsInput = document.querySelector('input[name="credit_cards"]');
+    if (creditCardsInput) {
+        // Store the original value before auto-fill
+        const originalValue = parseFloat(creditCardsInput.dataset.originalValue || creditCardsInput.value || 0);
+        const currentValue = parseFloat(creditCardsInput.value || 0);
+        
+        // Auto-fill Credit Cards unless user has manually edited it
+        const isManuallyEdited = creditCardsInput.dataset.manuallyEdited === 'true';
+        
+        if (!isManuallyEdited) {
+            if (creditCardRevenue > 0) {
+                creditCardsInput.value = creditCardRevenue.toFixed(2);
+                creditCardsInput.dataset.lastCalculated = creditCardRevenue.toFixed(2);
+                // Trigger color check for negative values
+                checkNegativeInputs();
+            } else if (creditCardRevenue === 0 && currentValue === 0) {
+                // Keep it at 0 if no card revenue
+                creditCardsInput.value = '0.00';
+            }
+        } else {
+            // Update last calculated value for reference
+            creditCardsInput.dataset.lastCalculated = creditCardRevenue.toFixed(2);
+        }
+        
+        // Update creditCards variable for cash calculation
+        creditCards = parseFloat(creditCardsInput.value || 0);
+    }
+    
     // Cash to account for = Net Sales - Transaction Expenses - Online Platform Revenue - Credit Cards
     // Formula: Net Sales - transaction expenses - online platforms - credit card
     let cashToAccountFor = netSales - totalPaidOuts - onlinePlatformRevenue - creditCards;
@@ -731,44 +780,69 @@ function calculateTotals() {
         over = actualDeposit - cashToAccountFor;
     }
 
+    // Helper function to format and color amounts
+    function formatAmount(amount, element, isNegative = false) {
+        const formatted = `$${Math.abs(amount).toFixed(2)}`;
+        if (amount < 0 || isNegative) {
+            element.textContent = `-${formatted}`;
+            element.classList.add('negative');
+            element.style.color = '#dc3545';
+        } else {
+            element.textContent = formatted;
+            element.classList.remove('negative');
+            element.style.color = '';
+        }
+    }
+    
+    // Helper function to format amount with HTML (for innerHTML)
+    function formatAmountHTML(amount) {
+        const absAmount = Math.abs(amount).toFixed(2);
+        const color = amount < 0 ? '#dc3545' : '';
+        const sign = amount < 0 ? '-' : '';
+        return `<strong style="color: ${color || ''}">${sign}$${absAmount}</strong>`;
+    }
+    
     // Update display
-    document.getElementById('totalPaidOuts').innerHTML = `<strong>$${totalPaidOuts.toFixed(2)}</strong>`;
+    document.getElementById('totalPaidOuts').innerHTML = formatAmountHTML(totalPaidOuts);
     if (document.getElementById('totalPaidOutsDisplay')) {
-        document.getElementById('totalPaidOutsDisplay').textContent = `$${totalPaidOuts.toFixed(2)}`;
+        formatAmount(totalPaidOuts, document.getElementById('totalPaidOutsDisplay'));
     }
-    document.getElementById('totalPaidOuts2').textContent = `$${totalPaidOuts.toFixed(2)}`;
+    formatAmount(totalPaidOuts, document.getElementById('totalPaidOuts2'));
     if (document.getElementById('onlineRevenue2')) {
-        document.getElementById('onlineRevenue2').textContent = `$${onlinePlatformRevenue.toFixed(2)}`;
+        formatAmount(onlinePlatformRevenue, document.getElementById('onlineRevenue2'));
     }
-    document.getElementById('netSales').textContent = `$${netSales.toFixed(2)}`;
-    document.getElementById('netSales2').textContent = `$${netSales.toFixed(2)}`;
-    document.getElementById('tax').textContent = `$${tax.toFixed(2)}`;
-    document.getElementById('salesPreTax').textContent = `$${salesPreTax.toFixed(2)}`;
+    formatAmount(netSales, document.getElementById('netSales'));
+    formatAmount(netSales, document.getElementById('netSales2'));
+    formatAmount(tax, document.getElementById('tax'));
+    formatAmount(salesPreTax, document.getElementById('salesPreTax'));
     
     // Update average ticket input
     const averageTicketInput = document.querySelector('input[name="average_ticket"]');
     if (averageTicketInput) {
         averageTicketInput.value = averageTicket.toFixed(2);
+        if (averageTicket < 0) {
+            averageTicketInput.classList.add('negative');
+        } else {
+            averageTicketInput.classList.remove('negative');
+        }
     }
     
-    document.getElementById('cashToAccountFor').textContent = `$${cashToAccountFor.toFixed(2)}`;
+    formatAmount(cashToAccountFor, document.getElementById('cashToAccountFor'));
     const shortElement = document.getElementById('short');
     const overElement = document.getElementById('over');
     if (shortElement) {
-        shortElement.textContent = `$${short.toFixed(2)}`;
-        shortElement.style.color = short < 0 ? '#dc3545' : '#495057';
+        formatAmount(short, shortElement);
     }
     if (overElement) {
-        overElement.textContent = `$${over.toFixed(2)}`;
-        overElement.style.color = over > 0 ? '#28a745' : '#495057';
+        formatAmount(over, overElement);
     }
     
     // Update revenue totals
     if (document.getElementById('totalRevenue')) {
-        document.getElementById('totalRevenue').textContent = `$${totalRevenueEntries.toFixed(2)}`;
+        formatAmount(totalRevenueEntries, document.getElementById('totalRevenue'));
     }
     if (document.getElementById('onlineRevenue')) {
-        document.getElementById('onlineRevenue').textContent = `$${onlinePlatformRevenue.toFixed(2)}`;
+        formatAmount(onlinePlatformRevenue, document.getElementById('onlineRevenue'));
     }
 
     // Update hidden fields
@@ -873,8 +947,23 @@ function removeRevenueRow(button) {
     }
 }
 
+// Function to check and color negative inputs
+function checkNegativeInputs() {
+    document.querySelectorAll('input[type="number"]').forEach(input => {
+        const value = parseFloat(input.value) || 0;
+        if (value < 0) {
+            input.classList.add('negative');
+        } else {
+            input.classList.remove('negative');
+        }
+    });
+}
+
 // Event listeners
 document.addEventListener('DOMContentLoaded', function() {
+    // Check initial negative values
+    checkNegativeInputs();
+    
     // Add event listeners for all inputs that affect calculations
     const inputs = [
         'input[name="gross_sales"]',
@@ -889,7 +978,19 @@ document.addEventListener('DOMContentLoaded', function() {
     inputs.forEach(selector => {
         const elements = document.querySelectorAll(selector);
         elements.forEach(element => {
-            element.addEventListener('input', calculateTotals);
+            element.addEventListener('input', function() {
+                // Mark credit cards as manually edited if user changes it
+                if (element.name === 'credit_cards') {
+                    const currentValue = parseFloat(element.value || 0);
+                    const lastCalculated = parseFloat(element.dataset.lastCalculated || 0);
+                    // If value changed significantly, mark as manually edited
+                    if (Math.abs(currentValue - lastCalculated) > 0.01) {
+                        element.dataset.manuallyEdited = 'true';
+                    }
+                }
+                checkNegativeInputs();
+                calculateTotals();
+            });
         });
     });
 

@@ -105,6 +105,12 @@
         -moz-appearance: textfield;
     }
     
+    /* Negative amounts in red */
+    .number-input.negative,
+    .calculated-field.negative {
+        color: #dc3545 !important;
+    }
+    
     .total-row {
         background: #e7f3ff;
         font-weight: 600;
@@ -286,12 +292,12 @@
                                         <td>{{ $transaction->transaction_id }}</td>
                                         <td>{{ $transaction->company }}</td>
                                         <td>{{ $transaction->transactionType->name ?? 'N/A' }}</td>
-                                        <td class="number-input">${{ number_format($transaction->amount, 2) }}</td>
+                                        <td class="number-input{{ $transaction->amount < 0 ? ' negative' : '' }}">${{ number_format($transaction->amount, 2) }}</td>
                                     </tr>
                                 @endforeach
                                 <tr class="total-row">
                                     <td colspan="3"><strong>Total Transaction Expenses:</strong></td>
-                                    <td class="number-input"><strong>${{ number_format($dailyReport->total_paid_outs, 2) }}</strong></td>
+                                    <td class="number-input{{ $dailyReport->total_paid_outs < 0 ? ' negative' : '' }}"><strong>${{ number_format($dailyReport->total_paid_outs, 2) }}</strong></td>
                                 </tr>
                             </tbody>
                         </table>
@@ -301,7 +307,7 @@
                     <div style="margin-top: 8px; padding: 8px; background: #fff3cd; border-radius: 4px; border: 1px solid #ffeaa7;">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                             <span style="font-weight: 600; color: #856404;">Total Transaction Expenses:</span>
-                            <span style="font-weight: 600; color: #856404; font-size: 1.1rem;">${{ number_format($dailyReport->total_paid_outs, 2) }}</span>
+                            <span style="font-weight: 600; color: {{ $dailyReport->total_paid_outs < 0 ? '#dc3545' : '#856404' }}; font-size: 1.1rem;">${{ number_format($dailyReport->total_paid_outs, 2) }}</span>
                         </div>
                     </div>
                 </div>
@@ -347,7 +353,7 @@
                                                 {{ $revenue->revenueIncomeType->name }}
                                             </span>
                                         </td>
-                                        <td class="number-input">${{ number_format($revenue->amount, 2) }}</td>
+                                        <td class="number-input{{ $revenue->amount < 0 ? ' negative' : '' }}">${{ number_format($revenue->amount, 2) }}</td>
                                         <td>{{ $revenue->notes ?? '-' }}</td>
                                     </tr>
                                 @endforeach
@@ -359,11 +365,11 @@
                     <div style="margin-top: 8px; padding: 8px; background: #f8f9fa; border-radius: 4px;">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                             <span style="font-weight: 600; color: #495057;">Total Revenue Income:</span>
-                            <span style="font-weight: 600; color: #28a745; font-size: 1.1rem;">${{ number_format($dailyReport->total_revenue_entries, 2) }}</span>
+                            <span style="font-weight: 600; color: {{ $dailyReport->total_revenue_entries < 0 ? '#dc3545' : '#28a745' }}; font-size: 1.1rem;">${{ number_format($dailyReport->total_revenue_entries, 2) }}</span>
                         </div>
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 5px;">
                             <span style="font-weight: 600; color: #495057;">Online Platform Revenue:</span>
-                            <span style="font-weight: 600; color: #17a2b8; font-size: 1.1rem;">${{ number_format($dailyReport->online_platform_revenue, 2) }}</span>
+                            <span style="font-weight: 600; color: {{ $dailyReport->online_platform_revenue < 0 ? '#dc3545' : '#17a2b8' }}; font-size: 1.1rem;">${{ number_format($dailyReport->online_platform_revenue, 2) }}</span>
                         </div>
                     </div>
                 </div>
@@ -378,15 +384,15 @@
                     <table class="sales-table">
                         <tr>
                             <td>Projected Sales</td>
-                            <td class="number-input">${{ number_format($dailyReport->projected_sales, 2) }}</td>
+                            <td class="number-input{{ $dailyReport->projected_sales < 0 ? ' negative' : '' }}">${{ number_format($dailyReport->projected_sales, 2) }}</td>
                         </tr>
                         <tr>
                             <td>Amount of Cancels</td>
-                            <td class="number-input">${{ number_format($dailyReport->amount_of_cancels, 2) }}</td>
+                            <td class="number-input{{ $dailyReport->amount_of_cancels < 0 ? ' negative' : '' }}">${{ number_format($dailyReport->amount_of_cancels, 2) }}</td>
                         </tr>
                         <tr>
                             <td>Amount of Voids</td>
-                            <td class="number-input">${{ number_format($dailyReport->amount_of_voids, 2) }}</td>
+                            <td class="number-input{{ $dailyReport->amount_of_voids < 0 ? ' negative' : '' }}">${{ number_format($dailyReport->amount_of_voids, 2) }}</td>
                         </tr>
                         <tr>
                             <td>Number of No Sales</td>
@@ -406,12 +412,12 @@
                         <tr>
                             <td><strong>Gross Sales:</strong></td>
                             <td></td>
-                            <td class="number-input">${{ number_format($dailyReport->gross_sales, 2) }}</td>
+                            <td class="number-input{{ $dailyReport->gross_sales < 0 ? ' negative' : '' }}">${{ number_format($dailyReport->gross_sales, 2) }}</td>
                         </tr>
                         <tr>
                             <td><strong>Total Amount of Coupons Received:</strong></td>
                             <td></td>
-                            <td class="number-input">${{ number_format($dailyReport->coupons_received, 2) }}</td>
+                            <td class="number-input{{ $dailyReport->coupons_received < 0 ? ' negative' : '' }}">${{ number_format($dailyReport->coupons_received, 2) }}</td>
                         </tr>
                         <tr>
                             <td>
@@ -426,7 +432,7 @@
                         <tr>
                             <td><strong>Adjustments: Overrings/Returns:</strong></td>
                             <td></td>
-                            <td class="number-input">${{ number_format($dailyReport->adjustments_overrings, 2) }}</td>
+                            <td class="number-input{{ $dailyReport->adjustments_overrings < 0 ? ' negative' : '' }}">${{ number_format($dailyReport->adjustments_overrings, 2) }}</td>
                         </tr>
                         <tr>
                             <td rowspan="2">
@@ -436,11 +442,11 @@
                                 </div>
                             </td>
                             <td><strong>Net Sales:</strong></td>
-                            <td id="netSales" class="calculated-field number-input">${{ number_format($dailyReport->net_sales, 2) }}</td>
+                            <td id="netSales" class="calculated-field number-input{{ $dailyReport->net_sales < 0 ? ' negative' : '' }}">${{ number_format($dailyReport->net_sales, 2) }}</td>
                         </tr>
                         <tr>
                             <td><strong>Tax:</strong></td>
-                            <td id="tax" class="calculated-field number-input">${{ number_format($dailyReport->tax, 2) }}</td>
+                            <td id="tax" class="calculated-field number-input{{ $dailyReport->tax < 0 ? ' negative' : '' }}">${{ number_format($dailyReport->tax, 2) }}</td>
                         </tr>
                         <tr>
                             <td>
@@ -450,7 +456,7 @@
                                 </div>
                             </td>
                             <td><strong>Sales (Pre-tax):</strong></td>
-                            <td id="salesPreTax" class="calculated-field number-input">${{ number_format($dailyReport->sales_pre_tax, 2) }}</td>
+                            <td id="salesPreTax" class="calculated-field number-input{{ $dailyReport->sales_pre_tax < 0 ? ' negative' : '' }}">${{ number_format($dailyReport->sales_pre_tax, 2) }}</td>
                         </tr>
                     </table>
                 </div>
@@ -459,27 +465,27 @@
                     <table class="sales-table">
                         <tr>
                             <td><strong>Net Sales:</strong></td>
-                            <td id="netSales2" class="calculated-field number-input">${{ number_format($dailyReport->net_sales, 2) }}</td>
+                            <td id="netSales2" class="calculated-field number-input{{ $dailyReport->net_sales < 0 ? ' negative' : '' }}">${{ number_format($dailyReport->net_sales, 2) }}</td>
                         </tr>
                         <tr>
                             <td><strong>Total Transaction Expenses:</strong></td>
-                            <td id="totalPaidOuts2" class="calculated-field number-input">${{ number_format($dailyReport->total_paid_outs, 2) }}</td>
+                            <td id="totalPaidOuts2" class="calculated-field number-input{{ $dailyReport->total_paid_outs < 0 ? ' negative' : '' }}">${{ number_format($dailyReport->total_paid_outs, 2) }}</td>
                         </tr>
                         <tr>
                             <td><strong>Online Platform Revenue:</strong></td>
-                            <td id="onlineRevenue2" class="calculated-field number-input">${{ number_format($dailyReport->online_platform_revenue, 2) }}</td>
+                            <td id="onlineRevenue2" class="calculated-field number-input{{ $dailyReport->online_platform_revenue < 0 ? ' negative' : '' }}">${{ number_format($dailyReport->online_platform_revenue, 2) }}</td>
                         </tr>
                         <tr>
                             <td><strong>Credit Cards:</strong></td>
-                            <td class="number-input">${{ number_format($dailyReport->credit_cards, 2) }}</td>
+                            <td class="number-input{{ $dailyReport->credit_cards < 0 ? ' negative' : '' }}">${{ number_format($dailyReport->credit_cards, 2) }}</td>
                         </tr>
                         <tr>
                             <td><strong>Cash To Account For:</strong></td>
-                            <td id="cashToAccountFor" class="calculated-field number-input">${{ number_format($dailyReport->cash_to_account_for, 2) }}</td>
+                            <td id="cashToAccountFor" class="calculated-field number-input{{ $dailyReport->cash_to_account_for < 0 ? ' negative' : '' }}">${{ number_format($dailyReport->cash_to_account_for, 2) }}</td>
                         </tr>
                         <tr>
                             <td><strong>Actual Deposit:</strong></td>
-                            <td class="number-input">${{ number_format($dailyReport->actual_deposit, 2) }}</td>
+                            <td class="number-input{{ $dailyReport->actual_deposit < 0 ? ' negative' : '' }}">${{ number_format($dailyReport->actual_deposit, 2) }}</td>
                         </tr>
                         <tr>
                             <td><strong>Short:</strong></td>
