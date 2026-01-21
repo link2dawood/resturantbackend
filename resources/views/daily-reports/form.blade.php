@@ -91,6 +91,17 @@
         text-align: right;
     }
     
+    /* Remove number input spinners */
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+    
+    input[type="number"] {
+        -moz-appearance: textfield;
+    }
+    
     .total-row {
         background: #e7f3ff;
         font-weight: 600;

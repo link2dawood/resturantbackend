@@ -82,6 +82,11 @@
         font-size: 14px;
     }
     
+    .sales-table .form-input {
+        min-width: 120px;
+        padding: 8px 12px;
+    }
+    
     .form-input:focus {
         outline: none;
         background: rgba(253,126,20,0.1);
@@ -90,6 +95,17 @@
     
     .number-input {
         text-align: right;
+    }
+    
+    /* Remove number input spinners */
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+    
+    input[type="number"] {
+        -moz-appearance: textfield;
     }
     
     .total-row {
@@ -181,6 +197,7 @@
     .sales-table {
         width: 100%;
         border-collapse: collapse;
+        table-layout: fixed;
     }
     
     .sales-table td {
@@ -192,7 +209,22 @@
         background: #f8f9fa;
         font-weight: 600;
         color: #495057;
-        width: 60%;
+        width: 40%;
+    }
+    
+    .sales-table td:last-child {
+        width: 35%;
+    }
+    
+    .sales-table td:nth-child(2) {
+        width: 25%;
+    }
+    
+    .sales-table input[type="number"].form-input {
+        width: 100%;
+        min-width: 120px;
+        padding: 8px 12px;
+        font-size: 14px;
     }
     
     .calculated-field {
