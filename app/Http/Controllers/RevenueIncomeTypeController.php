@@ -10,7 +10,10 @@ class RevenueIncomeTypeController extends Controller
 {
     public function index()
     {
-        $revenueIncomeTypes = RevenueIncomeType::ordered()->paginate(20);
+        $revenueIncomeTypes = RevenueIncomeType::orderBy('category')
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->paginate(20);
 
         return view('revenue-income-types.index', compact('revenueIncomeTypes'));
     }
