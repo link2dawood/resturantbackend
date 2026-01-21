@@ -218,7 +218,7 @@
     }
 </style>
 
-<div class="container-xl mt-4">
+<div class="container-fluid mt-4" style="max-width: 95%; margin-left: auto; margin-right: auto;">
     <div class="export-buttons">
         <a href="{{ route('daily-reports.export-pdf', $dailyReport) }}" class="export-btn export-btn-pdf" target="_blank">
             📄 Export PDF

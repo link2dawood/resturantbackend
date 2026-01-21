@@ -260,7 +260,7 @@
         }
     }
 </style>
-<div class="container">
+<div class="container-fluid" style="max-width: 95%; margin-left: auto; margin-right: auto;">
     <div class="page-header">
         <div class="page-title">
             <h1>Edit Daily Report - {{ $dailyReport->report_date->format('M d, Y') }}</h1>
@@ -270,7 +270,7 @@
     </div>
 </div>
 
-<div class="container-fluid p-4">
+<div class="p-4">
     <form id="dailyReportForm" method="POST" action="{{ route('daily-reports.update', $dailyReport) }}">
         @csrf
         @method('PUT')
