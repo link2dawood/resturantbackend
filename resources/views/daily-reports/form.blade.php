@@ -322,6 +322,7 @@
         @csrf
 
         <input type="hidden" name="store_id" value="{{$store->id ?? ''}}">
+        <input type="hidden" name="gross_sales" id="grossSalesHidden" value="0">
         <input type="hidden" class="NetSales" name="net_sales" value="">
         <input type="hidden" class="TaxInput" name="tax" value="">
         <input type="hidden" class="SalesInput" name="sales" value="">
@@ -525,12 +526,24 @@
                     <div class="col-8">
                         <table class="sales-table">
                             <tr>
-                                <td><strong>Gross Sales:</strong></td>
-                                <td><input type="number" name="gross_sales" class="form-input number-input" step="0.01" required></td>
+                                <td>
+                                    <div style="display:flex;justify-content: space-between;align-items: center;">
+                                        <span><strong>Gross Sales:</strong></span>
+                                        <span style="width:30%;" id="grossSales" class="calculated-field number-input">$0.00</span>
+                                    </div>
+                                </td>
+                                <td></td>
+                                <td></td>
                             </tr>
                             <tr>
-                                <td><strong>Total Amount of Coupons Received:</strong></td>
-                                <td><input type="number" name="coupons_received" class="form-input number-input" step="0.01" value="0.00"></td>
+                                <td>
+                                    <div style="display:flex;justify-content: space-between;align-items: center;">
+                                        <span><strong>Total Amount of Coupons Received:</strong></span>
+                                        <span style="width:30%;"><input type="number" name="coupons_received" class="form-input number-input" step="0.01" value="0.00" style="background: white;"></span>
+                                    </div>
+                                </td>
+                                <td></td>
+                                <td></td>
                             </tr>
                             <tr>
                                 <td>
@@ -540,10 +553,17 @@
                                     </div>
                                 </td>
                                 <td></td>
+                                <td></td>
                             </tr>
                             <tr>
-                                <td><strong>Adjustments: Overrings/Returns:</strong></td>
-                                <td><input type="number" name="adjustments_overrings" class="form-input number-input" step="0.01" value="0.00"></td>
+                                <td>
+                                    <div style="display:flex;justify-content: space-between;align-items: center;">
+                                        <span><strong>Adjustments: Overrings/Returns:</strong></span>
+                                        <span style="width:30%;"><input type="number" name="adjustments_overrings" class="form-input number-input" step="0.01" value="0.00" style="background: white;"></span>
+                                    </div>
+                                </td>
+                                <td></td>
+                                <td></td>
                             </tr>
                             <tr>
                                 <td rowspan="2">
@@ -624,13 +644,24 @@
 <script>
 let transactionCount = 1;
 
+// Function to check and color negative inputs
+function checkNegativeInputs() {
+    document.querySelectorAll('input[type="number"]').forEach(input => {
+        const value = parseFloat(input.value) || 0;
+        if (value < 0) {
+            input.classList.add('negative');
+        } else {
+            input.classList.remove('negative');
+        }
+    });
+}
+
 // Auto-calculation functions
 function calculateTotals() {
     // Get form values
-    const grossSales = parseFloat(document.querySelector('input[name="gross_sales"]').value || 0);
     const couponsReceived = parseFloat(document.querySelector('input[name="coupons_received"]').value || 0);
     const adjustmentsOverrings = parseFloat(document.querySelector('input[name="adjustments_overrings"]').value || 0);
-    const creditCards = parseFloat(document.querySelector('input[name="credit_cards"]').value || 0);
+    let creditCards = parseFloat(document.querySelector('input[name="credit_cards"]').value || 0);
     const actualDeposit = parseFloat(document.querySelector('input[name="actual_deposit"]').value || 0);
     const totalCustomers = parseFloat(document.querySelector('input[name="total_customers"]').value || 0);
 
@@ -643,6 +674,7 @@ function calculateTotals() {
     // Get revenue totals (already calculated separately)
     let totalRevenueIncome = 0;
     let onlinePlatformRevenue = 0;
+    let creditCardRevenue = 0;
 
     // Calculate revenue totals for this function
     document.querySelectorAll('#revenueTable tbody tr').forEach(row => {
@@ -652,25 +684,53 @@ function calculateTotals() {
         if (amountInput && selectElement && selectElement.selectedIndex > 0) {
             const amount = parseFloat(amountInput.value || 0);
             const selectedOption = selectElement.options[selectElement.selectedIndex];
+            const category = selectedOption ? selectedOption.dataset.category : '';
 
             if (amount > 0) {
                 totalRevenueIncome += amount;
 
-                if (selectedOption && selectedOption.dataset.category === 'online') {
+                if (category === 'online') {
                     onlinePlatformRevenue += amount;
+                }
+                
+                if (category === 'card') {
+                    creditCardRevenue += amount;
                 }
             }
         }
     });
 
-    // Calculate derived values
-    // Net sales = sum of revenues (calculated from revenue table above)
-    const netSales = totalRevenueIncome;
+    // Calculate Gross Sales = Total revenue + Total Amount of Coupons Received
+    const grossSales = totalRevenueIncome + couponsReceived;
+    
+    // Calculate Net Sales = Total revenue - Total Amount of Coupons Received - Adjustments: Overrings/Returns
+    const netSales = totalRevenueIncome - couponsReceived - adjustmentsOverrings;
     
     // Calculate 8.25% sales tax
     const tax = netSales * 0.0825 / 1.0825;
     const salesPreTax = netSales - tax;
     const averageTicket = totalCustomers > 0 ? netSales / totalCustomers : 0;
+    
+    // Auto-fill Credit Cards from card category revenues
+    const creditCardsInput = document.querySelector('input[name="credit_cards"]');
+    if (creditCardsInput) {
+        // Auto-fill Credit Cards unless user has manually edited it
+        const isManuallyEdited = creditCardsInput.dataset.manuallyEdited === 'true';
+        
+        if (!isManuallyEdited) {
+            if (creditCardRevenue > 0) {
+                creditCardsInput.value = creditCardRevenue.toFixed(2);
+                creditCardsInput.dataset.lastCalculated = creditCardRevenue.toFixed(2);
+                checkNegativeInputs();
+            } else if (creditCardRevenue === 0) {
+                creditCardsInput.value = '0.00';
+            }
+        } else {
+            creditCardsInput.dataset.lastCalculated = creditCardRevenue.toFixed(2);
+        }
+        
+        creditCards = parseFloat(creditCardsInput.value || 0);
+    }
     
     // Cash to account for = Net Sales - Transaction Expenses - Online Platform Revenue - Credit Cards
     // Formula: Net Sales - transaction expenses - online platforms - credit card
@@ -687,19 +747,59 @@ function calculateTotals() {
         over = actualDeposit - cashToAccountFor;
     }
 
+    // Helper function to format and color amounts
+    function formatAmount(amount, element, isNegative = false) {
+        const formatted = `$${Math.abs(amount).toFixed(2)}`;
+        if (amount < 0 || isNegative) {
+            element.textContent = `-${formatted}`;
+            element.classList.add('negative');
+            element.style.color = '#dc3545';
+        } else {
+            element.textContent = formatted;
+            element.classList.remove('negative');
+            element.style.color = '';
+        }
+    }
+    
+    // Helper function to format amount with HTML (for innerHTML)
+    function formatAmountHTML(amount) {
+        const absAmount = Math.abs(amount).toFixed(2);
+        const color = amount < 0 ? '#dc3545' : '';
+        const sign = amount < 0 ? '-' : '';
+        return `<strong style="color: ${color || ''}">${sign}$${absAmount}</strong>`;
+    }
+    
     // Update display
-    document.getElementById('totalPaidOuts').innerHTML = `<strong>$${totalPaidOuts.toFixed(2)}</strong>`;
-    document.getElementById('totalTransactionExpenses').textContent = `$${totalPaidOuts.toFixed(2)}`;
-    document.getElementById('totalPaidOuts2').textContent = `$${totalPaidOuts.toFixed(2)}`;
-    document.getElementById('onlineRevenue2').textContent = `$${onlinePlatformRevenue.toFixed(2)}`;
-    document.getElementById('netSales').textContent = `$${netSales.toFixed(2)}`;
-    document.getElementById('netSales2').textContent = `$${netSales.toFixed(2)}`;
-    document.getElementById('tax').textContent = `$${tax.toFixed(2)}`;
-    document.getElementById('salesPreTax').textContent = `$${salesPreTax.toFixed(2)}`;
+    document.getElementById('totalPaidOuts').innerHTML = formatAmountHTML(totalPaidOuts);
+    if (document.getElementById('totalTransactionExpenses')) {
+        formatAmount(totalPaidOuts, document.getElementById('totalTransactionExpenses'));
+    }
+    formatAmount(totalPaidOuts, document.getElementById('totalPaidOuts2'));
+    formatAmount(onlinePlatformRevenue, document.getElementById('onlineRevenue2'));
+    
+    // Update Gross Sales
+    if (document.getElementById('grossSales')) {
+        formatAmount(grossSales, document.getElementById('grossSales'));
+    }
+    if (document.getElementById('grossSalesHidden')) {
+        document.getElementById('grossSalesHidden').value = grossSales.toFixed(2);
+    }
+    
+    formatAmount(netSales, document.getElementById('netSales'));
+    formatAmount(netSales, document.getElementById('netSales2'));
+    formatAmount(tax, document.getElementById('tax'));
+    formatAmount(salesPreTax, document.getElementById('salesPreTax'));
+    
     document.getElementById('averageTicketInput').value = averageTicket.toFixed(2);
-    document.getElementById('cashToAccountFor').textContent = `$${cashToAccountFor.toFixed(2)}`;
-    document.getElementById('short').textContent = `$${short.toFixed(2)}`;
-    document.getElementById('over').textContent = `$${over.toFixed(2)}`;
+    if (averageTicket < 0) {
+        document.getElementById('averageTicketInput').classList.add('negative');
+    } else {
+        document.getElementById('averageTicketInput').classList.remove('negative');
+    }
+    
+    formatAmount(cashToAccountFor, document.getElementById('cashToAccountFor'));
+    formatAmount(short, document.getElementById('short'));
+    formatAmount(over, document.getElementById('over'));
 
         document.querySelector('.NetSales').value = netSales.toFixed(2);
     document.querySelector('.TaxInput').value = tax.toFixed(2);
@@ -781,14 +881,7 @@ function validateField(input) {
         message = 'Value cannot be negative';
     }
     
-    // Validate gross vs net sales
-    if (fieldName === 'net_sales') {
-        const grossSales = parseFloat(document.querySelector('input[name="gross_sales"]').value || 0);
-        if (value > grossSales) {
-            isValid = false;
-            message = 'Net sales cannot exceed gross sales';
-        }
-    }
+    // Validate gross vs net sales (removed since gross sales is now auto-calculated)
     
     // Show validation feedback
     if (isValid) {
@@ -822,7 +915,6 @@ function showTooltip(element, message) {
 document.addEventListener('DOMContentLoaded', function() {
     // Add event listeners for all inputs that affect calculations
     const inputs = [
-        'input[name="gross_sales"]',
         'input[name="coupons_received"]',
         'input[name="adjustments_overrings"]',
         'input[name="credit_cards"]',
@@ -835,6 +927,16 @@ document.addEventListener('DOMContentLoaded', function() {
         const elements = document.querySelectorAll(selector);
         elements.forEach(element => {
             element.addEventListener('input', function() {
+                // Mark credit cards as manually edited if user changes it
+                if (element.name === 'credit_cards') {
+                    const currentValue = parseFloat(element.value || 0);
+                    const lastCalculated = parseFloat(element.dataset.lastCalculated || 0);
+                    // If value changed significantly, mark as manually edited
+                    if (Math.abs(currentValue - lastCalculated) > 0.01) {
+                        element.dataset.manuallyEdited = 'true';
+                    }
+                }
+                checkNegativeInputs();
                 calculateTotals();
                 validateField(this);
             });
