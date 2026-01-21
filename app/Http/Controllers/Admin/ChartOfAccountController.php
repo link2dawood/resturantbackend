@@ -51,7 +51,7 @@ class ChartOfAccountController extends Controller
             });
         }
 
-        $coas = $query->orderBy('account_code')->paginate(25)->onEachSide(1)->withQueryString();
+        $coas = $query->orderBy('account_name')->paginate(25)->onEachSide(1)->withQueryString();
 
         $stores = Store::orderBy('store_info')->get(['id', 'store_info']);
 
@@ -139,13 +139,6 @@ class ChartOfAccountController extends Controller
      */
     public function update(UpdateChartOfAccountRequest $request, ChartOfAccount $chartOfAccount): RedirectResponse
     {
-        if ($chartOfAccount->is_system_account && ! $request->boolean('is_active', true)) {
-            return redirect()
-                ->back()
-                ->withErrors(['is_active' => 'System accounts cannot be deactivated.'])
-                ->withInput();
-        }
-
         $data = $request->validated();
 
         $chartOfAccount->update([
@@ -168,17 +161,11 @@ class ChartOfAccountController extends Controller
      */
     public function destroy(ChartOfAccount $chartOfAccount): RedirectResponse
     {
-        if ($chartOfAccount->is_system_account) {
-            return redirect()
-                ->route('coa.index')
-                ->withErrors(['error' => 'System accounts cannot be deactivated.']);
-        }
-
-        $chartOfAccount->update(['is_active' => false]);
+        $chartOfAccount->delete();
 
         return redirect()
             ->route('coa.index')
-            ->with('success', 'Chart of Account deactivated successfully.');
+            ->with('success', 'Chart of Account deleted successfully.');
     }
 
     /**

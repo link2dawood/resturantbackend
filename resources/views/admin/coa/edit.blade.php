@@ -86,11 +86,8 @@
                         </div>
 
                         <div class="form-check form-switch mb-3">
-                            <input class="form-check-input" type="checkbox" id="is_active" name="is_active" value="1" @checked(old('is_active', $chartOfAccount->is_active)) @disabled($chartOfAccount->is_system_account)>
+                            <input class="form-check-input" type="checkbox" id="is_active" name="is_active" value="1" @checked(old('is_active', $chartOfAccount->is_active))>
                             <label class="form-check-label" for="is_active">Active</label>
-                            @if($chartOfAccount->is_system_account)
-                                <div class="form-text text-muted">System accounts are always active and cannot be deactivated.</div>
-                            @endif
                             @error('is_active')
                                 <div class="text-danger small">{{ $message }}</div>
                             @enderror
