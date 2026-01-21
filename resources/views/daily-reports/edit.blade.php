@@ -337,6 +337,7 @@
         @method('PUT')
         
         <input type="hidden" name="store_id" value="{{ $dailyReport->store_id }}">
+        <input type="hidden" name="gross_sales" id="grossSalesHidden" value="0">
         <input type="hidden" class="NetSales" name="net_sales" value="">
         <input type="hidden" class="TaxInput" name="tax" value="">
         <input type="hidden" class="SalesInput" name="sales" value="">
@@ -577,15 +578,24 @@
                     <div class="col-8">
                         <table class="sales-table">
                             <tr>
-                                <td><strong>Gross Sales:</strong></td>
+                                <td>
+                                    <div style="display:flex;justify-content: space-between;align-items: center;">
+                                        <span><strong>Gross Sales:</strong></span>
+                                        <span style="width:30%;" id="grossSales" class="calculated-field number-input">$0.00</span>
+                                    </div>
+                                </td>
                                 <td></td>
-                                <td id="grossSales" class="calculated-field number-input">$0.00</td>
-                                <input type="hidden" name="gross_sales" id="grossSalesHidden" value="0">
+                                <td></td>
                             </tr>
                             <tr>
-                                <td><strong>Total Amount of Coupons Received:</strong></td>
+                                <td>
+                                    <div style="display:flex;justify-content: space-between;align-items: center;">
+                                        <span><strong>Total Amount of Coupons Received:</strong></span>
+                                        <span style="width:30%;"><input type="number" name="coupons_received" class="form-input number-input" step="0.01" value="{{ $dailyReport->coupons_received }}" style="background: white;"></span>
+                                    </div>
+                                </td>
                                 <td></td>
-                                <td><input type="number" name="coupons_received" class="form-input number-input" step="0.01" value="{{ $dailyReport->coupons_received }}"></td>
+                                <td></td>
                             </tr>
                             <tr>
                                 <td>
@@ -598,9 +608,14 @@
                                 <td></td>
                             </tr>
                             <tr>
-                                <td><strong>Adjustments: Overrings/Returns:</strong></td>
+                                <td>
+                                    <div style="display:flex;justify-content: space-between;align-items: center;">
+                                        <span><strong>Adjustments: Overrings/Returns:</strong></span>
+                                        <span style="width:30%;"><input type="number" name="adjustments_overrings" class="form-input number-input" step="0.01" value="{{ $dailyReport->adjustments_overrings }}" style="background: white;"></span>
+                                    </div>
+                                </td>
                                 <td></td>
-                                <td><input type="number" name="adjustments_overrings" class="form-input number-input" step="0.01" value="{{ $dailyReport->adjustments_overrings }}"></td>
+                                <td></td>
                             </tr>
                             <tr>
                                 <td rowspan="2">

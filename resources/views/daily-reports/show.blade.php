@@ -410,14 +410,24 @@
                 <div class="col-8">
                     <table class="sales-table">
                         <tr>
-                            <td><strong>Gross Sales:</strong></td>
+                            <td>
+                                <div style="display:flex;justify-content: space-between;align-items: center;">
+                                    <span><strong>Gross Sales:</strong></span>
+                                    <span style="width:30%;" class="number-input{{ $dailyReport->gross_sales < 0 ? ' negative' : '' }}">${{ number_format($dailyReport->gross_sales, 2) }}</span>
+                                </div>
+                            </td>
                             <td></td>
-                            <td class="number-input{{ $dailyReport->gross_sales < 0 ? ' negative' : '' }}">${{ number_format($dailyReport->gross_sales, 2) }}</td>
+                            <td></td>
                         </tr>
                         <tr>
-                            <td><strong>Total Amount of Coupons Received:</strong></td>
+                            <td>
+                                <div style="display:flex;justify-content: space-between;align-items: center;">
+                                    <span><strong>Total Amount of Coupons Received:</strong></span>
+                                    <span style="width:30%;" class="number-input{{ $dailyReport->coupons_received < 0 ? ' negative' : '' }}">${{ number_format($dailyReport->coupons_received, 2) }}</span>
+                                </div>
+                            </td>
                             <td></td>
-                            <td class="number-input{{ $dailyReport->coupons_received < 0 ? ' negative' : '' }}">${{ number_format($dailyReport->coupons_received, 2) }}</td>
+                            <td></td>
                         </tr>
                         <tr>
                             <td>
@@ -430,9 +440,14 @@
                             <td></td>
                         </tr>
                         <tr>
-                            <td><strong>Adjustments: Overrings/Returns:</strong></td>
+                            <td>
+                                <div style="display:flex;justify-content: space-between;align-items: center;">
+                                    <span><strong>Adjustments: Overrings/Returns:</strong></span>
+                                    <span style="width:30%;" class="number-input{{ $dailyReport->adjustments_overrings < 0 ? ' negative' : '' }}">${{ number_format($dailyReport->adjustments_overrings, 2) }}</span>
+                                </div>
+                            </td>
                             <td></td>
-                            <td class="number-input{{ $dailyReport->adjustments_overrings < 0 ? ' negative' : '' }}">${{ number_format($dailyReport->adjustments_overrings, 2) }}</td>
+                            <td></td>
                         </tr>
                         <tr>
                             <td rowspan="2">
