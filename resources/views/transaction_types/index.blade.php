@@ -36,7 +36,7 @@
     @endif
 
     <x-table 
-        :headers="['#', 'Category Transaction Type', 'Description Name', 'Default COA', ['label' => 'Actions', 'align' => 'center']]"
+        :headers="['#', 'Description Name', 'Category Transaction Type', 'Default COA', ['label' => 'Actions', 'align' => 'center']]"
         cardTitle="All Transaction Types"
         emptyMessage="No transaction types found"
         emptyDescription="Get started by creating your first transaction type."
@@ -47,6 +47,9 @@
                 <x-table-row>
                     <x-table-cell>
                         <span class="badge bg-light text-dark" style="font-size: 0.75rem;">{{ $type->id }}</span>
+                    </x-table-cell>
+                    <x-table-cell>
+                        <span class="badge bg-info text-white" style="font-size: 0.75rem;">{{ $type->name }}</span>
                     </x-table-cell>
                     <x-table-cell>
                         @php
@@ -68,9 +71,6 @@
                                 <small class="d-block text-muted mt-1" style="font-size: 0.7rem;">(Category - has children)</small>
                             @endif
                         </form>
-                    </x-table-cell>
-                    <x-table-cell>
-                        <span class="badge bg-info text-white" style="font-size: 0.75rem;">{{ $type->name }}</span>
                     </x-table-cell>
                     <x-table-cell>
                         @if($type->defaultCoa)
