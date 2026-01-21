@@ -13,8 +13,12 @@ class TransactionTypeController extends Controller
      */
     public function index()
     {
-        $transactionTypes = TransactionType::with('defaultCoa', 'parent', 'children')->get();
-        $parentTransactionTypes = TransactionType::whereNull('p_id')->get();
+        $transactionTypes = TransactionType::with('defaultCoa', 'parent', 'children')
+            ->orderBy('name')
+            ->get();
+        $parentTransactionTypes = TransactionType::whereNull('p_id')
+            ->orderBy('name')
+            ->get();
 
         return view('transaction_types.index', compact('transactionTypes', 'parentTransactionTypes'));
     }
