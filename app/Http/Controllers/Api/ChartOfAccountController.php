@@ -125,11 +125,6 @@ class ChartOfAccountController extends Controller
 
         $coa = ChartOfAccount::findOrFail($id);
 
-        // Prevent editing system accounts
-        if ($coa->is_system_account) {
-            return response()->json(['error' => 'Cannot edit system accounts'], 403);
-        }
-
         $validator = Validator::make($request->all(), [
             'account_code' => 'required|string|max:10|unique:chart_of_accounts,account_code,' . $id,
             'account_name' => 'required|string|max:100',
@@ -167,7 +162,7 @@ class ChartOfAccountController extends Controller
     }
 
     /**
-     * Soft delete (deactivate) the specified COA entry
+     * Delete the specified COA entry
      */
     public function destroy($id)
     {
@@ -178,21 +173,16 @@ class ChartOfAccountController extends Controller
 
         $coa = ChartOfAccount::findOrFail($id);
 
-        // Prevent deleting system accounts
-        if ($coa->is_system_account) {
-            return response()->json(['error' => 'Cannot delete system accounts'], 403);
-        }
-
         // Check if has transactions (we'll add this relationship later)
         // if ($coa->expenseTransactions()->exists()) {
         //     return response()->json(['error' => 'Cannot delete COA with linked transactions'], 403);
         // }
 
-        // Soft delete (deactivate)
-        $coa->update(['is_active' => false]);
+        // Hard delete
+        $coa->delete();
 
         return response()->json([
-            'message' => 'Chart of Account deactivated successfully'
+            'message' => 'Chart of Account deleted successfully'
         ]);
     }
 }

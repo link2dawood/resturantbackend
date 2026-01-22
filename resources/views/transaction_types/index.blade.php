@@ -36,7 +36,7 @@
     @endif
 
     <x-table 
-        :headers="['#', 'Description', 'Category type', 'Default COA', ['label' => 'Actions', 'align' => 'center']]"
+        :headers="['#', 'Description', 'Category type', 'Default COA', ['label' => 'Actions', 'align' => 'end']]"
         cardTitle="All Transaction Types"
         emptyMessage="No transaction types found"
         emptyDescription="Get started by creating your first transaction type."
@@ -81,12 +81,15 @@
                             <span class="text-muted" style="font-size: 0.813rem;">Not assigned</span>
                         @endif
                     </x-table-cell>
-                    <x-table-cell align="center">
-                        <x-button-group-actions
-                            viewHref="{{ route('transaction-types.show', $type->id) }}"
-                            editHref="{{ route('transaction-types.edit', $type->id) }}"
-                            showDelete="false"
-                        />
+                    <x-table-cell align="end">
+                        <div class="d-flex gap-1 justify-content-end">
+                            <x-button-view href="{{ route('transaction-types.show', $type->id) }}" iconOnly="true" />
+                            <x-button-edit href="{{ route('transaction-types.edit', $type->id) }}" iconOnly="true" />
+                            <x-button-delete 
+                                action="{{ route('transaction-types.destroy', $type->id) }}" 
+                                iconOnly="true" 
+                                confirmMessage="Are you sure you want to delete this transaction type? This action cannot be undone." />
+                        </div>
                     </x-table-cell>
                 </x-table-row>
             @endforeach

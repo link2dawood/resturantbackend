@@ -30,7 +30,7 @@
             'Category',
             'Sort Order',
             'Status',
-            ['label' => 'Actions', 'align' => 'center']
+            ['label' => 'Actions', 'align' => 'end']
         ];
     @endphp
 
@@ -63,8 +63,15 @@
                             <span class="badge bg-secondary">Inactive</span>
                         @endif
                     </x-table-cell>
-                    <x-table-cell align="center">
-                        <x-button-view href="{{ route('revenue-income-types.show', $type) }}" iconOnly="true" />
+                    <x-table-cell align="end">
+                        <div class="d-flex gap-1 justify-content-end">
+                            <x-button-view href="{{ route('revenue-income-types.show', $type) }}" iconOnly="true" />
+                            <x-button-edit href="{{ route('revenue-income-types.edit', $type) }}" iconOnly="true" />
+                            <x-button-delete 
+                                action="{{ route('revenue-income-types.destroy', $type) }}" 
+                                iconOnly="true" 
+                                confirmMessage="Are you sure you want to delete this revenue income type? This action cannot be undone." />
+                        </div>
                     </x-table-cell>
                 </x-table-row>
             @endforeach
