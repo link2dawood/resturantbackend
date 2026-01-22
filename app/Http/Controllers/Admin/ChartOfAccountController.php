@@ -152,7 +152,7 @@ class ChartOfAccountController extends Controller
         $this->syncStoreAssignments($chartOfAccount, $data);
 
         return redirect()
-            ->route('coa.index')
+            ->route('coa.edit', $chartOfAccount)
             ->with('success', 'Chart of Account updated successfully.');
     }
 

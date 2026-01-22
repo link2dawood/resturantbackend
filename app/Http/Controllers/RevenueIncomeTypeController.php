@@ -63,7 +63,7 @@ class RevenueIncomeTypeController extends Controller
 
         $revenueIncomeType->update($validated);
 
-        return redirect()->route('revenue-income-types.index')
+        return redirect()->route('revenue-income-types.edit', $revenueIncomeType)
             ->with('success', 'Revenue income type updated successfully.');
     }
 

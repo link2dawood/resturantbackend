@@ -92,7 +92,7 @@ class TransactionTypeController extends Controller
 
         $transactionType->update($request->only(['name', 'p_id', 'default_coa_id']));
 
-        return redirect()->route('transaction-types.index')->with('success', 'Transaction Type updated successfully.');
+        return redirect()->route('transaction-types.edit', $transactionType)->with('success', 'Transaction Type updated successfully.');
     }
 
     /**
