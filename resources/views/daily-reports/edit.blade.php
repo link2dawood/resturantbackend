@@ -156,6 +156,20 @@
         transform: translateY(-1px);
     }
     
+    .btn-remove {
+        background: #dc3545;
+        color: white;
+        border: none;
+        padding: 6px 10px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
+    }
+    
+    .btn-remove:hover {
+        background: #c82333;
+    }
+    
     .btn-remove-row {
         background: #dc3545;
         color: white;
@@ -1229,6 +1243,28 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+    
+    // Add revenue row button
+    const addRevenueBtn = document.getElementById('addRevenueRow');
+    if (addRevenueBtn) {
+        addRevenueBtn.addEventListener('click', addRevenueRow);
+    }
+    
+    // Initial revenue amount listeners
+    document.querySelectorAll('.revenue-amount').forEach(input => {
+        input.addEventListener('input', function() {
+            calculateRevenueTotals();
+            calculateTotals(); // Also trigger main calculation
+        });
+    });
+
+    // Initial revenue type change listeners
+    document.querySelectorAll('select[name*="revenue_income_type_id"]').forEach(select => {
+        select.addEventListener('change', function() {
+            calculateRevenueTotals();
+            calculateTotals(); // Also trigger main calculation
+        });
+    });
     
     // Initial calculation
     calculateTotals();

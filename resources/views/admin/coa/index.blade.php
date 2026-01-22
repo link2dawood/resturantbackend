@@ -138,9 +138,9 @@
                         <div class="d-flex gap-1 justify-content-end">
                             <x-button-view href="{{ route('coa.show', $coa) }}" iconOnly="true" />
                             <x-button-edit href="{{ route('coa.edit', $coa) }}" iconOnly="true" />
-                            <x-button-delete 
-                                action="{{ route('coa.destroy', $coa) }}" 
-                                iconOnly="true" 
+                                <x-button-delete 
+                                    action="{{ route('coa.destroy', $coa) }}" 
+                                    iconOnly="true" 
                                 confirmMessage="Are you sure you want to delete this account? This action cannot be undone." />
                         </div>
                     </x-table-cell>

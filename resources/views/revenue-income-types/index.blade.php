@@ -65,7 +65,7 @@
                     </x-table-cell>
                     <x-table-cell align="end">
                         <div class="d-flex gap-1 justify-content-end">
-                            <x-button-view href="{{ route('revenue-income-types.show', $type) }}" iconOnly="true" />
+                        <x-button-view href="{{ route('revenue-income-types.show', $type) }}" iconOnly="true" />
                             <x-button-edit href="{{ route('revenue-income-types.edit', $type) }}" iconOnly="true" />
                             <x-button-delete 
                                 action="{{ route('revenue-income-types.destroy', $type) }}" 

@@ -123,6 +123,20 @@
         transform: translateY(-1px);
     }
     
+    .btn-remove {
+        background: #dc3545;
+        color: white;
+        border: none;
+        padding: 6px 10px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
+    }
+    
+    .btn-remove:hover {
+        background: #c82333;
+    }
+    
     .btn-remove-row {
         background: #dc3545;
         color: white;
@@ -773,7 +787,7 @@ function calculateTotals() {
         const sign = amount < 0 ? '-' : '';
         return `<strong style="color: ${color || ''}">${sign}$${absAmount}</strong>`;
     }
-    
+
     // Update display
     document.getElementById('totalPaidOuts').innerHTML = formatAmountHTML(totalPaidOuts);
     if (document.getElementById('totalTransactionExpenses')) {
