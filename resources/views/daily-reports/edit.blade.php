@@ -326,12 +326,63 @@
         color: white;
     }
 </style>
-<div class="container-fluid mt-4" style="max-width: 95%; margin-left: auto; margin-right: auto;">
-    <div class="export-buttons">
+<div class="container-fluid p-4">
+    @if($errors->any())
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <h5 class="alert-heading">⚠️ Please Review and Fix the Following Issues:</h5>
+            <ul class="mb-0">
+                @foreach($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    @if(session('warning'))
+        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+            <strong>⚠️ Warning:</strong> {{ session('warning') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    @if(session('success'))
+        <div class="alert alert-success">
+            {{ session('success') }}
+        </div>
+    @endif
+
+    <div class="export-buttons" style="margin-bottom: 20px;">
         <a href="{{ route('daily-reports.show', $dailyReport) }}" class="export-btn export-btn-back">
             ← Cancel
         </a>
     </div>
+
+    <select id="transactionTypeTemplate" style="display:none;">
+        <option value="">Select Type</option>
+        @foreach($types as $type)
+            <option value="{{ $type->id }}">{{ $type->name }}</option>
+        @endforeach
+    </select>
+
+    <select id="revenueTypeTemplate" style="display:none;">
+        @foreach($revenueTypes as $revenueType)
+            <option value="{{ $revenueType->id }}" data-category="{{ $revenueType->category }}">{{ $revenueType->name }}</option>
+        @endforeach
+    </select>
+
+    <select id="vendorTemplate" style="display:none;">
+        <option value="">Select Company</option>
+        <option value="__create_new__">+ Create New Company</option>
+        @foreach($vendors as $vendor)
+            <option value="{{ $vendor->id }}" 
+                    data-vendor-name="{{ $vendor->vendor_name }}"
+                    data-transaction-type-id="{{ $vendor->default_transaction_type_id }}">
+                {{ $vendor->vendor_name }}
+            </option>
+        @endforeach
+    </select>
+
     <form id="dailyReportForm" method="POST" action="{{ route('daily-reports.update', $dailyReport) }}">
         @csrf
         @method('PUT')
@@ -378,25 +429,36 @@
                                             <input type="number" class="form-input" name="transactions[{{ $index }}][transaction_id]" value="{{ $transaction->transaction_id }}">
                                         </td>
                                         <td>
-                                            <input type="text" class="form-input" name="transactions[{{ $index }}][company]" value="{{ $transaction->company }}">
+                                            <select class="form-input vendor-select" name="transactions[{{ $index }}][company]" data-row="{{ $index }}" onchange="handleVendorChange(this)">
+                                                <option value="">Select Company</option>
+                                                <option value="__create_new__">+ Create New Company</option>
+                                                @foreach($vendors as $vendor)
+                                                    <option value="{{ $vendor->id }}" 
+                                                            data-vendor-name="{{ $vendor->vendor_name }}"
+                                                            data-transaction-type-id="{{ $vendor->default_transaction_type_id }}"
+                                                            {{ $transaction->company == $vendor->vendor_name ? 'selected' : '' }}>
+                                                        {{ $vendor->vendor_name }}
+                                                    </option>
+                                                @endforeach
+                                                @if($transaction->company && !$vendors->contains('vendor_name', $transaction->company))
+                                                    <option value="{{ $transaction->company }}" selected>{{ $transaction->company }}</option>
+                                                @endif
+                                            </select>
+                                            <input type="hidden" name="transactions[{{ $index }}][vendor_id]" class="vendor-id-input" value="{{ $transaction->vendor_id ?? '' }}">
                                         </td>
                                         <td>
-                                            <select class="form-input" name="transactions[{{ $index }}][transaction_type_id]">
+                                            <select class="form-input transaction-type-select" name="transactions[{{ $index }}][transaction_type]" data-row="{{ $index }}">
                                                 <option value="">Select Type</option>
                                                 @foreach($types as $type)
-                                                    <option value="{{ $type->id }}" {{ $transaction->transaction_type_id == $type->id ? 'selected' : '' }}>{{ $type->description_name }}</option>
+                                                    <option value="{{ $type->id }}" {{ $transaction->transaction_type_id == $type->id ? 'selected' : '' }}>{{ $type->name }}</option>
                                                 @endforeach
                                             </select>
                                         </td>
                                         <td>
-                                            <input type="number" class="form-input number-input" name="transactions[{{ $index }}][amount]" step="0.01" value="{{ $transaction->amount }}">
+                                            <input type="number" class="form-input number-input" name="transactions[{{ $index }}][amount]" min="0" step="0.01" value="{{ $transaction->amount }}">
                                         </td>
                                         <td>
-                                            @if($loop->first)
-                                                <button type="button" class="btn-add-row" onclick="addTransactionRow()">+</button>
-                                            @else
-                                                <button type="button" class="btn-remove-row" onclick="removeTransactionRow(this)">×</button>
-                                            @endif
+                                            <button type="button" class="btn-remove" onclick="removeTransactionRow(this)">×</button>
                                         </td>
                                     </tr>
                                 @endforeach
@@ -407,21 +469,32 @@
                                             <input type="number" class="form-input" name="transactions[0][transaction_id]" value="1">
                                         </td>
                                         <td>
-                                            <input type="text" class="form-input" name="transactions[0][company]" placeholder="Company name">
+                                            <select class="form-input vendor-select" name="transactions[0][company]" data-row="0" onchange="handleVendorChange(this)">
+                                                <option value="">Select Company</option>
+                                                <option value="__create_new__">+ Create New Company</option>
+                                                @foreach($vendors as $vendor)
+                                                    <option value="{{ $vendor->id }}" 
+                                                            data-vendor-name="{{ $vendor->vendor_name }}"
+                                                            data-transaction-type-id="{{ $vendor->default_transaction_type_id }}">
+                                                        {{ $vendor->vendor_name }}
+                                                    </option>
+                                                @endforeach
+                                            </select>
+                                            <input type="hidden" name="transactions[0][vendor_id]" class="vendor-id-input" value="">
                                         </td>
                                         <td>
-                                            <select class="form-input" name="transactions[0][transaction_type_id]">
+                                            <select class="form-input transaction-type-select" name="transactions[0][transaction_type]" data-row="0">
                                                 <option value="">Select Type</option>
                                                 @foreach($types as $type)
-                                                    <option value="{{ $type->id }}">{{ $type->description_name }}</option>
+                                                    <option value="{{ $type->id }}">{{ $type->name }}</option>
                                                 @endforeach
                                             </select>
                                         </td>
                                         <td>
-                                            <input type="number" class="form-input number-input" name="transactions[0][amount]" step="0.01" placeholder="0.00">
+                                            <input type="number" class="form-input number-input" name="transactions[0][amount]" min="0" step="0.01" placeholder="0.00">
                                         </td>
                                         <td>
-                                            <button type="button" class="btn-add-row" onclick="addTransactionRow()">+</button>
+                                            <button type="button" class="btn-remove" onclick="removeTransactionRow(this)">×</button>
                                         </td>
                                     </tr>
                                 @endif
@@ -433,10 +506,11 @@
                                 </tr>
                             </tbody>
                         </table>
+                        <button type="button" id="addTransactionRow" class="btn-add-row" style="margin-top: 10px;">+ Add Transaction</button>
                         <div style="margin-top: 8px; padding: 8px; background: #fff3cd; border-radius: 4px; border: 1px solid #ffeaa7;">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
                                 <span style="font-weight: 600; color: #856404;">Total Transaction Expenses:</span>
-                                <span id="totalPaidOutsDisplay" style="font-weight: 600; color: #856404; font-size: 1.1rem;">$0.00</span>
+                                <span id="totalTransactionExpenses" style="font-weight: 600; color: #856404; font-size: 1.1rem;">$0.00</span>
                             </div>
                         </div>
                     </div>
@@ -445,7 +519,10 @@
                         <div class="side-panel">
                             <div class="form-group">
                                 <label>Date:</label>
-                                <input type="text" name="report_date" class="form-control date-input" value="{{ $dailyReport->report_date->format('m-d-Y') }}" placeholder="MM-DD-YYYY" maxlength="10" required>
+                                <input type="text" name="report_date" class="form-control date-input bg-light" value="{{ $dailyReport->report_date->format('m-d-Y') }}" placeholder="MM-DD-YYYY" maxlength="10" required readonly>
+                                <small class="text-muted">
+                                    <i class="fas fa-lock me-1"></i>Date cannot be changed
+                                </small>
                             </div>
                             <div class="form-group">
                                 <label>Weather:</label>
@@ -457,12 +534,12 @@
                             </div>
                         </div>
                         
-                        <div class="category-labels">
+                        <!-- <div class="category-labels">
                             <div class="category">Accounting</div>
                             <div class="category">Food Cost</div>
                             <div class="category">Rent</div>
                             <div class="category">Taxes</div>
-                        </div>
+                        </div> -->
                     </div>
                 </div>
             </div>
@@ -477,7 +554,8 @@
                                 <tr>
                                     <th style="width: 30%;">Revenue Type</th>
                                     <th style="width: 20%;">Amount ($)</th>
-                                    <th style="width: 50%;">Notes</th>
+                                    <th style="width: 35%;">Notes</th>
+                                    <th style="width: 15%;">Action</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -497,12 +575,8 @@
                                         <td>
                                             <input type="text" class="form-input" name="revenues[{{ $index }}][notes]" value="{{ $revenue->notes }}" placeholder="Optional notes">
                                         </td>
-                                        <td style="display: none;">
-                                            @if($loop->first)
-                                                <button type="button" class="btn-add-row" onclick="addRevenueRow()">+</button>
-                                            @else
-                                                <button type="button" class="btn-remove-row" onclick="removeRevenueRow(this)">×</button>
-                                            @endif
+                                        <td>
+                                            <button type="button" class="btn-remove" onclick="removeRevenueRow(this)">×</button>
                                         </td>
                                     </tr>
                                 @endforeach
@@ -523,13 +597,14 @@
                                         <td>
                                             <input type="text" class="form-input" name="revenues[0][notes]" placeholder="Optional notes">
                                         </td>
-                                        <td style="display: none;">
-                                            <button type="button" class="btn-add-row" onclick="addRevenueRow()">+</button>
+                                        <td>
+                                            <button type="button" class="btn-remove" onclick="removeRevenueRow(this)">×</button>
                                         </td>
                                     </tr>
                                 @endif
                             </tbody>
                         </table>
+                        <button type="button" id="addRevenueRow" class="btn-add-row" style="margin-top: 10px;">+ Add Revenue Entry</button>
                         <div style="margin-top: 8px; padding: 8px; background: #f8f9fa; border-radius: 4px;">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
                                 <span style="font-weight: 600; color: #495057;">Total Revenue Income:</span>
@@ -691,8 +766,8 @@
 </div>
 
 <script>
-let transactionCount = {{ $dailyReport->transactions->count() }};
-let revenueCount = {{ $dailyReport->revenues->count() }};
+let transactionCount = {{ $dailyReport->transactions->count() > 0 ? $dailyReport->transactions->count() : 1 }};
+let revenueCount = {{ $dailyReport->revenues->count() > 0 ? $dailyReport->revenues->count() : 1 }};
 
 // Auto-calculation functions
 function calculateTotals() {
@@ -702,36 +777,34 @@ function calculateTotals() {
     let creditCards = parseFloat(document.querySelector('input[name="credit_cards"]').value || 0);
     const actualDeposit = parseFloat(document.querySelector('input[name="actual_deposit"]').value || 0);
 
-    // Calculate total paid outs from transactions
+    // Calculate total paid outs from transactions (Transaction Expenses)
     let totalPaidOuts = 0;
-    document.querySelectorAll('input[name*="transactions"][name*="[amount]"]').forEach(input => {
+    document.querySelectorAll('#transactionTable input[name*="[amount]"]').forEach(input => {
         totalPaidOuts += parseFloat(input.value || 0);
     });
 
-    // Calculate revenue totals
-    let totalRevenueEntries = 0;
+    // Get revenue totals (already calculated separately)
+    let totalRevenueIncome = 0;
     let onlinePlatformRevenue = 0;
     let creditCardRevenue = 0;
+
+    // Calculate revenue totals for this function
     document.querySelectorAll('#revenueTable tbody tr').forEach(row => {
-        const amountInput = row.querySelector('input[name*="revenues"][name*="[amount]"]');
-        const selectElement = row.querySelector('select[name*="[revenue_income_type_id]"]');
-        
+        const amountInput = row.querySelector('.revenue-amount');
+        const selectElement = row.querySelector('select[name*="revenue_income_type_id"]');
+
         if (amountInput && selectElement && selectElement.selectedIndex > 0) {
             const amount = parseFloat(amountInput.value || 0);
-            
+            const selectedOption = selectElement.options[selectElement.selectedIndex];
+            const category = selectedOption ? selectedOption.dataset.category : '';
+
             if (amount > 0) {
-                totalRevenueEntries += amount;
-                
-                // Check the category of the revenue
-                const selectedOption = selectElement.options[selectElement.selectedIndex];
-                const category = selectedOption ? selectedOption.dataset.category : '';
-                
-                // Check if this is an online platform revenue
+                totalRevenueIncome += amount;
+
                 if (category === 'online') {
                     onlinePlatformRevenue += amount;
                 }
                 
-                // Check if this is a credit card revenue
                 if (category === 'card') {
                     creditCardRevenue += amount;
                 }
@@ -740,10 +813,10 @@ function calculateTotals() {
     });
 
     // Gross Sales = Total Revenue Entries + Coupons Received
-    const grossSales = totalRevenueEntries + couponsReceived;
+    const grossSales = totalRevenueIncome + couponsReceived;
     
     // Net Sales = Total Revenue Entries - Coupons Received - Adjustments: Overrings/Returns
-    const netSales = totalRevenueEntries - couponsReceived - adjustmentsOverrings;
+    const netSales = totalRevenueIncome - couponsReceived - adjustmentsOverrings;
     
     // Tax = Net Sales × 0.0825 / 1.0825
     const tax = netSales * 0.0825 / 1.0825;
@@ -758,10 +831,6 @@ function calculateTotals() {
     // Auto-fill Credit Cards from card category revenues
     const creditCardsInput = document.querySelector('input[name="credit_cards"]');
     if (creditCardsInput) {
-        // Store the original value before auto-fill
-        const originalValue = parseFloat(creditCardsInput.dataset.originalValue || creditCardsInput.value || 0);
-        const currentValue = parseFloat(creditCardsInput.value || 0);
-        
         // Auto-fill Credit Cards unless user has manually edited it
         const isManuallyEdited = creditCardsInput.dataset.manuallyEdited === 'true';
         
@@ -769,18 +838,14 @@ function calculateTotals() {
             if (creditCardRevenue > 0) {
                 creditCardsInput.value = creditCardRevenue.toFixed(2);
                 creditCardsInput.dataset.lastCalculated = creditCardRevenue.toFixed(2);
-                // Trigger color check for negative values
                 checkNegativeInputs();
-            } else if (creditCardRevenue === 0 && currentValue === 0) {
-                // Keep it at 0 if no card revenue
+            } else if (creditCardRevenue === 0) {
                 creditCardsInput.value = '0.00';
             }
         } else {
-            // Update last calculated value for reference
             creditCardsInput.dataset.lastCalculated = creditCardRevenue.toFixed(2);
         }
         
-        // Update creditCards variable for cash calculation
         creditCards = parseFloat(creditCardsInput.value || 0);
     }
     
@@ -868,7 +933,7 @@ function calculateTotals() {
     
     // Update revenue totals
     if (document.getElementById('totalRevenue')) {
-        formatAmount(totalRevenueEntries, document.getElementById('totalRevenue'));
+        formatAmount(totalRevenueIncome, document.getElementById('totalRevenue'));
     }
     if (document.getElementById('onlineRevenue')) {
         formatAmount(onlinePlatformRevenue, document.getElementById('onlineRevenue'));
@@ -888,38 +953,35 @@ function addTransactionRow() {
     const tbody = document.querySelector('#transactionTable tbody');
     const totalRow = tbody.querySelector('.total-row');
 
-    // Get dynamic options from hidden select
-    const optionsHtml = document.getElementById('transactionTypeTemplate').innerHTML;
-    
     const newRow = document.createElement('tr');
     newRow.innerHTML = `
         <td>
             <input type="number" class="form-input" name="transactions[${transactionCount}][transaction_id]" value="${transactionCount + 1}">
         </td>
         <td>
-            <input type="text" class="form-input" name="transactions[${transactionCount}][company]" placeholder="Company name">
+            <select class="form-input vendor-select" name="transactions[${transactionCount}][company]" data-row="${transactionCount}" onchange="handleVendorChange(this)">
+                ${document.getElementById('vendorTemplate').innerHTML}
+            </select>
+            <input type="hidden" name="transactions[${transactionCount}][vendor_id]" class="vendor-id-input" value="">
         </td>
         <td>
-            <select class="form-input" name="transactions[${transactionCount}][transaction_type_id]">
-                ${optionsHtml}
+            <select class="form-input transaction-type-select" name="transactions[${transactionCount}][transaction_type]" data-row="${transactionCount}">
+                ${document.getElementById('transactionTypeTemplate').innerHTML}
             </select>
         </td>
         <td>
-            <input type="number" class="form-input number-input" name="transactions[${transactionCount}][amount]" step="0.01" placeholder="0.00">
+            <input type="number" class="form-input number-input" name="transactions[${transactionCount}][amount]" min="0" step="0.01" placeholder="0.00">
         </td>
         <td>
-            <button type="button" class="btn-remove-row" onclick="removeTransactionRow(this)">×</button>
+            <button type="button" class="btn-remove" onclick="removeTransactionRow(this)">×</button>
         </td>
     `;
-    
+
     tbody.insertBefore(newRow, totalRow);
     transactionCount++;
-    
-    // Add event listener for the new amount input
-    const amountInput = newRow.querySelector('input[name*="[amount]"]');
-    if (amountInput) {
-        amountInput.addEventListener('input', calculateTotals);
-    }
+
+    // attach input listener for totals
+    newRow.querySelector('input[name*="[amount]"]').addEventListener('input', calculateTotals);
 }
 
 function removeTransactionRow(button) {
@@ -931,15 +993,15 @@ function removeTransactionRow(button) {
 
 function addRevenueRow() {
     const tbody = document.querySelector('#revenueTable tbody');
-
-    // Get dynamic options from hidden select
-    const optionsHtml = document.getElementById('revenueTypeTemplate').innerHTML;
+    
+    // Get revenue type options from the first row
+    const firstSelect = tbody.querySelector('select[name*="revenue_income_type_id"]');
+    const optionsHtml = firstSelect ? firstSelect.innerHTML : '';
     
     const newRow = document.createElement('tr');
     newRow.innerHTML = `
         <td>
             <select class="form-input" name="revenues[${revenueCount}][revenue_income_type_id]">
-                <option value="">Select Revenue Type</option>
                 ${optionsHtml}
             </select>
         </td>
@@ -947,33 +1009,160 @@ function addRevenueRow() {
             <input type="number" class="form-input revenue-amount" name="revenues[${revenueCount}][amount]" step="0.01" min="0" placeholder="0.00">
         </td>
         <td>
-            <input type="text" class="form-input" name="revenues[${revenueCount}][notes]" placeholder="Notes (optional)">
+            <input type="text" class="form-input" name="revenues[${revenueCount}][notes]" placeholder="Optional notes">
         </td>
-        <td style="display: none;">
-            <button type="button" class="btn-remove-row" onclick="removeRevenueRow(this)">×</button>
+        <td>
+            <button type="button" class="btn-remove" onclick="removeRevenueRow(this)">×</button>
         </td>
     `;
     
     tbody.appendChild(newRow);
     revenueCount++;
     
-    // Add event listeners for the new revenue row
-    const amountInput = newRow.querySelector('.revenue-amount');
-    const selectInput = newRow.querySelector('select[name*="[revenue_income_type_id]"]');
-    
-    if (amountInput) {
-        amountInput.addEventListener('input', calculateTotals);
-    }
-    if (selectInput) {
-        selectInput.addEventListener('change', calculateTotals);
-    }
+    // Attach event listeners
+    newRow.querySelector('.revenue-amount').addEventListener('input', function() {
+        calculateRevenueTotals();
+        calculateTotals(); // Also trigger main calculation
+    });
+    newRow.querySelector('select').addEventListener('change', function() {
+        calculateRevenueTotals();
+        calculateTotals(); // Also trigger main calculation
+    });
 }
 
 function removeRevenueRow(button) {
     if (document.querySelectorAll('#revenueTable tbody tr').length > 1) {
         button.closest('tr').remove();
+        calculateRevenueTotals();
         calculateTotals();
     }
+}
+
+// Revenue totals calculation (separate function)
+function calculateRevenueTotals() {
+    let totalRevenueIncome = 0;
+    let onlinePlatformRevenue = 0;
+
+    document.querySelectorAll('#revenueTable tbody tr').forEach(row => {
+        const amountInput = row.querySelector('.revenue-amount');
+        const selectElement = row.querySelector('select[name*="revenue_income_type_id"]');
+
+        if (amountInput && selectElement && selectElement.selectedIndex > 0) {
+            const amount = parseFloat(amountInput.value || 0);
+            const selectedOption = selectElement.options[selectElement.selectedIndex];
+            const category = selectedOption ? selectedOption.dataset.category : '';
+
+            if (amount > 0) {
+                totalRevenueIncome += amount;
+
+                if (category === 'online') {
+                    onlinePlatformRevenue += amount;
+                }
+            }
+        }
+    });
+
+    // Update display
+    if (document.getElementById('totalRevenue')) {
+        const element = document.getElementById('totalRevenue');
+        const formatted = `$${Math.abs(totalRevenueIncome).toFixed(2)}`;
+        element.textContent = formatted;
+        element.style.color = totalRevenueIncome < 0 ? '#dc3545' : '#28a745';
+    }
+    
+    if (document.getElementById('onlineRevenue')) {
+        const element = document.getElementById('onlineRevenue');
+        const formatted = `$${Math.abs(onlinePlatformRevenue).toFixed(2)}`;
+        element.textContent = formatted;
+        element.style.color = onlinePlatformRevenue < 0 ? '#dc3545' : '#17a2b8';
+    }
+}
+
+// Handle vendor change
+window.handleVendorChange = function(selectElement) {
+    const row = selectElement.getAttribute('data-row');
+    const selectedValue = selectElement.value;
+    
+    if (selectedValue === '__create_new__') {
+        openCreateVendorModal(row, selectElement);
+        return;
+    }
+    
+    // Find the vendor option
+    const selectedOption = selectElement.options[selectElement.selectedIndex];
+    if (selectedOption && selectedValue && selectedValue !== '__create_new__') {
+        const vendorName = selectedOption.dataset.vendorName || selectedOption.textContent;
+        const transactionTypeId = selectedOption.dataset.transactionTypeId;
+        
+        // Update the company name in the select (for display)
+        // The value is already set to vendor ID
+        
+        // Update vendor_id hidden input
+        const rowElement = selectElement.closest('tr');
+        const vendorIdInput = rowElement.querySelector('.vendor-id-input');
+        if (vendorIdInput) {
+            vendorIdInput.value = selectedValue;
+        }
+        
+        // Auto-fill transaction type if available
+        if (transactionTypeId) {
+            const transactionTypeSelect = rowElement.querySelector('.transaction-type-select');
+            if (transactionTypeSelect) {
+                transactionTypeSelect.value = transactionTypeId;
+            }
+        }
+    }
+};
+
+// Input validation and formatting
+function formatCurrency(input) {
+    let value = parseFloat(input.value);
+    if (isNaN(value)) value = 0;
+    input.value = value.toFixed(2);
+}
+
+function validateField(input) {
+    const value = parseFloat(input.value || 0);
+    const fieldName = input.name;
+    
+    // Clear previous error styling
+    input.classList.remove('is-invalid', 'is-valid');
+    
+    let isValid = true;
+    let message = '';
+    
+    // Validate negative values
+    if (value < 0 && !fieldName.includes('short')) {
+        isValid = false;
+        message = 'Value cannot be negative';
+    }
+    
+    // Show validation feedback
+    if (isValid) {
+        input.classList.add('is-valid');
+    } else {
+        input.classList.add('is-invalid');
+        showTooltip(input, message);
+    }
+    
+    return isValid;
+}
+
+function showTooltip(element, message) {
+    // Remove existing tooltip
+    const existingTooltip = element.parentNode.querySelector('.validation-tooltip');
+    if (existingTooltip) existingTooltip.remove();
+    
+    // Create tooltip
+    const tooltip = document.createElement('div');
+    tooltip.className = 'validation-tooltip alert alert-danger p-2 mt-1';
+    tooltip.textContent = message;
+    tooltip.style.fontSize = '0.8rem';
+    
+    element.parentNode.appendChild(tooltip);
+    
+    // Auto-hide after 5 seconds
+    setTimeout(() => tooltip.remove(), 5000);
 }
 
 // Function to check and color negative inputs
@@ -995,12 +1184,12 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Add event listeners for all inputs that affect calculations
     const inputs = [
-        'input[name="coupons_received"]', 
+        'input[name="coupons_received"]',
         'input[name="adjustments_overrings"]',
         'input[name="credit_cards"]',
         'input[name="actual_deposit"]',
-        'input[name*="transactions"][name*="[amount]"]',
-        'input[name*="revenues"][name*="[amount]"]'
+        'input[name="total_customers"]',
+        'input[name*="[amount]"]'
     ];
     
     inputs.forEach(selector => {
@@ -1018,23 +1207,176 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 checkNegativeInputs();
                 calculateTotals();
+                validateField(this);
+            });
+            
+            element.addEventListener('blur', function() {
+                if (this.type === 'number') {
+                    formatCurrency(this);
+                }
             });
         });
     });
-
-    // Add event listeners for revenue amount inputs
-    document.querySelectorAll('#revenueTable input[name*="revenues"][name*="[amount]"]').forEach(input => {
-        input.addEventListener('input', calculateTotals);
-    });
-
-    // Add event listeners for revenue type selects
-    document.querySelectorAll('#revenueTable select[name*="[revenue_income_type_id]"]').forEach(select => {
-        select.addEventListener('change', calculateTotals);
-    });
+    
+    // Add loading state to form submission
+    const form = document.getElementById('dailyReportForm');
+    if (form) {
+        form.addEventListener('submit', function() {
+            const submitBtn = form.querySelector('button[type="submit"]');
+            if (submitBtn) {
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
+                submitBtn.disabled = true;
+            }
+        });
+    }
     
     // Initial calculation
     calculateTotals();
+    calculateRevenueTotals();
 });
+
+window.openCreateVendorModal = function(row, selectElement) {
+    // Store the row and select element for later use
+    window.currentVendorRow = row;
+    window.currentVendorSelect = selectElement;
+    
+    // Reset modal form
+    document.getElementById('newVendorName').value = '';
+    document.getElementById('newVendorType').value = '';
+    document.getElementById('newVendorTransactionType').value = '';
+    document.getElementById('newVendorCoa').value = '';
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('createVendorModal'));
+    modal.show();
+}
+
+// Save new vendor
+window.saveNewVendor = async function() {
+    const vendorName = document.getElementById('newVendorName').value.trim();
+    const vendorType = document.getElementById('newVendorType').value;
+    const transactionTypeId = document.getElementById('newVendorTransactionType').value;
+    const coaId = document.getElementById('newVendorCoa').value;
+    
+    if (!vendorName) {
+        alert('Please enter a vendor name');
+        return;
+    }
+    
+    if (!vendorType) {
+        alert('Please select a vendor type');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/vendors', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+            },
+            body: JSON.stringify({
+                vendor_name: vendorName,
+                vendor_type: vendorType,
+                default_transaction_type_id: transactionTypeId || null,
+                default_coa_id: coaId || null
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            // Add new vendor to dropdown
+            const vendorTemplate = document.getElementById('vendorTemplate');
+            const newOption = document.createElement('option');
+            newOption.value = data.id;
+            newOption.setAttribute('data-vendor-name', data.vendor_name);
+            newOption.setAttribute('data-transaction-type-id', data.default_transaction_type_id || '');
+            newOption.textContent = data.vendor_name;
+            vendorTemplate.appendChild(newOption);
+            
+            // Update current select
+            if (window.currentVendorSelect) {
+                const currentSelect = window.currentVendorSelect;
+                const newSelectOption = newOption.cloneNode(true);
+                currentSelect.appendChild(newSelectOption);
+                currentSelect.value = data.id;
+                
+                // Trigger change to auto-fill transaction type
+                handleVendorChange(currentSelect);
+            }
+            
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('createVendorModal'));
+            modal.hide();
+            
+            // Show success message
+            alert('Vendor created successfully!');
+        } else {
+            alert('Error creating vendor: ' + (data.message || 'Unknown error'));
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error creating vendor. Please try again.');
+    }
+}
 </script>
+
+    <!-- Create Vendor Modal -->
+    <div class="modal fade" id="createVendorModal" tabindex="-1" aria-labelledby="createVendorModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="createVendorModalLabel">Create New Company</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="createVendorForm">
+                        <div class="mb-3">
+                            <label for="newVendorName" class="form-label">Company Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="newVendorName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="newVendorType" class="form-label">Company Type <span class="text-danger">*</span></label>
+                            <select class="form-select" id="newVendorType" required>
+                                <option value="">Select Type</option>
+                                <option value="Food">Food</option>
+                                <option value="Beverage">Beverage</option>
+                                <option value="Supplies">Supplies</option>
+                                <option value="Utilities">Utilities</option>
+                                <option value="Services">Services</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="newVendorTransactionType" class="form-label">Default Transaction Type</label>
+                            <select class="form-select" id="newVendorTransactionType">
+                                <option value="">Select Transaction Type</option>
+                                @foreach($types as $type)
+                                    <option value="{{ $type->id }}">{{ $type->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="newVendorCoa" class="form-label">Default Chart of Account</label>
+                            <select class="form-select" id="newVendorCoa">
+                                <option value="">Select COA</option>
+                                @php
+                                    $coas = \App\Models\ChartOfAccount::where('is_active', true)->orderBy('account_name')->get();
+                                @endphp
+                                @foreach($coas as $coa)
+                                    <option value="{{ $coa->id }}">{{ $coa->account_code }} - {{ $coa->account_name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="saveNewVendor()">Create Company</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
 @endsection

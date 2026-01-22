@@ -371,10 +371,20 @@ class DailyReportController extends Controller
 
         $stores = $query->get();
         $types = TransactionType::all();
-        $revenueTypes = RevenueIncomeType::active()->ordered()->get();
+        $revenueTypes = RevenueIncomeType::where('is_active', 1)
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get();
+        
+        // Get vendors for the company dropdown
+        $vendors = Vendor::active()
+            ->with(['defaultTransactionType', 'defaultCoa'])
+            ->orderBy('vendor_name')
+            ->get();
+        
         $dailyReport->load(['transactions', 'revenues.revenueIncomeType']);
 
-        return view('daily-reports.edit', compact('dailyReport', 'stores', 'types', 'revenueTypes'));
+        return view('daily-reports.edit', compact('dailyReport', 'stores', 'types', 'revenueTypes', 'vendors'));
     }
 
     /**
