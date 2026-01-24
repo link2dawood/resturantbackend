@@ -51,6 +51,7 @@
     
     .form-section {
         padding: 12px 15px;
+        overflow: visible;
     }
     
     .transaction-table {
@@ -116,6 +117,14 @@
         cursor: pointer;
         font-size: 14px;
         transition: all 0.2s;
+        display: inline-block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        position: relative;
+        z-index: 10;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
     }
     
     .btn-add-row:hover {
@@ -403,7 +412,7 @@
                                         </select>
                                     </td>
                                     <td>
-                                        <input type="number" class="form-input number-input" name="transactions[0][amount]" min="0" step="0.01" placeholder="0.00">
+                                        <input type="number" class="form-input number-input" name="transactions[0][amount]" min="0" placeholder="0.00">
                                     </td>
                                     <td>
                                         <button type="button" class="btn-add-row" onclick="addTransactionRow()">+</button>
@@ -411,7 +420,7 @@
                                 </tr>
                                 <tr class="total-row">
                                     <td colspan="3"><strong>Total Transaction Expenses:</strong></td>
-                                    <td id="totalPaidOuts" class="number-input"><strong>$0.00</strong></td>
+                                    <td id="totalPaidOuts" class="number-input"><strong>$0</strong></td>
                                     <td></td>
                                 </tr>
                             </tbody>
@@ -419,7 +428,7 @@
                         <div style="margin-top: 8px; padding: 8px; background: #fff3cd; border-radius: 4px; border: 1px solid #ffeaa7;">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
                                 <span style="font-weight: 600; color: #856404;">Total Transaction Expenses:</span>
-                                <span id="totalTransactionExpenses" style="font-weight: 600; color: #856404; font-size: 1.1rem;">$0.00</span>
+                                <span id="totalTransactionExpenses" style="font-weight: 600; color: #856404; font-size: 1.1rem;">$0</span>
                             </div>
                         </div>
                     </div>
@@ -459,7 +468,7 @@
             <div class="section-title">Revenue Income Tracking</div>
             <div class="form-section">
                 <div class="row">
-                    <div class="col-lg-12">
+                    <div class="col-lg-12" style="overflow: visible;">
                         <table class="transaction-table" id="revenueTable">
                             <thead>
                                 <tr>
@@ -480,7 +489,7 @@
                                         </select>
                                     </td>
                                     <td>
-                                        <input type="number" class="form-input revenue-amount" name="revenues[0][amount]" step="0.01" min="0" placeholder="0.00">
+                                        <input type="number" class="form-input revenue-amount" name="revenues[0][amount]" min="0" placeholder="0">
                                     </td>
                                     <td>
                                         <input type="text" class="form-input" name="revenues[0][notes]" placeholder="Optional notes">
@@ -491,15 +500,15 @@
                                 </tr>
                             </tbody>
                         </table>
-                        <button type="button" id="addRevenueRow" class="btn-add-row" style="margin-top: 10px;">+ Add Revenue Entry</button>
+                        <button type="button" id="addRevenueRow" class="btn-add-row" style="margin-top: 10px; display: inline-block !important; visibility: visible !important; opacity: 1 !important;">+ Add Revenue Entry</button>
                         <div style="margin-top: 8px; padding: 8px; background: #f8f9fa; border-radius: 4px;">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
                                 <span style="font-weight: 600; color: #495057;">Total Revenue Income:</span>
-                                <span id="totalRevenue" style="font-weight: 600; color: #28a745; font-size: 1.1rem;">$0.00</span>
+                                <span id="totalRevenue" style="font-weight: 600; color: #28a745; font-size: 1.1rem;">$0</span>
                             </div>
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 5px;">
                                 <span style="font-weight: 600; color: #495057;">Online Platform Revenue:</span>
-                                <span id="onlineRevenue" style="font-weight: 600; color: #17a2b8; font-size: 1.1rem;">$0.00</span>
+                                <span id="onlineRevenue" style="font-weight: 600; color: #17a2b8; font-size: 1.1rem;">$0</span>
                             </div>
                         </div>
                     </div>
@@ -514,19 +523,7 @@
                         <table class="sales-table">
                             <tr>
                                 <td>Projected Sales</td>
-                                <td><input type="number" name="projected_sales" class="form-input number-input" step="0.01" value="1200.00" required></td>
-                            </tr>
-                            <tr>
-                                <td>Amount of Cancels</td>
-                                <td><input type="number" name="amount_of_cancels" class="form-input number-input" step="0.01" value="0.00"></td>
-                            </tr>
-                            <tr>
-                                <td>Amount of Voids</td>
-                                <td><input type="number" name="amount_of_voids" class="form-input number-input" step="0.01" value="0.00"></td>
-                            </tr>
-                            <tr>
-                                <td>Number of No Sales</td>
-                                <td><input type="number" name="number_of_no_sales" class="form-input number-input" value="0"></td>
+                                <td><input type="number" name="projected_sales" class="form-input number-input" value="1200" required></td>
                             </tr>
                         </table>
                     </div>
@@ -543,7 +540,7 @@
                                 <td>
                                     <div style="display:flex;justify-content: space-between;align-items: center;">
                                         <span><strong>Gross Sales:</strong></span>
-                                        <span style="width:30%;" id="grossSales" class="calculated-field number-input">$0.00</span>
+                                        <span style="width:30%;" id="grossSales" class="calculated-field number-input">$0</span>
                                     </div>
                                 </td>
                                 <td></td>
@@ -553,7 +550,7 @@
                                 <td>
                                     <div style="display:flex;justify-content: space-between;align-items: center;">
                                         <span><strong>Total Amount of Coupons Received:</strong></span>
-                                        <span style="width:30%;"><input type="number" name="coupons_received" class="form-input number-input" step="0.01" value="0.00" style="background: white;"></span>
+                                        <span style="width:30%;"><input type="number" name="coupons_received" class="form-input number-input" value="0" style="background: white;"></span>
                                     </div>
                                 </td>
                                 <td></td>
@@ -563,7 +560,7 @@
                                 <td>
                                     <div style="display:flex;justify-content: space-between;align-items: center;">
                                         <span>Total # of Coupons</span>
-                                        <span style="width:30%;"><input type="number" name="total_coupons" value="0" class="form-input number-input" step="0.01" style="background: white;"></span>
+                                        <span style="width:30%;"><input type="number" name="total_coupons" value="0" class="form-input number-input" style="background: white;"></span>
                                     </div>
                                 </td>
                                 <td></td>
@@ -573,7 +570,7 @@
                                 <td>
                                     <div style="display:flex;justify-content: space-between;align-items: center;">
                                         <span><strong>Adjustments: Overrings/Returns:</strong></span>
-                                        <span style="width:30%;"><input type="number" name="adjustments_overrings" class="form-input number-input" step="0.01" value="0.00" style="background: white;"></span>
+                                        <span style="width:30%;"><input type="number" name="adjustments_overrings" class="form-input number-input" value="0" style="background: white;"></span>
                                     </div>
                                 </td>
                                 <td></td>
@@ -584,27 +581,27 @@
                                     
                                     <div style="display:flex;justify-content: space-between;align-items: anchor-center;">
                                         <span>Total # of Customers</span>
-                                        <span style="width:30%;"><input type="number" name="total_customers" value="0" class="form-input number-input" step="0.01" style="background: white;"></span>
+                                        <span style="width:30%;"><input type="number" name="total_customers" value="0" class="form-input number-input" style="background: white;"></span>
                                     </div>
 
                                 </td>
                                 <td><strong>Net Sales:</strong></td>
-                                <td id="netSales" class="calculated-field number-input">$0.00</td>
+                                <td id="netSales" class="calculated-field number-input">$0</td>
                             </tr>
                             <tr>
                                 <td><strong>Tax:</strong></td>
-                                <td id="tax" class="calculated-field number-input">$0.00</td>
+                                <td id="tax" class="calculated-field number-input">$0</td>
                             </tr>
                             <tr>
                                 <td>
                                    
                                     <div style="display:flex;justify-content: space-between;align-items: anchor-center;">
                                         <span> Average Ticket</span>
-                                        <span style="width:30%;"><input type="number" name="average_ticket" id="averageTicketInput" value="0" class="form-input number-input" step="0.01" style="background: white;" readonly></span>
+                                        <span style="width:30%;"><input type="number" name="average_ticket" id="averageTicketInput" value="0" class="form-input number-input" style="background: white;" readonly></span>
                                     </div>
                                 </td>
                                 <td><strong>Sales (Pre-tax):</strong></td>
-                                <td id="salesPreTax" class="calculated-field number-input">$0.00</td>
+                                <td id="salesPreTax" class="calculated-field number-input">$0</td>
                             </tr>
                         </table>
                     </div>
@@ -613,35 +610,35 @@
                         <table class="sales-table">
                             <tr>
                                 <td><strong>Net Sales:</strong></td>
-                                <td id="netSales2" class="calculated-field number-input">$0.00</td>
+                                <td id="netSales2" class="calculated-field number-input">$0</td>
                             </tr>
                             <tr>
                                 <td><strong>Total Transaction Expenses:</strong></td>
-                                <td id="totalPaidOuts2" class="calculated-field number-input">$0.00</td>
+                                <td id="totalPaidOuts2" class="calculated-field number-input">$0</td>
                             </tr>
                             <tr>
                                 <td><strong>Online Platform Revenue:</strong></td>
-                                <td id="onlineRevenue2" class="calculated-field number-input">$0.00</td>
+                                <td id="onlineRevenue2" class="calculated-field number-input">$0</td>
                             </tr>
                             <tr>
                                 <td><strong>Credit Cards:</strong></td>
-                                <td><input type="number" name="credit_cards" class="form-input number-input" step="0.01" value="0.00"></td>
+                                <td><input type="number" name="credit_cards" class="form-input number-input" value="0"></td>
                             </tr>
                             <tr>
                                 <td><strong>Cash To Account For:</strong></td>
-                                <td id="cashToAccountFor" class="calculated-field number-input">$0.00</td>
+                                <td id="cashToAccountFor" class="calculated-field number-input">$0</td>
                             </tr>
                             <tr>
                                 <td><strong>Actual Deposit:</strong></td>
-                                <td><input type="number" name="actual_deposit" class="form-input number-input" step="0.01" value="0.00"></td>
+                                <td><input type="number" name="actual_deposit" class="form-input number-input" value="0"></td>
                             </tr>
                             <tr>
                                 <td><strong>Short:</strong></td>
-                                <td id="short" class="calculated-field number-input">$0.00</td>
+                                <td id="short" class="calculated-field number-input">$0</td>
                             </tr>
                             <tr>
                                 <td ><strong>Over:</strong></td>
-                                <td id="over" class="calculated-field number-input">$0.00</td>
+                                <td id="over" class="calculated-field number-input">$0</td>
                             </tr>
                         </table>
                     </div>
@@ -689,6 +686,8 @@ function calculateTotals() {
     let totalRevenueIncome = 0;
     let onlinePlatformRevenue = 0;
     let creditCardRevenue = 0;
+    let checksRevenue = 0;
+    let cryptoRevenue = 0;
 
     // Calculate revenue totals for this function
     document.querySelectorAll('#revenueTable tbody tr').forEach(row => {
@@ -710,18 +709,26 @@ function calculateTotals() {
                 if (category === 'card') {
                     creditCardRevenue += amount;
                 }
+                
+                if (category === 'check') {
+                    checksRevenue += amount;
+                }
+                
+                if (category === 'crypto') {
+                    cryptoRevenue += amount;
+                }
             }
         }
     });
 
-    // Gross Sales = Total Revenue Entries + Coupons Received
+    // Gross Sales = Total Revenue Entries + Coupons Amount Received
     const grossSales = totalRevenueIncome + couponsReceived;
     
     // Net Sales = Total Revenue Entries - Coupons Received - Adjustments: Overrings/Returns
     const netSales = totalRevenueIncome - couponsReceived - adjustmentsOverrings;
     
-    // Tax = Net Sales × 0.0825 / 1.0825
-    const tax = netSales * 0.0825 / 1.0825;
+    // Tax = Net Sales minus (Net Sales / 1.0825)
+    const tax = netSales - (netSales / 1.0825);
     
     // Sales (Pre-tax) = Net Sales - Tax
     const salesPreTax = netSales - tax;
@@ -750,15 +757,14 @@ function calculateTotals() {
         creditCards = parseFloat(creditCardsInput.value || 0);
     }
     
-    // Cash To Account For = Net Sales - Total Transaction Expenses - Online Platform Revenue - Credit Cards
-    let cashToAccountFor = netSales - totalPaidOuts - onlinePlatformRevenue - creditCards;
+    // Cash To Account For = Net Sales - Total Transaction Expenses - Online Platform Revenue - Credit Cards - Checks - Crypto
+    let cashToAccountFor = netSales - totalPaidOuts - onlinePlatformRevenue - creditCards - checksRevenue - cryptoRevenue;
     
     // Ensure result is not negative (numbers cannot go negative)
     cashToAccountFor = Math.max(0, Math.round(cashToAccountFor * 100) / 100);
     
-    // Short = Actual Deposit - Cash To Account For
+    // Over/Short = Actual Deposit - Cash To Account For
     let short = 0;
-    // Over = Actual Deposit - Cash To Account For
     let over = 0;
     if (actualDeposit < cashToAccountFor) {
         short = actualDeposit - cashToAccountFor;
@@ -855,7 +861,7 @@ window.addTransactionRow = function () {
             </select>
         </td>
         <td>
-            <input type="number" class="form-input number-input" name="transactions[${transactionCount}][amount]" step="0.01" min="0" placeholder="0.00">
+            <input type="number" class="form-input number-input" name="transactions[${transactionCount}][amount]" min="0" placeholder="0.00">
         </td>
         <td>
             <button type="button" class="btn-remove-row" onclick="removeTransactionRow(this)">×</button>
@@ -881,7 +887,7 @@ function removeTransactionRow(button) {
 function formatCurrency(input) {
     let value = parseFloat(input.value);
     if (isNaN(value)) value = 0;
-    input.value = value.toFixed(2);
+    input.value = value;
 }
 
 function validateField(input) {
@@ -1003,7 +1009,7 @@ function addRevenueRow() {
             </select>
         </td>
         <td>
-            <input type="number" class="form-input revenue-amount" name="revenues[${revenueCount}][amount]" step="0.01" min="0" placeholder="0.00">
+            <input type="number" class="form-input revenue-amount" name="revenues[${revenueCount}][amount]" min="0" placeholder="0.00">
         </td>
         <td>
             <input type="text" class="form-input" name="revenues[${revenueCount}][notes]" placeholder="Optional notes">

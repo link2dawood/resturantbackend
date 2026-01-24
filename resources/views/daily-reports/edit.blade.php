@@ -64,6 +64,7 @@
     
     .form-section {
         padding: 12px 15px;
+        overflow: visible;
     }
     
     .transaction-table {
@@ -141,18 +142,26 @@
     }
     
     .btn-add-row {
-        background: #fd7e14;
+        background: #28a745;
         color: white;
         border: none;
-        padding: 6px 10px;
+        padding: 8px 12px;
         border-radius: 4px;
         cursor: pointer;
-        font-size: 12px;
+        font-size: 14px;
         transition: all 0.2s;
+        display: inline-block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        position: relative;
+        z-index: 10;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
     }
     
     .btn-add-row:hover {
-        background: #e8681a;
+        background: #218838;
         transform: translateY(-1px);
     }
     
@@ -469,7 +478,7 @@
                                             </select>
                                         </td>
                                         <td>
-                                            <input type="number" class="form-input number-input" name="transactions[{{ $index }}][amount]" min="0" step="0.01" value="{{ $transaction->amount }}">
+                                            <input type="number" class="form-input number-input" name="transactions[{{ $index }}][amount]" min="0" value="{{ $transaction->amount }}">
                                         </td>
                                         <td>
                                             <button type="button" class="btn-remove" onclick="removeTransactionRow(this)">×</button>
@@ -505,7 +514,7 @@
                                             </select>
                                         </td>
                                         <td>
-                                            <input type="number" class="form-input number-input" name="transactions[0][amount]" min="0" step="0.01" placeholder="0.00">
+                                            <input type="number" class="form-input number-input" name="transactions[0][amount]" min="0" placeholder="0.00">
                                         </td>
                                         <td>
                                             <button type="button" class="btn-remove" onclick="removeTransactionRow(this)">×</button>
@@ -562,7 +571,7 @@
             <div class="section-title">Revenue Income Tracking</div>
             <div class="form-section">
                 <div class="row">
-                    <div class="col-lg-12">
+                    <div class="col-lg-12" style="overflow: visible;">
                         <table class="transaction-table" id="revenueTable">
                             <thead>
                                 <tr>
@@ -584,7 +593,7 @@
                                             </select>
                                         </td>
                                         <td>
-                                            <input type="number" class="form-input revenue-amount" name="revenues[{{ $index }}][amount]" step="0.01" min="0" value="{{ $revenue->amount }}">
+                                            <input type="number" class="form-input revenue-amount" name="revenues[{{ $index }}][amount]" min="0" value="{{ $revenue->amount }}">
                                         </td>
                                         <td>
                                             <input type="text" class="form-input" name="revenues[{{ $index }}][notes]" value="{{ $revenue->notes }}" placeholder="Optional notes">
@@ -606,7 +615,7 @@
                                             </select>
                                         </td>
                                         <td>
-                                            <input type="number" class="form-input revenue-amount" name="revenues[0][amount]" step="0.01" min="0" placeholder="0.00">
+                                            <input type="number" class="form-input revenue-amount" name="revenues[0][amount]" min="0" placeholder="0.00">
                                         </td>
                                         <td>
                                             <input type="text" class="form-input" name="revenues[0][notes]" placeholder="Optional notes">
@@ -618,7 +627,7 @@
                                 @endif
                             </tbody>
                         </table>
-                        <button type="button" id="addRevenueRow" class="btn-add-row" style="margin-top: 10px;">+ Add Revenue Entry</button>
+                        <button type="button" id="addRevenueRow" class="btn-add-row" style="margin-top: 10px; display: inline-block !important; visibility: visible !important; opacity: 1 !important;">+ Add Revenue Entry</button>
                         <div style="margin-top: 8px; padding: 8px; background: #f8f9fa; border-radius: 4px;">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
                                 <span style="font-weight: 600; color: #495057;">Total Revenue Income:</span>
@@ -641,19 +650,7 @@
                         <table class="sales-table">
                             <tr>
                                 <td>Projected Sales</td>
-                                <td><input type="number" name="projected_sales" class="form-input number-input" step="0.01" value="{{ $dailyReport->projected_sales }}" required></td>
-                            </tr>
-                            <tr>
-                                <td>Amount of Cancels</td>
-                                <td><input type="number" name="amount_of_cancels" class="form-input number-input" step="0.01" value="{{ $dailyReport->amount_of_cancels }}"></td>
-                            </tr>
-                            <tr>
-                                <td>Amount of Voids</td>
-                                <td><input type="number" name="amount_of_voids" class="form-input number-input" step="0.01" value="{{ $dailyReport->amount_of_voids }}"></td>
-                            </tr>
-                            <tr>
-                                <td>Number of No Sales</td>
-                                <td><input type="number" name="number_of_no_sales" class="form-input number-input" value="{{ $dailyReport->number_of_no_sales }}"></td>
+                                <td><input type="number" name="projected_sales" class="form-input number-input" value="{{ $dailyReport->projected_sales }}" required></td>
                             </tr>
                         </table>
                     </div>
@@ -680,7 +677,7 @@
                                 <td>
                                     <div style="display:flex;justify-content: space-between;align-items: center;">
                                         <span><strong>Total Amount of Coupons Received:</strong></span>
-                                        <span style="width:30%;"><input type="number" name="coupons_received" class="form-input number-input" step="0.01" value="{{ $dailyReport->coupons_received }}" style="background: white;"></span>
+                                        <span style="width:30%;"><input type="number" name="coupons_received" class="form-input number-input" value="{{ $dailyReport->coupons_received }}" style="background: white;"></span>
                                     </div>
                                 </td>
                                 <td></td>
@@ -690,7 +687,7 @@
                                 <td>
                                     <div style="display:flex;justify-content: space-between;align-items: center;">
                                         <span>Total # of Coupons</span>
-                                        <span style="width:30%;"><input type="number" name="total_coupons" value="{{ $dailyReport->total_coupons }}" class="form-input number-input" step="0.01" style="background: white;"></span>
+                                        <span style="width:30%;"><input type="number" name="total_coupons" value="{{ $dailyReport->total_coupons }}" class="form-input number-input" style="background: white;"></span>
                                     </div>
                                 </td>
                                 <td></td>
@@ -700,7 +697,7 @@
                                 <td>
                                     <div style="display:flex;justify-content: space-between;align-items: center;">
                                         <span><strong>Adjustments: Overrings/Returns:</strong></span>
-                                        <span style="width:30%;"><input type="number" name="adjustments_overrings" class="form-input number-input" step="0.01" value="{{ $dailyReport->adjustments_overrings }}" style="background: white;"></span>
+                                        <span style="width:30%;"><input type="number" name="adjustments_overrings" class="form-input number-input" value="{{ $dailyReport->adjustments_overrings }}" style="background: white;"></span>
                                     </div>
                                 </td>
                                 <td></td>
@@ -710,7 +707,7 @@
                                 <td rowspan="2">
                                     <div style="display:flex;justify-content: space-between;align-items: center;">
                                         <span>Total # of Customers</span>
-                                        <span style="width:30%;"><input type="number" name="total_customers" value="{{ $dailyReport->total_customers }}" class="form-input number-input" step="0.01" style="background: white;"></span>
+                                        <span style="width:30%;"><input type="number" name="total_customers" value="{{ $dailyReport->total_customers }}" class="form-input number-input" style="background: white;"></span>
                                     </div>
                                 </td>
                                 <td><strong>Net Sales:</strong></td>
@@ -724,7 +721,7 @@
                                 <td>
                                     <div style="display:flex;justify-content: space-between;align-items: center;">
                                         <span>Average Ticket</span>
-                                        <span style="width:30%;"><input type="number" name="average_ticket" id="averageTicketInput" value="{{ $dailyReport->average_ticket }}" class="form-input number-input" step="0.01" style="background: white;" readonly></span>
+                                        <span style="width:30%;"><input type="number" name="average_ticket" id="averageTicketInput" value="{{ $dailyReport->average_ticket }}" class="form-input number-input" style="background: white;" readonly></span>
                                     </div>
                                 </td>
                                 <td><strong>Sales (Pre-tax):</strong></td>
@@ -749,7 +746,7 @@
                             </tr>
                             <tr>
                                 <td><strong>Credit Cards:</strong></td>
-                                <td><input type="number" name="credit_cards" id="creditCardsInput" class="form-input number-input" step="0.01" value="{{ $dailyReport->credit_cards }}"></td>
+                                <td><input type="number" name="credit_cards" id="creditCardsInput" class="form-input number-input" value="{{ $dailyReport->credit_cards }}"></td>
                             </tr>
                             <tr>
                                 <td><strong>Cash To Account For:</strong></td>
@@ -757,7 +754,7 @@
                             </tr>
                             <tr>
                                 <td><strong>Actual Deposit:</strong></td>
-                                <td><input type="number" name="actual_deposit" class="form-input number-input" step="0.01" value="{{ $dailyReport->actual_deposit }}"></td>
+                                <td><input type="number" name="actual_deposit" class="form-input number-input" value="{{ $dailyReport->actual_deposit }}"></td>
                             </tr>
                             <tr>
                                 <td><strong>Short:</strong></td>
@@ -801,6 +798,8 @@ function calculateTotals() {
     let totalRevenueIncome = 0;
     let onlinePlatformRevenue = 0;
     let creditCardRevenue = 0;
+    let checksRevenue = 0;
+    let cryptoRevenue = 0;
 
     // Calculate revenue totals for this function
     document.querySelectorAll('#revenueTable tbody tr').forEach(row => {
@@ -822,18 +821,26 @@ function calculateTotals() {
                 if (category === 'card') {
                     creditCardRevenue += amount;
                 }
+                
+                if (category === 'check') {
+                    checksRevenue += amount;
+                }
+                
+                if (category === 'crypto') {
+                    cryptoRevenue += amount;
+                }
             }
         }
     });
 
-    // Gross Sales = Total Revenue Entries + Coupons Received
+    // Gross Sales = Total Revenue Entries + Coupons Amount Received
     const grossSales = totalRevenueIncome + couponsReceived;
     
     // Net Sales = Total Revenue Entries - Coupons Received - Adjustments: Overrings/Returns
     const netSales = totalRevenueIncome - couponsReceived - adjustmentsOverrings;
     
-    // Tax = Net Sales × 0.0825 / 1.0825
-    const tax = netSales * 0.0825 / 1.0825;
+    // Tax = Net Sales minus (Net Sales / 1.0825)
+    const tax = netSales - (netSales / 1.0825);
     
     // Sales (Pre-tax) = Net Sales - Tax
     const salesPreTax = netSales - tax;
@@ -863,15 +870,14 @@ function calculateTotals() {
         creditCards = parseFloat(creditCardsInput.value || 0);
     }
     
-    // Cash To Account For = Net Sales - Total Transaction Expenses - Online Platform Revenue - Credit Cards
-    let cashToAccountFor = netSales - totalPaidOuts - onlinePlatformRevenue - creditCards;
+    // Cash To Account For = Net Sales - Total Transaction Expenses - Online Platform Revenue - Credit Cards - Checks - Crypto
+    let cashToAccountFor = netSales - totalPaidOuts - onlinePlatformRevenue - creditCards - checksRevenue - cryptoRevenue;
     
     // Ensure result is not negative (numbers cannot go negative)
     cashToAccountFor = Math.max(0, Math.round(cashToAccountFor * 100) / 100);
     
-    // Short = Actual Deposit - Cash To Account For
+    // Over/Short = Actual Deposit - Cash To Account For
     let short = 0;
-    // Over = Actual Deposit - Cash To Account For
     let over = 0;
     if (actualDeposit < cashToAccountFor) {
         short = actualDeposit - cashToAccountFor;
@@ -984,7 +990,7 @@ function addTransactionRow() {
             </select>
         </td>
         <td>
-            <input type="number" class="form-input number-input" name="transactions[${transactionCount}][amount]" min="0" step="0.01" placeholder="0.00">
+            <input type="number" class="form-input number-input" name="transactions[${transactionCount}][amount]" min="0" placeholder="0.00">
         </td>
         <td>
             <button type="button" class="btn-remove" onclick="removeTransactionRow(this)">×</button>
@@ -1020,7 +1026,7 @@ function addRevenueRow() {
             </select>
         </td>
         <td>
-            <input type="number" class="form-input revenue-amount" name="revenues[${revenueCount}][amount]" step="0.01" min="0" placeholder="0.00">
+            <input type="number" class="form-input revenue-amount" name="revenues[${revenueCount}][amount]" min="0" placeholder="0.00">
         </td>
         <td>
             <input type="text" class="form-input" name="revenues[${revenueCount}][notes]" placeholder="Optional notes">
@@ -1132,7 +1138,7 @@ window.handleVendorChange = function(selectElement) {
 function formatCurrency(input) {
     let value = parseFloat(input.value);
     if (isNaN(value)) value = 0;
-    input.value = value.toFixed(2);
+    input.value = value;
 }
 
 function validateField(input) {
@@ -1242,6 +1248,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 submitBtn.disabled = true;
             }
         });
+    }
+    
+    // Add transaction row button
+    const addTransactionBtn = document.getElementById('addTransactionRow');
+    if (addTransactionBtn) {
+        addTransactionBtn.addEventListener('click', addTransactionRow);
     }
     
     // Add revenue row button

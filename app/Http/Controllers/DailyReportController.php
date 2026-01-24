@@ -710,7 +710,7 @@ class DailyReportController extends Controller
             }
         }
 
-        // Calculate Gross Sales = Total Revenue Entries + Coupons Received
+        // Calculate Gross Sales = Total Revenue Entries + Coupons Amount Received
         $couponsReceived = (float) ($data['coupons_received'] ?? 0);
         $grossSales = $totalRevenueEntries + $couponsReceived;
         $data['gross_sales'] = $grossSales;
@@ -720,37 +720,45 @@ class DailyReportController extends Controller
         $netSales = $totalRevenueEntries - $couponsReceived - $adjustmentsOverrings;
         $data['net_sales'] = $netSales;
 
-        // Calculate Tax = Net Sales × 0.0825 / 1.0825
-        $tax = $netSales * 0.0825 / 1.0825;
+        // Calculate Tax = Net Sales minus (Net Sales / 1.0825)
+        $tax = $netSales - ($netSales / 1.0825);
         $data['tax'] = $tax;
 
         // Calculate Sales (Pre-tax) = Net Sales - Tax
         $data['sales'] = $netSales - $tax;
 
-        // Calculate cash to account for = Net Sales - Transaction Expenses - Online Platform Revenue - Credit Cards
-        // Formula: Net Sales - transaction expenses - online platforms - credit card
-        // Calculate online platform revenue
+        // Calculate cash to account for = Net Sales - Transaction Expenses - Online Platform Revenue - Credit Cards - Checks - Crypto
+        // Calculate revenue by category
         $onlinePlatformRevenue = 0;
+        $checksRevenue = 0;
+        $cryptoRevenue = 0;
         if (isset($data['revenues']) && is_array($data['revenues'])) {
             foreach ($data['revenues'] as $revenue) {
                 if (isset($revenue['amount']) && is_numeric($revenue['amount']) && isset($revenue['revenue_income_type_id'])) {
                     $revenueType = \App\Models\RevenueIncomeType::find($revenue['revenue_income_type_id']);
-                    if ($revenueType && $revenueType->category === 'online') {
-                        $onlinePlatformRevenue += (float) $revenue['amount'];
+                    if ($revenueType) {
+                        $amount = (float) $revenue['amount'];
+                        if ($revenueType->category === 'online') {
+                            $onlinePlatformRevenue += $amount;
+                        } elseif ($revenueType->category === 'check') {
+                            $checksRevenue += $amount;
+                        } elseif ($revenueType->category === 'crypto') {
+                            $cryptoRevenue += $amount;
+                        }
                     }
                 }
             }
         }
         
-        // Calculate: Net Sales - Transaction Expenses - Online Platform Revenue - Credit Cards
-        $cashToAccountFor = $netSales - $totalPaidOuts - $onlinePlatformRevenue - $creditCards;
+        // Calculate: Net Sales - Transaction Expenses - Online Platform Revenue - Credit Cards - Checks - Crypto
+        $cashToAccountFor = $netSales - $totalPaidOuts - $onlinePlatformRevenue - $creditCards - $checksRevenue - $cryptoRevenue;
         
         // Ensure result is not negative (numbers cannot go negative)
         $cashToAccountFor = max(0, round($cashToAccountFor, 2));
         
         $data['cash_to_account'] = $cashToAccountFor;
 
-        // Calculate short/over
+        // Calculate Over/Short = Actual Deposit - Cash To Account For
         if ($actualDeposit < $cashToAccountFor) {
             $data['short'] = $actualDeposit - $cashToAccountFor;
             $data['over'] = 0;
@@ -759,7 +767,7 @@ class DailyReportController extends Controller
             $data['over'] = $actualDeposit - $cashToAccountFor;
         }
 
-        // Calculate average ticket if total_customers is provided
+        // Calculate Average Ticket = Net Sales / Total Customers
         $totalCustomers = (int) ($data['total_customers'] ?? 0);
         if ($totalCustomers > 0) {
             $data['average_ticket'] = $netSales / $totalCustomers;
@@ -1147,11 +1155,13 @@ class DailyReportController extends Controller
         
         $netSales = $report->revenues_sum_amount ?? $report->revenues()->sum('amount');
         $totalPaidOuts = $report->transactions_sum_amount ?? $report->transactions()->sum('amount');
-        $tax = $netSales * 0.0825 / 1.0825;
+        $tax = $netSales - ($netSales / 1.0825);
         $salesPreTax = $netSales - $tax;
         $onlinePlatformRevenue = $report->online_platform_revenue;
         $creditCards = (float) ($report->credit_cards ?? 0);
-        $cashToAccount = max(0, round($netSales - $totalPaidOuts - $onlinePlatformRevenue - $creditCards, 2));
+        $checksRevenue = $report->checks_revenue ?? 0;
+        $cryptoRevenue = $report->crypto_revenue ?? 0;
+        $cashToAccount = max(0, round($netSales - $totalPaidOuts - $onlinePlatformRevenue - $creditCards - $checksRevenue - $cryptoRevenue, 2));
         $short = $report->actual_deposit < $cashToAccount ? $report->actual_deposit - $cashToAccount : 0;
         $over = $report->actual_deposit > $cashToAccount ? $report->actual_deposit - $cashToAccount : 0;
         $averageTicket = $report->total_customers > 0 ? $netSales / $report->total_customers : 0;

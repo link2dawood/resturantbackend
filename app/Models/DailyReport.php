@@ -140,10 +140,8 @@ class DailyReport extends Model
     {
         $netSales = $this->getNetSalesAttribute();
         
-        // Calculate 8.25% sales tax
-        // If net sales includes tax: tax = netSales * 0.0825 / 1.0825
-        // This is equivalent to: tax = netSales - (netSales / 1.0825)
-        return $netSales * 0.0825 / 1.0825;
+        // Tax = Net Sales minus (Net Sales / 1.0825)
+        return $netSales - ($netSales / 1.0825);
     }
 
     public function getSalesPreTaxAttribute(): float
@@ -153,14 +151,15 @@ class DailyReport extends Model
 
     public function getCashToAccountForAttribute(): float
     {
-        // Cash to account for = Net Sales - Transaction Expenses - Online Platform Revenue - Credit Cards
-        // Formula: Net Sales - transaction expenses - online platforms - credit card
+        // Cash To Account For = Net Sales - Total Transaction Expenses - Online Platform Revenue - Credit Cards - Checks - Crypto
         $netSales = $this->getNetSalesAttribute();
         $transactionExpenses = $this->getTotalTransactionExpensesAttribute();
         $onlinePlatformRevenue = $this->getOnlinePlatformRevenueAttribute();
         $creditCards = (float) ($this->credit_cards ?? 0);
+        $checksRevenue = $this->getChecksRevenueAttribute();
+        $cryptoRevenue = $this->getCryptoRevenueAttribute();
         
-        $result = $netSales - $transactionExpenses - $onlinePlatformRevenue - $creditCards;
+        $result = $netSales - $transactionExpenses - $onlinePlatformRevenue - $creditCards - $checksRevenue - $cryptoRevenue;
         
         // Ensure result is not negative (numbers cannot go negative)
         return max(0, round($result, 2));
@@ -210,6 +209,46 @@ class DailyReport extends Model
         return $this->revenues()
             ->whereHas('revenueIncomeType', function ($query) {
                 $query->where('category', 'online');
+            })
+            ->sum('amount');
+    }
+
+    public function getChecksRevenueAttribute(): float
+    {
+        // Prefer already-loaded relationships to avoid N+1 queries
+        if ($this->relationLoaded('revenues')) {
+            return $this->revenues
+                ->filter(function ($revenue) {
+                    return $revenue->revenueIncomeType
+                        && $revenue->revenueIncomeType->category === 'check';
+                })
+                ->sum('amount');
+        }
+
+        // Fallback: query database when revenues are not preloaded
+        return $this->revenues()
+            ->whereHas('revenueIncomeType', function ($query) {
+                $query->where('category', 'check');
+            })
+            ->sum('amount');
+    }
+
+    public function getCryptoRevenueAttribute(): float
+    {
+        // Prefer already-loaded relationships to avoid N+1 queries
+        if ($this->relationLoaded('revenues')) {
+            return $this->revenues
+                ->filter(function ($revenue) {
+                    return $revenue->revenueIncomeType
+                        && $revenue->revenueIncomeType->category === 'crypto';
+                })
+                ->sum('amount');
+        }
+
+        // Fallback: query database when revenues are not preloaded
+        return $this->revenues()
+            ->whereHas('revenueIncomeType', function ($query) {
+                $query->where('category', 'crypto');
             })
             ->sum('amount');
     }
