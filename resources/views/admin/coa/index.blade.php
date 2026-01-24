@@ -113,9 +113,6 @@
                     </x-table-cell>
                     <x-table-cell>
                         {{ $coa->account_name }}
-                        @if($coa->is_system_account)
-                            <span class="badge bg-info ms-2">System</span>
-                        @endif
                     </x-table-cell>
                     <x-table-cell>
                         <span class="badge bg-secondary">{{ $coa->account_type }}</span>

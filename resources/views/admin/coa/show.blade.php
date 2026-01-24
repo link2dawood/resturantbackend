@@ -57,9 +57,6 @@
                                     @else
                                         <span class="badge bg-danger">Inactive</span>
                                     @endif
-                                    @if($chartOfAccount->is_system_account)
-                                        <span class="badge bg-info ms-2">System</span>
-                                    @endif
                                 </dd>
 
                                 <dt class="col-sm-5">Created By</dt>
