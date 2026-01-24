@@ -51,7 +51,14 @@ class ChartOfAccountController extends Controller
             });
         }
 
-        $coas = $query->orderBy('account_name')->paginate(25)->onEachSide(1)->withQueryString();
+        // Sort by numeric account code so the list matches the COA code ranges (1000, 1010, 1100, ...)
+        // account_code is stored as string, so cast to unsigned for correct ordering.
+        $coas = $query
+            ->orderByRaw('CAST(account_code AS UNSIGNED) ASC')
+            ->orderBy('account_name')
+            ->paginate(25)
+            ->onEachSide(1)
+            ->withQueryString();
 
         $stores = Store::orderBy('store_info')->get(['id', 'store_info']);
 
