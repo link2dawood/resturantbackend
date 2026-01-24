@@ -62,7 +62,7 @@ class ChartOfAccountController extends Controller
         $validator = Validator::make($request->all(), [
             'account_code' => 'required|string|max:10|unique:chart_of_accounts',
             'account_name' => 'required|string|max:100',
-            'account_type' => 'required|in:Revenue,COGS,Expense,Other Income',
+            'account_type' => 'required|in:Assets,Liability,Taxes,Revenue,COGS,Expense,Adjustments',
             'parent_account_id' => 'nullable|exists:chart_of_accounts,id',
             'store_ids' => 'nullable|array',
             'store_ids.*' => 'exists:stores,id',
@@ -128,7 +128,7 @@ class ChartOfAccountController extends Controller
         $validator = Validator::make($request->all(), [
             'account_code' => 'required|string|max:10|unique:chart_of_accounts,account_code,' . $id,
             'account_name' => 'required|string|max:100',
-            'account_type' => 'required|in:Revenue,COGS,Expense,Other Income',
+            'account_type' => 'required|in:Assets,Liability,Taxes,Revenue,COGS,Expense,Adjustments',
             'parent_account_id' => 'nullable|exists:chart_of_accounts,id',
             'store_ids' => 'nullable|array',
             'store_ids.*' => 'exists:stores,id',
