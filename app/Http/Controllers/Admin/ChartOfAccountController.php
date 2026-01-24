@@ -13,7 +13,7 @@ use Illuminate\View\View;
 
 class ChartOfAccountController extends Controller
 {
-    private const ACCOUNT_TYPES = ['Assets', 'Liability', 'Taxes', 'Revenue', 'COGS', 'Expense', 'Adjustments'];
+    private const ACCOUNT_TYPES = ['Assets', 'Liability', 'Equity', 'Taxes', 'Revenue', 'COGS', 'Expense', 'Adjustments'];
 
     /**
      * Display a listing of the resource.

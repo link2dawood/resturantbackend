@@ -22,11 +22,11 @@ class VendorsSeeder extends Seeder
 
         // Get COA IDs by account type
         $coaIds = [];
-        $coaIds['Food'] = DB::table('chart_of_accounts')->where('account_code', '5000')->value('id');
-        $coaIds['Beverage'] = DB::table('chart_of_accounts')->where('account_code', '5100')->value('id');
-        $coaIds['Services'] = DB::table('chart_of_accounts')->where('account_code', '6000')->value('id');
-        $coaIds['Utilities'] = DB::table('chart_of_accounts')->where('account_code', '6300')->value('id');
-        $coaIds['Grubhub'] = DB::table('chart_of_accounts')->where('account_code', '6100')->value('id');
+        $coaIds['Food'] = DB::table('chart_of_accounts')->where('account_code', '5100')->value('id'); // COGS - Food Purchases
+        $coaIds['Beverage'] = DB::table('chart_of_accounts')->where('account_code', '5200')->value('id'); // COGS - Beverage Purchases
+        $coaIds['Services'] = DB::table('chart_of_accounts')->where('account_code', '6100')->value('id'); // Merchant Processing Fees
+        $coaIds['Utilities'] = DB::table('chart_of_accounts')->where('account_code', '6400')->value('id'); // Utilities - Electric
+        $coaIds['Grubhub'] = DB::table('chart_of_accounts')->where('account_code', '6200')->value('id'); // Marketing Fees (Grubhub)
 
         foreach ($vendors as $vendor) {
             $defaultCoaId = null;

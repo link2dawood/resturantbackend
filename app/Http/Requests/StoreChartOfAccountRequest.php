@@ -42,7 +42,7 @@ class StoreChartOfAccountRequest extends FormRequest
                 Rule::unique('chart_of_accounts', 'account_code'),
             ],
             'account_name' => ['required', 'string', 'max:100'],
-            'account_type' => ['required', Rule::in(['Assets', 'Liability', 'Taxes', 'Revenue', 'COGS', 'Expense', 'Adjustments'])],
+            'account_type' => ['required', Rule::in(['Assets', 'Liability', 'Equity', 'Taxes', 'Revenue', 'COGS', 'Expense', 'Adjustments'])],
             'parent_account_id' => ['nullable', 'integer', 'exists:chart_of_accounts,id'],
             'store_ids' => ['nullable', 'array'],
             'store_ids.*' => ['integer', 'exists:stores,id'],
