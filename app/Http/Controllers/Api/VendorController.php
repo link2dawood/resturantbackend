@@ -188,7 +188,7 @@ class VendorController extends Controller
     }
 
     /**
-     * Soft delete (deactivate) the specified vendor
+     * Permanently delete the specified vendor
      */
     public function destroy($id)
     {
@@ -199,16 +199,14 @@ class VendorController extends Controller
 
         $vendor = Vendor::findOrFail($id);
 
-        // Check if vendor has transactions (we'll add this relationship later)
-        // if ($vendor->expenses()->exists()) {
-        //     return response()->json(['error' => 'Cannot delete vendor with linked transactions'], 403);
-        // }
-
-        // Soft delete (deactivate)
-        $vendor->update(['is_active' => false]);
+        // Hard delete.
+        // Related records:
+        // - vendor_aliases + vendor_store_assignments cascade delete
+        // - expense_transactions / transaction_mapping_rules vendor_id is set null
+        $vendor->delete();
 
         return response()->json([
-            'message' => 'Vendor deactivated successfully'
+            'message' => 'Vendor deleted successfully'
         ]);
     }
 
