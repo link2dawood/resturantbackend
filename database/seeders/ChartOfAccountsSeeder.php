@@ -46,6 +46,11 @@ class ChartOfAccountsSeeder extends Seeder
             // REVENUE (4000-4999)
             // ============================================
             ['account_code' => '4000', 'account_name' => 'Revenues All', 'account_type' => 'Revenue', 'is_system_account' => true],
+            ['account_code' => '4010', 'account_name' => 'Cash', 'account_type' => 'Revenue', 'is_system_account' => true],
+            ['account_code' => '4020', 'account_name' => 'Card', 'account_type' => 'Revenue', 'is_system_account' => true],
+            ['account_code' => '4030', 'account_name' => 'Check', 'account_type' => 'Revenue', 'is_system_account' => true],
+            ['account_code' => '4040', 'account_name' => 'Online', 'account_type' => 'Revenue', 'is_system_account' => true],
+            ['account_code' => '4050', 'account_name' => 'Crypto', 'account_type' => 'Revenue', 'is_system_account' => true],
             ['account_code' => '4100', 'account_name' => 'Revenue - Food Sales', 'account_type' => 'Revenue', 'is_system_account' => true],
             ['account_code' => '4200', 'account_name' => 'Revenue - Beverage Sales', 'account_type' => 'Revenue', 'is_system_account' => true],
             ['account_code' => '4300', 'account_name' => 'Revenue - Third Party (Grubhub/Uber)', 'account_type' => 'Revenue', 'is_system_account' => true],
