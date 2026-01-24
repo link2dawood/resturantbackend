@@ -657,16 +657,6 @@
                                     </svg>
                                     Chart of Accounts
                                 </a></li>
-                                @if(Auth::user()->isAdmin() || (!Auth::user()->isAdmin() && (Auth::user()->hasPermission('view_vendors') || Auth::user()->hasPermission('manage_vendors') || Auth::user()->hasPermission('edit_vendors'))))
-                                <li><a class="dropdown-item d-flex align-items-center" href="{{ route('admin.vendors.index') }}" style="padding: 8px 16px; font-family: 'Google Sans', sans-serif; font-size: 14px; border-radius: 8px; margin: 0 8px;">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
-                                        <path d="M3 7h18"/>
-                                        <path d="M6 7l1 14h10l1-14"/>
-                                        <path d="M9 7V5a3 3 0 0 1 6 0v2"/>
-                                    </svg>
-                                    Vendors
-                                </a></li>
-                                @endif
                                 <li><a class="dropdown-item d-flex align-items-center" href="{{ route('revenue-income-types.index') }}" style="padding: 8px 16px; font-family: 'Google Sans', sans-serif; font-size: 14px; border-radius: 8px; margin: 0 8px;">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
                                         <polyline points="22,12 18,12 15,21 9,3 6,12 2,12"/>
@@ -682,6 +672,16 @@
                                     </svg>
                                     Transaction Type
                                 </a></li>
+                                @if(Auth::user()->isAdmin() || (!Auth::user()->isAdmin() && (Auth::user()->hasPermission('view_vendors') || Auth::user()->hasPermission('manage_vendors') || Auth::user()->hasPermission('edit_vendors'))))
+                                <li><a class="dropdown-item d-flex align-items-center" href="{{ route('admin.vendors.index') }}" style="padding: 8px 16px; font-family: 'Google Sans', sans-serif; font-size: 14px; border-radius: 8px; margin: 0 8px;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
+                                        <path d="M3 7h18"/>
+                                        <path d="M6 7l1 14h10l1-14"/>
+                                        <path d="M9 7V5a3 3 0 0 1 6 0v2"/>
+                                    </svg>
+                                    Vendors
+                                </a></li>
+                                @endif
                             </ul>
                         </li>
                         @endif
