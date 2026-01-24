@@ -639,7 +639,7 @@
                         <!-- Transaction Management (Admin, Owners/Franchisor Only) -->
                         @if(Auth::user()->isAdmin() || (!Auth::user()->isAdmin() && Auth::user()->hasPermission('manage_transaction_types')))
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle d-flex align-items-center {{ request()->routeIs('transaction-types.*') || request()->routeIs('revenue-income-types.*') || request()->routeIs('coa.*') ? 'active' : '' }}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="padding: 8px 16px; border-radius: 20px; font-family: 'Google Sans', sans-serif; font-weight: 500; font-size: 14px; transition: all 0.2s ease; {{ request()->routeIs('transaction-types.*') || request()->routeIs('revenue-income-types.*') || request()->routeIs('coa.*') ? 'background: #4285f4; color: white;' : 'color: #5f6368;' }}" onmouseover="if(!this.classList.contains('active')) { this.style.background='#f1f3f4'; this.style.color='#1a73e8'; }" onmouseout="if(!this.classList.contains('active')) { this.style.background='transparent'; this.style.color='#5f6368'; }">
+                            <a class="nav-link dropdown-toggle d-flex align-items-center {{ request()->routeIs('transaction-types.*') || request()->routeIs('revenue-income-types.*') || request()->routeIs('coa.*') || request()->routeIs('admin.vendors.*') ? 'active' : '' }}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="padding: 8px 16px; border-radius: 20px; font-family: 'Google Sans', sans-serif; font-weight: 500; font-size: 14px; transition: all 0.2s ease; {{ request()->routeIs('transaction-types.*') || request()->routeIs('revenue-income-types.*') || request()->routeIs('coa.*') || request()->routeIs('admin.vendors.*') ? 'background: #4285f4; color: white;' : 'color: #5f6368;' }}" onmouseover="if(!this.classList.contains('active')) { this.style.background='#f1f3f4'; this.style.color='#1a73e8'; }" onmouseout="if(!this.classList.contains('active')) { this.style.background='transparent'; this.style.color='#5f6368'; }">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
                                     <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
                                     <line x1="1" y1="10" x2="23" y2="10"/>
@@ -657,6 +657,16 @@
                                     </svg>
                                     Chart of Accounts
                                 </a></li>
+                                @if(Auth::user()->isAdmin() || (!Auth::user()->isAdmin() && (Auth::user()->hasPermission('view_vendors') || Auth::user()->hasPermission('manage_vendors') || Auth::user()->hasPermission('edit_vendors'))))
+                                <li><a class="dropdown-item d-flex align-items-center" href="{{ route('admin.vendors.index') }}" style="padding: 8px 16px; font-family: 'Google Sans', sans-serif; font-size: 14px; border-radius: 8px; margin: 0 8px;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
+                                        <path d="M3 7h18"/>
+                                        <path d="M6 7l1 14h10l1-14"/>
+                                        <path d="M9 7V5a3 3 0 0 1 6 0v2"/>
+                                    </svg>
+                                    Vendors
+                                </a></li>
+                                @endif
                                 <li><a class="dropdown-item d-flex align-items-center" href="{{ route('revenue-income-types.index') }}" style="padding: 8px 16px; font-family: 'Google Sans', sans-serif; font-size: 14px; border-radius: 8px; margin: 0 8px;">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
                                         <polyline points="22,12 18,12 15,21 9,3 6,12 2,12"/>
@@ -673,20 +683,6 @@
                                     Transaction Type
                                 </a></li>
                             </ul>
-                        </li>
-                        @endif
-
-                        <!-- Vendors (Admin, Owners/Franchisor with permission) -->
-                        @if(Auth::user()->isAdmin() || (!Auth::user()->isAdmin() && (Auth::user()->hasPermission('view_vendors') || Auth::user()->hasPermission('manage_vendors') || Auth::user()->hasPermission('edit_vendors'))))
-                        <li class="nav-item">
-                            <a class="nav-link d-flex align-items-center {{ request()->routeIs('admin.vendors.*') ? 'active' : '' }}" href="{{ route('admin.vendors.index') }}" style="padding: 8px 16px; border-radius: 20px; font-family: 'Google Sans', sans-serif; font-weight: 500; font-size: 14px; transition: all 0.2s ease; {{ request()->routeIs('admin.vendors.*') ? 'background: #4285f4; color: white;' : 'color: #5f6368;' }}" onmouseover="if(!this.classList.contains('active')) { this.style.background='#f1f3f4'; this.style.color='#1a73e8'; }" onmouseout="if(!this.classList.contains('active')) { this.style.background='transparent'; this.style.color='#5f6368'; }">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
-                                    <path d="M3 7h18"/>
-                                    <path d="M6 7l1 14h10l1-14"/>
-                                    <path d="M9 7V5a3 3 0 0 1 6 0v2"/>
-                                </svg>
-                                Vendors
-                            </a>
                         </li>
                         @endif
 
