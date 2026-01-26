@@ -185,7 +185,7 @@
                         <label for="defaultCoa" class="form-label">Default COA Category</label>
                         <input type="text" class="form-control mb-2" id="defaultCoaSearch" placeholder="Search COA by code or name (e.g., 5100, Rent)" autocomplete="off">
                         <select class="form-select" id="defaultCoa" name="default_coa_id">
-                            <option value="">None (Select Manually)</option>
+                            <option value="">Loading chart of accounts...</option>
                             <!-- Options loaded via JavaScript -->
                         </select>
                         <small class="text-muted">Auto-assign this COA to transactions from this vendor. Type to search and filter options from all chart of accounts.</small>
@@ -519,33 +519,80 @@ function loadStores() {
 async function loadCOAs() {
     try {
         let allCOAs = [];
-        let currentPage = 1;
-        let hasMore = true;
         
-        // Fetch all pages to get all COAs
-        while (hasMore) {
-            const response = await fetch(`/api/coa?per_page=1000&page=${currentPage}`, {
-                headers: {
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                },
-                credentials: 'same-origin'
-            });
+        // Try to fetch all COAs with a very high per_page value first
+        const response = await fetch(`/api/coa?per_page=10000`, {
+            headers: {
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+            },
+            credentials: 'same-origin'
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        console.log('COA API Response:', data);
+        
+        // Handle Laravel pagination response structure
+        if (data.data && Array.isArray(data.data)) {
+            allCOAs = data.data;
+            const totalPages = data.last_page || 1;
+            const total = data.total || data.data.length;
             
-            const data = await response.json();
+            console.log(`Found ${total} total COAs across ${totalPages} page(s), loaded ${data.data.length} from first page`);
             
-            if (data.data && data.data.length > 0) {
-                allCOAs = allCOAs.concat(data.data);
-                // Check if there are more pages
-                hasMore = currentPage < data.last_page;
-                currentPage++;
-            } else {
-                hasMore = false;
+            // If there are more pages, fetch them
+            if (totalPages > 1) {
+                console.log(`Fetching remaining ${totalPages - 1} page(s)...`);
+                const pagePromises = [];
+                for (let page = 2; page <= totalPages; page++) {
+                    pagePromises.push(
+                        fetch(`/api/coa?per_page=10000&page=${page}`, {
+                            headers: {
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                            },
+                            credentials: 'same-origin'
+                        }).then(res => {
+                            if (!res.ok) {
+                                throw new Error(`HTTP error! status: ${res.status}`);
+                            }
+                            return res.json();
+                        })
+                    );
+                }
+                
+                const pageResults = await Promise.all(pagePromises);
+                pageResults.forEach((pageData, index) => {
+                    if (pageData.data && Array.isArray(pageData.data)) {
+                        console.log(`Loaded ${pageData.data.length} COAs from page ${index + 2}`);
+                        allCOAs = allCOAs.concat(pageData.data);
+                    }
+                });
             }
+        } else if (Array.isArray(data)) {
+            // If response is a direct array (non-paginated)
+            allCOAs = data;
+            console.log(`Received direct array with ${data.length} COAs`);
+        } else {
+            console.error('Unexpected API response format:', data);
+            throw new Error('Unexpected response format from API. Check console for details.');
+        }
+        
+        console.log(`Total loaded: ${allCOAs.length} chart of accounts`);
+        
+        if (allCOAs.length === 0) {
+            console.warn('No chart of accounts found');
+            showToast('No chart of accounts found', 'warning');
         }
         
         // Store all COAs in cache
         window.__coaCache = allCOAs;
+        
         // Sort by numeric code for easier selection
         window.__coaCache.sort((a, b) => {
             const codeA = parseInt(a.account_code, 10) || 0;
@@ -559,7 +606,21 @@ async function loadCOAs() {
         renderCoaOptions();
     } catch (error) {
         console.error('Error loading COAs:', error);
-        showToast('Error loading chart of accounts', 'error');
+        showToast('Error loading chart of accounts: ' + error.message, 'error');
+        
+        // Show error in the select dropdown
+        const select = document.getElementById('defaultCoa');
+        if (select) {
+            // Clear existing options except the first one
+            while (select.options.length > 1) {
+                select.remove(1);
+            }
+            const option = document.createElement('option');
+            option.value = '';
+            option.textContent = 'Error loading chart of accounts. Please refresh the page.';
+            option.disabled = true;
+            select.appendChild(option);
+        }
     }
 }
 
@@ -570,10 +631,14 @@ function renderCoaOptions() {
 
     const q = (searchEl?.value || '').trim().toLowerCase();
 
-    // Clear all options except the first one
-    while (select.options.length > 1) {
-        select.remove(1);
-    }
+    // Clear all options
+    select.innerHTML = '';
+    
+    // Always add the "None" option first
+    const noneOption = document.createElement('option');
+    noneOption.value = '';
+    noneOption.textContent = 'None (Select Manually)';
+    select.appendChild(noneOption);
 
     if (!window.__coaCache || window.__coaCache.length === 0) {
         const option = document.createElement('option');
@@ -585,7 +650,7 @@ function renderCoaOptions() {
     }
 
     let matchCount = 0;
-    const maxDisplay = 100; // Limit display to prevent performance issues
+    const maxDisplay = 200; // Increased limit for better usability
 
     (window.__coaCache || []).forEach(coa => {
         const code = String(coa.account_code || '').toLowerCase();
@@ -614,7 +679,7 @@ function renderCoaOptions() {
     if (q && matchCount >= maxDisplay) {
         const option = document.createElement('option');
         option.value = '';
-        option.textContent = `... and more (showing first ${maxDisplay} results)`;
+        option.textContent = `... and more (showing first ${maxDisplay} of ${window.__coaCache.length} results)`;
         option.disabled = true;
         option.style.fontStyle = 'italic';
         select.appendChild(option);
@@ -624,9 +689,15 @@ function renderCoaOptions() {
     if (q && matchCount === 0) {
         const option = document.createElement('option');
         option.value = '';
-        option.textContent = 'No matching chart of accounts found';
+        option.textContent = `No matching chart of accounts found (searched ${window.__coaCache.length} accounts)`;
         option.disabled = true;
         select.appendChild(option);
+    }
+    
+    // Show total count when no search
+    if (!q && window.__coaCache.length > 0) {
+        // Add a subtle indicator of total count (optional)
+        // The options are already there, so we don't need to add anything
     }
 
     // restore selection if still present
