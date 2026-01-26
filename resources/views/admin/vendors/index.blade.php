@@ -183,6 +183,7 @@
 
                     <div class="mb-3">
                         <label for="defaultCoa" class="form-label">Default COA Category</label>
+                        <input type="text" class="form-control mb-2" id="defaultCoaSearch" placeholder="Search COA by code or name (e.g., 5100, Rent)" autocomplete="off">
                         <select class="form-select" id="defaultCoa" name="default_coa_id">
                             <option value="">None (Select Manually)</option>
                             <!-- Options loaded via JavaScript -->
@@ -312,6 +313,12 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('vendorType').addEventListener('change', function() {
         suggestCOA(this.value);
     });
+
+    // COA search filter (by code or name)
+    const coaSearch = document.getElementById('defaultCoaSearch');
+    if (coaSearch) {
+        coaSearch.addEventListener('input', renderCoaOptions);
+    }
 });
 
 
@@ -489,43 +496,66 @@ function loadCOAs() {
     })
     .then(response => response.json())
     .then(data => {
-        const select = document.getElementById('defaultCoa');
-        while (select.options.length > 1) {
-            select.remove(1);
-        }
-        data.data.forEach(coa => {
-            const option = document.createElement('option');
-            option.value = coa.id;
-            option.textContent = `${coa.account_code} - ${coa.account_name}`;
-            select.appendChild(option);
-        });
+        window.__coaCache = (data.data || []).slice();
+        // Sort by numeric code for easier selection
+        window.__coaCache.sort((a, b) => (parseInt(a.account_code, 10) || 0) - (parseInt(b.account_code, 10) || 0));
+        renderCoaOptions();
     })
     .catch(error => {
         console.error('Error loading COAs:', error);
     });
 }
 
+function renderCoaOptions() {
+    const select = document.getElementById('defaultCoa');
+    const searchEl = document.getElementById('defaultCoaSearch');
+    const selected = select.value; // preserve current selection
+
+    const q = (searchEl?.value || '').trim().toLowerCase();
+
+    while (select.options.length > 1) {
+        select.remove(1);
+    }
+
+    (window.__coaCache || []).forEach(coa => {
+        const label = `${coa.account_code} - ${coa.account_name}`;
+        if (!q || label.toLowerCase().includes(q)) {
+            const option = document.createElement('option');
+            option.value = coa.id;
+            option.textContent = label;
+            select.appendChild(option);
+        }
+    });
+
+    // restore selection if still present
+    if (selected) {
+        select.value = selected;
+    }
+}
+
 // Suggest COA based on vendor type
 function suggestCOA(vendorType) {
     const mapping = {
-        'Food': '5000',
-        'Beverage': '5100',
-        'Supplies': '5200',
-        'Utilities': '6300',
-        'Services': '6000'
+        // Updated for new seeded COA codes
+        'Food': '5100',       // COGS - Food Purchases
+        'Beverage': '5200',   // COGS - Beverage Purchases
+        'Supplies': '5300',   // COGS - Packaging Supplies
+        'Utilities': '6400',  // Utilities - Electric
+        'Services': '6100'    // Merchant Processing Fees
     };
     
     if (mapping[vendorType]) {
-        fetch('/api/coa?per_page=1000', {
+        const ensureCache = window.__coaCache ? Promise.resolve({ data: window.__coaCache }) : fetch('/api/coa?per_page=1000', {
             headers: {
                 'Accept': 'application/json',
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
             },
             credentials: 'same-origin'
-        })
-        .then(response => response.json())
-        .then(data => {
-            const suggested = data.data.find(coa => coa.account_code === mapping[vendorType]);
+        }).then(r => r.json());
+
+        ensureCache.then(data => {
+            window.__coaCache = window.__coaCache || (data.data || []).slice();
+            const suggested = (window.__coaCache || []).find(coa => String(coa.account_code) === String(mapping[vendorType]));
             if (suggested) {
                 document.getElementById('defaultCoa').value = suggested.id;
             }
