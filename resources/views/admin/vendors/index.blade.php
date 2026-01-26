@@ -188,7 +188,7 @@
                             <option value="">None (Select Manually)</option>
                             <!-- Options loaded via JavaScript -->
                         </select>
-                        <small class="text-muted">Auto-assign this COA to transactions from this vendor</small>
+                        <small class="text-muted">Auto-assign this COA to transactions from this vendor. Type to search and filter options from all chart of accounts.</small>
                     </div>
 
                     <div class="mb-3">
@@ -317,7 +317,21 @@ document.addEventListener('DOMContentLoaded', function() {
     // COA search filter (by code or name)
     const coaSearch = document.getElementById('defaultCoaSearch');
     if (coaSearch) {
-        coaSearch.addEventListener('input', renderCoaOptions);
+        coaSearch.addEventListener('input', function() {
+            renderCoaOptions();
+        });
+        
+        // Clear search when modal is opened for create
+        const vendorModal = document.getElementById('vendorModal');
+        if (vendorModal) {
+            vendorModal.addEventListener('show.bs.modal', function() {
+                if (!document.getElementById('vendorId').value) {
+                    // Create mode - clear search
+                    coaSearch.value = '';
+                    renderCoaOptions();
+                }
+            });
+        }
     }
 });
 
@@ -327,7 +341,12 @@ function openCreateModal() {
     document.getElementById('vendorModalLabel').textContent = 'Add Vendor';
     document.getElementById('vendorForm').reset();
     document.getElementById('vendorId').value = '';
+    document.getElementById('defaultCoaSearch').value = '';
     clearValidationErrors();
+    // Ensure COAs are rendered
+    if (window.__coaCache) {
+        renderCoaOptions();
+    }
 }
 
 // Edit vendor
@@ -346,7 +365,18 @@ function editVendor(id) {
         document.getElementById('vendorName').value = vendor.vendor_name;
         document.getElementById('vendorIdentifier').value = vendor.vendor_identifier || '';
         document.getElementById('vendorType').value = vendor.vendor_type;
-        document.getElementById('defaultCoa').value = vendor.default_coa_id || '';
+        // Set default COA - ensure it's in the options first
+        const defaultCoaId = vendor.default_coa_id || '';
+        if (defaultCoaId && window.__coaCache) {
+            // Make sure the selected COA is in the cache and rendered
+            renderCoaOptions();
+            // Set the value after a small delay to ensure options are rendered
+            setTimeout(() => {
+                document.getElementById('defaultCoa').value = defaultCoaId;
+            }, 100);
+        } else {
+            document.getElementById('defaultCoa').value = defaultCoaId;
+        }
         document.getElementById('isActive').checked = vendor.is_active;
         
         // Handle contact info
@@ -485,25 +515,52 @@ function loadStores() {
     });
 }
 
-// Load COAs
-function loadCOAs() {
-    fetch('/api/coa?per_page=1000', {
-        headers: {
-            'Accept': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-        },
-        credentials: 'same-origin'
-    })
-    .then(response => response.json())
-    .then(data => {
-        window.__coaCache = (data.data || []).slice();
+// Load COAs - fetch all chart of accounts (active and inactive)
+async function loadCOAs() {
+    try {
+        let allCOAs = [];
+        let currentPage = 1;
+        let hasMore = true;
+        
+        // Fetch all pages to get all COAs
+        while (hasMore) {
+            const response = await fetch(`/api/coa?per_page=1000&page=${currentPage}`, {
+                headers: {
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                },
+                credentials: 'same-origin'
+            });
+            
+            const data = await response.json();
+            
+            if (data.data && data.data.length > 0) {
+                allCOAs = allCOAs.concat(data.data);
+                // Check if there are more pages
+                hasMore = currentPage < data.last_page;
+                currentPage++;
+            } else {
+                hasMore = false;
+            }
+        }
+        
+        // Store all COAs in cache
+        window.__coaCache = allCOAs;
         // Sort by numeric code for easier selection
-        window.__coaCache.sort((a, b) => (parseInt(a.account_code, 10) || 0) - (parseInt(b.account_code, 10) || 0));
+        window.__coaCache.sort((a, b) => {
+            const codeA = parseInt(a.account_code, 10) || 0;
+            const codeB = parseInt(b.account_code, 10) || 0;
+            if (codeA !== codeB) {
+                return codeA - codeB;
+            }
+            return a.account_name.localeCompare(b.account_name);
+        });
+        
         renderCoaOptions();
-    })
-    .catch(error => {
+    } catch (error) {
         console.error('Error loading COAs:', error);
-    });
+        showToast('Error loading chart of accounts', 'error');
+    }
 }
 
 function renderCoaOptions() {
@@ -513,28 +570,76 @@ function renderCoaOptions() {
 
     const q = (searchEl?.value || '').trim().toLowerCase();
 
+    // Clear all options except the first one
     while (select.options.length > 1) {
         select.remove(1);
     }
 
+    if (!window.__coaCache || window.__coaCache.length === 0) {
+        const option = document.createElement('option');
+        option.value = '';
+        option.textContent = 'Loading chart of accounts...';
+        option.disabled = true;
+        select.appendChild(option);
+        return;
+    }
+
+    let matchCount = 0;
+    const maxDisplay = 100; // Limit display to prevent performance issues
+
     (window.__coaCache || []).forEach(coa => {
-        const label = `${coa.account_code} - ${coa.account_name}`;
-        if (!q || label.toLowerCase().includes(q)) {
+        const code = String(coa.account_code || '').toLowerCase();
+        const name = String(coa.account_name || '').toLowerCase();
+        const label = `${coa.account_code} - ${coa.account_name}${coa.is_active === false ? ' (Inactive)' : ''}`;
+        
+        // Search in both code and name
+        const matches = !q || 
+            code.includes(q) || 
+            name.includes(q) ||
+            label.toLowerCase().includes(q);
+        
+        if (matches && matchCount < maxDisplay) {
             const option = document.createElement('option');
             option.value = coa.id;
             option.textContent = label;
+            if (coa.is_active === false) {
+                option.style.color = '#999';
+            }
             select.appendChild(option);
+            matchCount++;
         }
     });
 
+    // Show message if results are limited
+    if (q && matchCount >= maxDisplay) {
+        const option = document.createElement('option');
+        option.value = '';
+        option.textContent = `... and more (showing first ${maxDisplay} results)`;
+        option.disabled = true;
+        option.style.fontStyle = 'italic';
+        select.appendChild(option);
+    }
+
+    // Show message if no results
+    if (q && matchCount === 0) {
+        const option = document.createElement('option');
+        option.value = '';
+        option.textContent = 'No matching chart of accounts found';
+        option.disabled = true;
+        select.appendChild(option);
+    }
+
     // restore selection if still present
     if (selected) {
-        select.value = selected;
+        const optionExists = Array.from(select.options).some(opt => opt.value === selected);
+        if (optionExists) {
+            select.value = selected;
+        }
     }
 }
 
 // Suggest COA based on vendor type
-function suggestCOA(vendorType) {
+async function suggestCOA(vendorType) {
     const mapping = {
         // Updated for new seeded COA codes
         'Food': '5100',       // COGS - Food Purchases
@@ -545,21 +650,16 @@ function suggestCOA(vendorType) {
     };
     
     if (mapping[vendorType]) {
-        const ensureCache = window.__coaCache ? Promise.resolve({ data: window.__coaCache }) : fetch('/api/coa?per_page=1000', {
-            headers: {
-                'Accept': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-            },
-            credentials: 'same-origin'
-        }).then(r => r.json());
-
-        ensureCache.then(data => {
-            window.__coaCache = window.__coaCache || (data.data || []).slice();
-            const suggested = (window.__coaCache || []).find(coa => String(coa.account_code) === String(mapping[vendorType]));
-            if (suggested) {
-                document.getElementById('defaultCoa').value = suggested.id;
-            }
-        });
+        // Ensure COAs are loaded
+        if (!window.__coaCache || window.__coaCache.length === 0) {
+            await loadCOAs();
+        }
+        
+        const suggested = (window.__coaCache || []).find(coa => String(coa.account_code) === String(mapping[vendorType]));
+        if (suggested) {
+            document.getElementById('defaultCoa').value = suggested.id;
+            renderCoaOptions(); // Re-render to show the selected option
+        }
     }
 }
 
