@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\ProfitLossViewController;
 use App\Http\Controllers\Admin\ReviewQueueViewController;
 use App\Http\Controllers\Admin\VendorViewController;
 use App\Http\Controllers\Api\BankAccountController;
+use Illuminate\Http\Request;
 use App\Http\Controllers\Api\BankImportController;
 use App\Http\Controllers\Api\BankReconciliationController;
 use App\Http\Controllers\Api\ChartOfAccountController as ApiChartOfAccountController;
@@ -150,6 +151,30 @@ Route::middleware('auth')->group(function () {
         Route::get('/api/stores', function () {
             return response()->json(App\Models\Store::select('id', 'store_info as name')->get());
         })->name('api.stores');
+        // API endpoint for COAs (for vendor form and other admin tools)
+        Route::get('/api/coa-list', function (Request $request) {
+            $query = \App\Models\ChartOfAccount::select('id', 'account_code', 'account_name', 'is_active');
+            
+            // Optional filters
+            if ($request->has('is_active')) {
+                $query->where('is_active', $request->boolean('is_active'));
+            }
+            
+            if ($request->has('search')) {
+                $search = $request->search;
+                $query->where(function($q) use ($search) {
+                    $q->where('account_name', 'like', "%{$search}%")
+                      ->orWhere('account_code', 'like', "%{$search}%");
+                });
+            }
+            
+            $perPage = $request->per_page ?? 10000;
+            $coas = $query->orderByRaw('CAST(account_code AS UNSIGNED) ASC')
+                          ->orderBy('account_name')
+                          ->paginate($perPage);
+            
+            return response()->json($coas);
+        })->name('api.coa.list');
     });
 
     // Vendors - Admin and Owner can manage

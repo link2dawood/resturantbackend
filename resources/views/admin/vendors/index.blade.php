@@ -350,33 +350,61 @@ function openCreateModal() {
 }
 
 // Edit vendor
-function editVendor(id) {
-    fetch(`/api/vendors/${id}`, {
-        headers: {
-            'Accept': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-        },
-        credentials: 'same-origin'
-    })
-    .then(response => response.json())
-    .then(vendor => {
+async function editVendor(id) {
+    try {
+        // Ensure COAs are loaded before opening edit modal
+        if (!window.__coaCache || window.__coaCache.length === 0) {
+            await loadCOAs();
+        }
+        
+        const response = await fetch(`/api/vendors/${id}`, {
+            headers: {
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+            },
+            credentials: 'same-origin'
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const vendor = await response.json();
+        
         document.getElementById('vendorModalLabel').textContent = 'Edit Vendor';
         document.getElementById('vendorId').value = vendor.id;
         document.getElementById('vendorName').value = vendor.vendor_name;
         document.getElementById('vendorIdentifier').value = vendor.vendor_identifier || '';
         document.getElementById('vendorType').value = vendor.vendor_type;
-        // Set default COA - ensure it's in the options first
+        
+        // Clear search field when editing
+        document.getElementById('defaultCoaSearch').value = '';
+        
+        // Set default COA - ensure all options are rendered first
         const defaultCoaId = vendor.default_coa_id || '';
-        if (defaultCoaId && window.__coaCache) {
-            // Make sure the selected COA is in the cache and rendered
-            renderCoaOptions();
-            // Set the value after a small delay to ensure options are rendered
-            setTimeout(() => {
-                document.getElementById('defaultCoa').value = defaultCoaId;
-            }, 100);
-        } else {
-            document.getElementById('defaultCoa').value = defaultCoaId;
-        }
+        
+        // Render all COA options (without search filter)
+        renderCoaOptions();
+        
+        // Set the selected COA value after options are rendered
+        // Use a small delay to ensure DOM is updated
+        setTimeout(() => {
+            const coaSelect = document.getElementById('defaultCoa');
+            if (defaultCoaId) {
+                // Check if the option exists
+                const optionExists = Array.from(coaSelect.options).some(opt => opt.value === String(defaultCoaId));
+                if (optionExists) {
+                    coaSelect.value = defaultCoaId;
+                } else {
+                    // If COA not found in cache, it might have been deleted
+                    console.warn(`COA with ID ${defaultCoaId} not found in available options`);
+                    coaSelect.value = '';
+                }
+            } else {
+                coaSelect.value = '';
+            }
+        }, 50);
+        
         document.getElementById('isActive').checked = vendor.is_active;
         
         // Handle contact info
@@ -397,12 +425,15 @@ function editVendor(id) {
             });
         }
         
+        // Clear any validation errors
+        clearValidationErrors();
+        
+        // Show the modal
         new bootstrap.Modal(document.getElementById('vendorModal')).show();
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showToast('Error loading vendor details', 'error');
-    });
+    } catch (error) {
+        console.error('Error loading vendor:', error);
+        showToast('Error loading vendor details: ' + error.message, 'error');
+    }
 }
 
 // Save vendor
@@ -521,7 +552,7 @@ async function loadCOAs() {
         let allCOAs = [];
         
         // Try to fetch all COAs with a very high per_page value first
-        const response = await fetch(`/api/coa?per_page=10000`, {
+        const response = await fetch(`/api/coa-list?per_page=10000`, {
             headers: {
                 'Accept': 'application/json',
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
@@ -551,7 +582,7 @@ async function loadCOAs() {
                 const pagePromises = [];
                 for (let page = 2; page <= totalPages; page++) {
                     pagePromises.push(
-                        fetch(`/api/coa?per_page=10000&page=${page}`, {
+                        fetch(`/api/coa-list?per_page=10000&page=${page}`, {
                             headers: {
                                 'Accept': 'application/json',
                                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
