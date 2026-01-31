@@ -29,11 +29,16 @@ class TransactionTypeController extends Controller
     public function create()
     {
         $parentTransactionTypes = TransactionType::whereNull('p_id')->get();
-        $chartOfAccounts = ChartOfAccount::where('account_type', 'Expense')
-            ->orWhere('account_type', 'COGS')
-            ->active()
-            ->orderBy('account_code')
-            ->get();
+        // $chartOfAccounts = ChartOfAccount::where('account_type', 'Expense')
+        //     ->orWhere('account_type', 'COGS')
+        //     ->active()
+        //     ->orderBy('account_code')
+        //     ->get();
+        $chartOfAccounts = ChartOfAccount::where('account_code', '>', 6000)
+        ->where('account_code', '<', 7000)
+        ->active()
+        ->orderBy('account_code')
+        ->get();
 
         return view('transaction_types.create', compact('parentTransactionTypes', 'chartOfAccounts'));
     }
@@ -70,11 +75,17 @@ class TransactionTypeController extends Controller
     public function edit(TransactionType $transactionType)
     {
         $parentTransactionTypes = TransactionType::whereNull('p_id')->where('id', '!=', $transactionType->id)->get();
-        $chartOfAccounts = ChartOfAccount::where('account_type', 'Expense')
-            ->orWhere('account_type', 'COGS')
-            ->active()
-            ->orderBy('account_code')
-            ->get();
+        // $chartOfAccounts = ChartOfAccount::where('account_type', 'Expense')
+        //     ->orWhere('account_type', 'COGS')
+        //     ->active()
+        //     ->orderBy('account_code')
+        //     ->get();
+        $chartOfAccounts = ChartOfAccount::where('account_code', '>', 6000)
+        ->where('account_code', '<', 7000)
+        ->active()
+        ->orderBy('account_code')
+        ->get();
+
 
         return view('transaction_types.edit', compact('transactionType', 'parentTransactionTypes', 'chartOfAccounts'));
     }

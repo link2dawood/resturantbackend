@@ -15,7 +15,7 @@
             <small class="form-text text-muted">Category will be automatically assigned if a match is found based on the description name.</small>
         </div>
 
-        <div class="form-group">
+        <!-- <div class="form-group">
             <label for="p_id">Category Transaction Type</label>
             <select name="p_id" id="p_id" class="form-control">
                 <option value="">None</option>
@@ -23,7 +23,7 @@
                     <option value="{{ $parent->id }}" {{ $transactionType->p_id == $parent->id ? 'selected' : '' }}>{{ $parent->name }}</option>
                 @endforeach
             </select>
-        </div>
+        </div> -->
 
         <div class="form-group">
             <label for="default_coa_id">Default COA Category (Optional)</label>

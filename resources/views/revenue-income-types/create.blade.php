@@ -38,7 +38,7 @@
                                     @enderror
                                 </div>
                             </div>
-                            <div class="col-md-6">
+                            <!-- <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label required">Category</label>
                                     <select name="category" class="form-control @error('category') is-invalid @enderror">
@@ -50,6 +50,20 @@
                                         <option value="crypto" {{ old('category') == 'crypto' ? 'selected' : '' }}>Crypto</option>
                                     </select>
                                     @error('category')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                            </div> -->
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label required">COA</label>
+                                    <select name="default_coa_id" class="form-control @error('default_coa_id') is-invalid @enderror">
+                                        <option value="">Select One</option>
+                                        @foreach ($chartOfAccounts as $coa)
+                                            <option value="{{ $coa->id }}">{{ $coa->account_code }} - {{ $coa->account_name }}</option>
+                                        @endforeach
+                                    </select>
+                                    @error('default_coa_id')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
                                 </div>
@@ -102,25 +116,15 @@
         <div class="col-md-4">
             <div class="card">
                 <div class="card-header">
-                    <h3 class="card-title">Categories Explained</h3>
+                    <h3 class="card-title">COA Explained</h3>
                 </div>
                 <div class="card-body">
                     <div class="list-group list-group-flush">
+                        @foreach ($chartOfAccounts as $coa)
                         <div class="list-group-item">
-                            <strong>Cash</strong> - Physical cash payments
+                            <strong>{{@$coa->account_code}}</strong> - {{@$coa->account_name}}
                         </div>
-                        <div class="list-group-item">
-                            <strong>Card</strong> - Credit/debit card payments
-                        </div>
-                        <div class="list-group-item">
-                            <strong>Check</strong> - Check payments
-                        </div>
-                        <div class="list-group-item">
-                            <strong>Online</strong> - Third-party platforms (UberEats, DoorDash, etc.)
-                        </div>
-                        <div class="list-group-item">
-                            <strong>Crypto</strong> - Cryptocurrency payments
-                        </div>
+                        @endforeach
                     </div>
                 </div>
             </div>

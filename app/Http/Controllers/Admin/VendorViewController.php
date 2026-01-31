@@ -49,7 +49,8 @@ class VendorViewController extends Controller
 
         $vendors = $query->orderBy('vendor_name', 'asc')->paginate(25);
         $stores = Store::all();
-        $coas = ChartOfAccount::where('is_active', true)->orderBy('account_name')->get();
+        $coas = ChartOfAccount::where('account_code', '>', 5000)
+        ->where('account_code', '<', 7000)->where('is_active', true)->orderBy('account_name')->get();
 
         return view('admin.vendors.index', compact('vendors', 'stores', 'coas'));
     }

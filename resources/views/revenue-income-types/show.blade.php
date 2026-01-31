@@ -45,10 +45,10 @@
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label class="form-label">Category</label>
+                                <label class="form-label">COA</label>
                                 <div class="form-control-plaintext">
                                     <span class="badge badge-outline text-{{ $revenueIncomeType->category == 'cash' ? 'success' : ($revenueIncomeType->category == 'online' ? 'info' : 'secondary') }}">
-                                        {{ ucfirst($revenueIncomeType->category) }}
+                                      {{ @$revenueIncomeType->defaultCoa->account_name }}
                                     </span>
                                 </div>
                             </div>

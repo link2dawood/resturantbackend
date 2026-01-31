@@ -53,7 +53,7 @@
                             <label class="form-label text-muted" style="font-size: 0.813rem; font-weight: 500; letter-spacing: 0.3px;">Type ID</label>
                             <div><span class="badge bg-light text-dark" style="font-size: 0.875rem;">#{{ $transactionType->id }}</span></div>
                         </div>
-                        <div class="col-md-6 mb-3">
+                        <!-- <div class="col-md-6 mb-3">
                             <label class="form-label text-muted" style="font-size: 0.813rem; font-weight: 500; letter-spacing: 0.3px;">Category Transaction Type</label>
                             <div>
                                 @if($transactionType->parent)
@@ -62,7 +62,7 @@
                                 <span class="badge bg-secondary text-white" style="font-size: 0.875rem;">Root Category</span>
                                 @endif
                             </div>
-                        </div>
+                        </div> -->
                         <div class="col-md-6 mb-3">
                             <label class="form-label text-muted" style="font-size: 0.813rem; font-weight: 500; letter-spacing: 0.3px;">Created Date</label>
                             <div style="font-weight: 500; font-size: 1rem; color: var(--google-grey-900, #202124);">

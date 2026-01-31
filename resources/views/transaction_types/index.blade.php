@@ -36,7 +36,7 @@
     @endif
 
     <x-table 
-        :headers="['#', 'Description', 'Category type', 'Default COA', ['label' => 'Actions', 'align' => 'end']]"
+        :headers="['#', 'Description', 'Default COA', ['label' => 'Actions', 'align' => 'end']]"
         cardTitle="All Transaction Types"
         emptyMessage="No transaction types found"
         emptyDescription="Get started by creating your first transaction type."
@@ -51,7 +51,7 @@
                     <x-table-cell>
                         <span class="badge bg-info text-white" style="font-size: 0.75rem;">{{ $type->name }}</span>
                     </x-table-cell>
-                    <x-table-cell>
+                    <!-- <x-table-cell>
                         @php
                             $isCategory = $type->p_id === null && $type->children()->count() > 0;
                         @endphp
@@ -71,7 +71,7 @@
                                 <small class="d-block text-muted mt-1" style="font-size: 0.7rem;">(Category - has children)</small>
                             @endif
                         </form>
-                    </x-table-cell>
+                    </x-table-cell> -->
                     <x-table-cell>
                         @if($type->defaultCoa)
                             <span class="badge bg-success" style="font-size: 0.75rem;">

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\RevenueIncomeType;
+use App\Models\ChartOfAccount;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -10,7 +11,7 @@ class RevenueIncomeTypeController extends Controller
 {
     public function index()
     {
-        $revenueIncomeTypes = RevenueIncomeType::orderBy('category')
+        $revenueIncomeTypes = RevenueIncomeType::with('defaultCoa')->orderBy('category')
             ->orderBy('sort_order')
             ->orderBy('name')
             ->paginate(20);
@@ -20,7 +21,13 @@ class RevenueIncomeTypeController extends Controller
 
     public function create()
     {
-        return view('revenue-income-types.create');
+        $chartOfAccounts = ChartOfAccount::where('account_code', '>', 4000)
+        ->where('account_code', '<', 5000)
+        ->orderBy('account_code')
+        ->get();
+    
+
+        return view('revenue-income-types.create', compact('chartOfAccounts'));
     }
 
     public function store(Request $request)
@@ -28,7 +35,8 @@ class RevenueIncomeTypeController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:revenue_income_types,name',
             'description' => 'nullable|string|max:500',
-            'category' => 'required|in:cash,card,check,online,crypto',
+            'default_coa_id' => 'nullable|exists:chart_of_accounts,id',
+            // 'category' => 'required|in:cash,card,check,online,crypto',
             'is_active' => 'boolean',
             'sort_order' => 'integer|min:0',
             'metadata' => 'nullable|array',
@@ -47,7 +55,11 @@ class RevenueIncomeTypeController extends Controller
 
     public function edit(RevenueIncomeType $revenueIncomeType)
     {
-        return view('revenue-income-types.edit', compact('revenueIncomeType'));
+        $chartOfAccounts = ChartOfAccount::where('account_code', '>', 4000)
+        ->where('account_code', '<', 5000)
+        ->orderBy('account_code')
+        ->get();
+        return view('revenue-income-types.edit', compact('revenueIncomeType', 'chartOfAccounts'));
     }
 
     public function update(Request $request, RevenueIncomeType $revenueIncomeType)
@@ -55,7 +67,8 @@ class RevenueIncomeTypeController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255', Rule::unique('revenue_income_types')->ignore($revenueIncomeType->id)],
             'description' => 'nullable|string|max:500',
-            'category' => 'required|in:cash,card,check,online,crypto',
+            'default_coa_id' => 'nullable|exists:chart_of_accounts,id',
+            // 'category' => 'required|in:cash,card,check,online,crypto',
             'is_active' => 'boolean',
             'sort_order' => 'integer|min:0',
             'metadata' => 'nullable|array',

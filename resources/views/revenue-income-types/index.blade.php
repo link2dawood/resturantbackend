@@ -27,7 +27,7 @@
         $headers = [
             'Name',
             'Description',
-            'Category',
+            'COA',
             'Sort Order',
             'Status',
             ['label' => 'Actions', 'align' => 'end']
@@ -49,8 +49,8 @@
                         <div class="text-muted">{{ $type->description ?? 'No description' }}</div>
                     </x-table-cell>
                     <x-table-cell>
-                        <span class="badge badge-outline text-{{ $type->category == 'cash' ? 'success' : ($type->category == 'online' ? 'info' : 'secondary') }}">
-                            {{ ucfirst($type->category) }}
+                        <span class="badge badge-outline text-{{ @$type->defaultCoa->account_name == 'cash' ? 'success' : (@$type->defaultCoa->account_name== 'online' ? 'info' : 'secondary') }}">
+                            {{ @$type->defaultCoa->account_name }}
                         </span>
                     </x-table-cell>
                     <x-table-cell>

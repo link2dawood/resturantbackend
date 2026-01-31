@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class RevenueIncomeType extends Model
 {
@@ -13,12 +14,18 @@ class RevenueIncomeType extends Model
         'is_active',
         'sort_order',
         'metadata',
+        'default_coa_id',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
         'metadata' => 'array',
     ];
+
+    public function defaultCoa(): BelongsTo
+    {
+        return $this->belongsTo(ChartOfAccount::class, 'default_coa_id');
+    }
 
     public function scopeActive($query)
     {
