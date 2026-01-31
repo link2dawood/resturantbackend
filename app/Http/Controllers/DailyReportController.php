@@ -1015,9 +1015,10 @@ class DailyReportController extends Controller
 
         $stores = Store::whereNull('deleted_at')->orderBy('store_info')->get();
         $summaryData = null;
-
+        
         // If form is submitted, generate summary
-        if ($request->has('get_report')) {
+        if ($request->has('report_type')) {
+        
             $validated = $request->validate([
                 'from_date' => 'required|date',
                 'to_date' => 'required|date|after_or_equal:from_date',
@@ -1042,9 +1043,11 @@ class DailyReportController extends Controller
                 ->orderBy('report_date')
                 ->orderBy('store_id')
                 ->get();
+                
 
             // Calculate summary data
             $summaryData = $this->calculateSummary($reports, $dataItems, $reportType, $storeIds);
+            
         }
 
         return view('daily-reports.summary', compact('stores', 'summaryData'));
