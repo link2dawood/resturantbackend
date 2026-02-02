@@ -323,8 +323,8 @@
 
     <select id="transactionTypeTemplate" style="display:none;">
     <option value="">Select Type</option>
-    @foreach($types as $type)
-        <option value="{{ $type->id }}">{{ $type->name }}</option>
+    @foreach($coas as $coa)
+        <option value="{{ $coa->id }}">{{ $coa->account_code }} - {{ $coa->account_name }}</option>
     @endforeach
 </select>
 
@@ -334,7 +334,7 @@
     @foreach($vendors as $vendor)
         <option value="{{ $vendor->id }}" 
                 data-vendor-name="{{ $vendor->vendor_name }}"
-                data-transaction-type-id="{{ $vendor->default_transaction_type_id }}">
+                data-default-coa-id="{{ $vendor->default_coa_id }}">
             {{ $vendor->vendor_name }}
         </option>
     @endforeach
@@ -396,7 +396,7 @@
                                             @foreach($vendors as $vendor)
                                                 <option value="{{ $vendor->id }}" 
                                                         data-vendor-name="{{ $vendor->vendor_name }}"
-                                                        data-transaction-type-id="{{ $vendor->default_transaction_type_id }}">
+                                                        data-default-coa-id="{{ $vendor->default_coa_id }}">
                                                     {{ $vendor->vendor_name }}
                                                 </option>
                                             @endforeach
@@ -406,9 +406,9 @@
                                     <td>
                                         <select class="form-input transaction-type-select" name="transactions[0][transaction_type]" data-row="0">
                                             <option value="">Select Type</option>
-                                            @foreach($types as $type)
-                                            <option value="{{$type->id}}">{{$type->name}}</option>
-                                            @endforeach
+                                            @foreach($coas as $coa)
+                                       <option value="{{ $coa->id }}">{{ $coa->account_code }} - {{ $coa->account_name }}</option>
+                                         @endforeach
                                         </select>
                                     </td>
                                     <td>
@@ -633,11 +633,11 @@
                                 <td><input type="number" name="actual_deposit" class="form-input number-input" value="0"></td>
                             </tr>
                             <tr>
-                                <td><strong>Short:</strong></td>
+                                <td id="short-td"><strong>Short:</strong></td>
                                 <td id="short" class="calculated-field number-input">$0</td>
                             </tr>
                             <tr>
-                                <td ><strong>Over:</strong></td>
+                                <td id="over-td"><strong>Over:</strong></td>
                                 <td id="over" class="calculated-field number-input">$0</td>
                             </tr>
                         </table>
@@ -725,7 +725,7 @@ function calculateTotals() {
     const grossSales = totalRevenueIncome + couponsReceived;
     
     // Net Sales = Total Revenue Entries - Coupons Received - Adjustments: Overrings/Returns
-    const netSales = totalRevenueIncome - couponsReceived - adjustmentsOverrings;
+    const netSales = totalRevenueIncome - adjustmentsOverrings;
     
     // Tax = Net Sales minus (Net Sales / 1.0825)
     const tax = netSales - (netSales / 1.0825);
@@ -759,18 +759,35 @@ function calculateTotals() {
     
     // Cash To Account For = Net Sales - Total Transaction Expenses - Online Platform Revenue - Credit Cards - Checks - Crypto
     let cashToAccountFor = netSales - totalPaidOuts - onlinePlatformRevenue - creditCards - checksRevenue - cryptoRevenue;
-    
+    console.log(cashToAccountFor,'cashToAccountFor');
     // Ensure result is not negative (numbers cannot go negative)
-    cashToAccountFor = Math.max(0, Math.round(cashToAccountFor * 100) / 100);
-    
+    // cashToAccountFor = Math.max(0, Math.round(cashToAccountFor * 100) / 100);
+    console.log(cashToAccountFor,'cashToAccountFor after');
     // Over/Short = Actual Deposit - Cash To Account For
+    
+    // let short = 0;
+    // let over = 0;
+    // if (actualDeposit < cashToAccountFor) {
+    //     short = actualDeposit - cashToAccountFor;
+    // } else {
+    //     over = actualDeposit - cashToAccountFor;
+    // }
     let short = 0;
     let over = 0;
-    if (actualDeposit < cashToAccountFor) {
-        short = actualDeposit - cashToAccountFor;
-    } else {
-        over = actualDeposit - cashToAccountFor;
-    }
+    
+    let diff;
+
+if (cashToAccountFor >= 0) {
+    diff = actualDeposit - cashToAccountFor;
+} else {
+    diff = actualDeposit + cashToAccountFor;
+}
+
+if (diff < 0) {
+    short = diff;   // negative = short
+} else {
+    over = diff;    // positive = over
+}
 
     // Helper function to format and color amounts
     function formatAmount(amount, element, isNegative = false) {
@@ -823,14 +840,53 @@ function calculateTotals() {
     }
     
     formatAmount(cashToAccountFor, document.getElementById('cashToAccountFor'));
+
+    const shortEl = document.getElementById('short');
+     const overEl  = document.getElementById('over');
+     const shortTd = document.getElementById('short-td');
+     const overTd = document.getElementById('over-td');
+
     formatAmount(short, document.getElementById('short'));
     formatAmount(over, document.getElementById('over'));
+
+    // Show/hide Short and Over rows based on values
+    const shortRow = shortTd ? shortTd.closest('tr') : null;
+    const overRow = overTd ? overTd.closest('tr') : null;
+    
+    if (short < 0) {
+        // If short is less than 0, hide over row
+        if (overRow) {
+            overRow.style.display = 'none';
+        }
+        // Show short row
+        if (shortRow) {
+            shortRow.style.display = '';
+        }
+    } else if (over >= 0) {
+        // If over is 0 or greater, hide short row
+        if (shortRow) {
+            shortRow.style.display = 'none';
+        }
+        // Show over row
+        if (overRow) {
+            overRow.style.display = '';
+        }
+    } else {
+        // Default: show both
+        if (shortRow) {
+            shortRow.style.display = '';
+        }
+        if (overRow) {
+            overRow.style.display = '';
+        }
+    }
 
         document.querySelector('.NetSales').value = netSales.toFixed(2);
     document.querySelector('.TaxInput').value = tax.toFixed(2);
     document.querySelector('.SalesInput').value = salesPreTax.toFixed(2); // SalesInput = salesPreTax
     document.querySelector('.TotalPaidOuts').value = totalPaidOuts.toFixed(2);
     document.querySelector('.CashToAccountInput').value = cashToAccountFor.toFixed(2);
+
     document.querySelector('.ShortInput').value = short.toFixed(2);
     document.querySelector('.OverInput').value = over.toFixed(2);
 }
@@ -1109,7 +1165,7 @@ window.handleVendorChange = function(selectElement) {
     if (selectedValue) {
         // Get selected option
         const selectedOption = selectElement.options[selectElement.selectedIndex];
-        const transactionTypeId = selectedOption.getAttribute('data-transaction-type-id');
+        const defaultCoaId = selectedOption.getAttribute('data-default-coa-id');
         const vendorId = selectedValue;
         const vendorName = selectedOption.getAttribute('data-vendor-name');
         
@@ -1119,11 +1175,11 @@ window.handleVendorChange = function(selectElement) {
             vendorIdInput.value = vendorId;
         }
         
-        // Auto-fill transaction type if vendor has default transaction type
-        if (transactionTypeId) {
+        // Auto-fill transaction type if vendor has default_coa_id
+        if (defaultCoaId) {
             const transactionTypeSelect = selectElement.closest('tr').querySelector('.transaction-type-select');
             if (transactionTypeSelect) {
-                transactionTypeSelect.value = transactionTypeId;
+                transactionTypeSelect.value = defaultCoaId;
             }
         }
     } else {
@@ -1192,7 +1248,7 @@ window.saveNewVendor = async function() {
             const newOption = document.createElement('option');
             newOption.value = data.id;
             newOption.setAttribute('data-vendor-name', data.vendor_name);
-            newOption.setAttribute('data-transaction-type-id', data.default_transaction_type_id || '');
+            newOption.setAttribute('data-default-coa-id', data.default_coa_id || '');
             newOption.textContent = data.vendor_name;
             vendorTemplate.appendChild(newOption);
             
