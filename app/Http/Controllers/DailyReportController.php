@@ -7,6 +7,7 @@ use App\Exceptions\Business\ReportException;
 use App\Exceptions\Business\StoreException;
 use App\Http\Middleware\CheckDailyReportAccess;
 use App\Models\AuditLog;
+use App\Models\ChartOfAccount;
 use App\Models\DailyReport;
 use App\Models\DailyReportRevenue;
 use App\Models\DailyReportTransaction;
@@ -215,7 +216,13 @@ class DailyReportController extends Controller
             ->orderBy('vendor_name')
             ->get();
 
-        return view('daily-reports.create', compact('store', 'types', 'revenueTypes', 'reportDate', 'vendors'));
+        // Get Chart of Accounts for transaction type dropdown
+        $coas = ChartOfAccount::where('is_active', true)
+            ->orderBy('account_code')
+            ->orderBy('account_name')
+            ->get();
+
+        return view('daily-reports.create', compact('store', 'types', 'revenueTypes', 'reportDate', 'vendors', 'coas'));
     }
 
     /**
@@ -381,10 +388,16 @@ class DailyReportController extends Controller
             ->with(['defaultTransactionType', 'defaultCoa'])
             ->orderBy('vendor_name')
             ->get();
+
+        // Get Chart of Accounts for transaction type dropdown
+        $coas = ChartOfAccount::where('is_active', true)
+            ->orderBy('account_code')
+            ->orderBy('account_name')
+            ->get();
         
         $dailyReport->load(['transactions', 'revenues.revenueIncomeType']);
 
-        return view('daily-reports.edit', compact('dailyReport', 'stores', 'types', 'revenueTypes', 'vendors'));
+        return view('daily-reports.edit', compact('dailyReport', 'stores', 'types', 'revenueTypes', 'vendors', 'coas'));
     }
 
     /**
