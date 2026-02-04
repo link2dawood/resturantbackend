@@ -216,8 +216,9 @@ class DailyReportController extends Controller
             ->orderBy('vendor_name')
             ->get();
 
-        // Get Chart of Accounts for transaction type dropdown
+        // Get Chart of Accounts for transaction type dropdown (only COGS and Expense types)
         $coas = ChartOfAccount::where('is_active', true)
+            ->whereIn('account_type', ['COGS', 'Expense'])
             ->orderBy('account_code')
             ->orderBy('account_name')
             ->get();
@@ -389,13 +390,14 @@ class DailyReportController extends Controller
             ->orderBy('vendor_name')
             ->get();
 
-        // Get Chart of Accounts for transaction type dropdown
+        // Get Chart of Accounts for transaction type dropdown (only COGS and Expense types)
         $coas = ChartOfAccount::where('is_active', true)
+            ->whereIn('account_type', ['COGS', 'Expense'])
             ->orderBy('account_code')
             ->orderBy('account_name')
             ->get();
         
-        $dailyReport->load(['transactions', 'revenues.revenueIncomeType']);
+        $dailyReport->load(['transactions.transactionType', 'revenues.revenueIncomeType']);
 
         return view('daily-reports.edit', compact('dailyReport', 'stores', 'types', 'revenueTypes', 'vendors', 'coas'));
     }
@@ -442,7 +444,7 @@ class DailyReportController extends Controller
             'transactions.*.transaction_id' => 'nullable|integer',
             'transactions.*.company' => 'nullable|string|max:100',
             'transactions.*.vendor_id' => 'nullable|exists:vendors,id',
-            'transactions.*.transaction_type' => 'nullable|exists:transaction_types,id',
+            'transactions.*.transaction_type' => 'nullable|integer',
             'transactions.*.amount' => 'required|numeric|min:0',
 
             // revenue entries
@@ -976,12 +978,23 @@ class DailyReportController extends Controller
                 }
             }
 
-            // Validate transaction_type_id
+            // Handle transaction_type - can be COA ID or TransactionType ID
             $transactionTypeId = $transactionData['transaction_type'] ?? null;
-            if ($transactionTypeId && ! TransactionType::find($transactionTypeId)) {
-                throw ValidationException::withMessages([
-                    'transactions' => "Invalid transaction type ID: {$transactionTypeId}",
-                ]);
+            if ($transactionTypeId) {
+                // Check if it's a COA ID (ChartOfAccount)
+                $coa = ChartOfAccount::find($transactionTypeId);
+                if ($coa) {
+                    // Find a TransactionType with this COA as default, or use null
+                    $transactionType = TransactionType::where('default_coa_id', $transactionTypeId)->first();
+                    $transactionTypeId = $transactionType ? $transactionType->id : null;
+                } else {
+                    // Check if it's a valid TransactionType ID
+                    if (! TransactionType::find($transactionTypeId)) {
+                        throw ValidationException::withMessages([
+                            'transactions' => "Invalid transaction type ID: {$transactionTypeId}",
+                        ]);
+                    }
+                }
             }
 
             DailyReportTransaction::create([

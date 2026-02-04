@@ -3,6 +3,30 @@
 @section('content')
 
 <style>
+    /* Safari-specific fixes */
+    @supports (-webkit-appearance: none) {
+        button, input[type="button"], input[type="submit"] {
+            -webkit-appearance: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        input, select, textarea {
+            -webkit-appearance: none;
+        }
+        
+        .form-control, .form-input {
+            -webkit-appearance: none;
+            border-radius: 4px;
+        }
+    }
+    
+    /* Ensure buttons are visible in Safari */
+    button {
+        display: inline-block;
+        width: auto;
+        min-width: auto;
+    }
+    
     .sales-table {
     width: 100%;
     border-collapse: collapse;
@@ -80,6 +104,11 @@
         background: transparent;
         padding: 8px;
         font-size: 14px;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+        box-sizing: border-box;
+        -webkit-box-sizing: border-box;
     }
     
     .form-input:focus {
@@ -125,6 +154,12 @@
         -webkit-appearance: none;
         -moz-appearance: none;
         appearance: none;
+        width: auto;
+        min-width: 120px;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
     }
     
     .btn-add-row:hover {
@@ -140,6 +175,16 @@
         border-radius: 4px;
         cursor: pointer;
         font-size: 12px;
+        display: inline-block;
+        width: auto;
+        min-width: 30px;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
     }
     
     .btn-remove:hover {
@@ -154,6 +199,16 @@
         border-radius: 4px;
         cursor: pointer;
         font-size: 12px;
+        display: inline-block;
+        width: auto;
+        min-width: 30px;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
     }
     
     .btn-remove-row:hover {
@@ -185,6 +240,12 @@
         border: 1px solid #ced4da;
         border-radius: 4px;
         font-size: 14px;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+        box-sizing: border-box;
+        -webkit-box-sizing: border-box;
+        display: block;
     }
     
     .category-labels {
@@ -206,8 +267,11 @@
     }
     
     .sales-grid {
+        display: -webkit-grid;
         display: grid;
+        -webkit-grid-template-columns: 1fr 1fr;
         grid-template-columns: 1fr 1fr;
+        -webkit-grid-gap: 15px;
         gap: 15px;
         margin-top: 12px;
     }
@@ -237,6 +301,7 @@
     
     .save-btn {
         background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        background: -webkit-linear-gradient(135deg, #28a745 0%, #20c997 100%);
         color: white;
         border: none;
         padding: 10px 30px;
@@ -245,7 +310,19 @@
         font-weight: 600;
         cursor: pointer;
         box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+        -webkit-box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
         transition: all 0.3s;
+        -webkit-transition: all 0.3s;
+        display: inline-block;
+        width: auto;
+        min-width: 180px;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
     }
     
     .save-btn:hover {
@@ -255,7 +332,9 @@
     
     @media (max-width: 768px) {
         .sales-grid {
+            -webkit-grid-template-columns: 1fr;
             grid-template-columns: 1fr;
+            -webkit-grid-gap: 20px;
             gap: 20px;
         }
         
@@ -378,7 +457,7 @@
                             <thead>
                                 <tr>
                                     <th style="width: 15%;">Transaction ID</th>
-                                    <th style="width: 30%;">Company</th>
+                                    <th style="width: 30%;">Vendor Description</th>
                                     <th style="width: 25%;">Transaction Type</th>
                                     <th style="width: 20%;">Amount ($)</th>
                                     <th style="width: 10%;">Action</th>
@@ -415,7 +494,7 @@
                                         <input type="number" class="form-input number-input" name="transactions[0][amount]" min="0" placeholder="0.00">
                                     </td>
                                     <td>
-                                        <button type="button" class="btn-add-row" onclick="addTransactionRow()">+</button>
+                                        <button type="button" class="btn-add-row" onclick="addTransactionRow()" style="width: auto; min-width: 40px;">+</button>
                                     </td>
                                 </tr>
                                 <tr class="total-row">
@@ -426,7 +505,7 @@
                             </tbody>
                         </table>
                         <div style="margin-top: 8px; padding: 8px; background: #fff3cd; border-radius: 4px; border: 1px solid #ffeaa7;">
-                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div style="display: -webkit-flex; display: flex; -webkit-justify-content: space-between; justify-content: space-between; -webkit-align-items: center; align-items: center; width: 100%;">
                                 <span style="font-weight: 600; color: #856404;">Total Transaction Expenses:</span>
                                 <span id="totalTransactionExpenses" style="font-weight: 600; color: #856404; font-size: 1.1rem;">$0</span>
                             </div>
@@ -500,13 +579,13 @@
                                 </tr>
                             </tbody>
                         </table>
-                        <button type="button" id="addRevenueRow" class="btn-add-row" style="margin-top: 10px; display: inline-block !important; visibility: visible !important; opacity: 1 !important;">+ Add Revenue Entry</button>
+                        <button type="button" id="addRevenueRow" class="btn-add-row" style="margin-top: 10px; display: inline-block !important; visibility: visible !important; opacity: 1 !important; width: auto;">+ Add Revenue Entry</button>
                         <div style="margin-top: 8px; padding: 8px; background: #f8f9fa; border-radius: 4px;">
-                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div style="display: -webkit-flex; display: flex; -webkit-justify-content: space-between; justify-content: space-between; -webkit-align-items: center; align-items: center; width: 100%;">
                                 <span style="font-weight: 600; color: #495057;">Total Revenue Income:</span>
                                 <span id="totalRevenue" style="font-weight: 600; color: #28a745; font-size: 1.1rem;">$0</span>
                             </div>
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 5px;">
+                            <div style="display: -webkit-flex; display: flex; -webkit-justify-content: space-between; justify-content: space-between; -webkit-align-items: center; align-items: center; margin-top: 5px; width: 100%;">
                                 <span style="font-weight: 600; color: #495057;">Online Platform Revenue:</span>
                                 <span id="onlineRevenue" style="font-weight: 600; color: #17a2b8; font-size: 1.1rem;">$0</span>
                             </div>
@@ -538,7 +617,7 @@
                         <table class="sales-table">
                             <tr>
                                 <td>
-                                    <div style="display:flex;justify-content: space-between;align-items: center;">
+                                    <div style="display: -webkit-flex; display: flex; -webkit-justify-content: space-between; justify-content: space-between; -webkit-align-items: center; align-items: center; width: 100%;">
                                         <span><strong>Gross Sales:</strong></span>
                                         <span style="width:30%;" id="grossSales" class="calculated-field number-input">$0</span>
                                     </div>
@@ -548,7 +627,7 @@
                             </tr>
                             <tr>
                                 <td>
-                                    <div style="display:flex;justify-content: space-between;align-items: center;">
+                                    <div style="display: -webkit-flex; display: flex; -webkit-justify-content: space-between; justify-content: space-between; -webkit-align-items: center; align-items: center; width: 100%;">
                                         <span><strong>Total Amount of Coupons Received:</strong></span>
                                         <span style="width:30%;"><input type="number" name="coupons_received" class="form-input number-input" value="0" style="background: white;"></span>
                                     </div>
@@ -558,7 +637,7 @@
                             </tr>
                             <tr>
                                 <td>
-                                    <div style="display:flex;justify-content: space-between;align-items: center;">
+                                    <div style="display: -webkit-flex; display: flex; -webkit-justify-content: space-between; justify-content: space-between; -webkit-align-items: center; align-items: center; width: 100%;">
                                         <span>Total # of Coupons</span>
                                         <span style="width:30%;"><input type="number" name="total_coupons" value="0" class="form-input number-input" style="background: white;"></span>
                                     </div>
@@ -568,7 +647,7 @@
                             </tr>
                             <tr>
                                 <td>
-                                    <div style="display:flex;justify-content: space-between;align-items: center;">
+                                    <div style="display: -webkit-flex; display: flex; -webkit-justify-content: space-between; justify-content: space-between; -webkit-align-items: center; align-items: center; width: 100%;">
                                         <span><strong>Adjustments: Overrings/Returns:</strong></span>
                                         <span style="width:30%;"><input type="number" name="adjustments_overrings" class="form-input number-input" value="0" style="background: white;"></span>
                                     </div>
@@ -579,7 +658,7 @@
                             <tr>
                                 <td rowspan="2">
                                     
-                                    <div style="display:flex;justify-content: space-between;align-items: anchor-center;">
+                                    <div style="display: -webkit-flex; display: flex; -webkit-justify-content: space-between; justify-content: space-between; -webkit-align-items: center; align-items: center; width: 100%;">
                                         <span>Total # of Customers</span>
                                         <span style="width:30%;"><input type="number" name="total_customers" value="0" class="form-input number-input" style="background: white;"></span>
                                     </div>
@@ -595,7 +674,7 @@
                             <tr>
                                 <td>
                                    
-                                    <div style="display:flex;justify-content: space-between;align-items: anchor-center;">
+                                    <div style="display: -webkit-flex; display: flex; -webkit-justify-content: space-between; justify-content: space-between; -webkit-align-items: center; align-items: center; width: 100%;">
                                         <span> Average Ticket</span>
                                         <span style="width:30%;"><input type="number" name="average_ticket" id="averageTicketInput" value="0" class="form-input number-input" style="background: white;" readonly></span>
                                     </div>
@@ -1199,8 +1278,6 @@ window.openCreateVendorModal = function(row, selectElement) {
     
     // Reset modal form
     document.getElementById('newVendorName').value = '';
-    document.getElementById('newVendorType').value = '';
-    document.getElementById('newVendorTransactionType').value = '';
     document.getElementById('newVendorCoa').value = '';
     
     // Show modal
@@ -1211,17 +1288,15 @@ window.openCreateVendorModal = function(row, selectElement) {
 // Save new vendor
 window.saveNewVendor = async function() {
     const vendorName = document.getElementById('newVendorName').value.trim();
-    const vendorType = document.getElementById('newVendorType').value;
-    const transactionTypeId = document.getElementById('newVendorTransactionType').value;
     const coaId = document.getElementById('newVendorCoa').value;
     
     if (!vendorName) {
-        alert('Please enter a vendor name');
+        alert('Please enter a vendor description');
         return;
     }
     
-    if (!vendorType) {
-        alert('Please select a vendor type');
+    if (!coaId) {
+        alert('Please select a default chart of account');
         return;
     }
     
@@ -1234,9 +1309,8 @@ window.saveNewVendor = async function() {
             },
             body: JSON.stringify({
                 vendor_name: vendorName,
-                vendor_type: vendorType,
-                default_transaction_type_id: transactionTypeId || null,
-                default_coa_id: coaId || null
+                vendor_type: 'Other', // Default type since it's required
+                default_coa_id: coaId
             })
         });
         
@@ -1284,42 +1358,25 @@ window.saveNewVendor = async function() {
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="createVendorModalLabel">Create New Company</h5>
+                    <h5 class="modal-title" id="createVendorModalLabel">Create New Vendor Description</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <form id="createVendorForm">
                         <div class="mb-3">
-                            <label for="newVendorName" class="form-label">Company Name <span class="text-danger">*</span></label>
+                            <label for="newVendorName" class="form-label">Vendor Description <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" id="newVendorName" required>
                         </div>
                         <div class="mb-3">
-                            <label for="newVendorType" class="form-label">Company Type <span class="text-danger">*</span></label>
-                            <select class="form-select" id="newVendorType" required>
-                                <option value="">Select Type</option>
-                                <option value="Food">Food</option>
-                                <option value="Beverage">Beverage</option>
-                                <option value="Supplies">Supplies</option>
-                                <option value="Utilities">Utilities</option>
-                                <option value="Services">Services</option>
-                                <option value="Other">Other</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label for="newVendorTransactionType" class="form-label">Default Transaction Type</label>
-                            <select class="form-select" id="newVendorTransactionType">
-                                <option value="">Select Transaction Type</option>
-                                @foreach($types as $type)
-                                    <option value="{{ $type->id }}">{{ $type->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label for="newVendorCoa" class="form-label">Default Chart of Account</label>
-                            <select class="form-select" id="newVendorCoa">
+                            <label for="newVendorCoa" class="form-label">Default Chart of Account <span class="text-danger">*</span></label>
+                            <select class="form-select" id="newVendorCoa" required>
                                 <option value="">Select COA</option>
                                 @php
-                                    $coas = \App\Models\ChartOfAccount::where('is_active', true)->orderBy('account_name')->get();
+                                    $coas = \App\Models\ChartOfAccount::where('is_active', true)
+                                        ->whereIn('account_type', ['COGS', 'Expense'])
+                                        ->orderBy('account_code')
+                                        ->orderBy('account_name')
+                                        ->get();
                                 @endphp
                                 @foreach($coas as $coa)
                                     <option value="{{ $coa->id }}">{{ $coa->account_code }} - {{ $coa->account_name }}</option>
@@ -1330,7 +1387,7 @@ window.saveNewVendor = async function() {
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" onclick="saveNewVendor()">Create Company</button>
+                    <button type="button" class="btn btn-primary" onclick="saveNewVendor()">Create Vendor</button>
                 </div>
             </div>
         </div>

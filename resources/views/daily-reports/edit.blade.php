@@ -383,8 +383,8 @@
 
     <select id="transactionTypeTemplate" style="display:none;">
         <option value="">Select Type</option>
-        @foreach($types as $type)
-            <option value="{{ $type->id }}">{{ $type->name }}</option>
+        @foreach($coas as $coa)
+            <option value="{{ $coa->id }}">{{ $coa->account_code }} - {{ $coa->account_name }}</option>
         @endforeach
     </select>
 
@@ -400,7 +400,7 @@
         @foreach($vendors as $vendor)
             <option value="{{ $vendor->id }}" 
                     data-vendor-name="{{ $vendor->vendor_name }}"
-                    data-transaction-type-id="{{ $vendor->default_transaction_type_id }}">
+                    data-default-coa-id="{{ $vendor->default_coa_id }}">
                 {{ $vendor->vendor_name }}
             </option>
         @endforeach
@@ -439,7 +439,7 @@
                             <thead>
                                 <tr>
                                     <th style="width: 15%;">Transaction ID</th>
-                                    <th style="width: 30%;">Company</th>
+                                    <th style="width: 30%;">Vendor Description</th>
                                     <th style="width: 25%;">Transaction Type</th>
                                     <th style="width: 20%;">Amount ($)</th>
                                     <th style="width: 10%;">Action</th>
@@ -458,7 +458,7 @@
                                                 @foreach($vendors as $vendor)
                                                     <option value="{{ $vendor->id }}" 
                                                             data-vendor-name="{{ $vendor->vendor_name }}"
-                                                            data-transaction-type-id="{{ $vendor->default_transaction_type_id }}"
+                                                            data-default-coa-id="{{ $vendor->default_coa_id }}"
                                                             {{ $transaction->company == $vendor->vendor_name ? 'selected' : '' }}>
                                                         {{ $vendor->vendor_name }}
                                                     </option>
@@ -472,8 +472,8 @@
                                         <td>
                                             <select class="form-input transaction-type-select" name="transactions[{{ $index }}][transaction_type]" data-row="{{ $index }}">
                                                 <option value="">Select Type</option>
-                                                @foreach($types as $type)
-                                                    <option value="{{ $type->id }}" {{ $transaction->transaction_type_id == $type->id ? 'selected' : '' }}>{{ $type->name }}</option>
+                                                @foreach($coas as $coa)
+                                                    <option value="{{ $coa->id }}" {{ ($transaction->transactionType?->default_coa_id ?? null) == $coa->id ? 'selected' : '' }}>{{ $coa->account_code }} - {{ $coa->account_name }}</option>
                                                 @endforeach
                                             </select>
                                         </td>
@@ -498,7 +498,7 @@
                                                 @foreach($vendors as $vendor)
                                                     <option value="{{ $vendor->id }}" 
                                                             data-vendor-name="{{ $vendor->vendor_name }}"
-                                                            data-transaction-type-id="{{ $vendor->default_transaction_type_id }}">
+                                                            data-default-coa-id="{{ $vendor->default_coa_id }}">
                                                         {{ $vendor->vendor_name }}
                                                     </option>
                                                 @endforeach
@@ -508,8 +508,8 @@
                                         <td>
                                             <select class="form-input transaction-type-select" name="transactions[0][transaction_type]" data-row="0">
                                                 <option value="">Select Type</option>
-                                                @foreach($types as $type)
-                                                    <option value="{{ $type->id }}">{{ $type->name }}</option>
+                                                @foreach($coas as $coa)
+                                                    <option value="{{ $coa->id }}">{{ $coa->account_code }} - {{ $coa->account_name }}</option>
                                                 @endforeach
                                             </select>
                                         </td>
@@ -1112,7 +1112,7 @@ window.handleVendorChange = function(selectElement) {
     const selectedOption = selectElement.options[selectElement.selectedIndex];
     if (selectedOption && selectedValue && selectedValue !== '__create_new__') {
         const vendorName = selectedOption.dataset.vendorName || selectedOption.textContent;
-        const transactionTypeId = selectedOption.dataset.transactionTypeId;
+        const defaultCoaId = selectedOption.getAttribute('data-default-coa-id');
         
         // Update the company name in the select (for display)
         // The value is already set to vendor ID
@@ -1124,11 +1124,11 @@ window.handleVendorChange = function(selectElement) {
             vendorIdInput.value = selectedValue;
         }
         
-        // Auto-fill transaction type if available
-        if (transactionTypeId) {
+        // Auto-fill transaction type (COA) if available
+        if (defaultCoaId) {
             const transactionTypeSelect = rowElement.querySelector('.transaction-type-select');
             if (transactionTypeSelect) {
-                transactionTypeSelect.value = transactionTypeId;
+                transactionTypeSelect.value = defaultCoaId;
             }
         }
     }
@@ -1290,8 +1290,6 @@ window.openCreateVendorModal = function(row, selectElement) {
     
     // Reset modal form
     document.getElementById('newVendorName').value = '';
-    document.getElementById('newVendorType').value = '';
-    document.getElementById('newVendorTransactionType').value = '';
     document.getElementById('newVendorCoa').value = '';
     
     // Show modal
@@ -1302,17 +1300,15 @@ window.openCreateVendorModal = function(row, selectElement) {
 // Save new vendor
 window.saveNewVendor = async function() {
     const vendorName = document.getElementById('newVendorName').value.trim();
-    const vendorType = document.getElementById('newVendorType').value;
-    const transactionTypeId = document.getElementById('newVendorTransactionType').value;
     const coaId = document.getElementById('newVendorCoa').value;
     
     if (!vendorName) {
-        alert('Please enter a vendor name');
+        alert('Please enter a vendor description');
         return;
     }
     
-    if (!vendorType) {
-        alert('Please select a vendor type');
+    if (!coaId) {
+        alert('Please select a default chart of account');
         return;
     }
     
@@ -1325,9 +1321,8 @@ window.saveNewVendor = async function() {
             },
             body: JSON.stringify({
                 vendor_name: vendorName,
-                vendor_type: vendorType,
-                default_transaction_type_id: transactionTypeId || null,
-                default_coa_id: coaId || null
+                vendor_type: 'Other', // Default type since it's required
+                default_coa_id: coaId
             })
         });
         
@@ -1339,7 +1334,7 @@ window.saveNewVendor = async function() {
             const newOption = document.createElement('option');
             newOption.value = data.id;
             newOption.setAttribute('data-vendor-name', data.vendor_name);
-            newOption.setAttribute('data-transaction-type-id', data.default_transaction_type_id || '');
+            newOption.setAttribute('data-default-coa-id', data.default_coa_id || '');
             newOption.textContent = data.vendor_name;
             vendorTemplate.appendChild(newOption);
             
@@ -1375,42 +1370,25 @@ window.saveNewVendor = async function() {
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="createVendorModalLabel">Create New Company</h5>
+                    <h5 class="modal-title" id="createVendorModalLabel">Create New Vendor Description</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <form id="createVendorForm">
                         <div class="mb-3">
-                            <label for="newVendorName" class="form-label">Company Name <span class="text-danger">*</span></label>
+                            <label for="newVendorName" class="form-label">Vendor Description <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" id="newVendorName" required>
                         </div>
                         <div class="mb-3">
-                            <label for="newVendorType" class="form-label">Company Type <span class="text-danger">*</span></label>
-                            <select class="form-select" id="newVendorType" required>
-                                <option value="">Select Type</option>
-                                <option value="Food">Food</option>
-                                <option value="Beverage">Beverage</option>
-                                <option value="Supplies">Supplies</option>
-                                <option value="Utilities">Utilities</option>
-                                <option value="Services">Services</option>
-                                <option value="Other">Other</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label for="newVendorTransactionType" class="form-label">Default Transaction Type</label>
-                            <select class="form-select" id="newVendorTransactionType">
-                                <option value="">Select Transaction Type</option>
-                                @foreach($types as $type)
-                                    <option value="{{ $type->id }}">{{ $type->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label for="newVendorCoa" class="form-label">Default Chart of Account</label>
-                            <select class="form-select" id="newVendorCoa">
+                            <label for="newVendorCoa" class="form-label">Default Chart of Account <span class="text-danger">*</span></label>
+                            <select class="form-select" id="newVendorCoa" required>
                                 <option value="">Select COA</option>
                                 @php
-                                    $coas = \App\Models\ChartOfAccount::where('is_active', true)->orderBy('account_name')->get();
+                                    $coas = \App\Models\ChartOfAccount::where('is_active', true)
+                                        ->whereIn('account_type', ['COGS', 'Expense'])
+                                        ->orderBy('account_code')
+                                        ->orderBy('account_name')
+                                        ->get();
                                 @endphp
                                 @foreach($coas as $coa)
                                     <option value="{{ $coa->id }}">{{ $coa->account_code }} - {{ $coa->account_name }}</option>
@@ -1421,7 +1399,7 @@ window.saveNewVendor = async function() {
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" onclick="saveNewVendor()">Create Company</button>
+                    <button type="button" class="btn btn-primary" onclick="saveNewVendor()">Create Vendor</button>
                 </div>
             </div>
         </div>
