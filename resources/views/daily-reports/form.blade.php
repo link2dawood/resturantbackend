@@ -3,21 +3,121 @@
 @section('content')
 
 <style>
-    /* Safari-specific fixes */
+    /* Safari-specific fixes for daily report form */
     @supports (-webkit-appearance: none) {
         button, input[type="button"], input[type="submit"] {
             -webkit-appearance: none;
             -webkit-tap-highlight-color: transparent;
         }
         
-        input, select, textarea {
+        input, textarea {
             -webkit-appearance: none;
         }
         
-        .form-control, .form-input {
+        select.form-input, .transaction-table select {
+            -webkit-appearance: none;
+            appearance: none;
+            min-height: 38px;
+            position: relative;
+            z-index: 2;
+            background-color: #fff;
+        }
+        
+        .form-control, .form-input:not(select) {
             -webkit-appearance: none;
             border-radius: 4px;
         }
+        
+        .transaction-table tbody tr td {
+            position: relative;
+        }
+        .transaction-table tbody tr td:nth-child(2),
+        .transaction-table tbody tr td:nth-child(3) {
+            z-index: 1;
+        }
+        .transaction-table tbody tr:focus-within td:nth-child(2),
+        .transaction-table tbody tr:focus-within td:nth-child(3) {
+            z-index: 10;
+        }
+    }
+
+    /* Custom light-theme dropdown (replaces native select popup in WebKit/Safari) */
+    .custom-select-wrap {
+        position: relative;
+        width: 100%;
+        min-height: 38px;
+    }
+    .custom-select-wrap select.select-native-hidden {
+        position: absolute !important;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        min-height: 38px;
+        opacity: 0;
+        z-index: 2;
+        pointer-events: none;
+    }
+    .custom-select-overlay {
+        position: absolute;
+        left: 0;
+        top: 0;
+        right: 0;
+        min-height: 38px;
+        padding: 8px 28px 8px 8px;
+        background: #ffffff !important;
+        color: #202124 !important;
+        border: 1px solid #dadce0;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        z-index: 1;
+        display: flex;
+        align-items: center;
+        box-sizing: border-box;
+    }
+    .custom-select-overlay::after {
+        content: '';
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        border: 5px solid transparent;
+        border-top-color: #5f6368;
+    }
+    .custom-select-menu {
+        display: none;
+        position: absolute;
+        left: 0;
+        top: 100%;
+        min-width: 100%;
+        max-height: 280px;
+        overflow-y: auto;
+        background: #ffffff !important;
+        color: #202124 !important;
+        border: 1px solid #dadce0;
+        border-radius: 4px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        z-index: 1000;
+        margin-top: 2px;
+    }
+    .custom-select-menu.open {
+        display: block;
+    }
+    .custom-select-option {
+        display: block;
+        width: 100%;
+        padding: 10px 12px;
+        background: #ffffff !important;
+        color: #202124 !important;
+        border: none;
+        text-align: left;
+        cursor: pointer;
+        font-size: 14px;
+    }
+    .custom-select-option:hover {
+        background: #f1f3f4 !important;
+        color: #202124 !important;
     }
     
     /* Ensure buttons are visible in Safari */
@@ -42,7 +142,7 @@
         background: white;
         border-radius: 8px;
         box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        overflow: hidden;
+        overflow: visible; /* allow select dropdowns to show outside (Safari) */
     }
     
     .report-header {
@@ -96,6 +196,8 @@
     .transaction-table td {
         border: 1px solid #dee2e6;
         padding: 6px;
+        overflow: visible;
+        vertical-align: middle;
     }
     
     .form-input {
@@ -450,9 +552,9 @@
 
             <!-- Transaction Expenses Section -->
             <div class="section-title">Transaction Expenses</div>
-            <div class="form-section">
-                <div class="row">
-                    <div class="col-lg-8">
+            <div class="form-section" style="overflow: visible;">
+                <div class="row" style="overflow: visible;">
+                    <div class="col-lg-8" style="overflow: visible;">
                         <table class="transaction-table" id="transactionTable">
                             <thead>
                                 <tr>
@@ -1008,6 +1110,8 @@ window.addTransactionRow = function () {
 
     // attach input listener for totals
     newRow.querySelector('input[name*="[amount]"]').addEventListener('input', calculateTotals);
+    // init custom light-theme dropdowns for new row (Safari/WebKit)
+    if (typeof initLightDropdowns === 'function') initLightDropdowns(newRow);
 }
 
 
@@ -1210,6 +1314,7 @@ function calculateRevenueTotals() {
 
 // Event listeners for revenue functionality
 document.addEventListener('DOMContentLoaded', function() {
+    initLightDropdowns(document.body);
     // Add revenue row button
     document.getElementById('addRevenueRow').addEventListener('click', addRevenueRow);
     
@@ -1229,6 +1334,77 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+
+/* Custom light-theme dropdown (avoids WebKit/Safari native dark select popup) */
+function getSelectedOptionText(select) {
+    const opt = select.options[select.selectedIndex];
+    return opt ? opt.textContent.trim() : '';
+}
+
+function initLightDropdowns(container) {
+    const selects = container.querySelectorAll('.vendor-select, .transaction-type-select');
+    selects.forEach(select => {
+        if (select.dataset.lightDropdown === '1') return;
+        select.dataset.lightDropdown = '1';
+
+        const wrap = document.createElement('div');
+        wrap.className = 'custom-select-wrap';
+        select.parentNode.insertBefore(wrap, select);
+        wrap.appendChild(select);
+        select.classList.add('select-native-hidden');
+
+        const overlay = document.createElement('div');
+        overlay.className = 'custom-select-overlay';
+        overlay.setAttribute('tabindex', '0');
+        overlay.textContent = getSelectedOptionText(select);
+        wrap.appendChild(overlay);
+
+        const menu = document.createElement('div');
+        menu.className = 'custom-select-menu';
+        for (let i = 0; i < select.options.length; i++) {
+            const opt = select.options[i];
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'custom-select-option';
+            btn.textContent = opt.textContent.trim();
+            btn.dataset.value = opt.value;
+            if (opt.getAttribute('data-vendor-name')) btn.dataset.vendorName = opt.getAttribute('data-vendor-name');
+            if (opt.getAttribute('data-default-coa-id')) btn.dataset.defaultCoaId = opt.getAttribute('data-default-coa-id');
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const val = btn.dataset.value;
+                if (select.classList.contains('vendor-select') && val === '__create_new__') {
+                    openCreateVendorModal(select.getAttribute('data-row'), select);
+                    menu.classList.remove('open');
+                    return;
+                }
+                select.value = val;
+                overlay.textContent = btn.textContent;
+                menu.classList.remove('open');
+                select.dispatchEvent(new Event('change', { bubbles: true }));
+                if (select.classList.contains('vendor-select')) handleVendorChange(select);
+            });
+            menu.appendChild(btn);
+        }
+        wrap.appendChild(menu);
+
+        select.addEventListener('change', function() { overlay.textContent = getSelectedOptionText(select); });
+
+        overlay.addEventListener('click', function(e) {
+            e.preventDefault();
+            const open = menu.classList.toggle('open');
+            if (open) {
+                const close = function(ev) {
+                    if (!wrap.contains(ev.target)) { menu.classList.remove('open'); document.removeEventListener('click', close); }
+                };
+                setTimeout(() => document.addEventListener('click', close), 0);
+            }
+        });
+        overlay.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); overlay.click(); }
+        });
+    });
+}
 
 // Handle vendor selection change
 window.handleVendorChange = function(selectElement) {
@@ -1259,6 +1435,12 @@ window.handleVendorChange = function(selectElement) {
             const transactionTypeSelect = selectElement.closest('tr').querySelector('.transaction-type-select');
             if (transactionTypeSelect) {
                 transactionTypeSelect.value = defaultCoaId;
+                // Update custom light-theme dropdown overlay if present
+                const twrap = transactionTypeSelect.parentElement;
+                if (twrap && twrap.classList.contains('custom-select-wrap')) {
+                    const toverlay = twrap.querySelector('.custom-select-overlay');
+                    if (toverlay && typeof getSelectedOptionText === 'function') toverlay.textContent = getSelectedOptionText(transactionTypeSelect);
+                }
             }
         }
     } else {
@@ -1332,9 +1514,14 @@ window.saveNewVendor = async function() {
                 const newSelectOption = newOption.cloneNode(true);
                 currentSelect.appendChild(newSelectOption);
                 currentSelect.value = data.id;
-                
                 // Trigger change to auto-fill transaction type
                 handleVendorChange(currentSelect);
+                // Update custom light-theme dropdown overlay if present (Safari/WebKit)
+                const wrap = currentSelect.parentElement;
+                if (wrap && wrap.classList.contains('custom-select-wrap')) {
+                    const overlay = wrap.querySelector('.custom-select-overlay');
+                    if (overlay) overlay.textContent = data.vendor_name;
+                }
             }
             
             // Close modal

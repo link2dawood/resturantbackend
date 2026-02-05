@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" data-theme="light">
 <head>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no"/>
@@ -7,6 +7,7 @@
     <meta name="mobile-web-app-capable" content="yes"/>
     <meta name="apple-mobile-web-app-capable" content="yes"/>
     <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+    <meta name="color-scheme" content="light"/>
     
     <!-- CSRF Token -->
     <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -35,11 +36,97 @@
         :root {
             --tblr-font-sans-serif: Inter, -apple-system, BlinkMacSystemFont, San Francisco, Segoe UI, Roboto, Helvetica Neue, sans-serif;
         }
-        
+
+        /* Force light theme: ignore device dark mode */
+        html {
+            color-scheme: light !important;
+        }
+
         /* Override Tabler with Google Dashboard Styles */
         body {
             font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif !important;
             background: #f8f9fa !important;
+            color: #202124 !important;
+        }
+
+        /* When device is in dark mode, force light UI so content is never faded */
+        @media (prefers-color-scheme: dark) {
+            /* Override dark theme CSS variables so any var(--surface-*) stays light */
+            html, html[data-theme="light"] {
+                --surface-0: #ffffff !important;
+                --surface-1: #f8f9fa !important;
+                --surface-2: #f1f3f4 !important;
+                --surface-3: #e8eaed !important;
+                --surface-4: #dadce0 !important;
+                --surface-5: #bdc1c6 !important;
+                --on-surface: #202124 !important;
+                --on-surface-variant: #5f6368 !important;
+                --surface: #ffffff !important;
+            }
+            html, body {
+                color-scheme: light !important;
+                background-color: #f8f9fa !important;
+                color: #202124 !important;
+            }
+            .page-wrapper,
+            .main-content,
+            .container, .container-fluid,
+            .container-xl, .container-lg, .container-md {
+                background-color: #f8f9fa !important;
+                color: #202124 !important;
+            }
+            .navbar,
+            .navbar .navbar-nav .nav-link,
+            .navbar .dropdown-menu,
+            .navbar .dropdown-item {
+                background-color: #ffffff !important;
+                color: #3c4043 !important;
+                border-color: #e8eaed !important;
+            }
+            .navbar .nav-link.active,
+            .navbar .nav-item.active .nav-link {
+                background-color: #4285f4 !important;
+                color: #ffffff !important;
+            }
+            .navbar-brand, .navbar-brand:hover {
+                color: #4285f4 !important;
+            }
+            /* All card and panel types – force solid light background */
+            .card, .card-body, .card-header, .card-footer,
+            .card-material, .stat-card, .chart-card-header, .chart-card-body,
+            .insight-card, .insight-card.success, .insight-card.warning,
+            .insight-card.alert, .insight-card.info,
+            .table, .table td, .table th, .table-striped tbody tr,
+            .form-control, .form-select, .form-label, .input-group,
+            .btn:not(.btn-primary):not(.active),
+            .gd-stat-card, .gd-card, [class*="gd-bg-surface"],
+            .alert:not(.alert-danger):not(.alert-warning) {
+                background: #ffffff !important;
+                background-color: #ffffff !important;
+                color: #202124 !important;
+                border-color: #dadce0 !important;
+            }
+            .chart-card-header,
+            .bg-light, .bg-white {
+                background: #fafafa !important;
+                background-color: #fafafa !important;
+                color: #202124 !important;
+            }
+            .text-muted, .text-body-secondary, .gd-text-secondary {
+                color: #5f6368 !important;
+            }
+            .dropdown-menu .dropdown-item:hover {
+                background-color: #f8f9fa !important;
+                color: #1967d2 !important;
+            }
+            h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6,
+            .material-headline, .material-subtitle, .stat-label, .stat-value,
+            .chart-card-title, .insight-title, .insight-message {
+                color: #202124 !important;
+            }
+            .stat-meta, .gd-body-small {
+                color: #5f6368 !important;
+            }
         }
 
         /* Material Design 3 Modern Navbar */
@@ -155,6 +242,24 @@
         .avatar:hover {
             border-color: var(--google-blue, #4285f4) !important;
             transform: scale(1.05);
+        }
+
+        /* Safari: ensure nav and dropdowns render correctly */
+        @supports (-webkit-appearance: none) {
+            .navbar-nav .nav-link,
+            .navbar-nav .dropdown-toggle {
+                -webkit-appearance: none;
+                appearance: none;
+                -webkit-tap-highlight-color: transparent;
+            }
+            .navbar-nav {
+                -webkit-align-items: center;
+                align-items: center;
+            }
+            .dropdown-menu {
+                -webkit-backface-visibility: hidden;
+                backface-visibility: hidden;
+            }
         }
         
         /* Material Design 3 Page Background */
@@ -272,6 +377,7 @@
         .btn-primary {
             background: var(--google-blue, #4285f4) !important;
             border-color: var(--google-blue, #4285f4) !important;
+            color: #ffffff !important;
             border-radius: 1.25rem !important; /* Material Design pill button */
             font-family: 'Google Sans', sans-serif !important;
             font-weight: 500 !important;
@@ -281,18 +387,23 @@
             letter-spacing: 0.1px !important;
             transition: var(--transition-standard, all 0.2s ease) !important;
         }
-        
+        .btn-primary svg, .btn-primary .bi { color: #ffffff !important; stroke: #ffffff; }
+
         .btn-primary:hover {
             background: var(--google-blue-700, #1967d2) !important;
             border-color: var(--google-blue-700, #1967d2) !important;
+            color: #ffffff !important;
             box-shadow: var(--elevation-2, 0 1px 3px 0 rgba(60, 64, 67, 0.08)) !important;
         }
+        .btn-primary:hover svg, .btn-primary:hover .bi { color: #ffffff !important; stroke: #ffffff; }
 
         .btn-primary:active {
             background: var(--google-blue-800, #185abc) !important;
             border-color: var(--google-blue-800, #185abc) !important;
+            color: #ffffff !important;
             box-shadow: var(--elevation-1, 0 1px 2px 0 rgba(60, 64, 67, 0.08)) !important;
         }
+        .btn-primary:active svg, .btn-primary:active .bi { color: #ffffff !important; stroke: #ffffff; }
         
         .form-control {
             border: 1px solid var(--google-grey-300, #dadce0) !important;
@@ -636,8 +747,8 @@
                         </li>
                         @endif
 
-                        <!-- Transaction Management (Admin, Owners/Franchisor Only) -->
-                        @if(Auth::user()->isAdmin() || (!Auth::user()->isAdmin() && Auth::user()->hasPermission('manage_transaction_types')))
+                        <!-- Transaction Management (Admin only) -->
+                        @if(Auth::user()->isAdmin())
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle d-flex align-items-center {{ request()->routeIs('transaction-types.*') || request()->routeIs('revenue-income-types.*') || request()->routeIs('coa.*') || request()->routeIs('admin.expenses.*') ? 'active' : '' }}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="padding: 8px 16px; border-radius: 20px; font-family: 'Google Sans', sans-serif; font-weight: 500; font-size: 14px; transition: all 0.2s ease; {{ request()->routeIs('transaction-types.*') || request()->routeIs('revenue-income-types.*') || request()->routeIs('coa.*') || request()->routeIs('admin.expenses.*') ? 'background: #4285f4; color: white;' : 'color: #5f6368;' }}" onmouseover="if(!this.classList.contains('active')) { this.style.background='#f1f3f4'; this.style.color='#1a73e8'; }" onmouseout="if(!this.classList.contains('active')) { this.style.background='transparent'; this.style.color='#5f6368'; }">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
@@ -672,15 +783,6 @@
                                     </svg>
                                     Transaction Type
                                 </a></li>
-                                @if(Auth::user()->isAdmin() || Auth::user()->isOwner())
-                                <li><a class="dropdown-item d-flex align-items-center" href="{{ route('admin.expenses.index') }}" style="padding: 8px 16px; font-family: 'Google Sans', sans-serif; font-size: 14px; border-radius: 8px; margin: 0 8px;">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
-                                        <line x1="12" y1="2" x2="12" y2="22"/>
-                                        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-                                    </svg>
-                                    All Transactions
-                                </a></li>
-                                @endif
                             </ul>
                         </li>
                         @endif
