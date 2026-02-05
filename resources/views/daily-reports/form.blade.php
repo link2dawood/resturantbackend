@@ -1499,7 +1499,7 @@ window.saveNewVendor = async function() {
         const data = await response.json();
         
         if (response.ok) {
-            // Add new vendor to dropdown
+            // Add new vendor to template so future rows and all selects have it
             const vendorTemplate = document.getElementById('vendorTemplate');
             const newOption = document.createElement('option');
             newOption.value = data.id;
@@ -1507,23 +1507,51 @@ window.saveNewVendor = async function() {
             newOption.setAttribute('data-default-coa-id', data.default_coa_id || '');
             newOption.textContent = data.vendor_name;
             vendorTemplate.appendChild(newOption);
-            
-            // Update current select
+
+            // Add new vendor option to every vendor select on the page (so no refresh needed)
+            document.querySelectorAll('.vendor-select').forEach(function(sel) {
+                const hasOption = Array.from(sel.options).some(function(o) { return o.value === String(data.id); });
+                if (hasOption) return;
+                const opt = newOption.cloneNode(true);
+                sel.appendChild(opt);
+                // If this select has a custom light-theme menu, add the new option button to the menu
+                const wrap = sel.parentElement;
+                if (wrap && wrap.classList.contains('custom-select-wrap')) {
+                    const menu = wrap.querySelector('.custom-select-menu');
+                    const overlay = wrap.querySelector('.custom-select-overlay');
+                    if (menu && overlay) {
+                        const btn = document.createElement('button');
+                        btn.type = 'button';
+                        btn.className = 'custom-select-option';
+                        btn.textContent = data.vendor_name;
+                        btn.dataset.value = data.id;
+                        btn.dataset.vendorName = data.vendor_name;
+                        btn.dataset.defaultCoaId = data.default_coa_id || '';
+                        btn.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            sel.value = btn.dataset.value;
+                            overlay.textContent = btn.textContent;
+                            menu.classList.remove('open');
+                            sel.dispatchEvent(new Event('change', { bubbles: true }));
+                            handleVendorChange(sel);
+                        });
+                        menu.appendChild(btn);
+                    }
+                }
+            });
+
+            // Select the new vendor in the current row and update overlay
             if (window.currentVendorSelect) {
                 const currentSelect = window.currentVendorSelect;
-                const newSelectOption = newOption.cloneNode(true);
-                currentSelect.appendChild(newSelectOption);
                 currentSelect.value = data.id;
-                // Trigger change to auto-fill transaction type
                 handleVendorChange(currentSelect);
-                // Update custom light-theme dropdown overlay if present (Safari/WebKit)
                 const wrap = currentSelect.parentElement;
                 if (wrap && wrap.classList.contains('custom-select-wrap')) {
                     const overlay = wrap.querySelector('.custom-select-overlay');
                     if (overlay) overlay.textContent = data.vendor_name;
                 }
             }
-            
+
             // Close modal
             const modal = bootstrap.Modal.getInstance(document.getElementById('createVendorModal'));
             modal.hide();
