@@ -1225,6 +1225,15 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    // Prevent Create Vendor form from submitting (e.g. Enter key) and reloading the page
+    const createVendorForm = document.getElementById('createVendorForm');
+    if (createVendorForm) {
+        createVendorForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            saveNewVendor();
+        });
+    }
+
     // Initial calculation
     calculateTotals();
     calculateRevenueTotals();
@@ -1496,21 +1505,27 @@ window.saveNewVendor = async function() {
             })
         });
         
-        const data = await response.json();
+        const json = await response.json();
         
         if (response.ok) {
+            // API returns { message, data: { id, vendor_name, default_coa_id, ... } }
+            const v = json.data || json;
+            const vendorId = v.id;
+            const vendorName = v.vendor_name || v.name || '';
+            const defaultCoaId = (v.default_coa_id != null) ? String(v.default_coa_id) : '';
+
             // Add new vendor to template so future rows and all selects have it
             const vendorTemplate = document.getElementById('vendorTemplate');
             const newOption = document.createElement('option');
-            newOption.value = data.id;
-            newOption.setAttribute('data-vendor-name', data.vendor_name);
-            newOption.setAttribute('data-default-coa-id', data.default_coa_id || '');
-            newOption.textContent = data.vendor_name;
+            newOption.value = vendorId;
+            newOption.setAttribute('data-vendor-name', vendorName);
+            newOption.setAttribute('data-default-coa-id', defaultCoaId);
+            newOption.textContent = vendorName;
             vendorTemplate.appendChild(newOption);
 
             // Add new vendor option to every vendor select on the page (so no refresh needed)
             document.querySelectorAll('.vendor-select').forEach(function(sel) {
-                const hasOption = Array.from(sel.options).some(function(o) { return o.value === String(data.id); });
+                const hasOption = Array.from(sel.options).some(function(o) { return o.value === String(vendorId); });
                 if (hasOption) return;
                 const opt = newOption.cloneNode(true);
                 sel.appendChild(opt);
@@ -1523,10 +1538,10 @@ window.saveNewVendor = async function() {
                         const btn = document.createElement('button');
                         btn.type = 'button';
                         btn.className = 'custom-select-option';
-                        btn.textContent = data.vendor_name;
-                        btn.dataset.value = data.id;
-                        btn.dataset.vendorName = data.vendor_name;
-                        btn.dataset.defaultCoaId = data.default_coa_id || '';
+                        btn.textContent = vendorName;
+                        btn.dataset.value = vendorId;
+                        btn.dataset.vendorName = vendorName;
+                        btn.dataset.defaultCoaId = defaultCoaId;
                         btn.addEventListener('click', function(e) {
                             e.preventDefault();
                             sel.value = btn.dataset.value;
@@ -1543,12 +1558,12 @@ window.saveNewVendor = async function() {
             // Select the new vendor in the current row and update overlay
             if (window.currentVendorSelect) {
                 const currentSelect = window.currentVendorSelect;
-                currentSelect.value = data.id;
+                currentSelect.value = vendorId;
                 handleVendorChange(currentSelect);
                 const wrap = currentSelect.parentElement;
                 if (wrap && wrap.classList.contains('custom-select-wrap')) {
                     const overlay = wrap.querySelector('.custom-select-overlay');
-                    if (overlay) overlay.textContent = data.vendor_name;
+                    if (overlay) overlay.textContent = vendorName;
                 }
             }
 
@@ -1559,7 +1574,8 @@ window.saveNewVendor = async function() {
             // Show success message
             alert('Vendor created successfully!');
         } else {
-            alert('Error creating vendor: ' + (data.message || 'Unknown error'));
+            const errMsg = (json.errors && Object.values(json.errors).flat().join(' ')) || json.message || json.error || 'Unknown error';
+            alert('Error creating vendor: ' + errMsg);
         }
     } catch (error) {
         console.error('Error:', error);
