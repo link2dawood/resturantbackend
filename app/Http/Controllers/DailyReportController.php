@@ -362,7 +362,11 @@ class DailyReportController extends Controller
 
         $dailyReport->load(['store', 'creator', 'approver', 'transactions.transactionType', 'revenues.revenueIncomeType']);
 
-        return view('daily-reports.show', compact('dailyReport'));
+        // Display net sales using same formula as edit: Total Revenue Income - Adjustments only (no coupons)
+        $totalRevenueEntries = (float) $dailyReport->gross_sales - (float) ($dailyReport->coupons_received ?? 0);
+        $displayNetSales = $totalRevenueEntries - (float) ($dailyReport->adjustments_overrings ?? 0);
+
+        return view('daily-reports.show', compact('dailyReport', 'displayNetSales'));
     }
 
     /**

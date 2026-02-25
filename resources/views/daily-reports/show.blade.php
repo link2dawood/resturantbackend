@@ -445,7 +445,7 @@
                                 </div>
                             </td>
                             <td><strong>Net Sales:</strong></td>
-                            <td id="netSales" class="calculated-field number-input{{ $dailyReport->net_sales < 0 ? ' negative' : '' }}">${{ number_format($dailyReport->net_sales, 2) }}</td>
+                            <td id="netSales" class="calculated-field number-input{{ $displayNetSales < 0 ? ' negative' : '' }}">${{ number_format($displayNetSales, 2) }}</td>
                         </tr>
                         <tr>
                             <td><strong>Tax:</strong></td>
@@ -468,7 +468,7 @@
                     <table class="sales-table">
                         <tr>
                             <td><strong>Net Sales:</strong></td>
-                            <td id="netSales2" class="calculated-field number-input{{ $dailyReport->net_sales < 0 ? ' negative' : '' }}">${{ number_format($dailyReport->net_sales, 2) }}</td>
+                            <td id="netSales2" class="calculated-field number-input{{ $displayNetSales < 0 ? ' negative' : '' }}">${{ number_format($displayNetSales, 2) }}</td>
                         </tr>
                         <tr>
                             <td><strong>Total Transaction Expenses:</strong></td>
