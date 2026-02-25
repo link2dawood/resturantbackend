@@ -308,8 +308,14 @@ class DailyReportController extends Controller
                 $this->processRevenueEntries($request, $dailyReport);
             }
 
-            return redirect()->route('daily-reports.show', $dailyReport)
-                ->with('success', '✅ Daily report created successfully! All calculations have been verified.');
+            // Redirect to create form for same store and next day so user can create another report
+            $storeId = $validatedData['store_id'];
+            $nextDate = \Carbon\Carbon::parse($validatedData['report_date'])->addDay()->format('Y-m-d');
+
+            return redirect()->route('daily-reports.create-form', [
+                'store_id' => $storeId,
+                'report_date' => $nextDate,
+            ])->with('success', '✅ Daily report created successfully! All calculations have been verified. Create the next day\'s report below.');
 
         } catch (ReportException|StoreException|PermissionException $e) {
             Log::warning('Business rule validation failed for daily report creation', [
@@ -730,9 +736,9 @@ class DailyReportController extends Controller
         $grossSales = $totalRevenueEntries + $couponsReceived;
         $data['gross_sales'] = $grossSales;
 
-        // Calculate Net Sales = Total Revenue Entries - Coupons Received - Adjustments: Overrings/Returns
+        // Net Sales = Total Revenue Income - Adjustments only (do not deduct coupons)
         $adjustmentsOverrings = (float) ($data['adjustments_overrings'] ?? 0);
-        $netSales = $totalRevenueEntries - $couponsReceived - $adjustmentsOverrings;
+        $netSales = $totalRevenueEntries - $adjustmentsOverrings;
         $data['net_sales'] = $netSales;
 
         // Calculate Tax = Net Sales minus (Net Sales / 1.0825)

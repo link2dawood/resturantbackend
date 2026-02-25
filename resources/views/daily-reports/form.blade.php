@@ -730,8 +730,8 @@
                             <tr>
                                 <td>
                                     <div style="display: -webkit-flex; display: flex; -webkit-justify-content: space-between; justify-content: space-between; -webkit-align-items: center; align-items: center; width: 100%;">
-                                        <span><strong>Total Amount of Coupons Received:</strong></span>
-                                        <span style="width:30%;"><input type="number" name="coupons_received" class="form-input number-input" value="0" style="background: white;"></span>
+                                        <span><strong>Total # of Coupons:</strong></span>
+                                        <span style="width:30%;"><input type="number" name="total_coupons" value="0" class="form-input number-input" style="background: white;"></span>
                                     </div>
                                 </td>
                                 <td></td>
@@ -740,8 +740,8 @@
                             <tr>
                                 <td>
                                     <div style="display: -webkit-flex; display: flex; -webkit-justify-content: space-between; justify-content: space-between; -webkit-align-items: center; align-items: center; width: 100%;">
-                                        <span>Total # of Coupons</span>
-                                        <span style="width:30%;"><input type="number" name="total_coupons" value="0" class="form-input number-input" style="background: white;"></span>
+                                        <span><strong>Total Amount of Coupons Received:</strong></span>
+                                        <span style="width:30%;"><input type="number" name="coupons_received" class="form-input number-input" value="0" style="background: white;"></span>
                                     </div>
                                 </td>
                                 <td></td>
@@ -802,8 +802,8 @@
                                 <td id="onlineRevenue2" class="calculated-field number-input">$0</td>
                             </tr>
                             <tr>
-                                <td><strong>Credit Cards:</strong></td>
-                                <td><input type="number" name="credit_cards" class="form-input number-input" value="0"></td>
+                                <td><strong>Credit Card:</strong></td>
+                                <td id="creditCards2" class="calculated-field number-input"><input type="number" name="credit_cards" class="form-input number-input" value="0" style="background: #e7f3ff !important;"></td>
                             </tr>
                             <tr>
                                 <td><strong>Cash To Account For:</strong></td>
@@ -905,7 +905,7 @@ function calculateTotals() {
     // Gross Sales = Total Revenue Entries + Coupons Amount Received
     const grossSales = totalRevenueIncome + couponsReceived;
     
-    // Net Sales = Total Revenue Entries - Coupons Received - Adjustments: Overrings/Returns
+    // Net Sales = Total Revenue Income - Adjustments only (same as Total Revenue Income; do not deduct coupons)
     const netSales = totalRevenueIncome - adjustmentsOverrings;
     
     // Tax = Net Sales minus (Net Sales / 1.0825)

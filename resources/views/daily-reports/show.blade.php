@@ -386,18 +386,6 @@
                             <td>Projected Sales</td>
                             <td class="number-input{{ $dailyReport->projected_sales < 0 ? ' negative' : '' }}">${{ number_format($dailyReport->projected_sales, 2) }}</td>
                         </tr>
-                        <tr>
-                            <td>Amount of Cancels</td>
-                            <td class="number-input{{ $dailyReport->amount_of_cancels < 0 ? ' negative' : '' }}">${{ number_format($dailyReport->amount_of_cancels, 2) }}</td>
-                        </tr>
-                        <tr>
-                            <td>Amount of Voids</td>
-                            <td class="number-input{{ $dailyReport->amount_of_voids < 0 ? ' negative' : '' }}">${{ number_format($dailyReport->amount_of_voids, 2) }}</td>
-                        </tr>
-                        <tr>
-                            <td>Number of No Sales</td>
-                            <td class="number-input">{{ $dailyReport->number_of_no_sales }}</td>
-                        </tr>
                     </table>
                 </div>
             </div>
@@ -422,8 +410,8 @@
                         <tr>
                             <td>
                                 <div style="display:flex;justify-content: space-between;align-items: center;">
-                                    <span><strong>Total Amount of Coupons Received:</strong></span>
-                                    <span style="width:30%;" class="number-input{{ $dailyReport->coupons_received < 0 ? ' negative' : '' }}">${{ number_format($dailyReport->coupons_received, 2) }}</span>
+                                    <span><strong>Total # of Coupons:</strong></span>
+                                    <span style="width:30%;" class="number-input">{{ $dailyReport->total_coupons }}</span>
                                 </div>
                             </td>
                             <td></td>
@@ -432,8 +420,8 @@
                         <tr>
                             <td>
                                 <div style="display:flex;justify-content: space-between;align-items: center;">
-                                    <span>Total # of Coupons</span>
-                                    <span style="width:30%;" class="number-input">{{ $dailyReport->total_coupons }}</span>
+                                    <span><strong>Total Amount of Coupons Received:</strong></span>
+                                    <span style="width:30%;" class="number-input{{ $dailyReport->coupons_received < 0 ? ' negative' : '' }}">${{ number_format($dailyReport->coupons_received, 2) }}</span>
                                 </div>
                             </td>
                             <td></td>
@@ -492,7 +480,7 @@
                         </tr>
                         <tr>
                             <td><strong>Credit Cards:</strong></td>
-                            <td class="number-input{{ $dailyReport->credit_cards < 0 ? ' negative' : '' }}">${{ number_format($dailyReport->credit_cards, 2) }}</td>
+                            <td id="creditCards2" class="calculated-field number-input{{ $dailyReport->credit_cards < 0 ? ' negative' : '' }}">${{ number_format($dailyReport->credit_cards, 2) }}</td>
                         </tr>
                         <tr>
                             <td><strong>Cash To Account For:</strong></td>

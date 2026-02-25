@@ -676,8 +676,8 @@
                             <tr>
                                 <td>
                                     <div style="display:flex;justify-content: space-between;align-items: center;">
-                                        <span><strong>Total Amount of Coupons Received:</strong></span>
-                                        <span style="width:30%;"><input type="number" name="coupons_received" class="form-input number-input" value="{{ $dailyReport->coupons_received }}" style="background: white;"></span>
+                                        <span><strong>Total # of Coupons:</strong></span>
+                                        <span style="width:30%;"><input type="number" name="total_coupons" value="{{ $dailyReport->total_coupons }}" class="form-input number-input" style="background: white;"></span>
                                     </div>
                                 </td>
                                 <td></td>
@@ -686,8 +686,8 @@
                             <tr>
                                 <td>
                                     <div style="display:flex;justify-content: space-between;align-items: center;">
-                                        <span>Total # of Coupons</span>
-                                        <span style="width:30%;"><input type="number" name="total_coupons" value="{{ $dailyReport->total_coupons }}" class="form-input number-input" style="background: white;"></span>
+                                        <span><strong>Total Amount of Coupons Received:</strong></span>
+                                        <span style="width:30%;"><input type="number" name="coupons_received" class="form-input number-input" value="{{ $dailyReport->coupons_received }}" style="background: white;"></span>
                                     </div>
                                 </td>
                                 <td></td>
@@ -746,7 +746,7 @@
                             </tr>
                             <tr>
                                 <td><strong>Credit Cards:</strong></td>
-                                <td><input type="number" name="credit_cards" id="creditCardsInput" class="form-input number-input" value="{{ $dailyReport->credit_cards }}"></td>
+                                <td id="creditCards2" class="calculated-field number-input"><input type="number" name="credit_cards" id="creditCardsInput" class="form-input number-input" value="{{ $dailyReport->credit_cards }}" style="background: #e7f3ff !important;"></td>
                             </tr>
                             <tr>
                                 <td><strong>Cash To Account For:</strong></td>
@@ -836,8 +836,8 @@ function calculateTotals() {
     // Gross Sales = Total Revenue Entries + Coupons Amount Received
     const grossSales = totalRevenueIncome + couponsReceived;
     
-    // Net Sales = Total Revenue Entries - Coupons Received - Adjustments: Overrings/Returns
-    const netSales = totalRevenueIncome - couponsReceived - adjustmentsOverrings;
+    // Net Sales = Total Revenue Income - Adjustments only (do not deduct coupons)
+    const netSales = totalRevenueIncome - adjustmentsOverrings;
     
     // Tax = Net Sales minus (Net Sales / 1.0825)
     const tax = netSales - (netSales / 1.0825);

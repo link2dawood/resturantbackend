@@ -164,7 +164,7 @@
                         </div>
                         <div class="form-check mb-2">
                             <input class="form-check-input data-item-checkbox" type="checkbox" name="data_items[]" value="coupons_amount" id="item_coupons_amount" {{ in_array('coupons_amount', request('data_items', [])) ? 'checked' : '' }}>
-                            <label class="form-check-label" for="item_coupons_amount">Coupons Amount</label>
+                            <label class="form-check-label" for="item_coupons_amount">Total Amount of Coupons Received</label>
                         </div>
                         <div class="form-check mb-2">
                             <input class="form-check-input data-item-checkbox" type="checkbox" name="data_items[]" value="sales" id="item_sales" {{ in_array('sales', request('data_items', [])) ? 'checked' : '' }}>
