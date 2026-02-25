@@ -36,7 +36,7 @@
     @endif
 
     <x-table 
-        :headers="['#', 'Description', 'Default COA', ['label' => 'Actions', 'align' => 'end']]"
+        :headers="['#', 'Vendor / Description', 'Default COA', ['label' => 'Actions', 'align' => 'end']]"
         cardTitle="All Transaction Types"
         emptyMessage="No transaction types found"
         emptyDescription="Get started by creating your first transaction type."
