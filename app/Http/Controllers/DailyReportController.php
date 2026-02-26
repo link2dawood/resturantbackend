@@ -8,6 +8,7 @@ use App\Exceptions\Business\StoreException;
 use App\Http\Middleware\CheckDailyReportAccess;
 use App\Models\AuditLog;
 use App\Models\DailyReport;
+use App\Models\ChartOfAccount;
 use App\Models\DailyReportRevenue;
 use App\Models\DailyReportTransaction;
 use App\Models\RevenueIncomeType;
@@ -204,6 +205,8 @@ class DailyReportController extends Controller
 
         $store = Store::find($storeId);
         $types = TransactionType::all();
+        $coas = ChartOfAccount::where('account_code', '>', 5000)
+        ->where('account_code', '<', 7000)->where('is_active', true)->orderBy('account_name')->get();
         $revenueTypes = RevenueIncomeType::where('is_active', 1)
             ->orderBy('sort_order')
             ->orderBy('name')
@@ -215,7 +218,7 @@ class DailyReportController extends Controller
             ->orderBy('vendor_name')
             ->get();
 
-        return view('daily-reports.create', compact('store', 'types', 'revenueTypes', 'reportDate', 'vendors'));
+        return view('daily-reports.create', compact('store', 'types', 'revenueTypes', 'reportDate', 'vendors','coas'));
     }
 
     /**
