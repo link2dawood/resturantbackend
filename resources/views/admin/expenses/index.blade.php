@@ -1,41 +1,36 @@
 @extends('layouts.tabler')
 
-@section('title', 'Expense Ledger')
+@section('title', 'Transaction Ledger')
 
 @section('content')
+<style>
+    .summary-card { position: sticky; top: 20px; }
+    @media (max-width: 991px) { .summary-card { position: relative; top: 0; } }
+    .filter-section { background: #f8f9fa; border-radius: 8px; padding: 1rem; }
+</style>
 <div class="container-xl mt-4">
     <!-- Page Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h1 class="mb-0" style="font-family: 'Google Sans', sans-serif; font-size: 1.75rem; font-weight: 400; color: var(--on-surface, #202124);">Expense Ledger</h1>
-            <p class="text-muted mb-0" style="font-family: 'Google Sans', sans-serif; margin-top: 0.25rem;">Track all cash, credit card, and bank expenses</p>
+            <h1 class="mb-0" style="font-family: 'Google Sans', sans-serif; font-size: 1.75rem; font-weight: 400; color: var(--on-surface, #202124);">Transaction Ledger</h1>
+            <p class="text-muted mb-0" style="font-family: 'Google Sans', sans-serif; margin-top: 0.25rem;">View all transactions with their types and Chart of Account (COA) categories</p>
         </div>
         <div class="d-flex gap-2">
             @can('review', 'view')
             <a href="{{ route('admin.expenses.review') }}" class="btn btn-warning d-flex align-items-center" style="gap: 0.5rem;">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="10"/>
-                    <line x1="12" y1="8" x2="12" y2="12"/>
-                    <line x1="12" y1="16" x2="12.01" y2="16"/>
-                </svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
                 Review Queue
             </a>
             @endcan
             @can('imports', 'upload')
             <button class="btn btn-success d-flex align-items-center" style="gap: 0.5rem;" onclick="showSyncModal()">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M21 8v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h7"/>
-                    <path d="M15 10l5-5 5 5"/>
-                    <path d="M20 4v6h-6"/>
-                </svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h7"/><path d="M15 10l5-5 5 5"/><path d="M20 4v6h-6"/></svg>
                 Sync Cash Expenses
             </button>
             @endcan
             @can('expenses', 'create')
             <button class="btn btn-primary d-flex align-items-center" style="gap: 0.5rem;" data-bs-toggle="modal" data-bs-target="#expenseModal" onclick="openCreateModal()">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M12 5v14M5 12h14"/>
-                </svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
                 Add Expense
             </button>
             @endcan
@@ -44,31 +39,35 @@
 
     <!-- Filters -->
     <div class="card mb-4">
+        <div class="card-header border-0 pb-2">
+            <h5 class="card-title mb-0" style="font-family: 'Google Sans', sans-serif; font-size: 1rem; font-weight: 500;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px; vertical-align: middle;"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                Filters
+            </h5>
+        </div>
         <div class="card-body">
             <form action="{{ route('admin.expenses.index') }}" method="GET" class="row g-3">
-                @canViewAllStores
-                <div class="col-md-2">
-                    <label class="form-label">Store</label>
+                @if(auth()->user()->isAdmin() || auth()->user()->isOwner())
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Store</label>
                     <select class="form-select" name="store_id">
                         <option value="">All Stores</option>
                         @foreach($stores as $store)
-                            <option value="{{ $store->id }}" {{ request('store_id') == $store->id ? 'selected' : '' }}>
-                                {{ $store->store_info }}
-                            </option>
+                            <option value="{{ $store->id }}" {{ request('store_id') == $store->id ? 'selected' : '' }}>{{ $store->store_info }}</option>
                         @endforeach
                     </select>
                 </div>
-                @endcanViewAllStores
-                <div class="col-md-2">
-                    <label class="form-label">Start Date</label>
+                @endif
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Start Date</label>
                     <input type="date" class="form-control" name="start_date" value="{{ request('start_date') }}">
                 </div>
-                <div class="col-md-2">
-                    <label class="form-label">End Date</label>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">End Date</label>
                     <input type="date" class="form-control" name="end_date" value="{{ request('end_date') }}">
                 </div>
-                <div class="col-md-2">
-                    <label class="form-label">Transaction Type</label>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Transaction Type</label>
                     <select class="form-select" name="transaction_type">
                         <option value="">All Types</option>
                         <option value="cash" {{ request('transaction_type') == 'cash' ? 'selected' : '' }}>Cash</option>
@@ -77,119 +76,234 @@
                         <option value="check" {{ request('transaction_type') == 'check' ? 'selected' : '' }}>Check</option>
                     </select>
                 </div>
-                <div class="col-md-2">
-                    <label class="form-label">Status</label>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Chart of Account (COA)</label>
+                    <select class="form-select" name="coa_id" id="coaFilter">
+                        <option value="">All Categories</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Status</label>
                     <select class="form-select" name="needs_review">
                         <option value="">All</option>
                         <option value="0" {{ request('needs_review') === '0' ? 'selected' : '' }}>Normal</option>
                         <option value="1" {{ request('needs_review') === '1' ? 'selected' : '' }}>Needs Review</option>
                     </select>
                 </div>
-                <div class="col-md-2">
-                    <label class="form-label">&nbsp;</label>
-                    <button type="submit" class="btn btn-secondary w-100">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="11" cy="11" r="8"/>
-                            <path d="m21 21-4.35-4.35"/>
-                        </svg> Filter
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100 me-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                        Apply Filters
                     </button>
+                    <a href="{{ route('admin.expenses.index') }}" class="btn btn-outline-secondary">Reset</a>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- Expenses Table -->
-    <div class="card">
-        <div class="card-header border-0 pb-0">
-            <h3 class="card-title" style="font-family: 'Google Sans', sans-serif; font-size: 1.125rem; font-weight: 500;">All Expenses</h3>
-        </div>
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover mb-0" style="font-size: 0.875rem;">
-                    <thead style="background-color: var(--google-grey-50, #f8f9fa); border-bottom: 2px solid var(--google-grey-200, #e8eaed);">
-                        <tr>
-                            <th style="font-weight: 500; padding: 1rem; border: none; font-size: 0.813rem;">Date</th>
-                            <th style="font-weight: 500; padding: 1rem; border: none; font-size: 0.813rem;">Store</th>
-                            <th style="font-weight: 500; padding: 1rem; border: none; font-size: 0.813rem;">Vendor</th>
-                            <th style="font-weight: 500; padding: 1rem; border: none; font-size: 0.813rem;">Category (COA)</th>
-                            <th style="font-weight: 500; padding: 1rem; border: none; font-size: 0.813rem; text-align: right;">Amount</th>
-                            <th style="font-weight: 500; padding: 1rem; border: none; font-size: 0.813rem;">Type</th>
-                            <th style="font-weight: 500; padding: 1rem; border: none; font-size: 0.813rem;">Status</th>
-                            <th style="font-weight: 500; padding: 1rem; border: none; font-size: 0.813rem; text-align: center;">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($expenses as $expense)
-                        <tr>
-                            <td style="padding: 1rem; vertical-align: middle;">{{ $expense->transaction_date->format('M d, Y') }}</td>
-                            <td style="padding: 1rem; vertical-align: middle;">{{ $expense->store->store_info ?? 'N/A' }}</td>
-                            <td style="padding: 1rem; vertical-align: middle;">
-                                @if($expense->vendor)
-                                    {{ $expense->vendor->vendor_name }}
-                                @elseif($expense->vendor_name_raw)
-                                    {{ $expense->vendor_name_raw }}
-                                @else
-                                    <span class="text-muted">Unknown</span>
-                                @endif
-                            </td>
-                            <td style="padding: 1rem; vertical-align: middle;">
-                                @if($expense->coa)
-                                    <span class="text-muted">{{ $expense->coa->account_code }}</span> - {{ $expense->coa->account_name }}
-                                @else
-                                    <span class="text-muted">Not assigned</span>
-                                @endif
-                            </td>
-                            <td style="padding: 1rem; vertical-align: middle; text-align: right;">
-                                <strong class="text-danger">${{ number_format($expense->amount, 2) }}</strong>
-                            </td>
-                            <td style="padding: 1rem; vertical-align: middle;">
-                                <span class="badge bg-secondary">{{ ucwords(str_replace('_', ' ', $expense->transaction_type)) }}</span>
-                            </td>
-                            <td style="padding: 1rem; vertical-align: middle;">
-                                @if($expense->needs_review)
-                                    <span class="badge bg-warning text-dark">Review</span>
-                                @else
-                                    <span class="badge bg-success">OK</span>
-                                @endif
-                            </td>
-                            <td style="padding: 1rem; vertical-align: middle; text-align: center;">
-                                @if(auth()->user()->isAdmin() || auth()->user()->isOwner())
-                                <div class="btn-group btn-group-sm" role="group">
-                                    <button class="btn btn-outline-primary" onclick="editExpense({{ $expense->id }})" title="Edit">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                                        </svg>
-                                    </button>
-                                </div>
-                                @endif
-                            </td>
-                        </tr>
-                        @empty
-                        <tr>
-                            <td colspan="8" class="text-center text-muted py-4">No expenses found</td>
-                        </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-            
-            <!-- Totals Row -->
-            <div class="card-footer">
-                <div class="row">
-                    <div class="col-md-6">
-                        <strong>Total Expenses:</strong> <span class="text-danger">${{ number_format($total, 2) }}</span>
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header border-0 pb-0">
+                    <h3 class="card-title" style="font-family: 'Google Sans', sans-serif; font-size: 1.125rem; font-weight: 500;">All Transactions</h3>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0" style="font-size: 0.875rem;">
+                            <thead style="background-color: var(--google-grey-50, #f8f9fa); border-bottom: 2px solid var(--google-grey-200, #e8eaed);">
+                                <tr>
+                                    <th style="font-weight: 500; padding: 1rem; border: none; font-size: 0.813rem;">Date</th>
+                                    <th style="font-weight: 500; padding: 1rem; border: none; font-size: 0.813rem;">Store</th>
+                                    <th style="font-weight: 500; padding: 1rem; border: none; font-size: 0.813rem;">Vendor</th>
+                                    <th style="font-weight: 500; padding: 1rem; border: none; font-size: 0.813rem;">Transaction Type</th>
+                                    <th style="font-weight: 500; padding: 1rem; border: none; font-size: 0.813rem;">Chart of Account (COA)</th>
+                                    <th style="font-weight: 500; padding: 1rem; border: none; font-size: 0.813rem; text-align: right;">Amount</th>
+                                    <th style="font-weight: 500; padding: 1rem; border: none; font-size: 0.813rem;">Status</th>
+                                    <th style="font-weight: 500; padding: 1rem; border: none; font-size: 0.813rem; text-align: center;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse($expenses as $expense)
+                                <tr>
+                                    <td style="padding: 1rem; vertical-align: middle;">{{ $expense->transaction_date->format('M d, Y') }}</td>
+                                    <td style="padding: 1rem; vertical-align: middle;">{{ $expense->store->store_info ?? 'N/A' }}</td>
+                                    <td style="padding: 1rem; vertical-align: middle;">
+                                        @if($expense->vendor)
+                                            <strong>{{ $expense->vendor->vendor_name }}</strong>
+                                        @elseif($expense->vendor_name_raw)
+                                            <span class="text-muted">{{ $expense->vendor_name_raw }}</span>
+                                        @else
+                                            <span class="text-muted">Unknown</span>
+                                        @endif
+                                    </td>
+                                    <td style="padding: 1rem; vertical-align: middle;">
+                                        @php
+                                            $typeColors = ['cash' => 'success', 'credit_card' => 'primary', 'bank_transfer' => 'info', 'check' => 'warning'];
+                                            $typeColor = $typeColors[$expense->transaction_type] ?? 'secondary';
+                                            $typeLabel = ucwords(str_replace('_', ' ', $expense->transaction_type));
+                                        @endphp
+                                        <span class="badge bg-{{ $typeColor }}" style="font-size: 0.75rem; padding: 0.35rem 0.65rem;">{{ $typeLabel }}</span>
+                                    </td>
+                                    <td style="padding: 1rem; vertical-align: middle;">
+                                        @if($expense->coa)
+                                            <div class="d-flex flex-column">
+                                                <div>
+                                                    <span class="badge bg-light text-dark" style="font-size: 0.7rem; font-weight: 600; margin-right: 0.5rem;">{{ $expense->coa->account_code }}</span>
+                                                    <span class="badge @if($expense->coa->account_type === 'Revenue') bg-success @elseif($expense->coa->account_type === 'COGS') bg-danger @elseif($expense->coa->account_type === 'Expense') bg-warning text-dark @else bg-secondary @endif" style="font-size: 0.7rem;">{{ $expense->coa->account_type }}</span>
+                                                </div>
+                                                <div style="margin-top: 0.25rem; font-size: 0.875rem; font-weight: 500;">{{ $expense->coa->account_name }}</div>
+                                            </div>
+                                        @else
+                                            <span class="badge bg-danger" style="font-size: 0.75rem;">Not Assigned</span>
+                                        @endif
+                                    </td>
+                                    <td style="padding: 1rem; vertical-align: middle; text-align: right;">
+                                        <strong class="text-danger" style="font-size: 1rem;">${{ number_format($expense->amount, 2) }}</strong>
+                                    </td>
+                                    <td style="padding: 1rem; vertical-align: middle;">
+                                        @if($expense->needs_review)
+                                            <span class="badge bg-warning text-dark">Review</span>
+                                        @elseif($expense->is_reconciled)
+                                            <span class="badge bg-success">Reconciled</span>
+                                        @else
+                                            <span class="badge bg-success">OK</span>
+                                        @endif
+                                    </td>
+                                    <td style="padding: 1rem; vertical-align: middle; text-align: center;">
+                                        @if(auth()->user()->isAdmin() || auth()->user()->isOwner())
+                                        <button class="btn btn-outline-primary btn-sm" onclick="editExpense({{ $expense->id }})" title="Edit">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                        </button>
+                                        @endif
+                                    </td>
+                                </tr>
+                                @empty
+                                <tr>
+                                    <td colspan="8" class="text-center text-muted py-4">No transactions found</td>
+                                </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
                     </div>
-                    <div class="col-md-6">
-                        <x-pagination :paginator="$expenses" />
+                    <div class="card-footer">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <strong>Total Transactions:</strong> <span class="text-danger">${{ number_format($total, 2) }}</span>
+                                <span class="text-muted ms-2">({{ $expenses->total() }} transactions)</span>
+                            </div>
+                            <div class="col-md-6">
+                                <x-pagination :paginator="$expenses" />
+                            </div>
+                        </div>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="summary-card">
+                <div class="card mb-3">
+                    <div class="card-header border-0 pb-2">
+                        <h5 class="card-title mb-0" style="font-family: 'Google Sans', sans-serif; font-size: 1rem; font-weight: 500;">Summary</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3 pb-3 border-bottom">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="text-muted small">Total Transactions</span>
+                                <strong class="h5 mb-0">{{ $stats['total_count'] ?? 0 }}</strong>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="text-muted small">Total Amount</span>
+                                <strong class="h5 mb-0 text-danger">${{ number_format($stats['total_amount'] ?? 0, 2) }}</strong>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <h6 class="small text-muted mb-2" style="font-weight: 600;">By Transaction Type</h6>
+                            <div class="small">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span><span class="badge bg-success me-1">Cash</span> <span class="text-muted">({{ $stats['cash_count'] ?? 0 }})</span></span>
+                                    <strong>${{ number_format($stats['cash_amount'] ?? 0, 2) }}</strong>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span><span class="badge bg-primary me-1">Credit Card</span> <span class="text-muted">({{ $stats['credit_card_count'] ?? 0 }})</span></span>
+                                    <strong>${{ number_format($stats['credit_card_amount'] ?? 0, 2) }}</strong>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span><span class="badge bg-info me-1">Bank Transfer</span> <span class="text-muted">({{ $stats['bank_transfer_count'] ?? 0 }})</span></span>
+                                    <strong>${{ number_format($stats['bank_transfer_amount'] ?? 0, 2) }}</strong>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span><span class="badge bg-warning text-dark me-1">Check</span> <span class="text-muted">({{ $stats['check_count'] ?? 0 }})</span></span>
+                                    <strong>${{ number_format($stats['check_amount'] ?? 0, 2) }}</strong>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-0">
+                            <h6 class="small text-muted mb-2" style="font-weight: 600;">Categorization Status</h6>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="text-success">Categorized</span>
+                                <strong>{{ $stats['with_coa_count'] ?? 0 }}</strong>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="text-danger">Uncategorized</span>
+                                <strong>{{ $stats['without_coa_count'] ?? 0 }}</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card mb-3">
+                    <div class="card-header border-0 pb-2">
+                        <h5 class="card-title mb-0" style="font-family: 'Google Sans', sans-serif; font-size: 1rem; font-weight: 500;">Top Categories (COA)</h5>
+                    </div>
+                    <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                        @if($summaryByCoa->count() > 0)
+                            @foreach($summaryByCoa as $coaSummary)
+                            <div class="mb-3 pb-2 {{ !$loop->last ? 'border-bottom' : '' }}">
+                                <div class="d-flex justify-content-between align-items-start mb-1">
+                                    <div class="flex-grow-1">
+                                        <div class="d-flex align-items-center mb-1">
+                                            <span class="badge bg-light text-dark me-2" style="font-size: 0.7rem; font-weight: 600;">{{ $coaSummary->account_code ?? 'N/A' }}</span>
+                                            <span class="badge @if($coaSummary->account_type === 'Revenue') bg-success @elseif($coaSummary->account_type === 'COGS') bg-danger @elseif($coaSummary->account_type === 'Expense') bg-warning text-dark @else bg-secondary @endif" style="font-size: 0.65rem;">{{ $coaSummary->account_type ?? 'N/A' }}</span>
+                                        </div>
+                                        <div class="small fw-semibold">{{ $coaSummary->account_name ?? 'Uncategorized' }}</div>
+                                    </div>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center mt-2">
+                                    <span class="text-muted small">{{ $coaSummary->transaction_count }} transactions</span>
+                                    <strong class="text-danger">${{ number_format($coaSummary->total_amount, 2) }}</strong>
+                                </div>
+                            </div>
+                            @endforeach
+                        @else
+                            <div class="text-center text-muted py-3"><small>No transactions found</small></div>
+                        @endif
+                    </div>
+                </div>
+                @if($summaryByStore->count() > 1)
+                <div class="card mb-3">
+                    <div class="card-header border-0 pb-2">
+                        <h5 class="card-title mb-0" style="font-family: 'Google Sans', sans-serif; font-size: 1rem; font-weight: 500;">By Store</h5>
+                    </div>
+                    <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+                        @foreach($summaryByStore as $storeSummary)
+                        <div class="mb-2 pb-2 {{ !$loop->last ? 'border-bottom' : '' }}">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="flex-grow-1">
+                                    <div class="small fw-semibold">{{ $storeSummary->store_name }}</div>
+                                    <div class="text-muted small">{{ $storeSummary->transaction_count }} transactions</div>
+                                </div>
+                                <strong class="text-danger">${{ number_format($storeSummary->total_amount, 2) }}</strong>
+                            </div>
+                        </div>
+                        @endforeach
+                    </div>
+                </div>
+                @endif
             </div>
         </div>
     </div>
 </div>
 
-<!-- Sync Modal -->
 @if(auth()->user()->isAdmin())
 <div class="modal fade" id="syncModal" tabindex="-1" aria-labelledby="syncModalLabel" aria-hidden="true">
     <div class="modal-dialog">
@@ -201,12 +315,10 @@
             <form id="syncForm">
                 <div class="modal-body">
                     <p class="text-muted mb-3">Import cash expenses from daily reports into the expense ledger.</p>
-                    
                     <div class="mb-3">
                         <label for="syncStartDate" class="form-label">Start Date</label>
                         <input type="date" class="form-control" id="syncStartDate" name="start_date" required>
                     </div>
-                    
                     <div class="mb-3">
                         <label for="syncEndDate" class="form-label">End Date</label>
                         <input type="date" class="form-control" id="syncEndDate" name="end_date" required>
@@ -225,7 +337,6 @@
 </div>
 @endif
 
-<!-- Create/Edit Expense Modal -->
 @if(auth()->user()->isAdmin() || auth()->user()->isOwner() || auth()->user()->isManager())
 <div class="modal fade" id="expenseModal" tabindex="-1" aria-labelledby="expenseModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
@@ -240,24 +351,19 @@
                         <div class="col-md-6 mb-3">
                             <label for="expenseDate" class="form-label">Transaction Date <span class="text-danger">*</span></label>
                             <input type="date" class="form-control" id="expenseDate" name="transaction_date" required>
-                            <div class="invalid-feedback"></div>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label for="expenseStore" class="form-label">Store <span class="text-danger">*</span></label>
                             <select class="form-select" id="expenseStore" name="store_id" required>
                                 <option value="">Select Store</option>
-                                <!-- Options loaded via JavaScript -->
                             </select>
-                            <div class="invalid-feedback"></div>
                         </div>
                     </div>
-
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label for="expenseVendor" class="form-label">Vendor</label>
                             <select class="form-select" id="expenseVendor" name="vendor_id">
                                 <option value="">Select Vendor</option>
-                                <!-- Options loaded via JavaScript -->
                             </select>
                         </div>
                         <div class="col-md-6 mb-3">
@@ -270,44 +376,27 @@
                                 <option value="eft">EFT</option>
                                 <option value="other">Other</option>
                             </select>
-                            <div class="invalid-feedback"></div>
                         </div>
                     </div>
-
                     <div class="mb-3">
                         <label for="expenseCoa" class="form-label">Category (COA) <span class="text-danger">*</span></label>
                         <select class="form-select" id="expenseCoa" name="coa_id" required>
                             <option value="">Select Category</option>
-                            <!-- Options loaded via JavaScript -->
                         </select>
-                        <div class="invalid-feedback"></div>
                     </div>
-
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label for="expenseAmount" class="form-label">Amount <span class="text-danger">*</span></label>
                             <input type="number" class="form-control" id="expenseAmount" name="amount" step="0.01" min="0.01" required>
-                            <div class="invalid-feedback"></div>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label for="expenseReference" class="form-label">Reference Number</label>
                             <input type="text" class="form-control" id="expenseReference" name="reference_number">
                         </div>
                     </div>
-
                     <div class="mb-3">
                         <label for="expenseDescription" class="form-label">Description</label>
                         <textarea class="form-control" id="expenseDescription" name="description" rows="2"></textarea>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="expenseReceiptUrl" class="form-label">Receipt URL</label>
-                        <input type="url" class="form-control" id="expenseReceiptUrl" name="receipt_url" placeholder="https://...">
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="expenseNotes" class="form-label">Notes</label>
-                        <textarea class="form-control" id="expenseNotes" name="notes" rows="2"></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -323,7 +412,6 @@
 </div>
 @endif
 
-<!-- Edit Expense Modal -->
 @if(auth()->user()->isAdmin() || auth()->user()->isOwner())
 <div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
@@ -335,29 +423,24 @@
             <form id="editForm">
                 <div class="modal-body">
                     <input type="hidden" id="editExpenseId" name="id">
-                    
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label for="editVendor" class="form-label">Vendor</label>
                             <select class="form-select" id="editVendor" name="vendor_id">
                                 <option value="">Select Vendor</option>
-                                <!-- Options loaded via JavaScript -->
                             </select>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label for="editCoa" class="form-label">Category (COA)</label>
                             <select class="form-select" id="editCoa" name="coa_id">
                                 <option value="">Select Category</option>
-                                <!-- Options loaded via JavaScript -->
                             </select>
                         </div>
                     </div>
-
                     <div class="mb-3">
                         <label for="editDescription" class="form-label">Description</label>
                         <textarea class="form-control" id="editDescription" name="description" rows="2"></textarea>
                     </div>
-
                     <div class="mb-3">
                         <label for="editNotes" class="form-label">Notes</label>
                         <textarea class="form-control" id="editNotes" name="notes" rows="2"></textarea>
@@ -380,129 +463,51 @@
 
 @push('scripts')
 <script>
-// Auth flags from backend
-const userPermissions = {
-    isAdmin: @json(auth()->user()->isAdmin()),
-    isOwner: @json(auth()->user()->isOwner()),
-    isManager: @json(auth()->user()->isManager())
-};
-
-// Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
     loadStores();
     loadVendors();
     loadCOAs();
-    
-    // Expense form submission
-    document.getElementById('expenseForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        saveExpense();
-    });
-
-    // Edit form submission
-    document.getElementById('editForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        updateExpense();
-    });
-
-    // Sync form submission
-    document.getElementById('syncForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        syncExpenses();
-    });
-
-    // Auto-fill COA when vendor is selected (Create modal)
+    loadCOAsForFilter();
+    document.getElementById('expenseForm').addEventListener('submit', function(e) { e.preventDefault(); saveExpense(); });
+    document.getElementById('editForm').addEventListener('submit', function(e) { e.preventDefault(); updateExpense(); });
+    document.getElementById('syncForm').addEventListener('submit', function(e) { e.preventDefault(); syncExpenses(); });
     const expenseVendorSelect = document.getElementById('expenseVendor');
     if (expenseVendorSelect) {
         expenseVendorSelect.addEventListener('change', function() {
             const vendorId = this.value;
-            if (vendorId) {
-                autoFillCoaFromVendor(vendorId, 'expenseCoa');
-            } else {
-                // Clear COA if vendor is deselected
-                document.getElementById('expenseCoa').value = '';
-            }
+            if (vendorId) autoFillCoaFromVendor(vendorId, 'expenseCoa');
+            else document.getElementById('expenseCoa').value = '';
         });
     }
-
-    // Auto-fill COA when vendor is selected (Edit modal)
     const editVendorSelect = document.getElementById('editVendor');
     if (editVendorSelect) {
         editVendorSelect.addEventListener('change', function() {
             const vendorId = this.value;
-            if (vendorId) {
-                autoFillCoaFromVendor(vendorId, 'editCoa');
-            } else {
-                // Clear COA if vendor is deselected
-                document.getElementById('editCoa').value = '';
-            }
+            if (vendorId) autoFillCoaFromVendor(vendorId, 'editCoa');
+            else document.getElementById('editCoa').value = '';
         });
     }
-
-    // Reload vendors when store changes (Create modal)
     const expenseStoreSelect = document.getElementById('expenseStore');
     if (expenseStoreSelect) {
         expenseStoreSelect.addEventListener('change', function() {
-            const storeId = this.value;
-            loadVendors(storeId);
-            // Clear vendor and COA when store changes
+            loadVendors(this.value);
             document.getElementById('expenseVendor').value = '';
             document.getElementById('expenseCoa').value = '';
         });
     }
 });
 
-// Show sync modal
-function showSyncModal() {
-    new bootstrap.Modal(document.getElementById('syncModal')).show();
-}
+function showSyncModal() { new bootstrap.Modal(document.getElementById('syncModal')).show(); }
 
-// Sync expenses
-function syncExpenses() {
-    const form = document.getElementById('syncForm');
-    const formData = new FormData(form);
-    const params = new URLSearchParams(formData);
-    
-    setButtonLoading('syncBtn', true);
-    
-    fetch(`/api/expenses/sync-cash-expenses?${params.toString()}`, {
-        method: 'POST',
-        headers: {
-            'Accept': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-        },
-        credentials: 'same-origin'
-    })
-    .then(response => response.json())
-    .then(result => {
-        if (result.error) {
-            showToast(result.error, 'error');
-        } else {
-            showToast(`Synced ${result.imported} expenses, skipped ${result.skipped}`, 'success');
-            setTimeout(() => window.location.reload(), 500);
-        }
-        setButtonLoading('syncBtn', false);
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showToast('Error syncing expenses', 'error');
-        setButtonLoading('syncBtn', false);
-    });
-}
-
-// Open create modal
 function openCreateModal() {
     document.getElementById('expenseModalLabel').textContent = 'Add Manual Expense';
     document.getElementById('expenseForm').reset();
     document.getElementById('expenseDate').value = new Date().toISOString().split('T')[0];
-    clearValidationErrors();
 }
 
-// Save expense
 function saveExpense() {
     const form = document.getElementById('expenseForm');
     const formData = new FormData(form);
-    
     const data = {
         transaction_date: formData.get('transaction_date'),
         store_id: formData.get('store_id'),
@@ -512,294 +517,154 @@ function saveExpense() {
         payment_method: formData.get('payment_method'),
         description: formData.get('description'),
         reference_number: formData.get('reference_number'),
-        receipt_url: formData.get('receipt_url'),
-        notes: formData.get('notes'),
+        transaction_type: formData.get('payment_method') === 'cash' ? 'cash' : 'credit_card'
     };
-    
     setButtonLoading('saveBtn', true);
-    
     fetch('/api/expenses', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-        },
-        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
         body: JSON.stringify(data)
     })
-    .then(response => response.json())
+    .then(r => r.json())
     .then(result => {
-        if (result.errors) {
-            displayValidationErrors(result.errors);
-        } else {
-            showToast(result.message, 'success');
-            setTimeout(() => window.location.reload(), 500);
-        }
+        if (result.errors) { alert(JSON.stringify(result.errors)); }
+        else { window.location.reload(); }
         setButtonLoading('saveBtn', false);
     })
-    .catch(error => {
-        console.error('Error:', error);
-        showToast('Error saving expense', 'error');
-        setButtonLoading('saveBtn', false);
-    });
+    .catch(() => { setButtonLoading('saveBtn', false); alert('Error saving expense'); });
 }
 
-// Edit expense
 function editExpense(id) {
-    fetch(`/api/expenses/${id}`, {
-        headers: {
-            'Accept': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-        },
-        credentials: 'same-origin'
-    })
-    .then(response => response.json())
+    fetch(`/api/expenses/${id}`, { headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content } })
+    .then(r => r.json())
     .then(expense => {
         document.getElementById('editExpenseId').value = expense.id;
         document.getElementById('editVendor').value = expense.vendor_id || '';
         document.getElementById('editCoa').value = expense.coa_id || '';
         document.getElementById('editDescription').value = expense.description || '';
         document.getElementById('editNotes').value = expense.notes || '';
-        
         new bootstrap.Modal(document.getElementById('editModal')).show();
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showToast('Error loading expense details', 'error');
     });
 }
 
-// Update expense
 function updateExpense() {
-    const form = document.getElementById('editForm');
-    const formData = new FormData(form);
+    const formData = new FormData(document.getElementById('editForm'));
     const id = document.getElementById('editExpenseId').value;
-    
     const data = {};
     if (formData.get('vendor_id')) data.vendor_id = formData.get('vendor_id');
     if (formData.get('coa_id')) data.coa_id = formData.get('coa_id');
     if (formData.get('description')) data.description = formData.get('description');
     if (formData.get('notes')) data.notes = formData.get('notes');
-    
     setButtonLoading('editSaveBtn', true);
-    
     fetch(`/api/expenses/${id}`, {
         method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-        },
-        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
         body: JSON.stringify(data)
     })
-    .then(response => response.json())
+    .then(r => r.json())
     .then(result => {
-        if (result.errors) {
-            displayValidationErrors(result.errors);
-        } else {
-            showToast(result.message, 'success');
-            setTimeout(() => window.location.reload(), 500);
-        }
+        if (result.errors) { alert(JSON.stringify(result.errors)); }
+        else { window.location.reload(); }
         setButtonLoading('editSaveBtn', false);
     })
-    .catch(error => {
-        console.error('Error:', error);
-        showToast('Error updating expense', 'error');
-        setButtonLoading('editSaveBtn', false);
+    .catch(() => { setButtonLoading('editSaveBtn', false); });
+}
+
+function syncExpenses() {
+    const formData = new FormData(document.getElementById('syncForm'));
+    setButtonLoading('syncBtn', true);
+    fetch(`/api/expenses/sync-cash-expenses?${new URLSearchParams(formData)}`, {
+        method: 'POST',
+        headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content }
+    })
+    .then(r => r.json())
+    .then(result => {
+        if (result.error) alert(result.error);
+        else { alert(`Synced ${result.imported} expenses`); window.location.reload(); }
+        setButtonLoading('syncBtn', false);
+    })
+    .catch(() => { setButtonLoading('syncBtn', false); });
+}
+
+function loadStores() {
+    fetch('/api/stores', { headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content } })
+    .then(r => r.json())
+    .then(stores => {
+        const select = document.getElementById('expenseStore');
+        if (!select) return;
+        select.innerHTML = '<option value="">Select Store</option>';
+        stores.forEach(store => {
+            const opt = document.createElement('option');
+            opt.value = store.id;
+            opt.textContent = store.name;
+            select.appendChild(opt);
+        });
     });
 }
 
-// Load stores
-function loadStores() {
-    fetch('/api/stores', {
-        headers: {
-            'Accept': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-        },
-        credentials: 'same-origin'
-    })
-    .then(response => response.json())
-    .then(stores => {
-        const selects = ['expenseStore'];
-        selects.forEach(selectId => {
-            const select = document.getElementById(selectId);
-            select.innerHTML = '<option value="">Select Store</option>';
-            stores.forEach(store => {
-                const option = document.createElement('option');
-                option.value = store.id;
-                option.textContent = store.name;
-                select.appendChild(option);
-            });
-        });
-    })
-    .catch(error => console.error('Error loading stores:', error));
-}
-
-// Load vendors (filtered by store if store is selected)
 function loadVendors(storeId = null) {
     let url = '/api/vendors?per_page=1000';
-    if (storeId) {
-        url += `&store_id=${storeId}`;
-    }
-    
-    fetch(url, {
-        headers: {
-            'Accept': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-        },
-        credentials: 'same-origin'
-    })
-    .then(response => response.json())
+    if (storeId) url += '&store_id=' + storeId;
+    fetch(url, { headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content } })
+    .then(r => r.json())
     .then(data => {
-        const selects = ['expenseVendor', 'editVendor'];
-        selects.forEach(selectId => {
-            const select = document.getElementById(selectId);
+        ['expenseVendor', 'editVendor'].forEach(id => {
+            const select = document.getElementById(id);
             if (!select) return;
             select.innerHTML = '<option value="">Select Vendor</option>';
-            data.data.forEach(vendor => {
-                const option = document.createElement('option');
-                option.value = vendor.id;
-                option.textContent = vendor.vendor_name;
-                select.appendChild(option);
-            });
+            data.data.forEach(v => { const o = document.createElement('option'); o.value = v.id; o.textContent = v.vendor_name; select.appendChild(o); });
         });
-    })
-    .catch(error => console.error('Error loading vendors:', error));
-}
-
-// Load COAs
-function loadCOAs() {
-    fetch('/api/coa?per_page=1000', {
-        headers: {
-            'Accept': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-        },
-        credentials: 'same-origin'
-    })
-    .then(response => response.json())
-    .then(data => {
-        const selects = ['expenseCoa', 'editCoa'];
-        selects.forEach(selectId => {
-            const select = document.getElementById(selectId);
-            if (!select) return;
-            select.innerHTML = '<option value="">Select Category</option>';
-            data.data.forEach(coa => {
-                const option = document.createElement('option');
-                option.value = coa.id;
-                option.textContent = `${coa.account_code} - ${coa.account_name}`;
-                select.appendChild(option);
-            });
-        });
-    })
-    .catch(error => console.error('Error loading COAs:', error));
-}
-
-// Auto-fill COA category when vendor is selected
-function autoFillCoaFromVendor(vendorId, coaSelectId) {
-    if (!vendorId) return;
-    
-    fetch(`/api/vendors/${vendorId}`, {
-        headers: {
-            'Accept': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-        },
-        credentials: 'same-origin'
-    })
-    .then(response => response.json())
-    .then(vendor => {
-        const coaSelect = document.getElementById(coaSelectId);
-        if (!coaSelect) return;
-        
-        // Handle both direct response and wrapped response
-        const vendorData = vendor.data || vendor;
-        const defaultCoaId = vendorData.default_coa_id;
-        
-        // If vendor has a default COA, auto-fill it
-        if (defaultCoaId) {
-            // Ensure COAs are loaded first
-            if (coaSelect.options.length <= 1) {
-                loadCOAs().then(() => {
-                    setCoaValue(coaSelect, defaultCoaId);
-                });
-            } else {
-                setCoaValue(coaSelect, defaultCoaId);
-            }
-        }
-    })
-    .catch(error => {
-        console.error('Error fetching vendor details:', error);
     });
 }
 
-// Helper function to set COA value with visual feedback
-function setCoaValue(coaSelect, coaId) {
-    coaSelect.value = coaId;
-    
-    // Show a brief visual indicator that COA was auto-filled
-    coaSelect.style.backgroundColor = '#e7f3ff';
-    coaSelect.style.transition = 'background-color 0.3s';
-    
-    setTimeout(() => {
-        coaSelect.style.backgroundColor = '';
-    }, 1500);
-    
-    // Show toast notification
-    showToast('Category auto-filled from vendor default', 'success');
+function loadCOAs() {
+    fetch('/api/coa-list?per_page=10000', { headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content } })
+    .then(r => r.json())
+    .then(data => {
+        const list = data.data || [];
+        ['expenseCoa', 'editCoa'].forEach(id => {
+            const select = document.getElementById(id);
+            if (!select) return;
+            select.innerHTML = '<option value="">Select Category</option>';
+            list.forEach(c => { const o = document.createElement('option'); o.value = c.id; o.textContent = (c.account_code || '') + ' - ' + (c.account_name || ''); select.appendChild(o); });
+        });
+    });
 }
 
-// Utility functions
-function formatDate(date) {
-    return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+function loadCOAsForFilter() {
+    fetch('/api/coa-list?per_page=10000&is_active=1', { headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content } })
+    .then(r => r.json())
+    .then(data => {
+        const select = document.getElementById('coaFilter');
+        if (!select) return;
+        const selected = new URLSearchParams(window.location.search).get('coa_id') || '';
+        select.innerHTML = '<option value="">All Categories</option>';
+        (data.data || []).forEach(c => {
+            const o = document.createElement('option');
+            o.value = c.id;
+            o.textContent = (c.account_code || '') + ' - ' + (c.account_name || '');
+            if (selected == c.id) o.selected = true;
+            select.appendChild(o);
+        });
+    });
 }
 
-function formatTransactionType(type) {
-    return type.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-}
-
-function showToast(message, type = 'success') {
-    const toast = document.createElement('div');
-    toast.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show`;
-    toast.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
-    toast.innerHTML = `
-        ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    `;
-    document.body.appendChild(toast);
-    setTimeout(() => { toast.remove(); }, 3000);
+function autoFillCoaFromVendor(vendorId, coaSelectId) {
+    if (!vendorId) return;
+    fetch(`/api/vendors/${vendorId}`, { headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content } })
+    .then(r => r.json())
+    .then(vendor => {
+        const d = vendor.data || vendor;
+        if (d.default_coa_id) document.getElementById(coaSelectId).value = d.default_coa_id;
+    });
 }
 
 function setButtonLoading(btnId, loading) {
     const btn = document.getElementById(btnId);
-    const spinner = btn?.querySelector('.spinner-border');
-    if (loading) {
-        btn.disabled = true;
-        spinner?.classList.remove('d-none');
-    } else {
-        btn.disabled = false;
-        spinner?.classList.add('d-none');
-    }
-}
-
-function displayValidationErrors(errors) {
-    clearValidationErrors();
-    Object.keys(errors).forEach(field => {
-        const input = document.querySelector(`[name="${field}"]`);
-        if (input) {
-            input.classList.add('is-invalid');
-            const feedback = input.nextElementSibling;
-            if (feedback && feedback.classList.contains('invalid-feedback')) {
-                feedback.textContent = errors[field][0];
-            }
-        }
-    });
-}
-
-function clearValidationErrors() {
-    document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
-    document.querySelectorAll('.invalid-feedback').forEach(el => el.textContent = '');
+    if (!btn) return;
+    btn.disabled = loading;
+    const spinner = btn.querySelector('.spinner-border');
+    if (spinner) spinner.classList.toggle('d-none', !loading);
 }
 </script>
 @endpush
-

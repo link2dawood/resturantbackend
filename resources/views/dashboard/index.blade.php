@@ -244,6 +244,25 @@
             font-size: 1.25rem;
         }
     }
+
+    /* Safari: ensure dashboard layout and cards render correctly */
+    @supports (-webkit-appearance: none) {
+        .d-flex {
+            -webkit-box-align: center;
+            -webkit-align-items: center;
+            align-items: center;
+        }
+        .card-material,
+        .stat-card {
+            -webkit-flex-shrink: 0;
+            flex-shrink: 0;
+        }
+        .stat-icon {
+            -webkit-box-flex: 0;
+            -webkit-flex-shrink: 0;
+            flex-shrink: 0;
+        }
+    }
 </style>
 @endsection
 

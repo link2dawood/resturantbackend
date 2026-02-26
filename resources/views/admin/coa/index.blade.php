@@ -37,10 +37,10 @@
 
     <div class="card mb-4">
         <div class="card-body">
-            <form action="{{ route('coa.index') }}" method="GET" class="row g-3 align-items-end">
+            <form id="coaFilterForm" action="{{ route('coa.index') }}" method="GET" class="row g-3 align-items-end">
                 <div class="col-md-3">
                     <label for="account_type" class="form-label">Account Type</label>
-                    <select name="account_type" id="account_type" class="form-select">
+                    <select name="account_type" id="account_type" class="form-select coa-filter-change">
                         <option value="">All Types</option>
                         @foreach($accountTypes as $type)
                             <option value="{{ $type }}" @selected(request('account_type') === $type)>{{ $type }}</option>
@@ -49,7 +49,7 @@
                 </div>
                 <div class="col-md-3">
                     <label for="is_active" class="form-label">Status</label>
-                    <select name="is_active" id="is_active" class="form-select">
+                    <select name="is_active" id="is_active" class="form-select coa-filter-change">
                         <option value="">All Status</option>
                         <option value="1" @selected(request('is_active', '1') === '1')>Active</option>
                         <option value="0" @selected(request('is_active') === '0')>Inactive</option>
@@ -57,7 +57,7 @@
                 </div>
                 <div class="col-md-3">
                     <label for="store_id" class="form-label">Store</label>
-                    <select name="store_id" id="store_id" class="form-select">
+                    <select name="store_id" id="store_id" class="form-select coa-filter-change">
                         <option value="">All Stores</option>
                         @foreach($stores as $store)
                             <option value="{{ $store->id }}" @selected((string) request('store_id') === (string) $store->id)>
@@ -69,7 +69,7 @@
                 <div class="col-md-3">
                     <label for="search" class="form-label">Search</label>
                     <div class="input-group">
-                        <input type="text" name="search" id="search" class="form-control" value="{{ request('search') }}" placeholder="Account code or name">
+                        <input type="text" name="search" id="search" class="form-control coa-search-input" value="{{ request('search') }}" placeholder="Account code or name">
                         <button class="btn btn-outline-secondary" type="submit">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <circle cx="11" cy="11" r="8"/>
@@ -152,6 +152,30 @@
         </div>
     @endif
 </div>
+
+@push('scripts')
+<script>
+(function() {
+    var form = document.getElementById('coaFilterForm');
+    if (!form) return;
+
+    // On change of dropdowns: submit form (navigate to chart-of-accounts with current params)
+    form.querySelectorAll('.coa-filter-change').forEach(function(el) {
+        el.addEventListener('change', function() { form.submit(); });
+    });
+
+    // On input of search: debounced submit (call chart-of-accounts on search change)
+    var searchInput = form.querySelector('.coa-search-input');
+    if (searchInput) {
+        var debounceTimer;
+        searchInput.addEventListener('input', function() {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(function() { form.submit(); }, 350);
+        });
+    }
+})();
+</script>
+@endpush
 @endsection
 
 

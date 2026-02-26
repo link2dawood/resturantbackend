@@ -14,7 +14,7 @@
         'actual_deposit' => 'Actual Deposit',
         'total_customers' => 'Total # of Customers',
         'cancels' => 'Cancels',
-        'coupons_amount' => 'Coupons Amount',
+        'coupons_amount' => 'Total Amount of Coupons Received',
         'sales' => 'Sales',
         'credit_cards' => 'Credit Cards',
         'short_over' => 'Short Over',

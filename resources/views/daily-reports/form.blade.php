@@ -3,6 +3,130 @@
 @section('content')
 
 <style>
+    /* Safari-specific fixes for daily report form */
+    @supports (-webkit-appearance: none) {
+        button, input[type="button"], input[type="submit"] {
+            -webkit-appearance: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        input, textarea {
+            -webkit-appearance: none;
+        }
+        
+        select.form-input, .transaction-table select {
+            -webkit-appearance: none;
+            appearance: none;
+            min-height: 38px;
+            position: relative;
+            z-index: 2;
+            background-color: #fff;
+        }
+        
+        .form-control, .form-input:not(select) {
+            -webkit-appearance: none;
+            border-radius: 4px;
+        }
+        
+        .transaction-table tbody tr td {
+            position: relative;
+        }
+        .transaction-table tbody tr td:nth-child(2),
+        .transaction-table tbody tr td:nth-child(3) {
+            z-index: 1;
+        }
+        .transaction-table tbody tr:focus-within td:nth-child(2),
+        .transaction-table tbody tr:focus-within td:nth-child(3) {
+            z-index: 10;
+        }
+    }
+
+    /* Custom light-theme dropdown (replaces native select popup in WebKit/Safari) */
+    .custom-select-wrap {
+        position: relative;
+        width: 100%;
+        min-height: 38px;
+    }
+    .custom-select-wrap select.select-native-hidden {
+        position: absolute !important;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        min-height: 38px;
+        opacity: 0;
+        z-index: 2;
+        pointer-events: none;
+    }
+    .custom-select-overlay {
+        position: absolute;
+        left: 0;
+        top: 0;
+        right: 0;
+        min-height: 38px;
+        padding: 8px 28px 8px 8px;
+        background: #ffffff !important;
+        color: #202124 !important;
+        border: 1px solid #dadce0;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        z-index: 1;
+        display: flex;
+        align-items: center;
+        box-sizing: border-box;
+    }
+    .custom-select-overlay::after {
+        content: '';
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        border: 5px solid transparent;
+        border-top-color: #5f6368;
+    }
+    .custom-select-menu {
+        display: none;
+        position: absolute;
+        left: 0;
+        top: 100%;
+        min-width: 100%;
+        max-height: 280px;
+        overflow-y: auto;
+        background: #ffffff !important;
+        color: #202124 !important;
+        border: 1px solid #dadce0;
+        border-radius: 4px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        z-index: 1000;
+        margin-top: 2px;
+    }
+    .custom-select-menu.open {
+        display: block;
+    }
+    .custom-select-option {
+        display: block;
+        width: 100%;
+        padding: 10px 12px;
+        background: #ffffff !important;
+        color: #202124 !important;
+        border: none;
+        text-align: left;
+        cursor: pointer;
+        font-size: 14px;
+    }
+    .custom-select-option:hover {
+        background: #f1f3f4 !important;
+        color: #202124 !important;
+    }
+    
+    /* Ensure buttons are visible in Safari */
+    button {
+        display: inline-block;
+        width: auto;
+        min-width: auto;
+    }
+    
     .sales-table {
     width: 100%;
     border-collapse: collapse;
@@ -18,7 +142,7 @@
         background: white;
         border-radius: 8px;
         box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        overflow: hidden;
+        overflow: visible; /* allow select dropdowns to show outside (Safari) */
     }
     
     .report-header {
@@ -72,6 +196,8 @@
     .transaction-table td {
         border: 1px solid #dee2e6;
         padding: 6px;
+        overflow: visible;
+        vertical-align: middle;
     }
     
     .form-input {
@@ -80,6 +206,11 @@
         background: transparent;
         padding: 8px;
         font-size: 14px;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+        box-sizing: border-box;
+        -webkit-box-sizing: border-box;
     }
     
     .form-input:focus {
@@ -125,6 +256,12 @@
         -webkit-appearance: none;
         -moz-appearance: none;
         appearance: none;
+        width: auto;
+        min-width: 120px;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
     }
     
     .btn-add-row:hover {
@@ -140,6 +277,16 @@
         border-radius: 4px;
         cursor: pointer;
         font-size: 12px;
+        display: inline-block;
+        width: auto;
+        min-width: 30px;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
     }
     
     .btn-remove:hover {
@@ -154,6 +301,16 @@
         border-radius: 4px;
         cursor: pointer;
         font-size: 12px;
+        display: inline-block;
+        width: auto;
+        min-width: 30px;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
     }
     
     .btn-remove-row:hover {
@@ -185,6 +342,12 @@
         border: 1px solid #ced4da;
         border-radius: 4px;
         font-size: 14px;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+        box-sizing: border-box;
+        -webkit-box-sizing: border-box;
+        display: block;
     }
     
     .category-labels {
@@ -206,8 +369,11 @@
     }
     
     .sales-grid {
+        display: -webkit-grid;
         display: grid;
+        -webkit-grid-template-columns: 1fr 1fr;
         grid-template-columns: 1fr 1fr;
+        -webkit-grid-gap: 15px;
         gap: 15px;
         margin-top: 12px;
     }
@@ -237,6 +403,7 @@
     
     .save-btn {
         background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        background: -webkit-linear-gradient(135deg, #28a745 0%, #20c997 100%);
         color: white;
         border: none;
         padding: 10px 30px;
@@ -245,7 +412,19 @@
         font-weight: 600;
         cursor: pointer;
         box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+        -webkit-box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
         transition: all 0.3s;
+        -webkit-transition: all 0.3s;
+        display: inline-block;
+        width: auto;
+        min-width: 180px;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
     }
     
     .save-btn:hover {
@@ -255,7 +434,9 @@
     
     @media (max-width: 768px) {
         .sales-grid {
+            -webkit-grid-template-columns: 1fr;
             grid-template-columns: 1fr;
+            -webkit-grid-gap: 20px;
             gap: 20px;
         }
         
@@ -321,6 +502,23 @@
         </div>
     @endif
 
+    @if(isset($store) && isset($reportDate) && isset($prevDate) && isset($nextDate))
+    <div class="container mb-3">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+            @if(isset($prevReport) && $prevReport)
+                <a href="{{ route('daily-reports.show', $prevReport) }}" class="google-btn google-btn-outlined google-btn-small">← Previous Day</a>
+            @else
+                <a href="{{ route('daily-reports.create-form', ['store_id' => $store->id, 'report_date' => $prevDate]) }}" class="google-btn google-btn-outlined google-btn-small">← Previous Day</a>
+            @endif
+            @if(isset($nextReport) && $nextReport)
+                <a href="{{ route('daily-reports.show', $nextReport) }}" class="google-btn google-btn-outlined google-btn-small ms-auto">Next Day →</a>
+            @else
+                <a href="{{ route('daily-reports.create-form', ['store_id' => $store->id, 'report_date' => $nextDate]) }}" class="google-btn google-btn-outlined google-btn-small ms-auto">Next Day →</a>
+            @endif
+        </div>
+    </div>
+    @endif
+
     <select id="transactionTypeTemplate" style="display:none;">
     <option value="">Select Type</option>
     @foreach($coas as $coa)
@@ -328,15 +526,10 @@
     @endforeach
 </select>
 
-<select id="vendorTemplate" style="display:none;">
-    <option value="">Select Company</option>
-    <option value="__create_new__">+ Create New Company</option>
-    @foreach($vendors as $vendor)
-        <option value="{{ $vendor->id }}" 
-                data-vendor-name="{{ $vendor->vendor_name }}"
-                data-default-coa-id="{{ $vendor->default_coa_id }}">
-            {{ $vendor->vendor_name }}
-        </option>
+<select id="vendorDescriptionTemplate" style="display:none;">
+    <option value="">Select Vendor / Description</option>
+    @foreach($types as $type)
+        <option value="{{ $type->name }}" data-default-coa-id="{{ $type->default_coa_id ?? '' }}">{{ $type->name }}</option>
     @endforeach
 </select>
 
@@ -371,14 +564,14 @@
 
             <!-- Transaction Expenses Section -->
             <div class="section-title">Transaction Expenses</div>
-            <div class="form-section">
-                <div class="row">
-                    <div class="col-lg-8">
+            <div class="form-section" style="overflow: visible;">
+                <div class="row" style="overflow: visible;">
+                    <div class="col-lg-8" style="overflow: visible;">
                         <table class="transaction-table" id="transactionTable">
                             <thead>
                                 <tr>
                                     <th style="width: 15%;">Transaction ID</th>
-                                    <th style="width: 30%;">Company</th>
+                                    <th style="width: 30%;">Vendor Description</th>
                                     <th style="width: 25%;">Transaction Type</th>
                                     <th style="width: 20%;">Amount ($)</th>
                                     <th style="width: 10%;">Action</th>
@@ -390,15 +583,10 @@
                                         <input type="number" class="form-input" name="transactions[0][transaction_id]" value="1">
                                     </td>
                                     <td>
-                                        <select class="form-input vendor-select" name="transactions[0][company]" data-row="0" onchange="handleVendorChange(this)">
-                                            <option value="">Select Company</option>
-                                            <option value="__create_new__">+ Create New Company</option>
-                                            @foreach($vendors as $vendor)
-                                                <option value="{{ $vendor->id }}" 
-                                                        data-vendor-name="{{ $vendor->vendor_name }}"
-                                                        data-default-coa-id="{{ $vendor->default_coa_id }}">
-                                                    {{ $vendor->vendor_name }}
-                                                </option>
+                                        <select class="form-input vendor-description-select" name="transactions[0][company]" data-row="0" onchange="handleVendorDescriptionChange(this)">
+                                            <option value="">Select Vendor / Description</option>
+                                            @foreach($types as $type)
+                                                <option value="{{ $type->name }}" data-default-coa-id="{{ $type->default_coa_id ?? '' }}">{{ $type->name }}</option>
                                             @endforeach
                                         </select>
                                         <input type="hidden" name="transactions[0][vendor_id]" class="vendor-id-input" value="">
@@ -415,7 +603,7 @@
                                         <input type="number" class="form-input number-input" name="transactions[0][amount]" min="0" placeholder="0.00">
                                     </td>
                                     <td>
-                                        <button type="button" class="btn-add-row" onclick="addTransactionRow()">+</button>
+                                        <button type="button" class="btn-add-row" onclick="addTransactionRow()" style="width: auto; min-width: 40px;">+</button>
                                     </td>
                                 </tr>
                                 <tr class="total-row">
@@ -426,7 +614,7 @@
                             </tbody>
                         </table>
                         <div style="margin-top: 8px; padding: 8px; background: #fff3cd; border-radius: 4px; border: 1px solid #ffeaa7;">
-                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div style="display: -webkit-flex; display: flex; -webkit-justify-content: space-between; justify-content: space-between; -webkit-align-items: center; align-items: center; width: 100%;">
                                 <span style="font-weight: 600; color: #856404;">Total Transaction Expenses:</span>
                                 <span id="totalTransactionExpenses" style="font-weight: 600; color: #856404; font-size: 1.1rem;">$0</span>
                             </div>
@@ -500,13 +688,13 @@
                                 </tr>
                             </tbody>
                         </table>
-                        <button type="button" id="addRevenueRow" class="btn-add-row" style="margin-top: 10px; display: inline-block !important; visibility: visible !important; opacity: 1 !important;">+ Add Revenue Entry</button>
+                        <button type="button" id="addRevenueRow" class="btn-add-row" style="margin-top: 10px; display: inline-block !important; visibility: visible !important; opacity: 1 !important; width: auto;">+ Add Revenue Entry</button>
                         <div style="margin-top: 8px; padding: 8px; background: #f8f9fa; border-radius: 4px;">
-                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div style="display: -webkit-flex; display: flex; -webkit-justify-content: space-between; justify-content: space-between; -webkit-align-items: center; align-items: center; width: 100%;">
                                 <span style="font-weight: 600; color: #495057;">Total Revenue Income:</span>
                                 <span id="totalRevenue" style="font-weight: 600; color: #28a745; font-size: 1.1rem;">$0</span>
                             </div>
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 5px;">
+                            <div style="display: -webkit-flex; display: flex; -webkit-justify-content: space-between; justify-content: space-between; -webkit-align-items: center; align-items: center; margin-top: 5px; width: 100%;">
                                 <span style="font-weight: 600; color: #495057;">Online Platform Revenue:</span>
                                 <span id="onlineRevenue" style="font-weight: 600; color: #17a2b8; font-size: 1.1rem;">$0</span>
                             </div>
@@ -538,7 +726,7 @@
                         <table class="sales-table">
                             <tr>
                                 <td>
-                                    <div style="display:flex;justify-content: space-between;align-items: center;">
+                                    <div style="display: -webkit-flex; display: flex; -webkit-justify-content: space-between; justify-content: space-between; -webkit-align-items: center; align-items: center; width: 100%;">
                                         <span><strong>Gross Sales:</strong></span>
                                         <span style="width:30%;" id="grossSales" class="calculated-field number-input">$0</span>
                                     </div>
@@ -548,7 +736,17 @@
                             </tr>
                             <tr>
                                 <td>
-                                    <div style="display:flex;justify-content: space-between;align-items: center;">
+                                    <div style="display: -webkit-flex; display: flex; -webkit-justify-content: space-between; justify-content: space-between; -webkit-align-items: center; align-items: center; width: 100%;">
+                                        <span><strong>Total # of Coupons:</strong></span>
+                                        <span style="width:30%;"><input type="number" name="total_coupons" value="0" class="form-input number-input" style="background: white;"></span>
+                                    </div>
+                                </td>
+                                <td></td>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div style="display: -webkit-flex; display: flex; -webkit-justify-content: space-between; justify-content: space-between; -webkit-align-items: center; align-items: center; width: 100%;">
                                         <span><strong>Total Amount of Coupons Received:</strong></span>
                                         <span style="width:30%;"><input type="number" name="coupons_received" class="form-input number-input" value="0" style="background: white;"></span>
                                     </div>
@@ -558,17 +756,7 @@
                             </tr>
                             <tr>
                                 <td>
-                                    <div style="display:flex;justify-content: space-between;align-items: center;">
-                                        <span>Total # of Coupons</span>
-                                        <span style="width:30%;"><input type="number" name="total_coupons" value="0" class="form-input number-input" style="background: white;"></span>
-                                    </div>
-                                </td>
-                                <td></td>
-                                <td></td>
-                            </tr>
-                            <tr>
-                                <td>
-                                    <div style="display:flex;justify-content: space-between;align-items: center;">
+                                    <div style="display: -webkit-flex; display: flex; -webkit-justify-content: space-between; justify-content: space-between; -webkit-align-items: center; align-items: center; width: 100%;">
                                         <span><strong>Adjustments: Overrings/Returns:</strong></span>
                                         <span style="width:30%;"><input type="number" name="adjustments_overrings" class="form-input number-input" value="0" style="background: white;"></span>
                                     </div>
@@ -579,7 +767,7 @@
                             <tr>
                                 <td rowspan="2">
                                     
-                                    <div style="display:flex;justify-content: space-between;align-items: anchor-center;">
+                                    <div style="display: -webkit-flex; display: flex; -webkit-justify-content: space-between; justify-content: space-between; -webkit-align-items: center; align-items: center; width: 100%;">
                                         <span>Total # of Customers</span>
                                         <span style="width:30%;"><input type="number" name="total_customers" value="0" class="form-input number-input" style="background: white;"></span>
                                     </div>
@@ -595,7 +783,7 @@
                             <tr>
                                 <td>
                                    
-                                    <div style="display:flex;justify-content: space-between;align-items: anchor-center;">
+                                    <div style="display: -webkit-flex; display: flex; -webkit-justify-content: space-between; justify-content: space-between; -webkit-align-items: center; align-items: center; width: 100%;">
                                         <span> Average Ticket</span>
                                         <span style="width:30%;"><input type="number" name="average_ticket" id="averageTicketInput" value="0" class="form-input number-input" style="background: white;" readonly></span>
                                     </div>
@@ -621,8 +809,8 @@
                                 <td id="onlineRevenue2" class="calculated-field number-input">$0</td>
                             </tr>
                             <tr>
-                                <td><strong>Credit Cards:</strong></td>
-                                <td><input type="number" name="credit_cards" class="form-input number-input" value="0"></td>
+                                <td><strong>Credit Card:</strong></td>
+                                <td id="creditCards2" class="calculated-field number-input"><input type="number" name="credit_cards" class="form-input number-input" value="0" style="background: #e7f3ff !important;"></td>
                             </tr>
                             <tr>
                                 <td><strong>Cash To Account For:</strong></td>
@@ -724,7 +912,7 @@ function calculateTotals() {
     // Gross Sales = Total Revenue Entries + Coupons Amount Received
     const grossSales = totalRevenueIncome + couponsReceived;
     
-    // Net Sales = Total Revenue Entries - Coupons Received - Adjustments: Overrings/Returns
+    // Net Sales = Total Revenue Income - Adjustments only (same as Total Revenue Income; do not deduct coupons)
     const netSales = totalRevenueIncome - adjustmentsOverrings;
     
     // Tax = Net Sales minus (Net Sales / 1.0825)
@@ -906,8 +1094,8 @@ window.addTransactionRow = function () {
             <input type="number" class="form-input" name="transactions[${transactionCount}][transaction_id]" value="${transactionCount + 1}">
         </td>
         <td>
-            <select class="form-input vendor-select" name="transactions[${transactionCount}][company]" data-row="${transactionCount}" onchange="handleVendorChange(this)">
-                ${document.getElementById('vendorTemplate').innerHTML}
+            <select class="form-input vendor-description-select" name="transactions[${transactionCount}][company]" data-row="${transactionCount}" onchange="handleVendorDescriptionChange(this)">
+                ${document.getElementById('vendorDescriptionTemplate').innerHTML}
             </select>
             <input type="hidden" name="transactions[${transactionCount}][vendor_id]" class="vendor-id-input" value="">
         </td>
@@ -929,6 +1117,8 @@ window.addTransactionRow = function () {
 
     // attach input listener for totals
     newRow.querySelector('input[name*="[amount]"]').addEventListener('input', calculateTotals);
+    // init custom light-theme dropdowns for new row (Safari/WebKit)
+    if (typeof initLightDropdowns === 'function') initLightDropdowns(newRow);
 }
 
 
@@ -1042,6 +1232,15 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    // Prevent Create Vendor form from submitting (e.g. Enter key) and reloading the page
+    const createVendorForm = document.getElementById('createVendorForm');
+    if (createVendorForm) {
+        createVendorForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            saveNewVendor();
+        });
+    }
+
     // Initial calculation
     calculateTotals();
     calculateRevenueTotals();
@@ -1131,6 +1330,7 @@ function calculateRevenueTotals() {
 
 // Event listeners for revenue functionality
 document.addEventListener('DOMContentLoaded', function() {
+    initLightDropdowns(document.body);
     // Add revenue row button
     document.getElementById('addRevenueRow').addEventListener('click', addRevenueRow);
     
@@ -1151,44 +1351,105 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// Handle vendor selection change
-window.handleVendorChange = function(selectElement) {
-    const row = selectElement.getAttribute('data-row');
-    const selectedValue = selectElement.value;
-    
-    if (selectedValue === '__create_new__') {
-        // Open create vendor modal
-        openCreateVendorModal(row, selectElement);
-        return;
-    }
-    
-    if (selectedValue) {
-        // Get selected option
-        const selectedOption = selectElement.options[selectElement.selectedIndex];
-        const defaultCoaId = selectedOption.getAttribute('data-default-coa-id');
-        const vendorId = selectedValue;
-        const vendorName = selectedOption.getAttribute('data-vendor-name');
-        
-        // Set vendor_id hidden input
-        const vendorIdInput = selectElement.closest('tr').querySelector('.vendor-id-input');
-        if (vendorIdInput) {
-            vendorIdInput.value = vendorId;
+/* Custom light-theme dropdown (avoids WebKit/Safari native dark select popup) */
+function getSelectedOptionText(select) {
+    const opt = select.options[select.selectedIndex];
+    return opt ? opt.textContent.trim() : '';
+}
+
+function initLightDropdowns(container) {
+    const selects = container.querySelectorAll('.vendor-description-select, .transaction-type-select');
+    selects.forEach(select => {
+        if (select.dataset.lightDropdown === '1') return;
+        select.dataset.lightDropdown = '1';
+
+        const wrap = document.createElement('div');
+        wrap.className = 'custom-select-wrap';
+        select.parentNode.insertBefore(wrap, select);
+        wrap.appendChild(select);
+        select.classList.add('select-native-hidden');
+
+        const overlay = document.createElement('div');
+        overlay.className = 'custom-select-overlay';
+        overlay.setAttribute('tabindex', '0');
+        overlay.textContent = getSelectedOptionText(select);
+        wrap.appendChild(overlay);
+
+        const menu = document.createElement('div');
+        menu.className = 'custom-select-menu';
+        for (let i = 0; i < select.options.length; i++) {
+            const opt = select.options[i];
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'custom-select-option';
+            btn.textContent = opt.textContent.trim();
+            btn.dataset.value = opt.value;
+            if (opt.getAttribute('data-vendor-name')) btn.dataset.vendorName = opt.getAttribute('data-vendor-name');
+            if (opt.hasAttribute('data-default-coa-id')) btn.dataset.defaultCoaId = String(opt.getAttribute('data-default-coa-id') || '').trim();
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const val = btn.dataset.value;
+                if (select.classList.contains('vendor-select') && val === '__create_new__') {
+                    openCreateVendorModal(select.getAttribute('data-row'), select);
+                    menu.classList.remove('open');
+                    return;
+                }
+                select.value = val;
+                overlay.textContent = btn.textContent;
+                menu.classList.remove('open');
+                select.dispatchEvent(new Event('change', { bubbles: true }));
+                if (select.classList.contains('vendor-description-select')) handleVendorDescriptionChange(select, btn.dataset.defaultCoaId || '');
+            });
+            menu.appendChild(btn);
         }
-        
-        // Auto-fill transaction type if vendor has default_coa_id
-        if (defaultCoaId) {
-            const transactionTypeSelect = selectElement.closest('tr').querySelector('.transaction-type-select');
-            if (transactionTypeSelect) {
-                transactionTypeSelect.value = defaultCoaId;
+        wrap.appendChild(menu);
+
+        select.addEventListener('change', function() { overlay.textContent = getSelectedOptionText(select); });
+
+        overlay.addEventListener('click', function(e) {
+            e.preventDefault();
+            const open = menu.classList.toggle('open');
+            if (open) {
+                const close = function(ev) {
+                    if (!wrap.contains(ev.target)) { menu.classList.remove('open'); document.removeEventListener('click', close); }
+                };
+                setTimeout(() => document.addEventListener('click', close), 0);
             }
-        }
-    } else {
-        // Clear vendor_id when no vendor selected
-        const vendorIdInput = selectElement.closest('tr').querySelector('.vendor-id-input');
-        if (vendorIdInput) {
-            vendorIdInput.value = '';
+        });
+        overlay.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); overlay.click(); }
+        });
+    });
+}
+
+// Handle Vendor / Description (transaction type) selection: auto-fill default COA in Transaction Type
+// optionalDefaultCoaId: pass from custom dropdown button so we don't rely on reading from option
+window.handleVendorDescriptionChange = function(selectElement, optionalDefaultCoaId) {
+    let defaultCoaId = (optionalDefaultCoaId !== undefined && optionalDefaultCoaId !== null) ? String(optionalDefaultCoaId).trim() : '';
+    if (!defaultCoaId && selectElement.options && selectElement.options[selectElement.selectedIndex]) {
+        const selectedOption = selectElement.options[selectElement.selectedIndex];
+        defaultCoaId = (selectedOption.getAttribute('data-default-coa-id') || '').trim();
+    }
+    const row = selectElement.closest('tr');
+    if (!row) return;
+    const transactionTypeSelect = row.querySelector('.transaction-type-select');
+    if (!transactionTypeSelect || !defaultCoaId) return;
+    // Select by finding the option with matching value (more reliable than setting .value)
+    let found = false;
+    for (let i = 0; i < transactionTypeSelect.options.length; i++) {
+        if (String(transactionTypeSelect.options[i].value) === String(defaultCoaId)) {
+            transactionTypeSelect.selectedIndex = i;
+            found = true;
+            break;
         }
     }
+    if (!found) transactionTypeSelect.value = defaultCoaId;
+    const twrap = transactionTypeSelect.parentElement;
+    if (twrap && twrap.classList.contains('custom-select-wrap')) {
+        const toverlay = twrap.querySelector('.custom-select-overlay');
+        if (toverlay && typeof getSelectedOptionText === 'function') toverlay.textContent = getSelectedOptionText(transactionTypeSelect);
+    }
+    transactionTypeSelect.dispatchEvent(new Event('change', { bubbles: true }));
 }
 
 // Open create vendor modal
@@ -1199,8 +1460,6 @@ window.openCreateVendorModal = function(row, selectElement) {
     
     // Reset modal form
     document.getElementById('newVendorName').value = '';
-    document.getElementById('newVendorType').value = '';
-    document.getElementById('newVendorTransactionType').value = '';
     document.getElementById('newVendorCoa').value = '';
     
     // Show modal
@@ -1211,17 +1470,15 @@ window.openCreateVendorModal = function(row, selectElement) {
 // Save new vendor
 window.saveNewVendor = async function() {
     const vendorName = document.getElementById('newVendorName').value.trim();
-    const vendorType = document.getElementById('newVendorType').value;
-    const transactionTypeId = document.getElementById('newVendorTransactionType').value;
     const coaId = document.getElementById('newVendorCoa').value;
     
     if (!vendorName) {
-        alert('Please enter a vendor name');
+        alert('Please enter a vendor description');
         return;
     }
     
-    if (!vendorType) {
-        alert('Please select a vendor type');
+    if (!coaId) {
+        alert('Please select a default chart of account');
         return;
     }
     
@@ -1234,35 +1491,71 @@ window.saveNewVendor = async function() {
             },
             body: JSON.stringify({
                 vendor_name: vendorName,
-                vendor_type: vendorType,
-                default_transaction_type_id: transactionTypeId || null,
-                default_coa_id: coaId || null
+                vendor_type: 'Other', // Default type since it's required
+                default_coa_id: coaId
             })
         });
         
-        const data = await response.json();
+        const json = await response.json();
         
         if (response.ok) {
-            // Add new vendor to dropdown
-            const vendorTemplate = document.getElementById('vendorTemplate');
-            const newOption = document.createElement('option');
-            newOption.value = data.id;
-            newOption.setAttribute('data-vendor-name', data.vendor_name);
-            newOption.setAttribute('data-default-coa-id', data.default_coa_id || '');
-            newOption.textContent = data.vendor_name;
-            vendorTemplate.appendChild(newOption);
-            
-            // Update current select
+            const v = json.data || json;
+            const vendorName = v.vendor_name || v.name || '';
+            const defaultCoaId = (v.default_coa_id != null) ? String(v.default_coa_id) : '';
+
+            // Add to Vendor Description template (value = name for company submission)
+            const vendorDescTemplate = document.getElementById('vendorDescriptionTemplate');
+            if (vendorDescTemplate) {
+                const newOption = document.createElement('option');
+                newOption.value = vendorName;
+                newOption.setAttribute('data-default-coa-id', defaultCoaId);
+                newOption.textContent = vendorName;
+                vendorDescTemplate.appendChild(newOption);
+            }
+
+            // Add to every Vendor Description select and custom menu
+            document.querySelectorAll('.vendor-description-select').forEach(function(sel) {
+                if (Array.from(sel.options).some(function(o) { return o.value === vendorName; })) return;
+                const opt = document.createElement('option');
+                opt.value = vendorName;
+                opt.setAttribute('data-default-coa-id', defaultCoaId);
+                opt.textContent = vendorName;
+                sel.appendChild(opt);
+                const wrap = sel.parentElement;
+                if (wrap && wrap.classList.contains('custom-select-wrap')) {
+                    const menu = wrap.querySelector('.custom-select-menu');
+                    const overlay = wrap.querySelector('.custom-select-overlay');
+                    if (menu && overlay) {
+                        const btn = document.createElement('button');
+                        btn.type = 'button';
+                        btn.className = 'custom-select-option';
+                        btn.textContent = vendorName;
+                        btn.dataset.value = vendorName;
+                        btn.dataset.defaultCoaId = defaultCoaId;
+                        btn.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            sel.value = btn.dataset.value;
+                            overlay.textContent = btn.textContent;
+                            menu.classList.remove('open');
+                            sel.dispatchEvent(new Event('change', { bubbles: true }));
+                            handleVendorDescriptionChange(sel);
+                        });
+                        menu.appendChild(btn);
+                    }
+                }
+            });
+
             if (window.currentVendorSelect) {
                 const currentSelect = window.currentVendorSelect;
-                const newSelectOption = newOption.cloneNode(true);
-                currentSelect.appendChild(newSelectOption);
-                currentSelect.value = data.id;
-                
-                // Trigger change to auto-fill transaction type
-                handleVendorChange(currentSelect);
+                currentSelect.value = vendorName;
+                handleVendorDescriptionChange(currentSelect);
+                const wrap = currentSelect.parentElement;
+                if (wrap && wrap.classList.contains('custom-select-wrap')) {
+                    const overlay = wrap.querySelector('.custom-select-overlay');
+                    if (overlay) overlay.textContent = vendorName;
+                }
             }
-            
+
             // Close modal
             const modal = bootstrap.Modal.getInstance(document.getElementById('createVendorModal'));
             modal.hide();
@@ -1270,7 +1563,8 @@ window.saveNewVendor = async function() {
             // Show success message
             alert('Vendor created successfully!');
         } else {
-            alert('Error creating vendor: ' + (data.message || 'Unknown error'));
+            const errMsg = (json.errors && Object.values(json.errors).flat().join(' ')) || json.message || json.error || 'Unknown error';
+            alert('Error creating vendor: ' + errMsg);
         }
     } catch (error) {
         console.error('Error:', error);
@@ -1284,42 +1578,25 @@ window.saveNewVendor = async function() {
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="createVendorModalLabel">Create New Company</h5>
+                    <h5 class="modal-title" id="createVendorModalLabel">Create New Vendor Description</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <form id="createVendorForm">
                         <div class="mb-3">
-                            <label for="newVendorName" class="form-label">Company Name <span class="text-danger">*</span></label>
+                            <label for="newVendorName" class="form-label">Vendor Description <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" id="newVendorName" required>
                         </div>
                         <div class="mb-3">
-                            <label for="newVendorType" class="form-label">Company Type <span class="text-danger">*</span></label>
-                            <select class="form-select" id="newVendorType" required>
-                                <option value="">Select Type</option>
-                                <option value="Food">Food</option>
-                                <option value="Beverage">Beverage</option>
-                                <option value="Supplies">Supplies</option>
-                                <option value="Utilities">Utilities</option>
-                                <option value="Services">Services</option>
-                                <option value="Other">Other</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label for="newVendorTransactionType" class="form-label">Default Transaction Type</label>
-                            <select class="form-select" id="newVendorTransactionType">
-                                <option value="">Select Transaction Type</option>
-                                @foreach($types as $type)
-                                    <option value="{{ $type->id }}">{{ $type->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label for="newVendorCoa" class="form-label">Default Chart of Account</label>
-                            <select class="form-select" id="newVendorCoa">
+                            <label for="newVendorCoa" class="form-label">Default Chart of Account <span class="text-danger">*</span></label>
+                            <select class="form-select" id="newVendorCoa" required>
                                 <option value="">Select COA</option>
                                 @php
-                                    $coas = \App\Models\ChartOfAccount::where('is_active', true)->orderBy('account_name')->get();
+                                    $coas = \App\Models\ChartOfAccount::where('is_active', true)
+                                        ->whereIn('account_type', ['COGS', 'Expense'])
+                                        ->orderBy('account_code')
+                                        ->orderBy('account_name')
+                                        ->get();
                                 @endphp
                                 @foreach($coas as $coa)
                                     <option value="{{ $coa->id }}">{{ $coa->account_code }} - {{ $coa->account_name }}</option>
@@ -1330,7 +1607,7 @@ window.saveNewVendor = async function() {
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" onclick="saveNewVendor()">Create Company</button>
+                    <button type="button" class="btn btn-primary" onclick="saveNewVendor()">Create Vendor</button>
                 </div>
             </div>
         </div>

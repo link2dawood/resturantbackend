@@ -249,7 +249,25 @@
 </style>
 
 <div class="container-fluid mt-4" style="max-width: 95%; margin-left: auto; margin-right: auto;">
-    <div class="export-buttons">
+    <div class="export-buttons" style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px;">
+        @if($prevReport)
+            <a href="{{ route('daily-reports.show', $prevReport) }}" class="export-btn export-btn-back">
+                ← Previous Day
+            </a>
+        @else
+            <a href="{{ route('daily-reports.create-form', ['store_id' => $dailyReport->store_id, 'report_date' => \Carbon\Carbon::parse($dailyReport->report_date)->subDay()->format('Y-m-d')]) }}" class="export-btn export-btn-back">
+                ← Previous Day
+            </a>
+        @endif
+        @if($nextReport)
+            <a href="{{ route('daily-reports.show', $nextReport) }}" class="export-btn export-btn-back">
+                Next Day →
+            </a>
+        @else
+            <a href="{{ route('daily-reports.create-form', ['store_id' => $dailyReport->store_id, 'report_date' => \Carbon\Carbon::parse($dailyReport->report_date)->addDay()->format('Y-m-d')]) }}" class="export-btn export-btn-back">
+                Next Day →
+            </a>
+        @endif
         <a href="{{ route('daily-reports.export-pdf', $dailyReport) }}" class="export-btn export-btn-pdf" target="_blank">
             📄 Export PDF
         </a>
@@ -291,7 +309,13 @@
                                     <tr>
                                         <td>{{ $transaction->transaction_id }}</td>
                                         <td>{{ $transaction->company }}</td>
-                                        <td>{{ $transaction->transactionType->name ?? 'N/A' }}</td>
+                                        <td>
+                                            @if($transaction->transactionType && $transaction->transactionType->defaultCoa)
+                                                {{ $transaction->transactionType->defaultCoa->account_code }} - {{ $transaction->transactionType->defaultCoa->account_name }}
+                                            @else
+                                                {{ $transaction->transactionType->name ?? $transaction->company ?? '—' }}
+                                            @endif
+                                        </td>
                                         <td class="number-input{{ $transaction->amount < 0 ? ' negative' : '' }}">${{ number_format($transaction->amount, 2) }}</td>
                                     </tr>
                                 @endforeach
@@ -386,18 +410,6 @@
                             <td>Projected Sales</td>
                             <td class="number-input{{ $dailyReport->projected_sales < 0 ? ' negative' : '' }}">${{ number_format($dailyReport->projected_sales, 2) }}</td>
                         </tr>
-                        <tr>
-                            <td>Amount of Cancels</td>
-                            <td class="number-input{{ $dailyReport->amount_of_cancels < 0 ? ' negative' : '' }}">${{ number_format($dailyReport->amount_of_cancels, 2) }}</td>
-                        </tr>
-                        <tr>
-                            <td>Amount of Voids</td>
-                            <td class="number-input{{ $dailyReport->amount_of_voids < 0 ? ' negative' : '' }}">${{ number_format($dailyReport->amount_of_voids, 2) }}</td>
-                        </tr>
-                        <tr>
-                            <td>Number of No Sales</td>
-                            <td class="number-input">{{ $dailyReport->number_of_no_sales }}</td>
-                        </tr>
                     </table>
                 </div>
             </div>
@@ -422,8 +434,8 @@
                         <tr>
                             <td>
                                 <div style="display:flex;justify-content: space-between;align-items: center;">
-                                    <span><strong>Total Amount of Coupons Received:</strong></span>
-                                    <span style="width:30%;" class="number-input{{ $dailyReport->coupons_received < 0 ? ' negative' : '' }}">${{ number_format($dailyReport->coupons_received, 2) }}</span>
+                                    <span><strong>Total # of Coupons:</strong></span>
+                                    <span style="width:30%;" class="number-input">{{ $dailyReport->total_coupons }}</span>
                                 </div>
                             </td>
                             <td></td>
@@ -432,8 +444,8 @@
                         <tr>
                             <td>
                                 <div style="display:flex;justify-content: space-between;align-items: center;">
-                                    <span>Total # of Coupons</span>
-                                    <span style="width:30%;" class="number-input">{{ $dailyReport->total_coupons }}</span>
+                                    <span><strong>Total Amount of Coupons Received:</strong></span>
+                                    <span style="width:30%;" class="number-input{{ $dailyReport->coupons_received < 0 ? ' negative' : '' }}">${{ number_format($dailyReport->coupons_received, 2) }}</span>
                                 </div>
                             </td>
                             <td></td>
@@ -457,7 +469,7 @@
                                 </div>
                             </td>
                             <td><strong>Net Sales:</strong></td>
-                            <td id="netSales" class="calculated-field number-input{{ $dailyReport->net_sales < 0 ? ' negative' : '' }}">${{ number_format($dailyReport->net_sales, 2) }}</td>
+                            <td id="netSales" class="calculated-field number-input{{ $displayNetSales < 0 ? ' negative' : '' }}">${{ number_format($displayNetSales, 2) }}</td>
                         </tr>
                         <tr>
                             <td><strong>Tax:</strong></td>
@@ -480,7 +492,7 @@
                     <table class="sales-table">
                         <tr>
                             <td><strong>Net Sales:</strong></td>
-                            <td id="netSales2" class="calculated-field number-input{{ $dailyReport->net_sales < 0 ? ' negative' : '' }}">${{ number_format($dailyReport->net_sales, 2) }}</td>
+                            <td id="netSales2" class="calculated-field number-input{{ $displayNetSales < 0 ? ' negative' : '' }}">${{ number_format($displayNetSales, 2) }}</td>
                         </tr>
                         <tr>
                             <td><strong>Total Transaction Expenses:</strong></td>
@@ -492,7 +504,7 @@
                         </tr>
                         <tr>
                             <td><strong>Credit Cards:</strong></td>
-                            <td class="number-input{{ $dailyReport->credit_cards < 0 ? ' negative' : '' }}">${{ number_format($dailyReport->credit_cards, 2) }}</td>
+                            <td id="creditCards2" class="calculated-field number-input{{ $dailyReport->credit_cards < 0 ? ' negative' : '' }}">${{ number_format($dailyReport->credit_cards, 2) }}</td>
                         </tr>
                         <tr>
                             <td><strong>Cash To Account For:</strong></td>

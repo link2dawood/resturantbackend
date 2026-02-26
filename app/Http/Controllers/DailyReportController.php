@@ -7,6 +7,7 @@ use App\Exceptions\Business\ReportException;
 use App\Exceptions\Business\StoreException;
 use App\Http\Middleware\CheckDailyReportAccess;
 use App\Models\AuditLog;
+use App\Models\ChartOfAccount;
 use App\Models\DailyReport;
 use App\Models\ChartOfAccount;
 use App\Models\DailyReportRevenue;
@@ -204,21 +205,30 @@ class DailyReportController extends Controller
         }
 
         $store = Store::find($storeId);
-        $types = TransactionType::all();
-        $coas = ChartOfAccount::where('account_code', '>', 5000)
-        ->where('account_code', '<', 7000)->where('is_active', true)->orderBy('account_name')->get();
+        $types = TransactionType::with('defaultCoa')->orderBy('name')->get();
         $revenueTypes = RevenueIncomeType::where('is_active', 1)
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get();
-        
-        // Get vendors for the company dropdown
-        $vendors = Vendor::active()
-            ->with(['defaultTransactionType', 'defaultCoa'])
-            ->orderBy('vendor_name')
+
+        // Get Chart of Accounts for Transaction Type (COA) dropdown; include COGS/Expense + any default_coa_id used by types
+        $defaultCoaIds = TransactionType::whereNotNull('default_coa_id')->pluck('default_coa_id')->unique()->filter()->values()->all();
+        $coas = ChartOfAccount::where('is_active', true)
+            ->where(function ($q) use ($defaultCoaIds) {
+                $q->whereIn('account_type', ['COGS', 'Expense'])
+                    ->orWhereIn('id', $defaultCoaIds);
+            })
+            ->orderBy('account_code')
+            ->orderBy('account_name')
             ->get();
 
-        return view('daily-reports.create', compact('store', 'types', 'revenueTypes', 'reportDate', 'vendors','coas'));
+        // Prev/Next day: report if exists, else date for create-form
+        $prevDate = \Carbon\Carbon::parse($reportDate)->subDay()->format('Y-m-d');
+        $nextDate = \Carbon\Carbon::parse($reportDate)->addDay()->format('Y-m-d');
+        $prevReport = DailyReport::where('store_id', $store->id)->whereDate('report_date', $prevDate)->first();
+        $nextReport = DailyReport::where('store_id', $store->id)->whereDate('report_date', $nextDate)->first();
+
+        return view('daily-reports.create', compact('store', 'types', 'revenueTypes', 'reportDate', 'coas', 'prevReport', 'nextReport', 'prevDate', 'nextDate'));
     }
 
     /**
@@ -281,6 +291,17 @@ class DailyReportController extends Controller
                 'revenues.*.notes' => 'nullable|string|max:500',
             ]);
 
+            // Prevent duplicate: one report per store per date
+            $existingReport = DailyReport::where('store_id', $validatedData['store_id'])
+                ->whereDate('report_date', $validatedData['report_date'])
+                ->first();
+
+            if ($existingReport) {
+                throw ValidationException::withMessages([
+                    'report_date' => ['A daily report for this store already exists for the selected date. Please choose a different date.'],
+                ]);
+            }
+
             // Use service for comprehensive validation and business rule checking
             $this->reportService->validateReportData($validatedData);
 
@@ -303,8 +324,14 @@ class DailyReportController extends Controller
                 $this->processRevenueEntries($request, $dailyReport);
             }
 
-            return redirect()->route('daily-reports.show', $dailyReport)
-                ->with('success', '✅ Daily report created successfully! All calculations have been verified.');
+            // Redirect to create form for same store and next day so user can create another report
+            $storeId = $validatedData['store_id'];
+            $nextDate = \Carbon\Carbon::parse($validatedData['report_date'])->addDay()->format('Y-m-d');
+
+            return redirect()->route('daily-reports.create-form', [
+                'store_id' => $storeId,
+                'report_date' => $nextDate,
+            ])->with('success', '✅ Daily report created successfully! All calculations have been verified. Create the next day\'s report below.');
 
         } catch (ReportException|StoreException|PermissionException $e) {
             Log::warning('Business rule validation failed for daily report creation', [
@@ -349,9 +376,24 @@ class DailyReportController extends Controller
                 ->with('info', 'Administrators can only view daily report summaries, not individual reports.');
         }
 
-        $dailyReport->load(['store', 'creator', 'approver', 'transactions.transactionType', 'revenues.revenueIncomeType']);
+        $dailyReport->load(['store', 'creator', 'approver', 'transactions.transactionType.defaultCoa', 'revenues.revenueIncomeType']);
 
-        return view('daily-reports.show', compact('dailyReport'));
+        // Display net sales using same formula as edit: Total Revenue Income - Adjustments only (no coupons)
+        $totalRevenueEntries = (float) $dailyReport->gross_sales - (float) ($dailyReport->coupons_received ?? 0);
+        $displayNetSales = $totalRevenueEntries - (float) ($dailyReport->adjustments_overrings ?? 0);
+
+        // Prev/Next day reports (same store) for navigation buttons
+        $reportDate = $dailyReport->report_date->format('Y-m-d');
+        $prevReport = DailyReport::where('store_id', $dailyReport->store_id)
+            ->where('report_date', '<', $reportDate)
+            ->orderBy('report_date', 'desc')
+            ->first();
+        $nextReport = DailyReport::where('store_id', $dailyReport->store_id)
+            ->where('report_date', '>', $reportDate)
+            ->orderBy('report_date', 'asc')
+            ->first();
+
+        return view('daily-reports.show', compact('dailyReport', 'displayNetSales', 'prevReport', 'nextReport'));
     }
 
     /**
@@ -384,10 +426,32 @@ class DailyReportController extends Controller
             ->with(['defaultTransactionType', 'defaultCoa'])
             ->orderBy('vendor_name')
             ->get();
-        
-        $dailyReport->load(['transactions', 'revenues.revenueIncomeType']);
 
-        return view('daily-reports.edit', compact('dailyReport', 'stores', 'types', 'revenueTypes', 'vendors'));
+        // Get Chart of Accounts for transaction type dropdown; include COGS/Expense + any default_coa_id used by types
+        $defaultCoaIds = TransactionType::whereNotNull('default_coa_id')->pluck('default_coa_id')->unique()->filter()->values()->all();
+        $coas = ChartOfAccount::where('is_active', true)
+            ->where(function ($q) use ($defaultCoaIds) {
+                $q->whereIn('account_type', ['COGS', 'Expense'])
+                    ->orWhereIn('id', $defaultCoaIds);
+            })
+            ->orderBy('account_code')
+            ->orderBy('account_name')
+            ->get();
+
+        $dailyReport->load(['transactions.transactionType', 'revenues.revenueIncomeType']);
+
+        // Prev/Next day reports (same store) for navigation buttons
+        $reportDate = $dailyReport->report_date->format('Y-m-d');
+        $prevReport = DailyReport::where('store_id', $dailyReport->store_id)
+            ->where('report_date', '<', $reportDate)
+            ->orderBy('report_date', 'desc')
+            ->first();
+        $nextReport = DailyReport::where('store_id', $dailyReport->store_id)
+            ->where('report_date', '>', $reportDate)
+            ->orderBy('report_date', 'asc')
+            ->first();
+
+        return view('daily-reports.edit', compact('dailyReport', 'stores', 'types', 'revenueTypes', 'vendors', 'coas', 'prevReport', 'nextReport'));
     }
 
     /**
@@ -432,7 +496,7 @@ class DailyReportController extends Controller
             'transactions.*.transaction_id' => 'nullable|integer',
             'transactions.*.company' => 'nullable|string|max:100',
             'transactions.*.vendor_id' => 'nullable|exists:vendors,id',
-            'transactions.*.transaction_type' => 'nullable|exists:transaction_types,id',
+            'transactions.*.transaction_type' => 'nullable|integer',
             'transactions.*.amount' => 'required|numeric|min:0',
 
             // revenue entries
@@ -572,10 +636,19 @@ class DailyReportController extends Controller
             abort(403, 'You are not authorized to access this store.');
         }
 
-        $types = TransactionType::all();
+        $types = TransactionType::with('defaultCoa')->orderBy('name')->get();
         $revenueTypes = RevenueIncomeType::where('is_active', 1)->orderBy('sort_order')->orderBy('name')->get();
+        $defaultCoaIds = TransactionType::whereNotNull('default_coa_id')->pluck('default_coa_id')->unique()->filter()->values()->all();
+        $coas = ChartOfAccount::where('is_active', true)
+            ->where(function ($q) use ($defaultCoaIds) {
+                $q->whereIn('account_type', ['COGS', 'Expense'])
+                    ->orWhereIn('id', $defaultCoaIds);
+            })
+            ->orderBy('account_code')
+            ->orderBy('account_name')
+            ->get();
 
-        return view('daily-reports.form', compact('store', 'types', 'revenueTypes'));
+        return view('daily-reports.form', compact('store', 'types', 'revenueTypes', 'coas'));
     }
 
     /**
@@ -718,9 +791,9 @@ class DailyReportController extends Controller
         $grossSales = $totalRevenueEntries + $couponsReceived;
         $data['gross_sales'] = $grossSales;
 
-        // Calculate Net Sales = Total Revenue Entries - Coupons Received - Adjustments: Overrings/Returns
+        // Net Sales = Total Revenue Income - Adjustments only (do not deduct coupons)
         $adjustmentsOverrings = (float) ($data['adjustments_overrings'] ?? 0);
-        $netSales = $totalRevenueEntries - $couponsReceived - $adjustmentsOverrings;
+        $netSales = $totalRevenueEntries - $adjustmentsOverrings;
         $data['net_sales'] = $netSales;
 
         // Calculate Tax = Net Sales minus (Net Sales / 1.0825)
@@ -966,12 +1039,23 @@ class DailyReportController extends Controller
                 }
             }
 
-            // Validate transaction_type_id
+            // Handle transaction_type - can be COA ID or TransactionType ID
             $transactionTypeId = $transactionData['transaction_type'] ?? null;
-            if ($transactionTypeId && ! TransactionType::find($transactionTypeId)) {
-                throw ValidationException::withMessages([
-                    'transactions' => "Invalid transaction type ID: {$transactionTypeId}",
-                ]);
+            if ($transactionTypeId) {
+                // Check if it's a COA ID (ChartOfAccount)
+                $coa = ChartOfAccount::find($transactionTypeId);
+                if ($coa) {
+                    // Find a TransactionType with this COA as default, or use null
+                    $transactionType = TransactionType::where('default_coa_id', $transactionTypeId)->first();
+                    $transactionTypeId = $transactionType ? $transactionType->id : null;
+                } else {
+                    // Check if it's a valid TransactionType ID
+                    if (! TransactionType::find($transactionTypeId)) {
+                        throw ValidationException::withMessages([
+                            'transactions' => "Invalid transaction type ID: {$transactionTypeId}",
+                        ]);
+                    }
+                }
             }
 
             DailyReportTransaction::create([

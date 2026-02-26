@@ -57,7 +57,7 @@
                             <select id="parent_account_id" name="parent_account_id" class="form-select @error('parent_account_id') is-invalid @enderror">
                                 <option value="">None (top level)</option>
                                 @foreach($parentAccounts as $parent)
-                                    <option value="{{ $parent->id }}" @selected((string) old('parent_account_id') === (string) $parent->id)>
+                                    <option value="{{ $parent->id }}" data-account-code="{{ $parent->account_code }}" @selected((string) old('parent_account_id') === (string) $parent->id)>
                                         {{ $parent->account_code }} - {{ $parent->account_name }}
                                     </option>
                                 @endforeach
@@ -119,6 +119,55 @@
                 storeSelection.classList.remove('d-none');
             }
         });
+
+        // Parent Account: show only options in the selected type's range (e.g. Assets → 1000-1999) and auto-select default
+        const accountTypeRange = {
+            'Assets':      { min: 1000, max: 1999, defaultCode: '1000' },
+            'Liability':  { min: 2000, max: 2999, defaultCode: '2000' },
+            'Taxes':      { min: 3000, max: 3999, defaultCode: '3000' },
+            'Revenue':    { min: 4000, max: 4999, defaultCode: '4000' },
+            'COGS':       { min: 5000, max: 5999, defaultCode: '5000' },
+            'Expense':    { min: 6000, max: 6999, defaultCode: '6000' },
+            'Adjustments': { min: 7000, max: 7999, defaultCode: '7000' },
+            'Equity':     { min: 8000, max: 8999, defaultCode: '8000' }
+        };
+        const accountTypeSelect = document.getElementById('account_type');
+        const parentSelect = document.getElementById('parent_account_id');
+        if (accountTypeSelect && parentSelect) {
+            var parentOptionsCache = [];
+            parentSelect.querySelectorAll('option').forEach(function(o) {
+                parentOptionsCache.push({ value: o.value, code: o.dataset.accountCode || '', text: o.textContent.trim() });
+            });
+            function syncParentFromType() {
+                const type = accountTypeSelect.value;
+                const range = accountTypeRange[type];
+                parentSelect.innerHTML = '';
+                const none = document.createElement('option');
+                none.value = '';
+                none.textContent = 'None (top level)';
+                parentSelect.appendChild(none);
+                if (!range) {
+                    parentSelect.value = '';
+                    return;
+                }
+                let defaultVal = '';
+                for (let i = 0; i < parentOptionsCache.length; i++) {
+                    const item = parentOptionsCache[i];
+                    if (!item.value) continue;
+                    const codeNum = parseInt(item.code, 10);
+                    if (isNaN(codeNum) || codeNum < range.min || codeNum > range.max) continue;
+                    const opt = document.createElement('option');
+                    opt.value = item.value;
+                    opt.textContent = item.text;
+                    opt.dataset.accountCode = item.code;
+                    parentSelect.appendChild(opt);
+                    if (item.code.trim() === range.defaultCode) defaultVal = item.value;
+                }
+                parentSelect.value = defaultVal || '';
+            }
+            accountTypeSelect.addEventListener('change', syncParentFromType);
+            syncParentFromType();
+        }
     });
 </script>
 @endpush

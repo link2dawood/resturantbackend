@@ -187,15 +187,11 @@
             <div class="financial-cell financial-value">${{ number_format($dailyReport->gross_sales, 2) }}</div>
         </div>
         <div class="financial-row">
-            <div class="financial-cell financial-label">Amount of Cancels:</div>
-            <div class="financial-cell financial-value">${{ number_format($dailyReport->amount_of_cancels, 2) }}</div>
+            <div class="financial-cell financial-label">Total # of Coupons:</div>
+            <div class="financial-cell financial-value">{{ $dailyReport->total_coupons }}</div>
         </div>
         <div class="financial-row">
-            <div class="financial-cell financial-label">Amount of Voids:</div>
-            <div class="financial-cell financial-value">${{ number_format($dailyReport->amount_of_voids, 2) }}</div>
-        </div>
-        <div class="financial-row">
-            <div class="financial-cell financial-label">Coupons Received:</div>
+            <div class="financial-cell financial-label">Total Amount of Coupons Received:</div>
             <div class="financial-cell financial-value">${{ number_format($dailyReport->coupons_received, 2) }}</div>
         </div>
         <div class="financial-row">
