@@ -4,336 +4,441 @@
     <meta charset="utf-8">
     <title>Daily Report - {{ $dailyReport->report_date->format('M d, Y') }}</title>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
         body {
             font-family: Arial, sans-serif;
-            margin: 0;
+            font-size: 12px;
+            color: #000;
             padding: 20px;
-            color: #333;
+            background: #fff;
         }
         
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 20px;
-            text-align: center;
-            margin-bottom: 30px;
-            border-radius: 8px;
-        }
-        
-        .company-name {
-            font-size: 24px;
-            font-weight: bold;
-            margin-bottom: 10px;
-        }
-        
-        .report-info {
-            display: table;
-            width: 100%;
-            margin-bottom: 30px;
-        }
-        
-        .info-row {
-            display: table-row;
-        }
-        
-        .info-cell {
-            display: table-cell;
-            padding: 8px;
-            border-bottom: 1px solid #ddd;
-        }
-        
-        .info-label {
-            font-weight: bold;
-            width: 30%;
-        }
-        
-        .section-title {
-            background: #f8f9fa;
-            padding: 10px 15px;
-            font-weight: bold;
-            color: #495057;
-            margin: 20px 0 10px 0;
-            border-left: 4px solid #007bff;
-        }
-        
-        .financial-grid {
-            display: table;
-            width: 100%;
-            margin-bottom: 20px;
-        }
-        
-        .financial-row {
-            display: table-row;
-        }
-        
-        .financial-cell {
-            display: table-cell;
-            padding: 8px;
-            border: 1px solid #ddd;
-            width: 50%;
-        }
-        
-        .financial-label {
-            font-weight: bold;
-            background: #f8f9fa;
-        }
-        
-        .financial-value {
-            text-align: right;
-        }
-        
-        .transaction-table {
+        .header-table {
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 20px;
+            border: 3px double #000;
         }
         
-        .transaction-table th {
-            background: #007bff;
-            color: white;
+        .header-table td {
             padding: 10px;
-            text-align: left;
+            vertical-align: top;
+            border: 3px double #000;
+        }
+        
+        .logo-cell {
+            width: 30%;
+        }
+        
+        .logo {
+            max-width: 200px;
+            height: auto;
+            margin-bottom: 10px;
+        }
+        
+        .report-title {
+            font-size: 14px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        
+        .store-info-cell {
+            width: 70%;
+            text-align: center;
+        }
+        
+        .store-name {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .store-address {
+            font-size: 11px;
+            margin-bottom: 3px;
+        }
+        
+        .store-phone {
+            font-size: 11px;
+        }
+        
+        .main-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        
+        .main-table td {
+            vertical-align: top;
+            border: 3px double #000;
+            padding: 10px;
+        }
+        
+        .left-cell {
+            width: 60%;
+        }
+        
+        .right-cell {
+            width: 40%;
+        }
+        
+        .section-table {
+            width: 100%;
+            border-collapse: collapse;
+            border: 3px double #000;
+            margin-bottom: 15px;
+        }
+        
+        .section-table td {
+            padding: 8px;
+            border: 3px double #000;
+            font-size: 11px;
+        }
+        
+        .section-title {
+            font-weight: bold;
+            font-size: 13px;
+            background-color: #f0f0f0;
+            border-bottom: 3px double #000;
+        }
+        
+        .transactions-table {
+            min-height: 80px;
+        }
+        
+        .transactions-label {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .transactions-value {
+            font-size: 14px;
             font-weight: bold;
         }
         
-        .transaction-table td {
-            padding: 8px;
-            border: 1px solid #ddd;
-        }
-        
-        .transaction-table tbody tr:nth-child(even) {
-            background: #f8f9fa;
-        }
-        
-        .calculated-values {
-            background: #e7f3ff;
-            padding: 15px;
-            border-radius: 8px;
-            margin: 20px 0;
-        }
-        
-        .calc-grid {
-            display: table;
+        .sales-table {
             width: 100%;
+            border-collapse: collapse;
+            border: 3px double #000;
         }
         
-        .calc-row {
-            display: table-row;
+        .sales-table td {
+            padding: 6px;
+            border: 3px double #000;
+            font-size: 11px;
         }
         
-        .calc-cell {
-            display: table-cell;
-            padding: 5px 10px;
-            border-bottom: 1px solid #ddd;
+        .sales-left-col {
+            width: 50%;
+            vertical-align: top;
         }
         
-        .footer {
-            margin-top: 40px;
-            text-align: center;
-            font-size: 12px;
-            color: #666;
-            border-top: 1px solid #ddd;
+        .sales-right-col {
+            width: 50%;
+            vertical-align: top;
+        }
+        
+        .sales-item {
+            margin-bottom: 8px;
+        }
+        
+        .sales-label {
+            display: inline-block;
+            width: 60%;
+        }
+        
+        .sales-value {
+            display: inline-block;
+            width: 38%;
+            text-align: right;
+            font-weight: bold;
+        }
+        
+        .sales-summary {
+            margin-top: 15px;
+            border-top: 3px double #000;
             padding-top: 10px;
+        }
+        
+        .summary-item {
+            margin-bottom: 6px;
+            font-size: 11px;
+        }
+        
+        .summary-label {
+            display: inline-block;
+            width: 65%;
+            font-weight: bold;
+        }
+        
+        .summary-value {
+            display: inline-block;
+            width: 33%;
+            text-align: right;
+            font-weight: bold;
+        }
+        
+        .weather-table {
+            width: 100%;
+            border-collapse: collapse;
+            border: 3px double #000;
+            min-height: 100px;
+        }
+        
+        .weather-table td {
+            padding: 8px;
+            border: 3px double #000;
+            font-size: 11px;
+        }
+        
+        .weather-label {
+            font-weight: bold;
+            width: 40%;
+        }
+        
+        .weather-value {
+            border-bottom: 1px solid #000;
+            min-height: 20px;
+            padding: 2px 0;
+        }
+        
+        .summary-table {
+            width: 100%;
+            border-collapse: collapse;
+            border: 3px double #000;
+            min-height: 200px;
+        }
+        
+        .summary-table td {
+            padding: 8px;
+            border: 3px double #000;
+            font-size: 11px;
+        }
+        
+        .summary-label-cell {
+            width: 60%;
+            font-weight: bold;
+        }
+        
+        .summary-value-cell {
+            width: 40%;
+            text-align: right;
+            font-weight: bold;
+        }
+        
+        .text-right {
+            text-align: right;
+        }
+        
+        .text-bold {
+            font-weight: bold;
+        }
+        
+        .text-center {
+            text-align: center;
         }
     </style>
 </head>
 <body>
-    <!-- Header -->
-    <div class="header">
-        <div class="company-name">{{ $dailyReport->store->store_info ?? 'Daily Report' }}</div>
-        <div>{{ $dailyReport->store->address ?? '' }}</div>
-        @if($dailyReport->store->phone)
-            <div>Phone: {{ $dailyReport->store->phone }}</div>
-        @endif
-    </div>
+    <!-- Header with Logo and Store Info -->
+    <table class="header-table">
+        <tr>
+            <td class="logo-cell">
+                <img src="https://stores.fannsphilly.com/images/logo.jpg" alt="Logo" class="logo" />
+                <div class="report-title">Daily Report - {{ $dailyReport->report_date->format('m/d/Y') }}</div>
+            </td>
+            <td class="store-info-cell text-center">
+                <div class="store-name">{{ $dailyReport->store->store_info ?? 'Store Name' }}</div>
+                <div class="store-address">{{ $dailyReport->store->address ?? '' }}</div>
+                <div class="store-phone">Phone: {{ $dailyReport->store->phone ?? '' }}</div>
+            </td>
+        </tr>
+    </table>
 
-    <!-- Report Information -->
-    <div class="report-info">
-        <div class="info-row">
-            <div class="info-cell info-label">Report Date:</div>
-            <div class="info-cell">{{ $dailyReport->report_date->format('F d, Y') }}</div>
-        </div>
-        <div class="info-row">
-            <div class="info-cell info-label">Created By:</div>
-            <div class="info-cell">{{ $dailyReport->creator->name }}</div>
-        </div>
-        <div class="info-row">
-            <div class="info-cell info-label">Created On:</div>
-            <div class="info-cell">{{ $dailyReport->created_at->format('M d, Y h:i A') }}</div>
-        </div>
-        @if($dailyReport->weather)
-        <div class="info-row">
-            <div class="info-cell info-label">Weather:</div>
-            <div class="info-cell">{{ $dailyReport->weather }}</div>
-        </div>
-        @endif
-        @if($dailyReport->holiday_event)
-        <div class="info-row">
-            <div class="info-cell info-label">Holiday/Event:</div>
-            <div class="info-cell">{{ $dailyReport->holiday_event }}</div>
-        </div>
-        @endif
-    </div>
-
-    <!-- Sales Information -->
-    <div class="section-title">Sales Information</div>
-    <div class="financial-grid">
-        <div class="financial-row">
-            <div class="financial-cell financial-label">Projected Sales:</div>
-            <div class="financial-cell financial-value">${{ number_format($dailyReport->projected_sales, 2) }}</div>
-        </div>
-        <div class="financial-row">
-            <div class="financial-cell financial-label">Gross Sales:</div>
-            <div class="financial-cell financial-value">${{ number_format($dailyReport->gross_sales, 2) }}</div>
-        </div>
-        <div class="financial-row">
-            <div class="financial-cell financial-label">Total # of Coupons:</div>
-            <div class="financial-cell financial-value">{{ $dailyReport->total_coupons }}</div>
-        </div>
-        <div class="financial-row">
-            <div class="financial-cell financial-label">Total Amount of Coupons Received:</div>
-            <div class="financial-cell financial-value">${{ number_format($dailyReport->coupons_received, 2) }}</div>
-        </div>
-        <div class="financial-row">
-            <div class="financial-cell financial-label">Total Customers:</div>
-            <div class="financial-cell financial-value">{{ $dailyReport->total_customers }}</div>
-        </div>
-    </div>
-
-    <!-- Transaction Expenses -->
-    @if($dailyReport->transactions->count() > 0)
-        <div class="section-title">Transaction Expenses</div>
-        <table class="transaction-table">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Company</th>
-                    <th>Type</th>
-                    <th>Amount</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($dailyReport->transactions as $transaction)
+    <!-- Main Content Container -->
+    <table class="main-table">
+        <tr>
+            <!-- Left Section -->
+            <td class="left-cell">
+                <!-- Transactions Section (Top Left) -->
+                <table class="section-table transactions-table">
                     <tr>
-                        <td>{{ $transaction->transaction_id }}</td>
-                        <td>{{ $transaction->company }}</td>
-                        <td>{{ $transaction->transactionType->description_name ?? 'N/A' }}</td>
-                        <td>${{ number_format($transaction->amount, 2) }}</td>
+                        <td class="section-title" colspan="2">Transactions</td>
                     </tr>
-                @endforeach
-            </tbody>
-        </table>
-    @endif
-
-    <!-- Revenue Income Types -->
-    @if($dailyReport->revenues->count() > 0)
-        <div class="section-title">Revenue Income Tracking</div>
-        <table class="transaction-table">
-            <thead>
-                <tr>
-                    <th>Revenue Type</th>
-                    <th>Amount</th>
-                    <th>Notes</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($dailyReport->revenues as $revenue)
                     <tr>
-                        <td>
-                            <strong>{{ $revenue->revenueIncomeType->name }}</strong>
-                            @if($revenue->revenueIncomeType->category == 'online')
-                                <span style="color: #007bff; font-size: 11px;"> (Online)</span>
-                            @elseif($revenue->revenueIncomeType->category == 'cash')
-                                <span style="color: #28a745; font-size: 11px;"> (Cash)</span>
-                            @elseif($revenue->revenueIncomeType->category == 'card')
-                                <span style="color: #6c757d; font-size: 11px;"> (Card)</span>
-                            @elseif($revenue->revenueIncomeType->category == 'check')
-                                <span style="color: #fd7e14; font-size: 11px;"> (Check)</span>
+                        <td class="transactions-label">Total Payouts:</td>
+                        <td class="text-right text-bold">${{ number_format($dailyReport->total_paid_outs ?? 0, 2) }}</td>
+                    </tr>
+                </table>
+
+                <!-- Sales Section (Middle Left) -->
+                <table class="section-table">
+                    <tr>
+                        <td class="section-title" colspan="2">Sales</td>
+                    </tr>
+                    <tr>
+                        <td class="sales-left-col">
+                            <table style="width: 100%; border-collapse: collapse;">
+                                <tr>
+                                    <td style="border: none; padding: 4px 0;">
+                                        <div class="sales-item">
+                                            <span class="sales-label">Total # of No Sales:</span>
+                                            <span class="sales-value">{{ $dailyReport->number_of_no_sales ?? 0 }}</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="border: none; padding: 4px 0;">
+                                        <div class="sales-item">
+                                            <span class="sales-label">Total # of Coupons:</span>
+                                            <span class="sales-value">{{ $dailyReport->total_coupons ?? 0 }}</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="border: none; padding: 4px 0;">
+                                        <div class="sales-item">
+                                            <span class="sales-label">Total # of Customers:</span>
+                                            <span class="sales-value">{{ $dailyReport->total_customers ?? 0 }}</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="border: none; padding: 4px 0;">
+                                        <div class="sales-item">
+                                            <span class="sales-label">Average Ticket:</span>
+                                            <span class="sales-value">${{ number_format($dailyReport->average_ticket ?? 0, 2) }}</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                        <td class="sales-right-col">
+                            <table style="width: 100%; border-collapse: collapse;">
+                                <tr>
+                                    <td style="border: none; padding: 4px 0;">
+                                        <div class="sales-item">
+                                            <span class="sales-label">Projected Sales:</span>
+                                            <span class="sales-value">${{ number_format($dailyReport->projected_sales ?? 0, 2) }}</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="border: none; padding: 4px 0;">
+                                        <div class="sales-item">
+                                            <span class="sales-label">Amount of Cancels:</span>
+                                            <span class="sales-value">${{ number_format($dailyReport->amount_of_cancels ?? 0, 2) }}</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="border: none; padding: 4px 0;">
+                                        <div class="sales-item">
+                                            <span class="sales-label">Amount of Voids:</span>
+                                            <span class="sales-value">${{ number_format($dailyReport->amount_of_voids ?? 0, 2) }}</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="2" style="border-top: 3px double #000; padding-top: 10px;">
+                            <div class="summary-item">
+                                <span class="summary-label">Gross Sales:</span>
+                                <span class="summary-value">${{ number_format($dailyReport->gross_sales ?? 0, 2) }}</span>
+                            </div>
+                            <div class="summary-item">
+                                <span class="summary-label">Total Amount of Coupons Received:</span>
+                                <span class="summary-value">${{ number_format($dailyReport->coupons_received ?? 0, 2) }}</span>
+                            </div>
+                            <div class="summary-item">
+                                <span class="summary-label">Adjustments: Overrings/Returns:</span>
+                                <span class="summary-value">${{ number_format($dailyReport->adjustments_overrings ?? 0, 2) }}</span>
+                            </div>
+                            <div class="summary-item">
+                                <span class="summary-label">Net Sales:</span>
+                                <span class="summary-value">${{ number_format($dailyReport->net_sales ?? 0, 2) }}</span>
+                            </div>
+                            <div class="summary-item">
+                                <span class="summary-label">Sales Tax:</span>
+                                <span class="summary-value">${{ number_format($dailyReport->tax ?? 0, 2) }}</span>
+                            </div>
+                            <div class="summary-item">
+                                <span class="summary-label">Sales:</span>
+                                <span class="summary-value">${{ number_format($dailyReport->sales_pre_tax ?? 0, 2) }}</span>
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+
+            <!-- Right Section -->
+            <td class="right-cell">
+                <!-- Weather / Special Event Section (Top Right) -->
+                <table class="weather-table">
+                    <tr>
+                        <td class="section-title" colspan="2">Weather / Special Event</td>
+                    </tr>
+                    <tr>
+                        <td class="weather-label">Weather Temp.</td>
+                        <td class="weather-value">{{ $dailyReport->weather ?? '' }}</td>
+                    </tr>
+                    <tr>
+                        <td class="weather-label">Weather Type</td>
+                        <td class="weather-value"></td>
+                    </tr>
+                    <tr>
+                        <td class="weather-label">Holiday/Event</td>
+                        <td class="weather-value">{{ $dailyReport->holiday_event ?? '' }}</td>
+                    </tr>
+                </table>
+
+                <!-- Summary Section (Middle Right) -->
+                <table class="summary-table">
+                    <tr>
+                        <td class="section-title" colspan="2">Summary</td>
+                    </tr>
+                    <tr>
+                        <td class="summary-label-cell">Net Sales:</td>
+                        <td class="summary-value-cell">${{ number_format($dailyReport->net_sales ?? 0, 2) }}</td>
+                    </tr>
+                    <tr>
+                        <td class="summary-label-cell">Total Paid Outs:</td>
+                        <td class="summary-value-cell">${{ number_format($dailyReport->total_paid_outs ?? 0, 2) }}</td>
+                    </tr>
+                    <tr>
+                        <td class="summary-label-cell">Credit Cards:</td>
+                        <td class="summary-value-cell">${{ number_format($dailyReport->credit_cards ?? 0, 2) }}</td>
+                    </tr>
+                    <tr>
+                        <td class="summary-label-cell">Cash to Account for:</td>
+                        <td class="summary-value-cell">${{ number_format($dailyReport->cash_to_account_for ?? 0, 2) }}</td>
+                    </tr>
+                    <tr>
+                        <td class="summary-label-cell">Actual Deposit:</td>
+                        <td class="summary-value-cell">${{ number_format($dailyReport->actual_deposit ?? 0, 2) }}</td>
+                    </tr>
+                    <tr>
+                        <td class="summary-label-cell">Short/Over:</td>
+                        <td class="summary-value-cell">
+                            @if(($dailyReport->short ?? 0) < 0)
+                                ${{ number_format($dailyReport->short, 2) }}
+                            @elseif(($dailyReport->over ?? 0) > 0)
+                                ${{ number_format($dailyReport->over, 2) }}
+                            @else
+                                $0.00
                             @endif
                         </td>
-                        <td>${{ number_format($revenue->amount, 2) }}</td>
-                        <td>{{ $revenue->notes ?? '-' }}</td>
                     </tr>
-                @endforeach
-            </tbody>
-            <tfoot style="background-color: #f8f9fa; font-weight: bold;">
-                <tr>
-                    <td>Total Revenue Entries</td>
-                    <td>${{ number_format($dailyReport->total_revenue_entries, 2) }}</td>
-                    <td>-</td>
-                </tr>
-                <tr style="background-color: #e9ecef;">
-                    <td>Online Platform Revenue</td>
-                    <td>${{ number_format($dailyReport->online_platform_revenue, 2) }}</td>
-                    <td>-</td>
-                </tr>
-            </tfoot>
-        </table>
-    @endif
-
-    <!-- Calculated Values -->
-    <div class="section-title">Financial Summary</div>
-    <div class="calculated-values">
-        <div class="calc-grid">
-            <div class="calc-row">
-                <div class="calc-cell"><strong>Net Sales:</strong></div>
-                <div class="calc-cell">${{ number_format($dailyReport->net_sales, 2) }}</div>
-            </div>
-            <div class="calc-row">
-                <div class="calc-cell"><strong>Tax:</strong></div>
-                <div class="calc-cell">${{ number_format($dailyReport->tax, 2) }}</div>
-            </div>
-            <div class="calc-row">
-                <div class="calc-cell"><strong>Sales (Pre-tax):</strong></div>
-                <div class="calc-cell">${{ number_format($dailyReport->sales_pre_tax, 2) }}</div>
-            </div>
-            <div class="calc-row">
-                <div class="calc-cell"><strong>Total Paid Outs:</strong></div>
-                <div class="calc-cell">${{ number_format($dailyReport->total_paid_outs, 2) }}</div>
-            </div>
-            <div class="calc-row">
-                <div class="calc-cell"><strong>Credit Cards:</strong></div>
-                <div class="calc-cell">${{ number_format($dailyReport->credit_cards, 2) }}</div>
-            </div>
-            <div class="calc-row">
-                <div class="calc-cell"><strong>Cash to Account For:</strong></div>
-                <div class="calc-cell">${{ number_format($dailyReport->cash_to_account_for, 2) }}</div>
-            </div>
-            <div class="calc-row">
-                <div class="calc-cell"><strong>Actual Deposit:</strong></div>
-                <div class="calc-cell">${{ number_format($dailyReport->actual_deposit, 2) }}</div>
-            </div>
-            @if($dailyReport->short != 0)
-            <div class="calc-row">
-                <div class="calc-cell"><strong>Short:</strong></div>
-                <div class="calc-cell" style="color: #dc3545;">${{ number_format($dailyReport->short, 2) }}</div>
-            </div>
-            @endif
-            @if($dailyReport->over != 0)
-            <div class="calc-row">
-                <div class="calc-cell"><strong>Over:</strong></div>
-                <div class="calc-cell" style="color: #28a745;">${{ number_format($dailyReport->over, 2) }}</div>
-            </div>
-            @endif
-            <div class="calc-row">
-                <div class="calc-cell"><strong>Average Ticket:</strong></div>
-                <div class="calc-cell">${{ number_format($dailyReport->average_ticket, 2) }}</div>
-            </div>
-            @if($dailyReport->revenues->count() > 0)
-            <div class="calc-row">
-                <div class="calc-cell"><strong>Total Revenue Entries:</strong></div>
-                <div class="calc-cell">${{ number_format($dailyReport->total_revenue_entries, 2) }}</div>
-            </div>
-            <div class="calc-row">
-                <div class="calc-cell"><strong>Online Platform Revenue:</strong></div>
-                <div class="calc-cell">${{ number_format($dailyReport->online_platform_revenue, 2) }}</div>
-            </div>
-            @endif
-        </div>
-    </div>
-
-    <div class="footer">
-        Generated on {{ date('F d, Y \a\t h:i A') }} | Restaurant Daily Report System
-    </div>
+                </table>
+            </td>
+        </tr>
+    </table>
 </body>
 </html>

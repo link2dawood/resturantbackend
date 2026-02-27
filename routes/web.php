@@ -98,15 +98,17 @@ Route::middleware('auth')->group(function () {
         Route::get('/daily-reports/create/form', [DailyReportController::class, 'createForm'])->name('daily-reports.create-form');
 
         Route::post('/daily-reports', [DailyReportController::class, 'store'])->name('daily-reports.store');
+        
+        // Export routes - must be before {dailyReport} route to avoid route conflicts
+        Route::get('/daily-reports/export-pdf-range', [DailyReportController::class, 'exportPdfRange'])->name('daily-reports.export-pdf-range');
+        Route::get('/daily-reports/export-csv', [DailyReportController::class, 'exportCsv'])->name('daily-reports.export-csv');
+        
         Route::get('/daily-reports/{dailyReport}', [DailyReportController::class, 'show'])->name('daily-reports.show');
         Route::get('/daily-reports/{dailyReport}/edit', [DailyReportController::class, 'edit'])->name('daily-reports.edit');
         Route::put('/daily-reports/{dailyReport}', [DailyReportController::class, 'update'])->name('daily-reports.update');
         Route::delete('/daily-reports/{dailyReport}', [DailyReportController::class, 'destroy'])->name('daily-reports.destroy');
-        Route::get('stores/{store}/daily-reports', [DailyReportController::class, 'reports'])->name('stores.daily-reports.index');
-
-        // Export routes
         Route::get('/daily-reports/{dailyReport}/export-pdf', [DailyReportController::class, 'exportPdf'])->name('daily-reports.export-pdf');
-        Route::get('/daily-reports/export-csv', [DailyReportController::class, 'exportCsv'])->name('daily-reports.export-csv');
+        Route::get('stores/{store}/daily-reports', [DailyReportController::class, 'reports'])->name('stores.daily-reports.index');
 
         // Approval workflow routes
         Route::post('/daily-reports/{dailyReport}/submit', [DailyReportController::class, 'submit'])->name('daily-reports.submit');

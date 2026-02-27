@@ -9,7 +9,6 @@ use App\Http\Middleware\CheckDailyReportAccess;
 use App\Models\AuditLog;
 use App\Models\ChartOfAccount;
 use App\Models\DailyReport;
-use App\Models\ChartOfAccount;
 use App\Models\DailyReportRevenue;
 use App\Models\DailyReportTransaction;
 use App\Models\RevenueIncomeType;
@@ -81,9 +80,17 @@ class DailyReportController extends Controller
                 $query->whereIn('store_id', $accessibleStoreIds);
             }
 
-            // Filter by year and month
-            $query->whereYear('report_date', $selectedYear)
-                  ->whereMonth('report_date', $selectedMonth);
+            // Filter by date range if provided, otherwise by year and month
+            if ($request->filled('start_date') && $request->filled('end_date')) {
+                $query->whereBetween('report_date', [
+                    $request->input('start_date'),
+                    $request->input('end_date')
+                ]);
+            } else {
+                // Filter by year and month
+                $query->whereYear('report_date', $selectedYear)
+                      ->whereMonth('report_date', $selectedMonth);
+            }
 
             // Store filter
             if ($request->filled('store_id')) {
@@ -245,6 +252,7 @@ class DailyReportController extends Controller
      */
     public function store(Request $request)
     {
+
         $user = auth()->user();
 
         try {
@@ -757,12 +765,84 @@ class DailyReportController extends Controller
         $html = view('daily-reports.pdf', compact('dailyReport'))->render();
 
         $dompdf = new \Dompdf\Dompdf;
+        
+        // Enable remote image loading for logo
+        $options = $dompdf->getOptions();
+        $options->setIsRemoteEnabled(true);
+        $dompdf->setOptions($options);
+        
         $dompdf->loadHtml($html);
         $dompdf->setPaper('A4', 'portrait');
         $dompdf->render();
 
         $storeName = $dailyReport->store?->store_info ?? 'unknown';
         $filename = 'daily-report-'.$storeName.'-'.$dailyReport->report_date->format('Y-m-d').'.pdf';
+
+        return $dompdf->stream($filename);
+    }
+
+    /**
+     * Export multiple daily reports as PDF based on date range
+     */
+    public function exportPdfRange(Request $request)
+    {
+        $user = auth()->user();
+        
+        $request->validate([
+            'start_date' => 'required|date',
+            'end_date' => 'required|date|after_or_equal:start_date',
+            'store_id' => 'nullable|exists:stores,id',
+        ]);
+
+        $query = DailyReport::with(['store', 'creator', 'transactions.transactionType', 'revenues.revenueIncomeType'])
+            ->withSum('transactions', 'amount')
+            ->withSum('revenues', 'amount');
+
+        // Filter reports based on user accessible stores
+        if (! $user->isAdmin()) {
+            $accessibleStoreIds = $user->accessibleStores()->pluck('id');
+            $query->whereIn('store_id', $accessibleStoreIds);
+        }
+
+        // Filter by date range
+        $query->whereBetween('report_date', [
+            $request->input('start_date'),
+            $request->input('end_date')
+        ]);
+
+        // Store filter
+        if ($request->filled('store_id')) {
+            $query->where('store_id', $request->store_id);
+        }
+
+        // Sorting
+        $query->orderBy('report_date', 'asc');
+
+        $reports = $query->get();
+
+        if ($reports->isEmpty()) {
+            return redirect()->back()->with('error', 'No reports found for the selected date range.');
+        }
+
+        $html = view('daily-reports.pdf-range', [
+            'reports' => $reports,
+            'startDate' => $request->input('start_date'),
+            'endDate' => $request->input('end_date'),
+        ])->render();
+
+        $dompdf = new \Dompdf\Dompdf;
+        
+        // Enable remote image loading for logo
+        $options = $dompdf->getOptions();
+        $options->setIsRemoteEnabled(true);
+        $dompdf->setOptions($options);
+        
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->render();
+
+        $storeName = $reports->first()->store?->store_info ?? 'all-stores';
+        $filename = 'daily-reports-' . $storeName . '-' . $request->input('start_date') . '-to-' . $request->input('end_date') . '.pdf';
 
         return $dompdf->stream($filename);
     }
@@ -1025,6 +1105,7 @@ class DailyReportController extends Controller
      */
     private function processTransactions(Request $request, DailyReport $dailyReport): void
     {
+        
         foreach ($request->transactions as $transactionData) {
             if (empty($transactionData['amount'])) {
                 continue; // Skip empty transaction rows
@@ -1045,9 +1126,16 @@ class DailyReportController extends Controller
                 // Check if it's a COA ID (ChartOfAccount)
                 $coa = ChartOfAccount::find($transactionTypeId);
                 if ($coa) {
-                    // Find a TransactionType with this COA as default, or use null
+                    // Find a TransactionType with this COA as default
                     $transactionType = TransactionType::where('default_coa_id', $transactionTypeId)->first();
-                    $transactionTypeId = $transactionType ? $transactionType->id : null;
+                    if (!$transactionType) {
+                        // Create a TransactionType if one doesn't exist with this COA as default
+                        $transactionType = TransactionType::create([
+                            'name' => $coa->account_name,
+                            'default_coa_id' => $transactionTypeId,
+                        ]);
+                    }
+                    $transactionTypeId = $transactionType->id;
                 } else {
                     // Check if it's a valid TransactionType ID
                     if (! TransactionType::find($transactionTypeId)) {

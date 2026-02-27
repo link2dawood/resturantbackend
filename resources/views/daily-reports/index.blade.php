@@ -116,18 +116,30 @@
                                     <polyline points="7,10 12,15 17,10"/>
                                     <line x1="12" y1="15" x2="12" y2="3"/>
                                 </svg>
-                                Export
+                                Export CSV
                             </a>
                         @endif
                     </div>
                 </div>
                 <div class="card-body">
-                    <!-- Store Filter -->
-                    <form method="GET" action="{{ route('daily-reports.index') }}" class="mb-3">
+                    <!-- Date Range Filter and Export PDF -->
+                    <form method="GET" action="{{ route('daily-reports.index') }}" id="dateFilterForm" class="mb-3">
                         <input type="hidden" name="year" value="{{ $selectedYear }}">
                         <input type="hidden" name="month" value="{{ $selectedMonth }}">
                         <div class="row g-3 align-items-end">
-                            <div class="col-md-4">
+                            <div class="col-md-3">
+                                <label class="form-label" style="font-family: 'Google Sans', sans-serif; font-weight: 500;">Start Date</label>
+                                <input type="date" name="start_date" class="form-control" value="{{ request('start_date', $selectedYear . '-' . str_pad($selectedMonth, 2, '0', STR_PAD_LEFT) . '-01') }}" onchange="updateEndDateMin(); this.form.submit();">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label" style="font-family: 'Google Sans', sans-serif; font-weight: 500;">End Date</label>
+                                @php
+                                    $lastDay = date('t', mktime(0, 0, 0, $selectedMonth, 1, $selectedYear));
+                                    $defaultEndDate = $selectedYear . '-' . str_pad($selectedMonth, 2, '0', STR_PAD_LEFT) . '-' . str_pad($lastDay, 2, '0', STR_PAD_LEFT);
+                                @endphp
+                                <input type="date" name="end_date" id="end_date" class="form-control" value="{{ request('end_date', $defaultEndDate) }}" min="{{ $selectedYear . '-' . str_pad($selectedMonth, 2, '0', STR_PAD_LEFT) . '-01' }}" onchange="this.form.submit();">
+                            </div>
+                            <div class="col-md-3">
                                 <label class="form-label" style="font-family: 'Google Sans', sans-serif; font-weight: 500;">Filter by Store</label>
                                 <select name="store_id" class="form-select" onchange="this.form.submit()">
                                     <option value="">All Stores</option>
@@ -136,85 +148,26 @@
                                     @endforeach
                                 </select>
                             </div>
+                            <div class="col-md-3">
+                                @php
+                                    $startDateParam = request('start_date', $selectedYear . '-' . str_pad($selectedMonth, 2, '0', STR_PAD_LEFT) . '-01');
+                                    $endDateParam = request('end_date', $defaultEndDate);
+                                    $storeIdParam = request('store_id');
+                                @endphp
+                                <a href="{{ route('daily-reports.export-pdf-range', ['start_date' => $startDateParam, 'end_date' => $endDateParam, 'store_id' => $storeIdParam]) }}" class="btn btn-success w-100">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-1">
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                        <polyline points="14,2 14,8 20,8"/>
+                                        <line x1="16" y1="13" x2="8" y2="13"/>
+                                        <line x1="16" y1="17" x2="8" y2="17"/>
+                                    </svg>
+                                    Export PDF
+                                </a>
+                            </div>
                         </div>
                     </form>
 
-                    <!-- Summary Stats -->
                     @if($reports->count() > 0)
-                        @php
-                            $totalGross = $reports->sum('gross_sales');
-                            $totalNet = $reports->sum('net_sales');
-                            $avgGross = $reports->avg('gross_sales');
-                            $totalCustomers = $reports->sum('total_customers');
-                        @endphp
-                        <div class="row g-3 mb-4">
-                            <div class="col-md-3">
-                                <div class="card">
-                                    <div class="card-body text-center">
-                                        <div class="mb-2">
-                                            <div class="d-inline-flex p-3 rounded-circle" style="background: #e6f4ea; color: #34a853;">
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                    <polyline points="22,12 18,12 15,21 9,3 6,12 2,12"/>
-                                                </svg>
-                                            </div>
-                                        </div>
-                                        <h3 class="mb-1" style="font-family: 'Google Sans', sans-serif; font-size: 1.75rem; font-weight: 400; color: #202124;">${{ number_format($totalGross, 0) }}</h3>
-                                        <p class="text-muted mb-0" style="font-family: 'Google Sans', sans-serif; font-size: 0.875rem;">Total Gross Sales</p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <div class="card">
-                                    <div class="card-body text-center">
-                                        <div class="mb-2">
-                                            <div class="d-inline-flex p-3 rounded-circle" style="background: #e8f0fe; color: #4285f4;">
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                    <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
-                                                    <line x1="1" y1="10" x2="23" y2="10"/>
-                                                </svg>
-                                            </div>
-                                        </div>
-                                        <h3 class="mb-1" style="font-family: 'Google Sans', sans-serif; font-size: 1.75rem; font-weight: 400; color: #202124;">${{ number_format($totalNet, 0) }}</h3>
-                                        <p class="text-muted mb-0" style="font-family: 'Google Sans', sans-serif; font-size: 0.875rem;">Total Net Sales</p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <div class="card">
-                                    <div class="card-body text-center">
-                                        <div class="mb-2">
-                                            <div class="d-inline-flex p-3 rounded-circle" style="background: #fff3e0; color: #f57c00;">
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                    <path d="M3 3v18h18"/>
-                                                    <path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"/>
-                                                </svg>
-                                            </div>
-                                        </div>
-                                        <h3 class="mb-1" style="font-family: 'Google Sans', sans-serif; font-size: 1.75rem; font-weight: 400; color: #202124;">${{ number_format($avgGross, 0) }}</h3>
-                                        <p class="text-muted mb-0" style="font-family: 'Google Sans', sans-serif; font-size: 0.875rem;">Average Daily Sales</p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <div class="card">
-                                    <div class="card-body text-center">
-                                        <div class="mb-2">
-                                            <div class="d-inline-flex p-3 rounded-circle" style="background: #f3e5f5; color: #7b1fa2;">
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                    <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
-                                                    <circle cx="9" cy="7" r="4"/>
-                                                    <path d="M23 21v-2a4 4 0 00-3-3.87"/>
-                                                    <path d="M16 3.13a4 4 0 010 7.75"/>
-                                                </svg>
-                                            </div>
-                                        </div>
-                                        <h3 class="mb-1" style="font-family: 'Google Sans', sans-serif; font-size: 1.75rem; font-weight: 400; color: #202124;">{{ number_format($totalCustomers) }}</h3>
-                                        <p class="text-muted mb-0" style="font-family: 'Google Sans', sans-serif; font-size: 0.875rem;">Total Customers</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
                         @php
                             $headers = [
                                 'Date',
@@ -309,5 +262,23 @@
         @endif
     @endif
 </div>
+
+<script>
+function updateEndDateMin() {
+    const startDate = document.querySelector('input[name="start_date"]').value;
+    const endDateInput = document.getElementById('end_date');
+    if (startDate && endDateInput) {
+        endDateInput.min = startDate;
+        if (endDateInput.value < startDate) {
+            endDateInput.value = startDate;
+        }
+    }
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    updateEndDateMin();
+});
+</script>
 
 @endsection
