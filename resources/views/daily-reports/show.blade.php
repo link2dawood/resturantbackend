@@ -249,7 +249,25 @@
 </style>
 
 <div class="container-fluid mt-4" style="max-width: 95%; margin-left: auto; margin-right: auto;">
-    <div class="export-buttons">
+    <div class="export-buttons" style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px;">
+        @if($prevReport)
+            <a href="{{ route('daily-reports.show', $prevReport) }}" class="export-btn export-btn-back">
+                ← Previous Day
+            </a>
+        @else
+            <a href="{{ route('daily-reports.create-form', ['store_id' => $dailyReport->store_id, 'report_date' => \Carbon\Carbon::parse($dailyReport->report_date)->subDay()->format('Y-m-d')]) }}" class="export-btn export-btn-back">
+                ← Previous Day
+            </a>
+        @endif
+        @if($nextReport)
+            <a href="{{ route('daily-reports.show', $nextReport) }}" class="export-btn export-btn-back">
+                Next Day →
+            </a>
+        @else
+            <a href="{{ route('daily-reports.create-form', ['store_id' => $dailyReport->store_id, 'report_date' => \Carbon\Carbon::parse($dailyReport->report_date)->addDay()->format('Y-m-d')]) }}" class="export-btn export-btn-back">
+                Next Day →
+            </a>
+        @endif
         <a href="{{ route('daily-reports.export-pdf', $dailyReport) }}" class="export-btn export-btn-pdf" target="_blank">
             📄 Export PDF
         </a>
@@ -291,7 +309,13 @@
                                     <tr>
                                         <td>{{ $transaction->transaction_id }}</td>
                                         <td>{{ $transaction->company }}</td>
-                                        <td>{{ $transaction->transactionType->name ?? 'N/A' }}</td>
+                                        <td>
+                                            @if($transaction->transactionType && $transaction->transactionType->defaultCoa)
+                                                {{ $transaction->transactionType->defaultCoa->account_code }} - {{ $transaction->transactionType->defaultCoa->account_name }}
+                                            @else
+                                                {{ $transaction->transactionType->name ?? $transaction->company ?? '—' }}
+                                            @endif
+                                        </td>
                                         <td class="number-input{{ $transaction->amount < 0 ? ' negative' : '' }}">${{ number_format($transaction->amount, 2) }}</td>
                                     </tr>
                                 @endforeach

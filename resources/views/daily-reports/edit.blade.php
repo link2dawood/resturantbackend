@@ -2,12 +2,6 @@
 @section('title', 'Edit Daily Report')
 @section('content')
 
-<select id="transactionTypeTemplate" style="display:none;">
-    <option value="">Select Type</option>
-    @foreach($types as $type)
-        <option value="{{ $type->id }}">{{ $type->description_name }}</option>
-    @endforeach
-</select>
 
 <select id="revenueTypeTemplate" style="display:none;">
     @foreach($revenueTypes as $revenueType)
@@ -350,6 +344,19 @@
     }
 </style>
 <div class="container-fluid p-4">
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+        @if(isset($prevReport) && $prevReport)
+            <a href="{{ route('daily-reports.edit', $prevReport) }}" class="btn btn-outline-secondary btn-sm">← Previous Day</a>
+        @else
+            <a href="{{ route('daily-reports.create-form', ['store_id' => $dailyReport->store_id, 'report_date' => \Carbon\Carbon::parse($dailyReport->report_date)->subDay()->format('Y-m-d')]) }}" class="btn btn-outline-secondary btn-sm">← Previous Day</a>
+        @endif
+        @if(isset($nextReport) && $nextReport)
+            <a href="{{ route('daily-reports.edit', $nextReport) }}" class="btn btn-outline-secondary btn-sm">Next Day →</a>
+        @else
+            <a href="{{ route('daily-reports.create-form', ['store_id' => $dailyReport->store_id, 'report_date' => \Carbon\Carbon::parse($dailyReport->report_date)->addDay()->format('Y-m-d')]) }}" class="btn btn-outline-secondary btn-sm">Next Day →</a>
+        @endif
+        <a href="{{ route('daily-reports.show', $dailyReport) }}" class="btn btn-outline-secondary btn-sm">← Cancel</a>
+    </div>
     @if($errors->any())
         <div class="alert alert-danger alert-dismissible fade show" role="alert">
             <h5 class="alert-heading">⚠️ Please Review and Fix the Following Issues:</h5>
@@ -375,12 +382,6 @@
         </div>
     @endif
 
-    <div class="export-buttons" style="margin-bottom: 20px;">
-        <a href="{{ route('daily-reports.show', $dailyReport) }}" class="export-btn export-btn-back">
-            ← Cancel
-        </a>
-    </div>
-
     <select id="transactionTypeTemplate" style="display:none;">
         <option value="">Select Type</option>
         @foreach($coas as $coa)
@@ -394,15 +395,10 @@
         @endforeach
     </select>
 
-    <select id="vendorTemplate" style="display:none;">
-        <option value="">Select Company</option>
-        <option value="__create_new__">+ Create New Company</option>
-        @foreach($vendors as $vendor)
-            <option value="{{ $vendor->id }}" 
-                    data-vendor-name="{{ $vendor->vendor_name }}"
-                    data-default-coa-id="{{ $vendor->default_coa_id }}">
-                {{ $vendor->vendor_name }}
-            </option>
+    <select id="vendorDescriptionTemplate" style="display:none;">
+        <option value="">Select Vendor / Description</option>
+        @foreach($types as $type)
+            <option value="{{ $type->name }}" data-default-coa-id="{{ $type->default_coa_id ?? '' }}">{{ $type->name }}</option>
         @endforeach
     </select>
 
@@ -452,18 +448,12 @@
                                             <input type="number" class="form-input" name="transactions[{{ $index }}][transaction_id]" value="{{ $transaction->transaction_id }}">
                                         </td>
                                         <td>
-                                            <select class="form-input vendor-select" name="transactions[{{ $index }}][company]" data-row="{{ $index }}" onchange="handleVendorChange(this)">
-                                                <option value="">Select Company</option>
-                                                <option value="__create_new__">+ Create New Company</option>
-                                                @foreach($vendors as $vendor)
-                                                    <option value="{{ $vendor->id }}" 
-                                                            data-vendor-name="{{ $vendor->vendor_name }}"
-                                                            data-default-coa-id="{{ $vendor->default_coa_id }}"
-                                                            {{ $transaction->company == $vendor->vendor_name ? 'selected' : '' }}>
-                                                        {{ $vendor->vendor_name }}
-                                                    </option>
+                                            <select class="form-input vendor-description-select" name="transactions[{{ $index }}][company]" data-row="{{ $index }}" onchange="handleVendorDescriptionChange(this)">
+                                                <option value="">Select Vendor / Description</option>
+                                                @foreach($types as $type)
+                                                    <option value="{{ $type->name }}" data-default-coa-id="{{ $type->default_coa_id ?? '' }}" {{ $transaction->company == $type->name ? 'selected' : '' }}>{{ $type->name }}</option>
                                                 @endforeach
-                                                @if($transaction->company && !$vendors->contains('vendor_name', $transaction->company))
+                                                @if($transaction->company && !$types->contains('name', $transaction->company))
                                                     <option value="{{ $transaction->company }}" selected>{{ $transaction->company }}</option>
                                                 @endif
                                             </select>
@@ -492,15 +482,10 @@
                                             <input type="number" class="form-input" name="transactions[0][transaction_id]" value="1">
                                         </td>
                                         <td>
-                                            <select class="form-input vendor-select" name="transactions[0][company]" data-row="0" onchange="handleVendorChange(this)">
-                                                <option value="">Select Company</option>
-                                                <option value="__create_new__">+ Create New Company</option>
-                                                @foreach($vendors as $vendor)
-                                                    <option value="{{ $vendor->id }}" 
-                                                            data-vendor-name="{{ $vendor->vendor_name }}"
-                                                            data-default-coa-id="{{ $vendor->default_coa_id }}">
-                                                        {{ $vendor->vendor_name }}
-                                                    </option>
+                                            <select class="form-input vendor-description-select" name="transactions[0][company]" data-row="0" onchange="handleVendorDescriptionChange(this)">
+                                                <option value="">Select Vendor / Description</option>
+                                                @foreach($types as $type)
+                                                    <option value="{{ $type->name }}" data-default-coa-id="{{ $type->default_coa_id ?? '' }}">{{ $type->name }}</option>
                                                 @endforeach
                                             </select>
                                             <input type="hidden" name="transactions[0][vendor_id]" class="vendor-id-input" value="">
@@ -979,8 +964,8 @@ function addTransactionRow() {
             <input type="number" class="form-input" name="transactions[${transactionCount}][transaction_id]" value="${transactionCount + 1}">
         </td>
         <td>
-            <select class="form-input vendor-select" name="transactions[${transactionCount}][company]" data-row="${transactionCount}" onchange="handleVendorChange(this)">
-                ${document.getElementById('vendorTemplate').innerHTML}
+            <select class="form-input vendor-description-select" name="transactions[${transactionCount}][company]" data-row="${transactionCount}" onchange="handleVendorDescriptionChange(this)">
+                ${document.getElementById('vendorDescriptionTemplate').innerHTML}
             </select>
             <input type="hidden" name="transactions[${transactionCount}][vendor_id]" class="vendor-id-input" value="">
         </td>
@@ -1098,40 +1083,27 @@ function calculateRevenueTotals() {
     }
 }
 
-// Handle vendor change
-window.handleVendorChange = function(selectElement) {
-    const row = selectElement.getAttribute('data-row');
-    const selectedValue = selectElement.value;
-    
-    if (selectedValue === '__create_new__') {
-        openCreateVendorModal(row, selectElement);
-        return;
+// Handle Vendor / Description (transaction type) selection: auto-fill default COA in Transaction Type
+window.handleVendorDescriptionChange = function(selectElement, optionalDefaultCoaId) {
+    let defaultCoaId = (optionalDefaultCoaId !== undefined && optionalDefaultCoaId !== null) ? String(optionalDefaultCoaId).trim() : '';
+    if (!defaultCoaId && selectElement.options && selectElement.options[selectElement.selectedIndex]) {
+        const selectedOption = selectElement.options[selectElement.selectedIndex];
+        defaultCoaId = (selectedOption.getAttribute('data-default-coa-id') || '').trim();
     }
-    
-    // Find the vendor option
-    const selectedOption = selectElement.options[selectElement.selectedIndex];
-    if (selectedOption && selectedValue && selectedValue !== '__create_new__') {
-        const vendorName = selectedOption.dataset.vendorName || selectedOption.textContent;
-        const defaultCoaId = selectedOption.getAttribute('data-default-coa-id');
-        
-        // Update the company name in the select (for display)
-        // The value is already set to vendor ID
-        
-        // Update vendor_id hidden input
-        const rowElement = selectElement.closest('tr');
-        const vendorIdInput = rowElement.querySelector('.vendor-id-input');
-        if (vendorIdInput) {
-            vendorIdInput.value = selectedValue;
-        }
-        
-        // Auto-fill transaction type (COA) if available
-        if (defaultCoaId) {
-            const transactionTypeSelect = rowElement.querySelector('.transaction-type-select');
-            if (transactionTypeSelect) {
-                transactionTypeSelect.value = defaultCoaId;
-            }
+    const row = selectElement.closest('tr');
+    if (!row) return;
+    const transactionTypeSelect = row.querySelector('.transaction-type-select');
+    if (!transactionTypeSelect || !defaultCoaId) return;
+    let found = false;
+    for (let i = 0; i < transactionTypeSelect.options.length; i++) {
+        if (String(transactionTypeSelect.options[i].value) === String(defaultCoaId)) {
+            transactionTypeSelect.selectedIndex = i;
+            found = true;
+            break;
         }
     }
+    if (!found) transactionTypeSelect.value = defaultCoaId;
+    transactionTypeSelect.dispatchEvent(new Event('change', { bubbles: true }));
 };
 
 // Input validation and formatting
@@ -1329,24 +1301,25 @@ window.saveNewVendor = async function() {
         const data = await response.json();
         
         if (response.ok) {
-            // Add new vendor to dropdown
-            const vendorTemplate = document.getElementById('vendorTemplate');
-            const newOption = document.createElement('option');
-            newOption.value = data.id;
-            newOption.setAttribute('data-vendor-name', data.vendor_name);
-            newOption.setAttribute('data-default-coa-id', data.default_coa_id || '');
-            newOption.textContent = data.vendor_name;
-            vendorTemplate.appendChild(newOption);
-            
-            // Update current select
+            // Add new vendor to Vendor Description template (as display name + default COA)
+            const vendorDescTemplate = document.getElementById('vendorDescriptionTemplate');
+            if (vendorDescTemplate) {
+                const newOption = document.createElement('option');
+                newOption.value = data.vendor_name || data.name;
+                newOption.setAttribute('data-default-coa-id', data.default_coa_id || '');
+                newOption.textContent = data.vendor_name || data.name;
+                vendorDescTemplate.appendChild(newOption);
+            }
+            // Update current select if modal was used
             if (window.currentVendorSelect) {
                 const currentSelect = window.currentVendorSelect;
-                const newSelectOption = newOption.cloneNode(true);
-                currentSelect.appendChild(newSelectOption);
-                currentSelect.value = data.id;
-                
-                // Trigger change to auto-fill transaction type
-                handleVendorChange(currentSelect);
+                const newOpt = document.createElement('option');
+                newOpt.value = data.vendor_name || data.name;
+                newOpt.setAttribute('data-default-coa-id', data.default_coa_id || '');
+                newOpt.textContent = data.vendor_name || data.name;
+                currentSelect.appendChild(newOpt);
+                currentSelect.value = newOpt.value;
+                handleVendorDescriptionChange(currentSelect);
             }
             
             // Close modal

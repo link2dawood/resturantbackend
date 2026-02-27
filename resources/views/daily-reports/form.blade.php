@@ -502,6 +502,23 @@
         </div>
     @endif
 
+    @if(isset($store) && isset($reportDate) && isset($prevDate) && isset($nextDate))
+    <div class="container mb-3">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+            @if(isset($prevReport) && $prevReport)
+                <a href="{{ route('daily-reports.show', $prevReport) }}" class="google-btn google-btn-outlined google-btn-small">← Previous Day</a>
+            @else
+                <a href="{{ route('daily-reports.create-form', ['store_id' => $store->id, 'report_date' => $prevDate]) }}" class="google-btn google-btn-outlined google-btn-small">← Previous Day</a>
+            @endif
+            @if(isset($nextReport) && $nextReport)
+                <a href="{{ route('daily-reports.show', $nextReport) }}" class="google-btn google-btn-outlined google-btn-small ms-auto">Next Day →</a>
+            @else
+                <a href="{{ route('daily-reports.create-form', ['store_id' => $store->id, 'report_date' => $nextDate]) }}" class="google-btn google-btn-outlined google-btn-small ms-auto">Next Day →</a>
+            @endif
+        </div>
+    </div>
+    @endif
+
     <select id="transactionTypeTemplate" style="display:none;">
     <option value="">Select Type</option>
     @foreach($coas as $coa)
@@ -509,15 +526,10 @@
     @endforeach
 </select>
 
-<select id="vendorTemplate" style="display:none;">
-    <option value="">Select Company</option>
-    <option value="__create_new__">+ Create New Company</option>
-    @foreach($vendors as $vendor)
-        <option value="{{ $vendor->id }}" 
-                data-vendor-name="{{ $vendor->vendor_name }}"
-                data-default-coa-id="{{ $vendor->default_coa_id }}">
-            {{ $vendor->vendor_name }}
-        </option>
+<select id="vendorDescriptionTemplate" style="display:none;">
+    <option value="">Select Vendor / Description</option>
+    @foreach($types as $type)
+        <option value="{{ $type->name }}" data-default-coa-id="{{ $type->default_coa_id ?? '' }}">{{ $type->name }}</option>
     @endforeach
 </select>
 
@@ -571,15 +583,10 @@
                                         <input type="number" class="form-input" name="transactions[0][transaction_id]" value="1">
                                     </td>
                                     <td>
-                                        <select class="form-input vendor-select" name="transactions[0][company]" data-row="0" onchange="handleVendorChange(this)">
-                                            <option value="">Select Company</option>
-                                            <option value="__create_new__">+ Create New Company</option>
-                                            @foreach($vendors as $vendor)
-                                                <option value="{{ $vendor->id }}" 
-                                                        data-vendor-name="{{ $vendor->vendor_name }}"
-                                                        data-default-coa-id="{{ $vendor->default_coa_id }}">
-                                                    {{ $vendor->vendor_name }}
-                                                </option>
+                                        <select class="form-input vendor-description-select" name="transactions[0][company]" data-row="0" onchange="handleVendorDescriptionChange(this)">
+                                            <option value="">Select Vendor / Description</option>
+                                            @foreach($types as $type)
+                                                <option value="{{ $type->name }}" data-default-coa-id="{{ $type->default_coa_id ?? '' }}">{{ $type->name }}</option>
                                             @endforeach
                                         </select>
                                         <input type="hidden" name="transactions[0][vendor_id]" class="vendor-id-input" value="">
@@ -1087,8 +1094,8 @@ window.addTransactionRow = function () {
             <input type="number" class="form-input" name="transactions[${transactionCount}][transaction_id]" value="${transactionCount + 1}">
         </td>
         <td>
-            <select class="form-input vendor-select" name="transactions[${transactionCount}][company]" data-row="${transactionCount}" onchange="handleVendorChange(this)">
-                ${document.getElementById('vendorTemplate').innerHTML}
+            <select class="form-input vendor-description-select" name="transactions[${transactionCount}][company]" data-row="${transactionCount}" onchange="handleVendorDescriptionChange(this)">
+                ${document.getElementById('vendorDescriptionTemplate').innerHTML}
             </select>
             <input type="hidden" name="transactions[${transactionCount}][vendor_id]" class="vendor-id-input" value="">
         </td>
@@ -1351,7 +1358,7 @@ function getSelectedOptionText(select) {
 }
 
 function initLightDropdowns(container) {
-    const selects = container.querySelectorAll('.vendor-select, .transaction-type-select');
+    const selects = container.querySelectorAll('.vendor-description-select, .transaction-type-select');
     selects.forEach(select => {
         if (select.dataset.lightDropdown === '1') return;
         select.dataset.lightDropdown = '1';
@@ -1378,7 +1385,7 @@ function initLightDropdowns(container) {
             btn.textContent = opt.textContent.trim();
             btn.dataset.value = opt.value;
             if (opt.getAttribute('data-vendor-name')) btn.dataset.vendorName = opt.getAttribute('data-vendor-name');
-            if (opt.getAttribute('data-default-coa-id')) btn.dataset.defaultCoaId = opt.getAttribute('data-default-coa-id');
+            if (opt.hasAttribute('data-default-coa-id')) btn.dataset.defaultCoaId = String(opt.getAttribute('data-default-coa-id') || '').trim();
             btn.addEventListener('click', function(e) {
                 e.preventDefault();
                 const val = btn.dataset.value;
@@ -1391,7 +1398,7 @@ function initLightDropdowns(container) {
                 overlay.textContent = btn.textContent;
                 menu.classList.remove('open');
                 select.dispatchEvent(new Event('change', { bubbles: true }));
-                if (select.classList.contains('vendor-select')) handleVendorChange(select);
+                if (select.classList.contains('vendor-description-select')) handleVendorDescriptionChange(select, btn.dataset.defaultCoaId || '');
             });
             menu.appendChild(btn);
         }
@@ -1415,50 +1422,34 @@ function initLightDropdowns(container) {
     });
 }
 
-// Handle vendor selection change
-window.handleVendorChange = function(selectElement) {
-    const row = selectElement.getAttribute('data-row');
-    const selectedValue = selectElement.value;
-    
-    if (selectedValue === '__create_new__') {
-        // Open create vendor modal
-        openCreateVendorModal(row, selectElement);
-        return;
-    }
-    
-    if (selectedValue) {
-        // Get selected option
+// Handle Vendor / Description (transaction type) selection: auto-fill default COA in Transaction Type
+// optionalDefaultCoaId: pass from custom dropdown button so we don't rely on reading from option
+window.handleVendorDescriptionChange = function(selectElement, optionalDefaultCoaId) {
+    let defaultCoaId = (optionalDefaultCoaId !== undefined && optionalDefaultCoaId !== null) ? String(optionalDefaultCoaId).trim() : '';
+    if (!defaultCoaId && selectElement.options && selectElement.options[selectElement.selectedIndex]) {
         const selectedOption = selectElement.options[selectElement.selectedIndex];
-        const defaultCoaId = selectedOption.getAttribute('data-default-coa-id');
-        const vendorId = selectedValue;
-        const vendorName = selectedOption.getAttribute('data-vendor-name');
-        
-        // Set vendor_id hidden input
-        const vendorIdInput = selectElement.closest('tr').querySelector('.vendor-id-input');
-        if (vendorIdInput) {
-            vendorIdInput.value = vendorId;
-        }
-        
-        // Auto-fill transaction type if vendor has default_coa_id
-        if (defaultCoaId) {
-            const transactionTypeSelect = selectElement.closest('tr').querySelector('.transaction-type-select');
-            if (transactionTypeSelect) {
-                transactionTypeSelect.value = defaultCoaId;
-                // Update custom light-theme dropdown overlay if present
-                const twrap = transactionTypeSelect.parentElement;
-                if (twrap && twrap.classList.contains('custom-select-wrap')) {
-                    const toverlay = twrap.querySelector('.custom-select-overlay');
-                    if (toverlay && typeof getSelectedOptionText === 'function') toverlay.textContent = getSelectedOptionText(transactionTypeSelect);
-                }
-            }
-        }
-    } else {
-        // Clear vendor_id when no vendor selected
-        const vendorIdInput = selectElement.closest('tr').querySelector('.vendor-id-input');
-        if (vendorIdInput) {
-            vendorIdInput.value = '';
+        defaultCoaId = (selectedOption.getAttribute('data-default-coa-id') || '').trim();
+    }
+    const row = selectElement.closest('tr');
+    if (!row) return;
+    const transactionTypeSelect = row.querySelector('.transaction-type-select');
+    if (!transactionTypeSelect || !defaultCoaId) return;
+    // Select by finding the option with matching value (more reliable than setting .value)
+    let found = false;
+    for (let i = 0; i < transactionTypeSelect.options.length; i++) {
+        if (String(transactionTypeSelect.options[i].value) === String(defaultCoaId)) {
+            transactionTypeSelect.selectedIndex = i;
+            found = true;
+            break;
         }
     }
+    if (!found) transactionTypeSelect.value = defaultCoaId;
+    const twrap = transactionTypeSelect.parentElement;
+    if (twrap && twrap.classList.contains('custom-select-wrap')) {
+        const toverlay = twrap.querySelector('.custom-select-overlay');
+        if (toverlay && typeof getSelectedOptionText === 'function') toverlay.textContent = getSelectedOptionText(transactionTypeSelect);
+    }
+    transactionTypeSelect.dispatchEvent(new Event('change', { bubbles: true }));
 }
 
 // Open create vendor modal
@@ -1508,28 +1499,28 @@ window.saveNewVendor = async function() {
         const json = await response.json();
         
         if (response.ok) {
-            // API returns { message, data: { id, vendor_name, default_coa_id, ... } }
             const v = json.data || json;
-            const vendorId = v.id;
             const vendorName = v.vendor_name || v.name || '';
             const defaultCoaId = (v.default_coa_id != null) ? String(v.default_coa_id) : '';
 
-            // Add new vendor to template so future rows and all selects have it
-            const vendorTemplate = document.getElementById('vendorTemplate');
-            const newOption = document.createElement('option');
-            newOption.value = vendorId;
-            newOption.setAttribute('data-vendor-name', vendorName);
-            newOption.setAttribute('data-default-coa-id', defaultCoaId);
-            newOption.textContent = vendorName;
-            vendorTemplate.appendChild(newOption);
+            // Add to Vendor Description template (value = name for company submission)
+            const vendorDescTemplate = document.getElementById('vendorDescriptionTemplate');
+            if (vendorDescTemplate) {
+                const newOption = document.createElement('option');
+                newOption.value = vendorName;
+                newOption.setAttribute('data-default-coa-id', defaultCoaId);
+                newOption.textContent = vendorName;
+                vendorDescTemplate.appendChild(newOption);
+            }
 
-            // Add new vendor option to every vendor select on the page (so no refresh needed)
-            document.querySelectorAll('.vendor-select').forEach(function(sel) {
-                const hasOption = Array.from(sel.options).some(function(o) { return o.value === String(vendorId); });
-                if (hasOption) return;
-                const opt = newOption.cloneNode(true);
+            // Add to every Vendor Description select and custom menu
+            document.querySelectorAll('.vendor-description-select').forEach(function(sel) {
+                if (Array.from(sel.options).some(function(o) { return o.value === vendorName; })) return;
+                const opt = document.createElement('option');
+                opt.value = vendorName;
+                opt.setAttribute('data-default-coa-id', defaultCoaId);
+                opt.textContent = vendorName;
                 sel.appendChild(opt);
-                // If this select has a custom light-theme menu, add the new option button to the menu
                 const wrap = sel.parentElement;
                 if (wrap && wrap.classList.contains('custom-select-wrap')) {
                     const menu = wrap.querySelector('.custom-select-menu');
@@ -1539,8 +1530,7 @@ window.saveNewVendor = async function() {
                         btn.type = 'button';
                         btn.className = 'custom-select-option';
                         btn.textContent = vendorName;
-                        btn.dataset.value = vendorId;
-                        btn.dataset.vendorName = vendorName;
+                        btn.dataset.value = vendorName;
                         btn.dataset.defaultCoaId = defaultCoaId;
                         btn.addEventListener('click', function(e) {
                             e.preventDefault();
@@ -1548,18 +1538,17 @@ window.saveNewVendor = async function() {
                             overlay.textContent = btn.textContent;
                             menu.classList.remove('open');
                             sel.dispatchEvent(new Event('change', { bubbles: true }));
-                            handleVendorChange(sel);
+                            handleVendorDescriptionChange(sel);
                         });
                         menu.appendChild(btn);
                     }
                 }
             });
 
-            // Select the new vendor in the current row and update overlay
             if (window.currentVendorSelect) {
                 const currentSelect = window.currentVendorSelect;
-                currentSelect.value = vendorId;
-                handleVendorChange(currentSelect);
+                currentSelect.value = vendorName;
+                handleVendorDescriptionChange(currentSelect);
                 const wrap = currentSelect.parentElement;
                 if (wrap && wrap.classList.contains('custom-select-wrap')) {
                     const overlay = wrap.querySelector('.custom-select-overlay');
