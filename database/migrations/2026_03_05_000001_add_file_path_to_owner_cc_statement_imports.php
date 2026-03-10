@@ -8,11 +8,11 @@ return new class extends Migration
 {
     /**
      * Run the migrations.
-     * Stores the path to the uploaded file in storage (so the file can be deleted when the statement is removed).
+     * Adds file_path so we know where the uploaded CC statement file is stored on disk.
      */
     public function up(): void
     {
-        Schema::table('third_party_statements', function (Blueprint $table) {
+        Schema::table('owner_cc_statement_imports', function (Blueprint $table) {
             $table->string('file_path', 500)->nullable()->after('file_hash');
         });
     }
@@ -22,8 +22,9 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('third_party_statements', function (Blueprint $table) {
+        Schema::table('owner_cc_statement_imports', function (Blueprint $table) {
             $table->dropColumn('file_path');
         });
     }
 };
+

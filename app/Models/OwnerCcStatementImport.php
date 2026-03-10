@@ -13,6 +13,7 @@ class OwnerCcStatementImport extends Model
         'store_id',
         'file_name',
         'file_hash',
+        'file_path',
         'rows_imported',
         'rows_skipped',
         'import_exceptions',

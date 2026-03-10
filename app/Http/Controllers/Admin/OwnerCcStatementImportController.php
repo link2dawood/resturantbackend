@@ -12,6 +12,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class OwnerCcStatementImportController extends Controller
@@ -118,6 +119,17 @@ class OwnerCcStatementImportController extends Controller
                 'rows_skipped' => 0,
             ]);
 
+            // Store original file on disk and save path
+            $safeName = preg_replace('/[^a-zA-Z0-9._-]/', '_', $file->getClientOriginalName());
+            $storedPath = $file->storeAs(
+                'owner_cc_statements',
+                $import->id . '_' . $safeName,
+                'local'
+            );
+            if ($storedPath) {
+                $import->update(['file_path' => $storedPath]);
+            }
+
             $inserted = 0;
             $exceptions = [];
             foreach ($rows as $index => $row) {
@@ -184,6 +196,29 @@ class OwnerCcStatementImportController extends Controller
             'import' => $ownerCcStatementImport,
             'transactionTypes' => $transactionTypes,
         ]);
+    }
+
+    /**
+     * Delete an import, its stored file, and all related lines.
+     */
+    public function destroy(OwnerCcStatementImport $ownerCcStatementImport): RedirectResponse
+    {
+        DB::transaction(function () use ($ownerCcStatementImport) {
+            // Delete lines (also handled by FK cascade, but explicit for clarity)
+            $ownerCcStatementImport->lines()->delete();
+
+            // Delete stored file from disk if present
+            if ($ownerCcStatementImport->file_path && Storage::disk('local')->exists($ownerCcStatementImport->file_path)) {
+                Storage::disk('local')->delete($ownerCcStatementImport->file_path);
+            }
+
+            // Delete import record
+            $ownerCcStatementImport->delete();
+        });
+
+        return redirect()
+            ->route('admin.owner-cc-statements.index')
+            ->with('success', 'Statement import, its file, and all related records have been deleted.');
     }
 
     /**

@@ -63,7 +63,7 @@
                         <th>Store</th>
                         <th>Rows</th>
                         <th>By</th>
-                        <th class="w-1"></th>
+                        <th class="text-center" style="min-width: 160px;">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -74,8 +74,17 @@
                             <td>{{ $imp->store?->store_info ?? '—' }}</td>
                             <td>{{ number_format($imp->rows_imported) }}</td>
                             <td>{{ $imp->importer?->name ?? '—' }}</td>
-                            <td>
-                                <a href="{{ route('admin.owner-cc-statements.show', $imp) }}" class="btn btn-sm btn-outline-primary">View</a>
+                            <td class="text-center">
+                                <a href="{{ route('admin.owner-cc-statements.show', $imp) }}" class="btn btn-sm btn-primary me-1">
+                                    View
+                                </a>
+                                <form action="{{ route('admin.owner-cc-statements.destroy', $imp) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete this CC statement import, its stored file, and all related records? This cannot be undone.');">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-sm btn-danger">
+                                        Delete
+                                    </button>
+                                </form>
                             </td>
                         </tr>
                     @empty

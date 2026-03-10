@@ -211,6 +211,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/owner-cc-statements/{ownerCcStatementImport}/download', [OwnerCcStatementImportController::class, 'download'])->name('admin.owner-cc-statements.download');
         Route::put('/owner-cc-statements/lines/{ownerCcStatementLine}/transaction-type', [OwnerCcStatementImportController::class, 'updateLineTransactionType'])->name('admin.owner-cc-statements.lines.update-type');
         Route::get('/owner-cc-statements/{ownerCcStatementImport}/exceptions', [OwnerCcStatementImportController::class, 'downloadExceptionReport'])->name('admin.owner-cc-statements.exceptions');
+        Route::delete('/owner-cc-statements/{ownerCcStatementImport}', [OwnerCcStatementImportController::class, 'destroy'])->name('admin.owner-cc-statements.destroy');
     });
 
     // P&L Reports - Admin, Owner (full access), Manager (view only)

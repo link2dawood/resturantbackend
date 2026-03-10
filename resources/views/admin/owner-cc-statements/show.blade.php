@@ -6,6 +6,13 @@
 <div class="container-xl mt-4">
     <div class="mb-4 d-flex justify-content-between align-items-center">
         <a href="{{ route('admin.owner-cc-statements.index') }}" class="btn btn-ghost-secondary btn-sm">← Back to all statements</a>
+        <form action="{{ route('admin.owner-cc-statements.destroy', $import) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete this CC statement import, the stored file, and all related records? This cannot be undone.');">
+            @csrf
+            @method('DELETE')
+            <button type="submit" class="btn btn-danger btn-sm">
+                Delete import
+            </button>
+        </form>
     </div>
 
     @if (session('success'))
