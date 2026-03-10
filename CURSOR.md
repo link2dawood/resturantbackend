@@ -80,6 +80,7 @@ docs/
 - `GET /merchant-fees` → `MerchantFeeViewController@index`
 - `GET /merchant-fees/third-party` → `MerchantFeeViewController@thirdParty`
 - `GET /merchant-fees/third-party/statements/{statement}` → `MerchantFeeViewController@thirdPartyStatementShow` → `admin.merchant-fees.third-party.show` (detail page UI)
+- `DELETE /merchant-fees/third-party/statements/{statement}` → `MerchantFeeViewController@thirdPartyStatementDestroy` → `admin.merchant-fees.third-party.destroy` (deletes statement, linked expenses, expected deposit bank transaction)
 - `GET /merchant-fees/exceptions` → `ReviewQueueViewController@exceptionsReport`
 - `GET /merchant-fees/import-log` → `ImportLogController@index`
 

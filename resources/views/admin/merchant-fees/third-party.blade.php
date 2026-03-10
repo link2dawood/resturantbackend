@@ -4,6 +4,12 @@
 
 @section('content')
 <div class="container-xl mt-4">
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
     <!-- Page Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
@@ -205,6 +211,11 @@
                                     <td class="text-end text-success">${{ number_format($statement->net_deposit, 2) }}</td>
                                     <td class="text-center">
                                         <a href="{{ route('admin.merchant-fees.third-party.show', $statement) }}" class="btn btn-sm btn-outline-primary">View</a>
+                                        <form action="{{ route('admin.merchant-fees.third-party.destroy', $statement) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete this statement and all related records? This cannot be undone.');">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                                        </form>
                                     </td>
                                 </tr>
                                 @empty

@@ -197,6 +197,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/merchant-fees', [MerchantFeeViewController::class, 'index'])->name('admin.merchant-fees.index');
         Route::get('/merchant-fees/third-party', [MerchantFeeViewController::class, 'thirdParty'])->name('admin.merchant-fees.third-party');
         Route::get('/merchant-fees/third-party/statements/{statement}', [MerchantFeeViewController::class, 'thirdPartyStatementShow'])->name('admin.merchant-fees.third-party.show');
+        Route::delete('/merchant-fees/third-party/statements/{statement}', [MerchantFeeViewController::class, 'thirdPartyStatementDestroy'])->name('admin.merchant-fees.third-party.destroy');
         Route::get('/merchant-fees/exceptions', [ReviewQueueViewController::class, 'exceptionsReport'])->name('admin.exceptions-report.index');
         Route::get('/merchant-fees/import-log', [ImportLogController::class, 'index'])->name('admin.import-log.index');
     });

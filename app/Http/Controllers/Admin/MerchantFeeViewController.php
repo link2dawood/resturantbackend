@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\BankTransaction;
 use App\Models\Store;
 use App\Models\ExpenseTransaction;
 use App\Models\DailyReport;
@@ -103,6 +104,33 @@ class MerchantFeeViewController extends Controller
         $statement->load(['store', 'importer', 'expenses.vendor', 'expenses.coa']);
 
         return view('admin.merchant-fees.third-party-show', compact('statement'));
+    }
+
+    /**
+     * Delete a third-party statement and all related records (expense transactions, expected deposit).
+     * No file is stored on disk; only DB records are removed.
+     */
+    public function thirdPartyStatementDestroy(ThirdPartyStatement $statement)
+    {
+        $user = auth()->user();
+        if (!$user->hasStoreAccess($statement->store_id)) {
+            abort(403, 'You do not have access to this statement.');
+        }
+
+        DB::transaction(function () use ($statement) {
+            // Delete expense transactions created by this import
+            $statement->expenses()->delete();
+
+            // Delete expected deposit bank transaction (created at import)
+            BankTransaction::where('reference_number', $statement->platform . '-' . $statement->id)->delete();
+
+            // Delete the statement
+            $statement->delete();
+        });
+
+        return redirect()
+            ->route('admin.merchant-fees.third-party')
+            ->with('success', 'Statement and all related records have been deleted.');
     }
     
     /**
