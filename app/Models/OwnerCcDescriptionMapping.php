@@ -10,6 +10,7 @@ class OwnerCcDescriptionMapping extends Model
     protected $fillable = [
         'description_pattern',
         'transaction_type_id',
+        'coa_id',
         'created_by',
         'times_matched',
     ];
@@ -21,6 +22,11 @@ class OwnerCcDescriptionMapping extends Model
     public function transactionType(): BelongsTo
     {
         return $this->belongsTo(TransactionType::class);
+    }
+
+    public function chartOfAccount(): BelongsTo
+    {
+        return $this->belongsTo(ChartOfAccount::class, 'coa_id');
     }
 
     public function creator(): BelongsTo

@@ -16,6 +16,7 @@ class OwnerCcStatementLine extends Model
         'credit',
         'member_name',
         'transaction_type_id',
+        'coa_id',
     ];
 
     protected $casts = [
@@ -32,5 +33,10 @@ class OwnerCcStatementLine extends Model
     public function transactionType(): BelongsTo
     {
         return $this->belongsTo(TransactionType::class);
+    }
+
+    public function chartOfAccount(): BelongsTo
+    {
+        return $this->belongsTo(ChartOfAccount::class, 'coa_id');
     }
 }

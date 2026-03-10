@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Imports\OwnerCcStatementRowsImport;
+use App\Models\ChartOfAccount;
 use App\Models\OwnerCcDescriptionMapping;
 use App\Models\OwnerCcStatementImport;
 use App\Models\OwnerCcStatementLine;
@@ -189,12 +190,12 @@ class OwnerCcStatementImportController extends Controller
      */
     public function show(OwnerCcStatementImport $ownerCcStatementImport)
     {
-        $ownerCcStatementImport->load(['importer', 'store', 'lines.transactionType']);
-        $transactionTypes = \App\Models\TransactionType::orderBy('name')->get();
+        $ownerCcStatementImport->load(['importer', 'store', 'lines.transactionType', 'lines.chartOfAccount']);
+        $chartOfAccounts = ChartOfAccount::active()->orderBy('account_code')->get();
 
         return view('admin.owner-cc-statements.show', [
             'import' => $ownerCcStatementImport,
-            'transactionTypes' => $transactionTypes,
+            'chartOfAccounts' => $chartOfAccounts,
         ]);
     }
 
@@ -222,40 +223,39 @@ class OwnerCcStatementImportController extends Controller
     }
 
     /**
-     * Assign transaction type to a statement line and save as learned mapping for future imports.
+     * Assign Chart of Account to a statement line and save as learned mapping for future imports.
      */
     public function updateLineTransactionType(Request $request, OwnerCcStatementLine $ownerCcStatementLine)
     {
         $request->validate([
-            'transaction_type_id' => 'nullable|exists:transaction_types,id',
+            'coa_id' => 'nullable|exists:chart_of_accounts,id',
         ]);
 
         $ownerCcStatementLine->update([
-            'transaction_type_id' => $request->input('transaction_type_id') ?: null,
+            'coa_id' => $request->input('coa_id') ?: null,
         ]);
 
-        $typeId = $request->input('transaction_type_id');
-        if ($typeId) {
-            $pattern = OwnerCcDescriptionMapping::normalizeDescription($ownerCcStatementLine->description);
-            if ($pattern !== '') {
-                OwnerCcDescriptionMapping::updateOrCreate(
-                    ['description_pattern' => $pattern],
-                    [
-                        'transaction_type_id' => $typeId,
-                        'created_by' => auth()->id(),
-                    ]
-                );
-            }
+        $coaId = $request->input('coa_id');
+        $pattern = OwnerCcDescriptionMapping::normalizeDescription($ownerCcStatementLine->description);
+        if ($pattern !== '') {
+            OwnerCcDescriptionMapping::updateOrCreate(
+                ['description_pattern' => $pattern],
+                [
+                    'coa_id' => $coaId ?: null,
+                    'transaction_type_id' => null,
+                    'created_by' => auth()->id(),
+                ]
+            );
         }
 
         if ($request->wantsJson()) {
             return response()->json([
-                'message' => 'Transaction type saved. Future imports will use this for similar descriptions.',
-                'line' => $ownerCcStatementLine->fresh('transactionType'),
+                'message' => 'Chart of account saved. Future imports will use this for similar descriptions.',
+                'line' => $ownerCcStatementLine->fresh('chartOfAccount'),
             ]);
         }
 
-        return back()->with('success', 'Transaction type saved. Future similar transactions will be assigned automatically.');
+        return back()->with('success', 'Chart of account saved. Future similar transactions will be assigned automatically.');
     }
 
     /**
@@ -266,13 +266,16 @@ class OwnerCcStatementImportController extends Controller
         $import = $ownerCcStatementImport->load('lines');
         $filename = 'cc-statement-' . pathinfo($import->file_name, PATHINFO_FILENAME) . '-' . $import->created_at->format('Y-m-d') . '.csv';
 
-        $import->load('lines.transactionType');
+        $import->load('lines.transactionType', 'lines.chartOfAccount');
 
         return response()->streamDownload(function () use ($import) {
             $handle = fopen('php://output', 'w');
-            fputcsv($handle, ['Status', 'Date', 'Description', 'Debit', 'Credit', 'Member Name', 'Transaction Type']);
+            fputcsv($handle, ['Status', 'Date', 'Description', 'Debit', 'Credit', 'Member Name', 'Chart of Account']);
 
             foreach ($import->lines as $line) {
+                $coaLabel = $line->chartOfAccount
+                    ? ($line->chartOfAccount->account_code . ' - ' . $line->chartOfAccount->account_name)
+                    : '';
                 fputcsv($handle, [
                     $line->status ?? '',
                     $line->transaction_date->format('m/d/Y'),
@@ -280,7 +283,7 @@ class OwnerCcStatementImportController extends Controller
                     $line->debit > 0 ? (string) $line->debit : '',
                     $line->credit > 0 ? (string) $line->credit : '',
                     $line->member_name ?? '',
-                    $line->transactionType?->name ?? '',
+                    $coaLabel,
                 ]);
             }
             fclose($handle);
@@ -327,7 +330,7 @@ class OwnerCcStatementImportController extends Controller
     }
 
     /**
-     * Apply learned transaction type from past owner assignments (auto-learn).
+     * Apply learned Chart of Account (and legacy transaction type) from past owner assignments (auto-learn).
      */
     protected function applyLearnedTransactionType(OwnerCcStatementLine $line): void
     {
@@ -338,8 +341,17 @@ class OwnerCcStatementImportController extends Controller
 
         $mapping = OwnerCcDescriptionMapping::where('description_pattern', $pattern)->first();
         if ($mapping) {
-            $line->update(['transaction_type_id' => $mapping->transaction_type_id]);
-            $mapping->increment('times_matched');
+            $updates = [];
+            if ($mapping->coa_id !== null) {
+                $updates['coa_id'] = $mapping->coa_id;
+            }
+            if ($mapping->transaction_type_id !== null) {
+                $updates['transaction_type_id'] = $mapping->transaction_type_id;
+            }
+            if ($updates !== []) {
+                $line->update($updates);
+                $mapping->increment('times_matched');
+            }
         }
     }
 

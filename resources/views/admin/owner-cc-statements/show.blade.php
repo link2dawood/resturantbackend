@@ -72,7 +72,7 @@
     <div class="card">
         <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
             <h3 class="card-title mb-0">Statement records ({{ number_format($import->lines->count()) }})</h3>
-            <p class="text-muted small mb-0">Assign a transaction type below; the system will remember and auto-apply it for similar descriptions on future imports.</p>
+            <p class="text-muted small mb-0">Assign a Chart of Account below; the system will remember and auto-apply it for similar descriptions on future imports.</p>
         </div>
         <div class="table-responsive">
             <table class="table table-vcenter card-table table-striped">
@@ -84,7 +84,7 @@
                         <th class="text-end">Debit</th>
                         <th class="text-end">Credit</th>
                         <th>Member</th>
-                        <th>Transaction type</th>
+                        <th>Chart of Account</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -100,10 +100,10 @@
                                 <form action="{{ route('admin.owner-cc-statements.lines.update-type', $line) }}" method="POST" class="d-flex align-items-center gap-1">
                                     @csrf
                                     @method('PUT')
-                                    <select name="transaction_type_id" class="form-select form-select-sm" style="min-width: 140px;">
+                                    <select name="coa_id" class="form-select form-select-sm" style="min-width: 200px;">
                                         <option value="">— None —</option>
-                                        @foreach($transactionTypes as $tt)
-                                            <option value="{{ $tt->id }}" {{ (int) $line->transaction_type_id === (int) $tt->id ? 'selected' : '' }}>{{ $tt->name }}</option>
+                                        @foreach($chartOfAccounts as $coa)
+                                            <option value="{{ $coa->id }}" {{ (int) $line->coa_id === (int) $coa->id ? 'selected' : '' }}>{{ $coa->account_code }} - {{ $coa->account_name }}</option>
                                         @endforeach
                                     </select>
                                     <button type="submit" class="btn btn-sm btn-outline-primary">Save</button>
