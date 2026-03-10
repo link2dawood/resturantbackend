@@ -11,6 +11,7 @@ use App\Models\ThirdPartyStatement;
 use App\Models\ChartOfAccount;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class MerchantFeeViewController extends Controller
 {
@@ -123,6 +124,11 @@ class MerchantFeeViewController extends Controller
 
             // Delete expected deposit bank transaction (created at import)
             BankTransaction::where('reference_number', $statement->platform . '-' . $statement->id)->delete();
+
+            // Delete the stored file from disk (path stored in file_path)
+            if ($statement->file_path && Storage::disk('local')->exists($statement->file_path)) {
+                Storage::disk('local')->delete($statement->file_path);
+            }
 
             // Delete the statement
             $statement->delete();

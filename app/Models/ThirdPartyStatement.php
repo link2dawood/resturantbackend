@@ -24,6 +24,7 @@ class ThirdPartyStatement extends Model
         'import_batch_id',
         'file_name',
         'file_hash',
+        'file_path',
         'imported_by',
     ];
 

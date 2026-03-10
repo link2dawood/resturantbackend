@@ -76,7 +76,7 @@ class ThirdPartyImportController extends Controller
             // Begin transaction
             DB::beginTransaction();
 
-            // Create third-party statement
+            // Create third-party statement (file_path set after we store the file)
             $statement = ThirdPartyStatement::create([
                 'platform' => $platform,
                 'store_id' => $storeId,
@@ -92,6 +92,17 @@ class ThirdPartyImportController extends Controller
                 'file_hash' => $fileHash,
                 'imported_by' => auth()->id(),
             ]);
+
+            // Store the uploaded file on disk and save path in table
+            $safeName = preg_replace('/[^a-zA-Z0-9._-]/', '_', $file->getClientOriginalName());
+            $storedPath = $file->storeAs(
+                'third_party_statements',
+                $statement->id . '_' . $safeName,
+                'local'
+            );
+            if ($storedPath) {
+                $statement->update(['file_path' => $storedPath]);
+            }
 
             // Create expense transactions for fees
             $this->createFeeExpenses($statement, $statementData);

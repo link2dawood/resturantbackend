@@ -194,7 +194,7 @@
                                     <th class="text-end">Gross Sales</th>
                                     <th class="text-end">Total Fees</th>
                                     <th class="text-end">Net Deposit</th>
-                                    <th class="text-center">Actions</th>
+                                    <th class="text-center" style="min-width: 160px;">View / Delete</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -210,11 +210,17 @@
                                     <td class="text-end text-danger">${{ number_format($totalFees, 2) }}</td>
                                     <td class="text-end text-success">${{ number_format($statement->net_deposit, 2) }}</td>
                                     <td class="text-center">
-                                        <a href="{{ route('admin.merchant-fees.third-party.show', $statement) }}" class="btn btn-sm btn-outline-primary">View</a>
-                                        <form action="{{ route('admin.merchant-fees.third-party.destroy', $statement) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete this statement and all related records? This cannot be undone.');">
+                                        <a href="{{ route('admin.merchant-fees.third-party.show', $statement) }}" class="btn btn-sm btn-primary me-1" title="View details">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                            View
+                                        </a>
+                                        <form action="{{ route('admin.merchant-fees.third-party.destroy', $statement) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete this statement, its file, and all related records? This cannot be undone.');">
                                             @csrf
                                             @method('DELETE')
-                                            <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                                            <button type="submit" class="btn btn-sm btn-danger" title="Delete statement and file">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                                                Delete
+                                            </button>
                                         </form>
                                     </td>
                                 </tr>
