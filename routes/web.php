@@ -3,7 +3,9 @@
 use App\Http\Controllers\Admin\BankAccountViewController;
 use App\Http\Controllers\Admin\ChartOfAccountController;
 use App\Http\Controllers\Admin\ExpenseViewController;
+use App\Http\Controllers\Admin\ImportLogController;
 use App\Http\Controllers\Admin\MerchantFeeViewController;
+use App\Http\Controllers\Admin\OwnerCcStatementImportController;
 use App\Http\Controllers\Admin\ProfitLossViewController;
 use App\Http\Controllers\Admin\ReviewQueueViewController;
 use App\Http\Controllers\Admin\VendorViewController;
@@ -194,6 +196,20 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:admin,owner')->group(function () {
         Route::get('/merchant-fees', [MerchantFeeViewController::class, 'index'])->name('admin.merchant-fees.index');
         Route::get('/merchant-fees/third-party', [MerchantFeeViewController::class, 'thirdParty'])->name('admin.merchant-fees.third-party');
+        Route::get('/merchant-fees/third-party/statements/{statement}', [MerchantFeeViewController::class, 'thirdPartyStatementShow'])->name('admin.merchant-fees.third-party.show');
+        Route::get('/merchant-fees/exceptions', [ReviewQueueViewController::class, 'exceptionsReport'])->name('admin.exceptions-report.index');
+        Route::get('/merchant-fees/import-log', [ImportLogController::class, 'index'])->name('admin.import-log.index');
+    });
+
+    // Owner CC Statements - Admin, Owner (import CSV/XLSX statements)
+    Route::middleware('role:admin,owner')->group(function () {
+        Route::get('/owner-cc-statements', [OwnerCcStatementImportController::class, 'index'])->name('admin.owner-cc-statements.index');
+        Route::get('/owner-cc-statements/create', [OwnerCcStatementImportController::class, 'create'])->name('admin.owner-cc-statements.create');
+        Route::post('/owner-cc-statements', [OwnerCcStatementImportController::class, 'store'])->name('admin.owner-cc-statements.store');
+        Route::get('/owner-cc-statements/{ownerCcStatementImport}', [OwnerCcStatementImportController::class, 'show'])->name('admin.owner-cc-statements.show');
+        Route::get('/owner-cc-statements/{ownerCcStatementImport}/download', [OwnerCcStatementImportController::class, 'download'])->name('admin.owner-cc-statements.download');
+        Route::put('/owner-cc-statements/lines/{ownerCcStatementLine}/transaction-type', [OwnerCcStatementImportController::class, 'updateLineTransactionType'])->name('admin.owner-cc-statements.lines.update-type');
+        Route::get('/owner-cc-statements/{ownerCcStatementImport}/exceptions', [OwnerCcStatementImportController::class, 'downloadExceptionReport'])->name('admin.owner-cc-statements.exceptions');
     });
 
     // P&L Reports - Admin, Owner (full access), Manager (view only)
@@ -238,7 +254,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/impersonate/{user}', [ImpersonationController::class, 'start'])->name('impersonate.start');
     Route::get('/debug-user', [ImpersonationController::class, 'debug'])->name('debug.user');
 
-    // Audit Log Routes (Admin and Owner only) with date conversion
+    // Admin Reports (audit logs) - Admin and Owner
     Route::middleware(['admin_or_owner', 'convert_date_format'])->group(function () {
         Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
         Route::get('/audit-logs/{auditLog}', [AuditLogController::class, 'show'])->name('audit-logs.show');

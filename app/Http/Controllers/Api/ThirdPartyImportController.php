@@ -25,7 +25,7 @@ class ThirdPartyImportController extends Controller
         $request->validate([
             'platform' => 'required|in:grubhub,ubereats,doordash',
             'store_id' => 'required|exists:stores,id',
-            'file' => 'required|file|mimes:pdf,csv|max:10240',
+            'file' => 'required|file|mimes:pdf,csv,xlsx,xls|max:10240',
         ]);
 
         try {
@@ -45,18 +45,26 @@ class ThirdPartyImportController extends Controller
                 ], 409);
             }
 
-            // Parse based on platform
+            // Parse based on file type and platform
             $statementData = null;
-            switch ($platform) {
-                case 'grubhub':
-                    $statementData = $this->parseGrubhubPDF($file);
-                    break;
-                case 'ubereats':
-                    $statementData = $this->parseUberEatsCSV($file);
-                    break;
-                case 'doordash':
-                    $statementData = $this->parseDoorDashCSV($file);
-                    break;
+            $extension = strtolower($file->getClientOriginalExtension());
+            $isPdf = $extension === 'pdf';
+
+            if ($isPdf) {
+                // Monthly statement PDF (Grubhub, Uber, DoorDash – e.g. "Jan 2026_Fann's Philly Grill (Round Rock).pdf")
+                $statementData = $this->parseMonthlyStatementPDF($file);
+            } else {
+                switch ($platform) {
+                    case 'grubhub':
+                        $statementData = $this->parseGrubhubPDF($file);
+                        break;
+                    case 'ubereats':
+                        $statementData = $this->parseUberEatsCSV($file);
+                        break;
+                    case 'doordash':
+                        $statementData = $this->parseDoorDashCSV($file);
+                        break;
+                }
             }
 
             if (!$statementData) {
@@ -115,6 +123,160 @@ class ThirdPartyImportController extends Controller
                 'error' => 'Import failed: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Parse monthly statement PDF (works for Grubhub, Uber Eats, DoorDash monthly statements).
+     * Handles formats like "Jan 2026_Fann's Philly Grill (Round Rock).pdf" and similar layouts.
+     */
+    protected function parseMonthlyStatementPDF($file)
+    {
+        try {
+            $parser = new Parser();
+            $pdf = $parser->parseFile($file->getRealPath());
+            $text = $pdf->getText();
+            $filename = $file->getClientOriginalName();
+
+            Log::info('Monthly statement PDF text extracted', ['length' => strlen($text), 'file' => $filename]);
+
+            $statementDate = $this->extractDateFromMonthlyStatement($text, $filename);
+            $grossSales = $this->extractAmountFromTextFlexible($text, [
+                'gross sales', 'total sales', 'restaurant sales', 'sales', 'subtotal', 'marketplace sales',
+                'total orders', 'order value',
+            ], true);
+            $marketingFees = $this->extractAmountFromTextFlexible($text, [
+                'marketing fee', 'commission', 'platform fee', 'marketplace fee', 'marketplace commission',
+                'partner fee', 'service fee', 'grubhub fee', 'ubereats fee', 'doordash fee',
+            ], false);
+            $deliveryFees = $this->extractAmountFromTextFlexible($text, [
+                'delivery fee', 'delivery', 'delivery charges', 'delivery commission',
+            ], false);
+            $processingFees = $this->extractAmountFromTextFlexible($text, [
+                'processing fee', 'payment processing', 'card processing', 'transaction fee',
+            ], false);
+            $netDeposit = $this->extractAmountFromTextFlexible($text, [
+                'net deposit', 'total payment', 'payout', 'net payout', 'transfer', 'total transfer',
+                'deposit', 'amount due', 'you will receive', 'payment to you',
+            ], true);
+            $salesTax = $this->extractAmountFromTextFlexible($text, ['sales tax', 'tax collected', 'tax'], true);
+
+            return [
+                'statement_date' => $statementDate ?: now(),
+                'statement_id' => $this->extractStatementIdFromGrubhub($text),
+                'gross_sales' => round($grossSales, 2),
+                'marketing_fees' => round(abs($marketingFees), 2),
+                'delivery_fees' => round(abs($deliveryFees), 2),
+                'processing_fees' => round(abs($processingFees), 2),
+                'net_deposit' => round(max(0, $netDeposit), 2),
+                'sales_tax_collected' => round($salesTax, 2),
+            ];
+        } catch (\Exception $e) {
+            Log::error('Monthly statement PDF parse error: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return [
+                'statement_date' => now(),
+                'statement_id' => null,
+                'gross_sales' => 0,
+                'marketing_fees' => 0,
+                'delivery_fees' => 0,
+                'processing_fees' => 0,
+                'net_deposit' => 0,
+                'sales_tax_collected' => 0,
+            ];
+        }
+    }
+
+    /**
+     * Extract date from monthly statement text or filename (e.g. "Jan 2026", "January 2026").
+     */
+    protected function extractDateFromMonthlyStatement(string $text, string $filename = ''): ?string
+    {
+        $combined = $text . "\n" . $filename;
+
+        $patterns = [
+            '/\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+(\d{4})\b/i',
+            '/\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{4})\b/i',
+            '/statement\s+date[:\s]+(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/i',
+            '/period[:\s]+(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/i',
+            '/for\s+the\s+period[:\s]+.*?(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/i',
+            '/ending[:\s]+(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/i',
+            '/through[:\s]+(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/i',
+            '/(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})\s*-\s*\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}/',
+        ];
+
+        $monthNames = [
+            'jan' => '01', 'feb' => '02', 'mar' => '03', 'apr' => '04', 'may' => '05', 'jun' => '06',
+            'jul' => '07', 'aug' => '08', 'sep' => '09', 'oct' => '10', 'nov' => '11', 'dec' => '12',
+        ];
+
+        foreach ($patterns as $pattern) {
+            if (preg_match($pattern, $combined, $matches)) {
+                if (isset($matches[2]) && isset($monthNames[strtolower(substr($matches[1], 0, 3))])) {
+                    $month = $monthNames[strtolower(substr($matches[1], 0, 3))];
+                    $year = $matches[2];
+                    return $year . '-' . $month . '-01';
+                }
+                if (isset($matches[1]) && (strpos($matches[1], '/') !== false || strpos($matches[1], '-') !== false)) {
+                    $parsed = $this->parseDate($matches[1]);
+                    if ($parsed) {
+                        return $parsed;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Extract amount from text with flexible patterns: same line, next line, parentheses for negatives.
+     * $preferPositive: for gross/net use positive; for fees we take absolute value.
+     */
+    protected function extractAmountFromTextFlexible(string $text, array $keywords, bool $preferPositive): float
+    {
+        $amounts = [];
+        $lines = preg_split('/\r\n|\r|\n/', $text);
+
+        foreach ($keywords as $keyword) {
+            $quoted = preg_quote($keyword, '/');
+            $patternSameLine = '/' . $quoted . '\s*[:\$]?\s*\$?\s*(\([\d,]+\.?\d*\)|[\d,]+\.?\d*)/i';
+            if (preg_match_all($patternSameLine, $text, $matches, PREG_SET_ORDER)) {
+                foreach ($matches as $match) {
+                    $amount = $this->parseAmount(trim($match[1]));
+                    if ($amount != 0) {
+                        $amounts[] = $amount;
+                    }
+                }
+            }
+            $patternDollar = '/' . $quoted . '[^\d\$]*(\$?\s*\([\d,]+\.?\d*\)|\$?\s*[\d,]+\.?\d*)/i';
+            if (preg_match_all($patternDollar, $text, $matches, PREG_SET_ORDER)) {
+                foreach ($matches as $match) {
+                    $amount = $this->parseAmount(trim($match[1]));
+                    if ($amount != 0) {
+                        $amounts[] = $amount;
+                    }
+                }
+            }
+            for ($i = 0; $i < count($lines) - 1; $i++) {
+                if (preg_match('/' . $quoted . '/i', $lines[$i])) {
+                    if (preg_match('/(\$?\s*\([\d,]+\.?\d*\)|\$?\s*[\d,]+\.?\d*)/', $lines[$i + 1], $m)) {
+                        $amount = $this->parseAmount(trim($m[1]));
+                        if ($amount != 0) {
+                            $amounts[] = $amount;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (empty($amounts)) {
+            return 0.0;
+        }
+        if ($preferPositive) {
+            $positive = array_filter($amounts, fn($a) => $a > 0);
+            return !empty($positive) ? max($positive) : abs(array_sum($amounts));
+        }
+        return abs(array_sum($amounts));
     }
 
     /**

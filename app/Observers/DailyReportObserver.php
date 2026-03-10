@@ -51,9 +51,9 @@ class DailyReportObserver
             // This is already recorded as Revenue in the P&L (via daily_reports.gross_sales)
             $grossAmount = $dailyReport->credit_cards;
             
-            // MERCHANT FEE: Calculate 2.45% of gross
-            $merchantFeeRate = 0.0245; // 2.45%
-            $merchantFee = $grossAmount * $merchantFeeRate;
+            // MERCHANT FEE: Auto-calculate Square fee (default 2.45% of gross)
+            $merchantFeeRate = config('services.square.fee_rate', 0.0245);
+            $merchantFee = round($grossAmount * $merchantFeeRate, 2);
             
             // NET DEPOSIT: Gross minus merchant fee
             $netDeposit = $grossAmount - $merchantFee;
@@ -92,13 +92,15 @@ class DailyReportObserver
 
             if ($existingFee) {
                 // Update existing fee if daily report was modified
+                $pct = round($merchantFeeRate * 100, 2);
                 $existingFee->update([
                     'amount' => $merchantFee,
-                    'description' => "Merchant processing fee (2.45%) for {$dailyReport->report_date->format('M d, Y')} - Gross: $" . number_format($grossAmount, 2),
+                    'description' => "Merchant processing fee ({$pct}%) for {$dailyReport->report_date->format('M d, Y')} - Gross: $" . number_format($grossAmount, 2),
                 ]);
                 $feeTransaction = $existingFee;
             } else {
                 // Create new merchant fee expense transaction
+                $pct = round($merchantFeeRate * 100, 2);
                 $feeTransaction = ExpenseTransaction::create([
                     'transaction_type' => 'credit_card',
                     'transaction_date' => $dailyReport->report_date,
@@ -107,7 +109,7 @@ class DailyReportObserver
                     'vendor_id' => $squareVendor->id,
                     'coa_id' => $merchantCoa->id, // 'Merchant Processing Fees' COA
                     'amount' => $merchantFee,
-                    'description' => "Merchant processing fee (2.45%) for {$dailyReport->report_date->format('M d, Y')} - Gross: $" . number_format($grossAmount, 2) . ", Net: $" . number_format($netDeposit, 2),
+                    'description' => "Merchant processing fee ({$pct}%) for {$dailyReport->report_date->format('M d, Y')} - Gross: $" . number_format($grossAmount, 2) . ", Net: $" . number_format($netDeposit, 2),
                     'payment_method' => 'credit_card',
                     'daily_report_id' => $dailyReport->id,
                     'created_by' => auth()->id() ?? $dailyReport->created_by,

@@ -204,7 +204,7 @@
                                     <td class="text-end text-danger">${{ number_format($totalFees, 2) }}</td>
                                     <td class="text-end text-success">${{ number_format($statement->net_deposit, 2) }}</td>
                                     <td class="text-center">
-                                        <a href="/api/third-party/statements/{{ $statement->id }}" class="btn btn-sm btn-outline-primary">Details</a>
+                                        <a href="{{ route('admin.merchant-fees.third-party.show', $statement) }}" class="btn btn-sm btn-outline-primary">View</a>
                                     </td>
                                 </tr>
                                 @empty
@@ -253,8 +253,8 @@
                     </div>
                     <div class="mb-3">
                         <label for="uploadFile" class="form-label">Statement File <span class="text-danger">*</span></label>
-                        <input type="file" class="form-control" id="uploadFile" name="file" accept=".pdf,.csv" required>
-                        <small class="text-muted">Upload PDF or CSV file</small>
+                        <input type="file" class="form-control" id="uploadFile" name="file" accept=".pdf,.csv,.xlsx,.xls" required>
+                        <small class="text-muted">PDF (monthly statements e.g. Jan 2026_Store Name.pdf) or CSV. PDF works for Grubhub, Uber Eats, or DoorDash.</small>
                     </div>
                 </div>
                 <div class="modal-footer">

@@ -9,6 +9,8 @@
 **Frontend:** Blade templates with Bootstrap 5, jQuery, Laravel Mix  
 **Authentication:** Laravel Auth + Google OAuth (Socialite)
 
+**Note:** For a quick reference and core changes log, see **`CURSOR.md`** at the project root. All documentation is under **`docs/`** (see [docs/README.md](../README.md)).
+
 ---
 
 ## System Architecture
@@ -234,7 +236,12 @@
 - Mapping rule creation
 - Auto-refresh functionality
 
-### 12. Audit Logging
+### 12. Exceptions Report & Download/Upload Log (see CURSOR.md)
+
+- **Exceptions Report:** Dedicated page for unrecognized transactions; “Remember for future uploads” creates mapping rules.
+- **Download/Upload Log:** History of CC, bank, and online platform imports.
+
+### 13. Audit Logging (Admin Reports)
 
 #### Features
 - Comprehensive activity tracking
@@ -244,6 +251,7 @@
 - Failed access attempt logging
 - Role change tracking
 - Store access monitoring
+- **UI label:** “Admin Reports” (routes still `audit-logs.*`)
 
 ---
 
@@ -426,14 +434,16 @@ Chart of Account → has many → Children (self-referential)
 ### View Structure
 
 #### Layout
-- `layouts/tabler.blade.php` - Main admin layout (Tabler theme)
+- `layouts/tabler.blade.php` - Main admin layout (Tabler theme); **Merchant Fees** dropdown and nav live here.
 
 #### Admin Views
 - `admin/coa/` - Chart of Accounts management
 - `admin/vendors/` - Vendor management
 - `admin/expenses/` - Expense ledger
 - `admin/review-queue/` - Review queue dashboard
-- `admin/merchant-fees/` - Merchant fee analytics
+- `admin/merchant-fees/` - Merchant fee analytics, third-party
+- `admin/exceptions-report/` - Exceptions report
+- `admin/import-log/` - Download/Upload log
 - `admin/reports/profit-loss/` - P&L reports
 - `admin/bank/accounts/` - Bank account management
 - `admin/bank/reconciliation/` - Bank reconciliation
@@ -702,27 +712,24 @@ php artisan security:audit-routes  # Audit route protection
 
 ---
 
-## Documentation Files
+## Documentation (all under `docs/`)
 
-### Project Documentation
-- `README.md` - Project overview
-- `IMPLEMENTATION_SUMMARY.md` - Feature implementation status
-- `ROLE_PERMISSIONS.md` - Role and permission documentation
-- `SECURITY_IMPROVEMENTS.md` - Security implementation details
-- `TESTING_GUIDE.md` - Testing documentation
-- `QUICK_TEST_GUIDE.md` - Quick testing reference
+See [docs/README.md](../README.md) for the full index. Key docs:
+
+- **CURSOR.md** (project root) - Quick reference and core changes log
+- **architecture/** - This file
+- **guides/** - Testing, Docker, permissions, roles
+- **features/** - Online fees (Part C), etc.
+- **compliance/** - Client report, phase requirements, security
+- **development/** - Table/button components
 
 ---
 
 ## Statistics
 
 ### Codebase Metrics
-- **Controllers:** 38 total
-  - Admin View Controllers: 7
-  - API Controllers: 10
-  - Auth Controllers: 7
-  - Other Controllers: 14
-- **Models:** 22 total
+- **Controllers:** 38+ total (incl. ImportLogController, ReviewQueueViewController for exceptions)
+- **Models:** 22+ total
 - **Migrations:** 43 total
 - **Views:** 73+ Blade templates
 - **Middleware:** 10 custom middleware
@@ -738,26 +745,5 @@ php artisan security:audit-routes  # Audit route protection
 
 ---
 
-## Conclusion
-
-This is a comprehensive restaurant management backend system with:
-
-✅ **Complete user management** with role-based access control  
-✅ **Multi-store support** with flexible assignments  
-✅ **Daily reporting system** with approval workflow  
-✅ **Financial management** (COA, vendors, expenses)  
-✅ **Bank reconciliation** with auto-matching  
-✅ **Third-party integration** (Grubhub, UberEats, DoorDash)  
-✅ **P&L reporting** with advanced analytics  
-✅ **Review queue** for exception handling  
-✅ **Comprehensive security** with audit logging  
-✅ **Modern tech stack** (Laravel 12, PHP 8.2+)  
-
-The system is production-ready with comprehensive testing, security measures, and documentation.
-
----
-
-**Last Updated:** December 2024  
-**Version:** 2.0  
+**Last Updated:** March 2025 (docs reorganized; Exceptions Report, Import Log, Admin Reports rename)  
 **Status:** ✅ Production Ready
-

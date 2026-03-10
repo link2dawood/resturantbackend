@@ -65,4 +65,31 @@ class ReviewQueueViewController extends Controller
 
         return view('admin.review-queue.index', compact('groupedTransactions', 'stats', 'stores', 'vendors', 'coas'));
     }
+
+    /**
+     * Exceptions Report: transactions the system didn't recognize. Assign category and "Remember for future" to train.
+     */
+    public function exceptionsReport(Request $request)
+    {
+        $user = auth()->user();
+        $accessibleStoreIds = $user->getAccessibleStoreIds();
+        $query = ExpenseTransaction::with(['store', 'vendor', 'coa', 'creator'])->where('needs_review', true);
+        $query->whereIn('store_id', $accessibleStoreIds);
+        if ($request->filled('store_id') && $user->hasStoreAccess($request->store_id)) {
+            $query->where('store_id', $request->store_id);
+        }
+        if ($request->filled('review_reason')) {
+            $query->where('review_reason', $request->review_reason);
+        }
+        $groupedTransactions = $query->orderBy('transaction_date', 'desc')->get()->groupBy('review_reason');
+        $stats = [
+            'total_pending' => ExpenseTransaction::where('needs_review', true)->whereIn('store_id', $accessibleStoreIds)->count(),
+            'by_reason' => ExpenseTransaction::where('needs_review', true)->whereIn('store_id', $accessibleStoreIds)->select('review_reason', DB::raw('count(*) as count'))->groupBy('review_reason')->pluck('count', 'review_reason'),
+            'by_store' => ExpenseTransaction::where('needs_review', true)->whereIn('store_id', $accessibleStoreIds)->select('store_id', DB::raw('count(*) as count'))->groupBy('store_id')->with('store:id,store_info')->get()->mapWithKeys(fn($item) => [$item->store->store_info ?? 'Unknown' => $item->count]),
+        ];
+        $stores = Store::whereIn('id', $accessibleStoreIds)->get();
+        $vendors = Vendor::where('is_active', true)->orderBy('vendor_name')->get();
+        $coas = ChartOfAccount::where('is_active', true)->orderBy('account_name')->get();
+        return view('admin.exceptions-report.index', compact('groupedTransactions', 'stats', 'stores', 'vendors', 'coas'));
+    }
 }

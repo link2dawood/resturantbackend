@@ -1,5 +1,5 @@
 @extends('layouts.tabler')
-@section('title', 'Audit Logs')
+@section('title', 'Admin Reports')
 @section('content')
 
 <style>
@@ -54,7 +54,7 @@
     <!-- Page Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h1 class="mb-0" style="font-family: 'Google Sans', sans-serif; font-size: 1.75rem; font-weight: 400; color: var(--on-surface, #202124);">Audit Logs</h1>
+            <h1 class="mb-0" style="font-family: 'Google Sans', sans-serif; font-size: 1.75rem; font-weight: 400; color: var(--on-surface, #202124);">Admin Reports</h1>
             <p class="text-muted mb-0" style="font-family: 'Google Sans', sans-serif; margin-top: 0.25rem;">Track all system activities and changes</p>
         </div>
     </div>

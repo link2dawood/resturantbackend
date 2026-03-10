@@ -89,6 +89,21 @@ class MerchantFeeViewController extends Controller
             'platform'
         ));
     }
+
+    /**
+     * Show a single third-party statement (detail page with proper UI)
+     */
+    public function thirdPartyStatementShow(ThirdPartyStatement $statement)
+    {
+        $user = auth()->user();
+        if (!$user->hasStoreAccess($statement->store_id)) {
+            abort(403, 'You do not have access to this statement.');
+        }
+
+        $statement->load(['store', 'importer', 'expenses.vendor', 'expenses.coa']);
+
+        return view('admin.merchant-fees.third-party-show', compact('statement'));
+    }
     
     /**
      * Get merchant processing statistics

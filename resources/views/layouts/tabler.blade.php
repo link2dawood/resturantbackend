@@ -802,18 +802,58 @@
                             </a>
                         </li>
                         @endif
-                        
-                        <!-- System Administration (Admin Only) -->
-                        @if(Auth::user()->isAdmin() && Auth::user()->hasPermission('view_audit_logs'))
-                        <li class="nav-item">
-                            <a class="nav-link d-flex align-items-center {{ request()->routeIs('audit-logs.*') ? 'active' : '' }}" href="{{ route('audit-logs.index') }}" style="padding: 8px 16px; border-radius: 20px; font-family: 'Google Sans', sans-serif; font-weight: 500; font-size: 14px; transition: all 0.2s ease; {{ request()->routeIs('audit-logs.*') ? 'background: #4285f4; color: white;' : 'color: #5f6368;' }}" onmouseover="if(!this.classList.contains('active')) { this.style.background='#f1f3f4'; this.style.color='#1a73e8'; }" onmouseout="if(!this.classList.contains('active')) { this.style.background='transparent'; this.style.color='#5f6368'; }">
+
+                        <!-- Merchant Fees & CC Statements (Admin, Owner) - single nav item with sub-items -->
+                        @if(Auth::user()->isAdmin() || Auth::user()->isOwner())
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle d-flex align-items-center {{ request()->routeIs('admin.owner-cc-statements.*') || request()->routeIs('admin.merchant-fees.*') || request()->routeIs('admin.exceptions-report.*') || request()->routeIs('admin.import-log.*') || request()->routeIs('audit-logs.*') ? 'active' : '' }}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="padding: 8px 16px; border-radius: 20px; font-family: 'Google Sans', sans-serif; font-weight: 500; font-size: 14px; transition: all 0.2s ease; {{ request()->routeIs('admin.owner-cc-statements.*') || request()->routeIs('admin.merchant-fees.*') || request()->routeIs('admin.exceptions-report.*') || request()->routeIs('admin.import-log.*') || request()->routeIs('audit-logs.*') ? 'background: #4285f4; color: white;' : 'color: #5f6368;' }}" onmouseover="if(!this.classList.contains('active')) { this.style.background='#f1f3f4'; this.style.color='#1a73e8'; }" onmouseout="if(!this.classList.contains('active')) { this.style.background='transparent'; this.style.color='#5f6368'; }">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
-                                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
-                                    <polyline points="14,2 14,8 20,8"/>
-                                    <line x1="16" y1="13" x2="8" y2="13"/>
-                                    <line x1="16" y1="17" x2="8" y2="17"/>
+                                    <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
+                                    <line x1="1" y1="10" x2="23" y2="10"/>
                                 </svg>
-                                Audit Logs
+                                Merchant Fees
+                            </a>
+                            <ul class="dropdown-menu" style="border-radius: 12px; border: 1px solid #e0e0e0; box-shadow: 0 4px 12px rgba(0,0,0,0.15); padding: 8px 0;">
+                                @if(Route::has('admin.owner-cc-statements.index'))
+                                <li><a class="dropdown-item d-flex align-items-center" href="{{ route('admin.owner-cc-statements.index') }}" style="padding: 8px 16px; font-family: 'Google Sans', sans-serif; font-size: 14px; border-radius: 8px; margin: 0 8px;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/><path d="M12 15h4"/></svg>
+                                    Owner CC Statements
+                                </a></li>
+                                <li><hr class="dropdown-divider mx-3"></li>
+                                @endif
+                                <li><a class="dropdown-item d-flex align-items-center" href="{{ route('admin.merchant-fees.index') }}" style="padding: 8px 16px; font-family: 'Google Sans', sans-serif; font-size: 14px; border-radius: 8px; margin: 0 8px;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+                                    Merchant Fee Analytics
+                                </a></li>
+                                <li><a class="dropdown-item d-flex align-items-center" href="{{ route('admin.merchant-fees.third-party') }}" style="padding: 8px 16px; font-family: 'Google Sans', sans-serif; font-size: 14px; border-radius: 8px; margin: 0 8px;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-2"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
+                                    Third-Party Platforms
+                                </a></li>
+                                <li><a class="dropdown-item d-flex align-items-center" href="{{ route('admin.exceptions-report.index') }}" style="padding: 8px 16px; font-family: 'Google Sans', sans-serif; font-size: 14px; border-radius: 8px; margin: 0 8px;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                                    Exceptions Report
+                                </a></li>
+                                <li><a class="dropdown-item d-flex align-items-center" href="{{ route('admin.import-log.index') }}" style="padding: 8px 16px; font-family: 'Google Sans', sans-serif; font-size: 14px; border-radius: 8px; margin: 0 8px;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                                    Download/Upload Log
+                                </a></li>
+                                @if(Auth::user()->isAdmin() && Auth::user()->hasPermission('view_audit_logs'))
+                                <li><hr class="dropdown-divider mx-3"></li>
+                                <li><a class="dropdown-item d-flex align-items-center" href="{{ route('audit-logs.index') }}" style="padding: 8px 16px; font-family: 'Google Sans', sans-serif; font-size: 14px; border-radius: 8px; margin: 0 8px;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                                    Admin Reports
+                                </a></li>
+                                @endif
+                            </ul>
+                        </li>
+                        @endif
+                        
+                        <!-- System Administration (Admin Only) - Audit Logs renamed to Admin Reports, now under Merchant Fees dropdown; keep standalone for users without Merchant Fees access -->
+                        @if(Auth::user()->isAdmin() && Auth::user()->hasPermission('view_audit_logs') && !(Auth::user()->isAdmin() || Auth::user()->isOwner()))
+                        <li class="nav-item">
+                            <a class="nav-link d-flex align-items-center {{ request()->routeIs('audit-logs.*') ? 'active' : '' }}" href="{{ route('audit-logs.index') }}" style="padding: 8px 16px; border-radius: 20px; font-family: 'Google Sans', sans-serif; font-weight: 500; font-size: 14px;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                                Admin Reports
                             </a>
                         </li>
                         @endif

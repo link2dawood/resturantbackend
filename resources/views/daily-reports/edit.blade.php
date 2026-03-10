@@ -730,8 +730,12 @@
                                 <td id="onlineRevenue2" class="calculated-field number-input">$0.00</td>
                             </tr>
                             <tr>
-                                <td><strong>Credit Cards:</strong></td>
+                                <td><strong>Credit Card (Square sales):</strong><br><small class="text-muted">Square fee (2.45%) is calculated automatically on save</small></td>
                                 <td id="creditCards2" class="calculated-field number-input"><input type="number" name="credit_cards" id="creditCardsInput" class="form-input number-input" value="{{ $dailyReport->credit_cards }}" style="background: #e7f3ff !important;"></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Square fee (2.45%):</strong></td>
+                                <td id="squareFeePreview" class="calculated-field number-input">${{ number_format($dailyReport->credit_cards * 0.0245, 2) }}</td>
                             </tr>
                             <tr>
                                 <td><strong>Cash To Account For:</strong></td>
@@ -853,6 +857,13 @@ function calculateTotals() {
         }
         
         creditCards = parseFloat(creditCardsInput.value || 0);
+    }
+
+    // Square fee preview (2.45% — auto-calculated on save)
+    const squareFeeEl = document.getElementById('squareFeePreview');
+    if (squareFeeEl) {
+        const squareFee = creditCards * 0.0245;
+        squareFeeEl.textContent = '$' + squareFee.toFixed(2);
     }
     
     // Cash To Account For = Net Sales - Total Transaction Expenses - Online Platform Revenue - Credit Cards - Checks - Crypto

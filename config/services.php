@@ -41,4 +41,13 @@ return [
         'redirect' => env('GOOGLE_REDIRECT_URI'),
     ],
 
+    /*
+    | Square merchant processing (credit card sales)
+    | Fee is auto-calculated when daily report is saved: fee_rate × credit_cards.
+    | Example: 2.45% of $1,000 = $24.50.
+    */
+    'square' => [
+        'fee_rate' => (float) (env('SQUARE_FEE_RATE', '2.45') / 100),
+    ],
+
 ];

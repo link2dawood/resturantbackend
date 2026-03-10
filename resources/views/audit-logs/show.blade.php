@@ -1,5 +1,5 @@
 @extends('layouts.tabler')
-@section('title', 'Audit Log Details')
+@section('title', 'Admin Report Details')
 @section('content')
 
 <style>
@@ -164,13 +164,13 @@
 <div class="container-xl">
     <div class="mb-3">
         <a href="{{ route('audit-logs.index') }}" class="back-btn">
-            ← Back to Audit Logs
+            ← Back to Admin Reports
         </a>
     </div>
     
     <div class="audit-detail-card">
         <div class="audit-header">
-            <h1>🔍 Audit Log Details</h1>
+            <h1>🔍 Admin Report Details</h1>
             <p>{{ $auditLog->action_description }} - {{ \App\Helpers\DateFormatter::toUSWithTime($auditLog->created_at) }}</p>
         </div>
         
