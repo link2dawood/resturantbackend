@@ -381,15 +381,45 @@ class OwnerCcStatementImportController extends Controller
 
     /**
      * Build map of column name (lowercase) => index.
+     * Accepts exact matches and common variants (e.g. "Credit Amount", "Credits" -> credit).
      */
     protected function buildHeaderMap(array $header): array
     {
-        $expected = ['status', 'date', 'description', 'debit', 'credit', 'member name'];
         $map = [];
         foreach ($header as $index => $col) {
             $normalized = strtolower(trim((string) $col));
-            if (in_array($normalized, $expected, true)) {
+            if ($normalized === '') {
+                continue;
+            }
+            // Exact matches
+            if (in_array($normalized, ['status', 'date', 'description', 'debit', 'credit', 'member name'], true)) {
                 $map[$normalized] = $index;
+                continue;
+            }
+            // Debit: column name contains "debit" but not "credit" (avoid "credit" matching debit)
+            if (str_contains($normalized, 'debit') && ! str_contains($normalized, 'credit')) {
+                $map['debit'] = $index;
+            }
+            // Credit: column name contains "credit"
+            if (str_contains($normalized, 'credit')) {
+                $map['credit'] = $index;
+            }
+            // Member: "member name", "member", "member name (optional)"
+            if (str_contains($normalized, 'member')) {
+                $map['member name'] = $index;
+            }
+            // Date: "date", "transaction date", "posting date"
+            if (in_array($normalized, ['date', 'transaction date', 'posting date', 'trans date', 'statement date'], true)
+                || (str_contains($normalized, 'date') && ! isset($map['date']))) {
+                $map['date'] = $index;
+            }
+            // Description
+            if (str_contains($normalized, 'description') || $normalized === 'desc') {
+                $map['description'] = $index;
+            }
+            // Status
+            if (str_contains($normalized, 'status')) {
+                $map['status'] = $index;
             }
         }
         if (! isset($map['date']) || ! isset($map['description'])) {
@@ -409,7 +439,13 @@ class OwnerCcStatementImportController extends Controller
                 return null;
             }
             $val = $row[$idx] ?? null;
-            return $val === null || $val === '' ? null : trim((string) $val);
+            if ($val === null || $val === '') {
+                return null;
+            }
+            if (is_numeric($val)) {
+                return (string) $val;
+            }
+            return trim((string) $val);
         };
         $dateStr = $get('date');
         if (! $dateStr) {
@@ -432,7 +468,14 @@ class OwnerCcStatementImportController extends Controller
                 return null;
             }
             $val = $row[$idx] ?? null;
-            return $val === null || $val === '' ? null : trim((string) $val);
+            if ($val === null || $val === '') {
+                return null;
+            }
+            // Excel may return numeric cells as int/float; ensure we pass a string to parseAmount/trim
+            if (is_numeric($val)) {
+                return (string) $val;
+            }
+            return trim((string) $val);
         };
 
         $dateStr = $get('date');
