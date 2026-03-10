@@ -380,14 +380,27 @@ class OwnerCcStatementImportController extends Controller
     }
 
     /**
+     * Remove UTF-8 BOM from string (common in Excel/CSV exports).
+     */
+    protected function stripBom(string $value): string
+    {
+        $bom = "\xEF\xBB\xBF";
+        if (str_starts_with($value, $bom)) {
+            return substr($value, strlen($bom));
+        }
+        return $value;
+    }
+
+    /**
      * Build map of column name (lowercase) => index.
-     * Accepts exact matches and common variants (e.g. "Credit Amount", "Credits" -> credit).
+     * Expects: Status, Date, Description, Debit, Credit, Member Name (with or without BOM).
      */
     protected function buildHeaderMap(array $header): array
     {
         $map = [];
         foreach ($header as $index => $col) {
-            $normalized = strtolower(trim((string) $col));
+            $raw = $this->stripBom(trim((string) $col));
+            $normalized = strtolower($raw);
             if ($normalized === '') {
                 continue;
             }
@@ -400,8 +413,10 @@ class OwnerCcStatementImportController extends Controller
             if (str_contains($normalized, 'debit') && ! str_contains($normalized, 'credit')) {
                 $map['debit'] = $index;
             }
-            // Credit: column name contains "credit"
+            // Credit: column name contains "credit", or "deposit"/"payment" (bank wording for money in)
             if (str_contains($normalized, 'credit')) {
+                $map['credit'] = $index;
+            } elseif (! isset($map['credit']) && in_array($normalized, ['deposit', 'deposits', 'deposit amount', 'payment', 'payments', 'payment amount'], true)) {
                 $map['credit'] = $index;
             }
             // Member: "member name", "member", "member name (optional)"
@@ -420,6 +435,11 @@ class OwnerCcStatementImportController extends Controller
             // Status
             if (str_contains($normalized, 'status')) {
                 $map['status'] = $index;
+            }
+            // Single "Amount" column (signed: positive=debit, negative=credit)
+            if (in_array($normalized, ['amount', 'transaction amount', 'amt', 'sum'], true)
+                || (str_contains($normalized, 'amount') && ! str_contains($normalized, 'debit') && ! str_contains($normalized, 'credit'))) {
+                $map['amount'] = $index;
             }
         }
         if (! isset($map['date']) || ! isset($map['description'])) {
@@ -487,8 +507,30 @@ class OwnerCcStatementImportController extends Controller
             return null;
         }
 
-        $debit = $this->parseAmount($get('debit') ?? '0');
-        $credit = $this->parseAmount($get('credit') ?? '0');
+        $debitRaw = $get('debit');
+        $creditRaw = $get('credit');
+        $amountRaw = $get('amount'); // single signed amount column (optional)
+
+        $debit = 0.0;
+        $credit = 0.0;
+
+        if ($amountRaw !== null && $amountRaw !== '') {
+            // Single "Amount" column: positive = debit, negative = credit (common bank export)
+            $amount = $this->parseAmount($amountRaw);
+            if ($amount >= 0) {
+                $debit = $amount;
+            } else {
+                $credit = abs($amount);
+            }
+        } else {
+            $debit = $this->parseAmount($debitRaw ?? '0');
+            $credit = $this->parseAmount($creditRaw ?? '0');
+            // If file has only one amount column (e.g. "Debit") and bank puts credits as negative: treat negative as credit
+            if ($credit === 0.0 && $debit < 0) {
+                $credit = abs($debit);
+                $debit = 0.0;
+            }
+        }
 
         return [
             'owner_cc_statement_import_id' => $importId,
