@@ -191,7 +191,15 @@ class OwnerCcStatementImportController extends Controller
     public function show(OwnerCcStatementImport $ownerCcStatementImport)
     {
         $ownerCcStatementImport->load(['importer', 'store', 'lines.transactionType', 'lines.chartOfAccount']);
-        $chartOfAccounts = ChartOfAccount::active()->orderBy('account_code')->get();
+        // Expenses and COGS only: account codes 5001–5999 and 6001–6999 (exclude 5000 and 6000)
+        $chartOfAccounts = ChartOfAccount::active()
+            ->whereIn('account_type', ['Expense', 'COGS'])
+            ->where(function ($q) {
+                $q->whereRaw('CAST(account_code AS UNSIGNED) BETWEEN 5001 AND 5999')
+                    ->orWhereRaw('CAST(account_code AS UNSIGNED) BETWEEN 6001 AND 6999');
+            })
+            ->orderBy('account_code')
+            ->get();
 
         return view('admin.owner-cc-statements.show', [
             'import' => $ownerCcStatementImport,
