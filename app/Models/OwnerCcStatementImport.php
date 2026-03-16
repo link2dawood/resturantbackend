@@ -14,6 +14,7 @@ class OwnerCcStatementImport extends Model
         'file_name',
         'file_hash',
         'file_path',
+        'card_last4',
         'rows_imported',
         'rows_skipped',
         'import_exceptions',

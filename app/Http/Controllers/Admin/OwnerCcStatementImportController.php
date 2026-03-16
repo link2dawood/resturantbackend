@@ -190,7 +190,7 @@ class OwnerCcStatementImportController extends Controller
      */
     public function show(OwnerCcStatementImport $ownerCcStatementImport)
     {
-        $ownerCcStatementImport->load(['importer', 'store', 'lines.transactionType', 'lines.chartOfAccount']);
+        $ownerCcStatementImport->load(['importer', 'store', 'lines.transactionType', 'lines.chartOfAccount', 'lines.store']);
         // Expenses and COGS only: account codes 5001–5999 and 6001–6999 (exclude 5000 and 6000),
         // and exclude “total” rollup accounts that are sums of the detailed rows below.
         $chartOfAccounts = ChartOfAccount::active()
@@ -203,10 +203,33 @@ class OwnerCcStatementImportController extends Controller
             ->orderBy('account_code')
             ->get();
 
+        $user = auth()->user();
+        $stores = Store::whereIn('id', $user->getAccessibleStoreIds())->orderBy('store_info')->get();
+
         return view('admin.owner-cc-statements.show', [
             'import' => $ownerCcStatementImport,
             'chartOfAccounts' => $chartOfAccounts,
+            'stores' => $stores,
         ]);
+    }
+
+    /**
+     * Set card last 4 for the statement; apply to import and all lines that don't have it.
+     */
+    public function updateCardLast4(Request $request, OwnerCcStatementImport $ownerCcStatementImport): RedirectResponse
+    {
+        $request->validate([
+            'card_last4' => ['required', 'string', 'size:4', 'regex:/^[0-9]{4}$/'],
+        ]);
+
+        $last4 = $request->input('card_last4');
+
+        DB::transaction(function () use ($ownerCcStatementImport, $last4) {
+            $ownerCcStatementImport->update(['card_last4' => $last4]);
+            $ownerCcStatementImport->lines()->whereNull('card_last4')->update(['card_last4' => $last4]);
+        });
+
+        return back()->with('success', 'Card last 4 set to ' . $last4 . ' for this statement and all transactions.');
     }
 
     /**
@@ -263,15 +286,19 @@ class OwnerCcStatementImportController extends Controller
      */
     public function bulkUpdateLines(Request $request, OwnerCcStatementImport $ownerCcStatementImport): RedirectResponse
     {
+        $user = auth()->user();
+        $accessibleStoreIds = $user->getAccessibleStoreIds();
+
         $data = $request->validate([
             'lines' => ['required', 'array'],
             'lines.*.id' => ['required', 'integer', 'exists:owner_cc_statement_lines,id'],
             'lines.*.coa_id' => ['nullable', 'integer', 'exists:chart_of_accounts,id'],
+            'lines.*.store_id' => ['nullable', 'integer', 'exists:stores,id'],
         ]);
 
         $linesData = $data['lines'] ?? [];
 
-        DB::transaction(function () use ($linesData, $ownerCcStatementImport) {
+        DB::transaction(function () use ($linesData, $ownerCcStatementImport, $accessibleStoreIds) {
             foreach ($linesData as $lineData) {
                 /** @var \App\Models\OwnerCcStatementLine|null $line */
                 $line = $ownerCcStatementImport->lines()->whereKey($lineData['id'])->first();
@@ -280,7 +307,14 @@ class OwnerCcStatementImportController extends Controller
                 }
 
                 $coaId = $lineData['coa_id'] ?? null;
-                $line->update(['coa_id' => $coaId ?: null]);
+                $storeId = isset($lineData['store_id']) && in_array((int) $lineData['store_id'], $accessibleStoreIds, true)
+                    ? (int) $lineData['store_id']
+                    : null;
+
+                $line->update([
+                    'coa_id' => $coaId ?: null,
+                    'store_id' => $storeId,
+                ]);
                 $this->saveLearnedMapping($line, $coaId);
             }
         });
@@ -316,23 +350,26 @@ class OwnerCcStatementImportController extends Controller
         $import = $ownerCcStatementImport->load('lines');
         $filename = 'cc-statement-' . pathinfo($import->file_name, PATHINFO_FILENAME) . '-' . $import->created_at->format('Y-m-d') . '.csv';
 
-        $import->load('lines.transactionType', 'lines.chartOfAccount');
+        $import->load('lines.transactionType', 'lines.chartOfAccount', 'lines.store');
 
         return response()->streamDownload(function () use ($import) {
             $handle = fopen('php://output', 'w');
-            fputcsv($handle, ['Status', 'Date', 'Description', 'Debit', 'Credit', 'Member Name', 'Chart of Account']);
+            fputcsv($handle, ['Last 4 CC', 'Date', 'Description', 'Debit', 'Credit', 'Member Name', 'Store', 'Chart of Account']);
 
             foreach ($import->lines as $line) {
+                $last4 = $line->card_last4 ?? $import->card_last4 ?? '';
+                $storeLabel = $line->store ? $line->store->store_info : ($import->store ? $import->store->store_info : '');
                 $coaLabel = $line->chartOfAccount
                     ? ($line->chartOfAccount->account_code . ' - ' . $line->chartOfAccount->account_name)
                     : '';
                 fputcsv($handle, [
-                    $line->status ?? '',
+                    $last4,
                     $line->transaction_date->format('m/d/Y'),
                     $line->description ?? '',
                     $line->debit > 0 ? (string) $line->debit : '',
                     $line->credit > 0 ? (string) $line->credit : '',
                     $line->member_name ?? '',
+                    $storeLabel,
                     $coaLabel,
                 ]);
             }
@@ -498,6 +535,11 @@ class OwnerCcStatementImportController extends Controller
             if (str_contains($normalized, 'status')) {
                 $map['status'] = $index;
             }
+            // Card last 4 (optional)
+            if (in_array($normalized, ['card last4', 'card last 4', 'last 4', 'last4', 'last four'], true)
+                || (str_contains($normalized, 'last') && str_contains($normalized, '4'))) {
+                $map['card last4'] = $index;
+            }
             // Single "Amount" column (signed: positive=debit, negative=credit)
             if (in_array($normalized, ['amount', 'transaction amount', 'amt', 'sum'], true)
                 || (str_contains($normalized, 'amount') && ! str_contains($normalized, 'debit') && ! str_contains($normalized, 'credit'))) {
@@ -594,6 +636,15 @@ class OwnerCcStatementImportController extends Controller
             }
         }
 
+        $cardLast4Raw = $get('card last4');
+        $cardLast4 = null;
+        if ($cardLast4Raw !== null && $cardLast4Raw !== '') {
+            $digits = preg_replace('/\D/', '', $cardLast4Raw);
+            if (strlen($digits) >= 4) {
+                $cardLast4 = substr($digits, -4);
+            }
+        }
+
         return [
             'owner_cc_statement_import_id' => $importId,
             'status' => $get('status'),
@@ -602,6 +653,7 @@ class OwnerCcStatementImportController extends Controller
             'debit' => $debit,
             'credit' => $credit,
             'member_name' => $get('member name'),
+            'card_last4' => $cardLast4,
         ];
     }
 

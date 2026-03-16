@@ -69,6 +69,25 @@
     </div>
     @endif
 
+    <div class="card mb-4">
+        <div class="card-header">
+            <h3 class="card-title mb-0">Card last 4 digits</h3>
+        </div>
+        <div class="card-body">
+            <form action="{{ route('admin.owner-cc-statements.card-last4', $import) }}" method="POST" class="row g-2 align-items-end">
+                @csrf
+                <div class="col-auto">
+                    <label for="card_last4" class="form-label mb-0">Last 4 of credit card for this statement</label>
+                    <input type="text" name="card_last4" id="card_last4" class="form-control form-control-sm" maxlength="4" pattern="[0-9]{4}" placeholder="1234" value="{{ old('card_last4', $import->card_last4) }}" style="width: 5rem;">
+                </div>
+                <div class="col-auto">
+                    <button type="submit" class="btn btn-primary btn-sm">Save & apply to all transactions</button>
+                </div>
+            </form>
+            <p class="text-muted small mb-0 mt-2">If your file doesn’t include the card number, enter it here; it will be applied to every transaction in this import.</p>
+        </div>
+    </div>
+
     <div class="card">
         <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
             <h3 class="card-title mb-0">Statement records ({{ number_format($import->lines->count()) }})</h3>
@@ -81,11 +100,12 @@
                     <thead>
                         <tr>
                             <th>Date</th>
-                            <th>Status</th>
+                            <th>Last 4 CC</th>
                             <th>Description</th>
                             <th class="text-end">Debit</th>
                             <th class="text-end">Credit</th>
                             <th>Member</th>
+                            <th>Store</th>
                             <th>Chart of Account</th>
                         </tr>
                     </thead>
@@ -93,11 +113,19 @@
                         @forelse($import->lines as $index => $line)
                             <tr>
                                 <td>{{ $line->transaction_date->format('m/d/Y') }}</td>
-                                <td><span class="badge bg-azure-lt">{{ $line->status ?? '—' }}</span></td>
+                                <td><span class="badge bg-azure-lt">{{ $line->card_last4 ?? $import->card_last4 ?? '—' }}</span></td>
                                 <td>{{ Str::limit($line->description, 50) }}</td>
                                 <td class="text-end">{{ $line->debit > 0 ? '$' . number_format($line->debit, 2) : '—' }}</td>
                                 <td class="text-end">{{ $line->credit > 0 ? '$' . number_format($line->credit, 2) : '—' }}</td>
                                 <td>{{ $line->member_name ?? '—' }}</td>
+                                <td>
+                                    <select name="lines[{{ $index }}][store_id]" class="form-select form-select-sm" style="min-width: 160px;">
+                                        <option value="">— Same as import —</option>
+                                        @foreach($stores as $store)
+                                            <option value="{{ $store->id }}" {{ (int) $line->store_id === (int) $store->id ? 'selected' : '' }}>{{ $store->store_info }}</option>
+                                        @endforeach
+                                    </select>
+                                </td>
                                 <td>
                                     <input type="hidden" name="lines[{{ $index }}][id]" value="{{ $line->id }}">
                                     <select name="lines[{{ $index }}][coa_id]" class="form-select form-select-sm" style="min-width: 200px;">
@@ -112,7 +140,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="text-center text-muted py-4">No transactions in this import.</td>
+                                <td colspan="8" class="text-center text-muted py-4">No transactions in this import.</td>
                             </tr>
                         @endforelse
                     </tbody>

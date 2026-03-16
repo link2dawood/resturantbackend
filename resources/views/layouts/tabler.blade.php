@@ -803,7 +803,7 @@
                         </li>
                         @endif
 
-                        <!-- Merchant Fees & CC Statements (Admin, Owner) - single nav item with sub-items -->
+                        <!-- Transactions (Admin, Owner) - Owner CC Statements, Merchant Fee Analytics, Third-Party, etc. -->
                         @if(Auth::user()->isAdmin() || Auth::user()->isOwner())
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle d-flex align-items-center {{ request()->routeIs('admin.owner-cc-statements.*') || request()->routeIs('admin.merchant-fees.*') || request()->routeIs('admin.exceptions-report.*') || request()->routeIs('admin.import-log.*') || request()->routeIs('audit-logs.*') ? 'active' : '' }}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="padding: 8px 16px; border-radius: 20px; font-family: 'Google Sans', sans-serif; font-weight: 500; font-size: 14px; transition: all 0.2s ease; {{ request()->routeIs('admin.owner-cc-statements.*') || request()->routeIs('admin.merchant-fees.*') || request()->routeIs('admin.exceptions-report.*') || request()->routeIs('admin.import-log.*') || request()->routeIs('audit-logs.*') ? 'background: #4285f4; color: white;' : 'color: #5f6368;' }}" onmouseover="if(!this.classList.contains('active')) { this.style.background='#f1f3f4'; this.style.color='#1a73e8'; }" onmouseout="if(!this.classList.contains('active')) { this.style.background='transparent'; this.style.color='#5f6368'; }">
@@ -811,7 +811,7 @@
                                     <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
                                     <line x1="1" y1="10" x2="23" y2="10"/>
                                 </svg>
-                                Merchant Fees
+                                Transactions
                             </a>
                             <ul class="dropdown-menu" style="border-radius: 12px; border: 1px solid #e0e0e0; box-shadow: 0 4px 12px rgba(0,0,0,0.15); padding: 8px 0;">
                                 @if(Route::has('admin.owner-cc-statements.index'))
