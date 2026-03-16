@@ -954,6 +954,7 @@ function calculateTotals() {
     if (squareFeeEl) {
         const squareFee = creditCards * 0.0245;
         squareFeeEl.textContent = '$' + squareFee.toFixed(2);
+
     }
     
     // Cash To Account For = Net Sales - Total Transaction Expenses - Online Platform Revenue - Credit Cards - Checks - Crypto

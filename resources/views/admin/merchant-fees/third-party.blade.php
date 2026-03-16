@@ -315,21 +315,24 @@ document.getElementById('uploadForm')?.addEventListener('submit', function(e) {
         credentials: 'same-origin',
         body: formData
     })
-    .then(response => response.json())
-    .then(result => {
-        if (result.message) {
-            alert('Success: ' + result.message);
-        } else if (result.error) {
-            alert('Error: ' + result.error);
+    .then(async function(response) {
+        const result = await response.json().catch(function() { return {}; });
+        if (response.ok) {
+            if (result.message) {
+                alert('Success: ' + result.message);
+            }
+            bootstrap.Modal.getInstance(document.getElementById('uploadModal')).hide();
+            window.location.reload();
+        } else {
+            const msg = result.error || result.message || response.statusText || 'Import failed';
+            alert('Error: ' + msg);
         }
         spinner.classList.add('d-none');
         document.getElementById('uploadBtn').disabled = false;
-        bootstrap.Modal.getInstance(document.getElementById('uploadModal')).hide();
-        setTimeout(() => window.location.reload(), 500);
     })
-    .catch(error => {
+    .catch(function(error) {
         console.error('Error:', error);
-        alert('Error uploading statement');
+        alert('Error uploading statement. Check the file format (PDF for Grubhub, CSV for Uber Eats/DoorDash) and try again.');
         spinner.classList.add('d-none');
         document.getElementById('uploadBtn').disabled = false;
     });

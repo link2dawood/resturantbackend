@@ -28,10 +28,15 @@ class ThirdPartyImportController extends Controller
             'file' => 'required|file|mimes:pdf,csv,xlsx,xls|max:10240',
         ]);
 
+        $storeId = (int) $request->input('store_id');
+        $user = auth()->user();
+        if (! $user->hasStoreAccess($storeId)) {
+            return response()->json(['error' => 'You do not have access to the selected store.'], 403);
+        }
+
         try {
             $file = $request->file('file');
             $platform = $request->input('platform');
-            $storeId = $request->input('store_id');
 
             // Generate file hash for duplicate detection
             $fileHash = md5_file($file->getRealPath());

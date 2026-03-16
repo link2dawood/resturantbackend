@@ -63,27 +63,34 @@ class MerchantFeeViewController extends Controller
      */
     public function thirdParty(Request $request)
     {
-        $stores = Store::all();
-        
+        $user = auth()->user();
+        $accessibleStoreIds = $user->getAccessibleStoreIds();
+        $stores = Store::whereIn('id', $accessibleStoreIds)->orderBy('store_info')->get();
+
         // Set default date range
         $startDate = $request->input('start_date', now()->startOfMonth()->format('Y-m-d'));
         $endDate = $request->input('end_date', now()->endOfMonth()->format('Y-m-d'));
         $storeId = $request->input('store_id');
         $platform = $request->input('platform');
-        
-        // Get summary stats
-        $summary = $this->getThirdPartySummary($storeId, $startDate, $endDate);
-        
-        // Get platform breakdown
-        $platformBreakdown = $this->getThirdPartyBreakdown($storeId, $startDate, $endDate);
-        
-        // Get import history
+
+        // Restrict store filter to accessible stores only
+        if ($storeId && ! in_array((int) $storeId, $accessibleStoreIds, true)) {
+            $storeId = null;
+        }
+
+        // Get summary stats (scoped to accessible stores)
+        $summary = $this->getThirdPartySummary($storeId, $startDate, $endDate, $accessibleStoreIds);
+
+        // Get platform breakdown (scoped to accessible stores)
+        $platformBreakdown = $this->getThirdPartyBreakdown($storeId, $startDate, $endDate, $accessibleStoreIds);
+
+        // Get import history (only statements for accessible stores)
         $importHistory = $this->getThirdPartyImportHistory($storeId, $platform);
-        
+
         return view('admin.merchant-fees.third-party', compact(
-            'stores', 
-            'summary', 
-            'platformBreakdown', 
+            'stores',
+            'summary',
+            'platformBreakdown',
             'importHistory',
             'startDate',
             'endDate',
@@ -308,28 +315,32 @@ class MerchantFeeViewController extends Controller
     }
     
     /**
-     * Get third-party platform summary
+     * Get third-party platform summary (optionally scoped to accessible store IDs).
      */
-    protected function getThirdPartySummary($storeId, $startDate, $endDate)
+    protected function getThirdPartySummary($storeId, $startDate, $endDate, array $accessibleStoreIds = [])
     {
         $query = ThirdPartyStatement::query();
-        
+
+        if (! empty($accessibleStoreIds)) {
+            $query->whereIn('store_id', $accessibleStoreIds);
+        }
+
         if ($storeId) {
             $query->where('store_id', $storeId);
         }
-        
+
         $query->whereBetween('statement_date', [$startDate, $endDate]);
-        
+
         $stats = $query->select(
             DB::raw('COALESCE(SUM(gross_sales), 0) as total_gross_sales'),
             DB::raw('COALESCE(SUM(marketing_fees + delivery_fees + processing_fees), 0) as total_fees'),
             DB::raw('COALESCE(SUM(net_deposit), 0) as total_net_deposit')
         )->first();
-        
-        $avgFeePercentage = $stats->total_gross_sales > 0 
-            ? ($stats->total_fees / $stats->total_gross_sales) * 100 
+
+        $avgFeePercentage = $stats->total_gross_sales > 0
+            ? ($stats->total_fees / $stats->total_gross_sales) * 100
             : 0;
-        
+
         return [
             'total_gross_sales' => $stats->total_gross_sales,
             'total_fees' => $stats->total_fees,
@@ -337,49 +348,57 @@ class MerchantFeeViewController extends Controller
             'average_fee_percentage' => round($avgFeePercentage, 2),
         ];
     }
-    
+
     /**
-     * Get third-party platform breakdown
+     * Get third-party platform breakdown (optionally scoped to accessible store IDs).
      */
-    protected function getThirdPartyBreakdown($storeId, $startDate, $endDate)
+    protected function getThirdPartyBreakdown($storeId, $startDate, $endDate, array $accessibleStoreIds = [])
     {
         $query = ThirdPartyStatement::select(
-                'platform',
-                DB::raw('SUM(gross_sales) as total_gross_sales'),
-                DB::raw('SUM(marketing_fees) as total_marketing_fees'),
-                DB::raw('SUM(delivery_fees) as total_delivery_fees'),
-                DB::raw('SUM(processing_fees) as total_processing_fees'),
-                DB::raw('SUM(marketing_fees + delivery_fees + processing_fees) as total_fees'),
-                DB::raw('SUM(net_deposit) as total_net_deposit'),
-                DB::raw('COUNT(*) as statement_count')
-            );
-        
+            'platform',
+            DB::raw('SUM(gross_sales) as total_gross_sales'),
+            DB::raw('SUM(marketing_fees) as total_marketing_fees'),
+            DB::raw('SUM(delivery_fees) as total_delivery_fees'),
+            DB::raw('SUM(processing_fees) as total_processing_fees'),
+            DB::raw('SUM(marketing_fees + delivery_fees + processing_fees) as total_fees'),
+            DB::raw('SUM(net_deposit) as total_net_deposit'),
+            DB::raw('COUNT(*) as statement_count')
+        );
+
+        if (! empty($accessibleStoreIds)) {
+            $query->whereIn('store_id', $accessibleStoreIds);
+        }
+
         if ($storeId) {
             $query->where('store_id', $storeId);
         }
-        
+
         $query->whereBetween('statement_date', [$startDate, $endDate]);
-        
+
         return $query->groupBy('platform')
             ->orderByDesc('total_fees')
             ->get();
     }
     
     /**
-     * Get third-party import history
+     * Get third-party import history (only statements for stores the current user can access).
      */
     protected function getThirdPartyImportHistory($storeId, $platform)
     {
-        $query = ThirdPartyStatement::with(['store', 'importer']);
-        
+        $user = auth()->user();
+        $accessibleStoreIds = $user->getAccessibleStoreIds();
+
+        $query = ThirdPartyStatement::with(['store', 'importer'])
+            ->whereIn('store_id', $accessibleStoreIds);
+
         if ($storeId) {
             $query->where('store_id', $storeId);
         }
-        
+
         if ($platform) {
             $query->where('platform', $platform);
         }
-        
+
         return $query->orderBy('statement_date', 'desc')
             ->orderBy('created_at', 'desc')
             ->paginate(25);

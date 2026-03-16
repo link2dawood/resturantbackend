@@ -231,7 +231,8 @@ class OwnerCcStatementImportController extends Controller
     }
 
     /**
-     * Assign Chart of Account to a statement line and save as learned mapping for future imports.
+     * Assign Chart of Account to a single statement line (legacy per-row update).
+     * Kept for compatibility but bulkUpdateLines is preferred by the UI.
      */
     public function updateLineTransactionType(Request $request, OwnerCcStatementLine $ownerCcStatementLine)
     {
@@ -243,18 +244,7 @@ class OwnerCcStatementImportController extends Controller
             'coa_id' => $request->input('coa_id') ?: null,
         ]);
 
-        $coaId = $request->input('coa_id');
-        $pattern = OwnerCcDescriptionMapping::normalizeDescription($ownerCcStatementLine->description);
-        if ($pattern !== '') {
-            OwnerCcDescriptionMapping::updateOrCreate(
-                ['description_pattern' => $pattern],
-                [
-                    'coa_id' => $coaId ?: null,
-                    'transaction_type_id' => null,
-                    'created_by' => auth()->id(),
-                ]
-            );
-        }
+        $this->saveLearnedMapping($ownerCcStatementLine, $request->input('coa_id'));
 
         if ($request->wantsJson()) {
             return response()->json([
@@ -264,6 +254,56 @@ class OwnerCcStatementImportController extends Controller
         }
 
         return back()->with('success', 'Chart of account saved. Future similar transactions will be assigned automatically.');
+    }
+
+    /**
+     * Bulk update Chart of Account for many lines in one request.
+     */
+    public function bulkUpdateLines(Request $request, OwnerCcStatementImport $ownerCcStatementImport): RedirectResponse
+    {
+        $data = $request->validate([
+            'lines' => ['required', 'array'],
+            'lines.*.id' => ['required', 'integer', 'exists:owner_cc_statement_lines,id'],
+            'lines.*.coa_id' => ['nullable', 'integer', 'exists:chart_of_accounts,id'],
+        ]);
+
+        $linesData = $data['lines'] ?? [];
+
+        DB::transaction(function () use ($linesData, $ownerCcStatementImport) {
+            foreach ($linesData as $lineData) {
+                /** @var \App\Models\OwnerCcStatementLine|null $line */
+                $line = $ownerCcStatementImport->lines()->whereKey($lineData['id'])->first();
+                if (! $line) {
+                    continue;
+                }
+
+                $coaId = $lineData['coa_id'] ?? null;
+                $line->update(['coa_id' => $coaId ?: null]);
+                $this->saveLearnedMapping($line, $coaId);
+            }
+        });
+
+        return back()->with('success', 'All changes have been saved for this statement.');
+    }
+
+    /**
+     * Save/update learned description → COA mapping for future imports.
+     */
+    protected function saveLearnedMapping(OwnerCcStatementLine $line, $coaId): void
+    {
+        $pattern = OwnerCcDescriptionMapping::normalizeDescription($line->description);
+        if ($pattern === '') {
+            return;
+        }
+
+        OwnerCcDescriptionMapping::updateOrCreate(
+            ['description_pattern' => $pattern],
+            [
+                'coa_id' => $coaId ?: null,
+                'transaction_type_id' => null,
+                'created_by' => auth()->id(),
+            ]
+        );
     }
 
     /**

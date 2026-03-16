@@ -75,48 +75,56 @@
             <p class="text-muted small mb-0">Assign a Chart of Account below; the system will remember and auto-apply it for similar descriptions on future imports.</p>
         </div>
         <div class="table-responsive">
-            <table class="table table-vcenter card-table table-striped">
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Status</th>
-                        <th>Description</th>
-                        <th class="text-end">Debit</th>
-                        <th class="text-end">Credit</th>
-                        <th>Member</th>
-                        <th>Chart of Account</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse($import->lines as $line)
+            <form action="{{ route('admin.owner-cc-statements.lines.bulk-update', $import) }}" method="POST">
+                @csrf
+                <table class="table table-vcenter card-table table-striped">
+                    <thead>
                         <tr>
-                            <td>{{ $line->transaction_date->format('m/d/Y') }}</td>
-                            <td><span class="badge bg-azure-lt">{{ $line->status ?? '—' }}</span></td>
-                            <td>{{ Str::limit($line->description, 50) }}</td>
-                            <td class="text-end">{{ $line->debit > 0 ? '$' . number_format($line->debit, 2) : '—' }}</td>
-                            <td class="text-end">{{ $line->credit > 0 ? '$' . number_format($line->credit, 2) : '—' }}</td>
-                            <td>{{ $line->member_name ?? '—' }}</td>
-                            <td>
-                                <form action="{{ route('admin.owner-cc-statements.lines.update-type', $line) }}" method="POST" class="d-flex align-items-center gap-1">
-                                    @csrf
-                                    @method('PUT')
-                                    <select name="coa_id" class="form-select form-select-sm" style="min-width: 200px;">
+                            <th>Date</th>
+                            <th>Status</th>
+                            <th>Description</th>
+                            <th class="text-end">Debit</th>
+                            <th class="text-end">Credit</th>
+                            <th>Member</th>
+                            <th>Chart of Account</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($import->lines as $index => $line)
+                            <tr>
+                                <td>{{ $line->transaction_date->format('m/d/Y') }}</td>
+                                <td><span class="badge bg-azure-lt">{{ $line->status ?? '—' }}</span></td>
+                                <td>{{ Str::limit($line->description, 50) }}</td>
+                                <td class="text-end">{{ $line->debit > 0 ? '$' . number_format($line->debit, 2) : '—' }}</td>
+                                <td class="text-end">{{ $line->credit > 0 ? '$' . number_format($line->credit, 2) : '—' }}</td>
+                                <td>{{ $line->member_name ?? '—' }}</td>
+                                <td>
+                                    <input type="hidden" name="lines[{{ $index }}][id]" value="{{ $line->id }}">
+                                    <select name="lines[{{ $index }}][coa_id]" class="form-select form-select-sm" style="min-width: 200px;">
                                         <option value="">— None —</option>
                                         @foreach($chartOfAccounts as $coa)
-                                            <option value="{{ $coa->id }}" {{ (int) $line->coa_id === (int) $coa->id ? 'selected' : '' }}>{{ $coa->account_code }} - {{ $coa->account_name }}</option>
+                                            <option value="{{ $coa->id }}" {{ (int) $line->coa_id === (int) $coa->id ? 'selected' : '' }}>
+                                                {{ $coa->account_code }} - {{ $coa->account_name }}
+                                            </option>
                                         @endforeach
                                     </select>
-                                    <button type="submit" class="btn btn-sm btn-outline-primary">Save</button>
-                                </form>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="7" class="text-center text-muted py-4">No transactions in this import.</td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="7" class="text-center text-muted py-4">No transactions in this import.</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+                @if($import->lines->count() > 0)
+                    <div class="card-footer d-flex justify-content-end">
+                        <button type="submit" class="btn btn-primary">
+                            Save All Changes
+                        </button>
+                    </div>
+                @endif
+            </form>
         </div>
     </div>
 </div>
