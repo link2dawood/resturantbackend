@@ -12,6 +12,26 @@ class ChartOfAccount extends Model
 {
     use HasFactory;
 
+    /**
+     * Account codes that are rollup "totals" (sum of rows below). Hidden from
+     * transaction-type/COA dropdowns on daily reports and owner CC statements.
+     */
+    public static function totalRollupAccountCodes(): array
+    {
+        return [
+            '6200', // Equipment Total
+            '6300', // Insurance Total
+            '6400', // Marketing Total
+            '6450', // Online Merchant Expenses - Total
+            '6500', // Rent Total
+            '6600', // Payroll Total
+            '6700', // Professional Services Total
+            '6800', // Permits and Fees Total
+            '6900', // Travel and Expense Total
+            '6950', // Utilities Total
+        ];
+    }
+
     protected $fillable = [
         'account_code',
         'account_name',

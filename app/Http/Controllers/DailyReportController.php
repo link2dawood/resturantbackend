@@ -218,9 +218,10 @@ class DailyReportController extends Controller
             ->orderBy('name')
             ->get();
 
-        // Get Chart of Accounts for Transaction Type (COA) dropdown; include COGS/Expense + any default_coa_id used by types
+        // Get Chart of Accounts for Transaction Type (COA) dropdown; include COGS/Expense + any default_coa_id used by types; exclude rollup totals
         $defaultCoaIds = TransactionType::whereNotNull('default_coa_id')->pluck('default_coa_id')->unique()->filter()->values()->all();
         $coas = ChartOfAccount::where('is_active', true)
+            ->whereNotIn('account_code', ChartOfAccount::totalRollupAccountCodes())
             ->where(function ($q) use ($defaultCoaIds) {
                 $q->whereIn('account_type', ['COGS', 'Expense'])
                     ->orWhereIn('id', $defaultCoaIds);
@@ -435,9 +436,10 @@ class DailyReportController extends Controller
             ->orderBy('vendor_name')
             ->get();
 
-        // Get Chart of Accounts for transaction type dropdown; include COGS/Expense + any default_coa_id used by types
+        // Get Chart of Accounts for transaction type dropdown; include COGS/Expense + any default_coa_id used by types; exclude rollup totals
         $defaultCoaIds = TransactionType::whereNotNull('default_coa_id')->pluck('default_coa_id')->unique()->filter()->values()->all();
         $coas = ChartOfAccount::where('is_active', true)
+            ->whereNotIn('account_code', ChartOfAccount::totalRollupAccountCodes())
             ->where(function ($q) use ($defaultCoaIds) {
                 $q->whereIn('account_type', ['COGS', 'Expense'])
                     ->orWhereIn('id', $defaultCoaIds);
@@ -648,6 +650,7 @@ class DailyReportController extends Controller
         $revenueTypes = RevenueIncomeType::where('is_active', 1)->orderBy('sort_order')->orderBy('name')->get();
         $defaultCoaIds = TransactionType::whereNotNull('default_coa_id')->pluck('default_coa_id')->unique()->filter()->values()->all();
         $coas = ChartOfAccount::where('is_active', true)
+            ->whereNotIn('account_code', ChartOfAccount::totalRollupAccountCodes())
             ->where(function ($q) use ($defaultCoaIds) {
                 $q->whereIn('account_type', ['COGS', 'Expense'])
                     ->orWhereIn('id', $defaultCoaIds);

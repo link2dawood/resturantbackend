@@ -199,19 +199,7 @@ class OwnerCcStatementImportController extends Controller
                 $q->whereRaw('CAST(account_code AS UNSIGNED) BETWEEN 5001 AND 5999')
                     ->orWhereRaw('CAST(account_code AS UNSIGNED) BETWEEN 6001 AND 6999');
             })
-            ->whereNotIn('account_code', [
-                // COGS / Expense rollup totals that should not be selected on CC lines
-                '6200', // Equipment Total
-                '6300', // Insurance Total
-                '6400', // Marketing Total
-                '6450', // Online Merchant Expenses - Total
-                '6500', // Rent Total
-                '6600', // Payroll Total
-                '6700', // Professional Services Total
-                '6800', // Permits and Fees Total
-                '6900', // Travel and Expense Total
-                '6950', // Utilities Total
-            ])
+            ->whereNotIn('account_code', ChartOfAccount::totalRollupAccountCodes())
             ->orderBy('account_code')
             ->get();
 

@@ -1606,6 +1606,7 @@ window.saveNewVendor = async function() {
                                 @php
                                     $coas = \App\Models\ChartOfAccount::where('is_active', true)
                                         ->whereIn('account_type', ['COGS', 'Expense'])
+                                        ->whereNotIn('account_code', \App\Models\ChartOfAccount::totalRollupAccountCodes())
                                         ->orderBy('account_code')
                                         ->orderBy('account_name')
                                         ->get();
