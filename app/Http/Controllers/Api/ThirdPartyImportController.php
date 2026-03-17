@@ -17,6 +17,19 @@ use Smalot\PdfParser\Parser;
 class ThirdPartyImportController extends Controller
 {
     /**
+     * Fields we expect to reliably extract for a third-party statement.
+     * (statement_id and sales_tax_collected are optional depending on platform/PDF.)
+     */
+    protected const REQUIRED_STATEMENT_FIELDS = [
+        'statement_date',
+        'gross_sales',
+        'net_deposit',
+        'marketing_fees',
+        'delivery_fees',
+        'processing_fees',
+    ];
+
+    /**
      * Import third-party platform statement
      * Supports: Grubhub (PDF), UberEats (CSV), DoorDash (CSV)
      */
@@ -57,7 +70,7 @@ class ThirdPartyImportController extends Controller
 
             if ($isPdf) {
                 // Monthly statement PDF (Grubhub, Uber, DoorDash – e.g. "Jan 2026_Fann's Philly Grill (Round Rock).pdf")
-                $statementData = $this->parseMonthlyStatementPDF($file);
+                $statementData = $this->parseMonthlyStatementPDF($file, $platform);
             } else {
                 switch ($platform) {
                     case 'grubhub':
@@ -72,11 +85,7 @@ class ThirdPartyImportController extends Controller
                 }
             }
 
-            if (!$statementData) {
-                return response()->json([
-                    'error' => 'Failed to parse statement'
-                ], 400);
-            }
+            $this->assertStatementDataIsUsable($statementData);
 
             // Begin transaction
             DB::beginTransaction();
@@ -128,6 +137,15 @@ class ThirdPartyImportController extends Controller
                 'expected_deposit_created' => 1,
             ], 201);
 
+        } catch (\InvalidArgumentException $e) {
+            DB::rollBack();
+            Log::warning('Third-party import parse failed: ' . $e->getMessage(), [
+                'platform' => $request->input('platform'),
+                'file' => $request->file('file')?->getClientOriginalName(),
+            ]);
+            return response()->json([
+                'error' => $e->getMessage(),
+            ], 400);
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Third-party import error: ' . $e->getMessage(), [
@@ -145,61 +163,135 @@ class ThirdPartyImportController extends Controller
      * Parse monthly statement PDF (works for Grubhub, Uber Eats, DoorDash monthly statements).
      * Handles formats like "Jan 2026_Fann's Philly Grill (Round Rock).pdf" and similar layouts.
      */
-    protected function parseMonthlyStatementPDF($file)
+    protected function parseMonthlyStatementPDF($file, string $platform)
     {
+        $filename = $file->getClientOriginalName();
+        $extracted = $this->extractPdfText($file);
+        $text = $this->normalizeExtractedText($extracted['text'] ?? '');
+
+        Log::info('Monthly statement PDF text extracted', [
+            'platform' => $platform,
+            'file' => $filename,
+            'length' => strlen($text),
+        ]);
+
+        // If extraction is empty, fail fast with a clear error
+        if (trim($text) === '') {
+            throw new \InvalidArgumentException('Failed to parse statement: PDF text extraction returned empty text.');
+        }
+
+        // Platform-specific extraction (for now monthly PDFs share the same heuristics)
+        $data = $this->extractMonthlyStatementDataFromText($text, $filename);
+        $data['platform'] = $platform;
+
+        $this->assertStatementDataIsUsable($data, $text);
+        return $data;
+    }
+
+    /**
+     * Extract statement data from normalized monthly statement text.
+     */
+    protected function extractMonthlyStatementDataFromText(string $text, string $filename = ''): array
+    {
+        $statementDate = $this->extractDateFromMonthlyStatement($text, $filename);
+        $grossSales = $this->extractAmountFromTextFlexible($text, [
+            'gross sales', 'total sales', 'restaurant sales', 'sales', 'subtotal', 'marketplace sales',
+            'total orders', 'order value',
+        ], true);
+        $marketingFees = $this->extractAmountFromTextFlexible($text, [
+            'marketing fee', 'commission', 'platform fee', 'marketplace fee', 'marketplace commission',
+            'partner fee', 'service fee', 'grubhub fee', 'ubereats fee', 'doordash fee',
+        ], false);
+        $deliveryFees = $this->extractAmountFromTextFlexible($text, [
+            'delivery fee', 'delivery', 'delivery charges', 'delivery commission',
+        ], false);
+        $processingFees = $this->extractAmountFromTextFlexible($text, [
+            'processing fee', 'payment processing', 'card processing', 'transaction fee',
+        ], false);
+        $netDeposit = $this->extractAmountFromTextFlexible($text, [
+            'net deposit', 'total payment', 'payout', 'net payout', 'transfer', 'total transfer',
+            'deposit', 'amount due', 'you will receive', 'payment to you',
+        ], true);
+        $salesTax = $this->extractAmountFromTextFlexible($text, ['sales tax', 'tax collected', 'tax'], true);
+
+        return [
+            'statement_date' => $statementDate ?: now(),
+            'statement_id' => $this->extractStatementIdFromGrubhub($text),
+            'gross_sales' => round($grossSales, 2),
+            'marketing_fees' => round(abs($marketingFees), 2),
+            'delivery_fees' => round(abs($deliveryFees), 2),
+            'processing_fees' => round(abs($processingFees), 2),
+            'net_deposit' => round(max(0, $netDeposit), 2),
+            'sales_tax_collected' => round($salesTax, 2),
+        ];
+    }
+
+    /**
+     * Extract raw text from a PDF using smalot/pdfparser (Composer-only).
+     */
+    protected function extractPdfText($file): array
+    {
+        $parser = new Parser();
+        $pdf = $parser->parseFile($file->getRealPath());
+        $text = $pdf->getText();
+
+        $pages = [];
         try {
-            $parser = new Parser();
-            $pdf = $parser->parseFile($file->getRealPath());
-            $text = $pdf->getText();
-            $filename = $file->getClientOriginalName();
+            foreach ($pdf->getPages() as $page) {
+                $pages[] = $page->getText();
+            }
+        } catch (\Throwable $e) {
+            // Some PDFs may not enumerate pages cleanly; ignore and use full text.
+        }
 
-            Log::info('Monthly statement PDF text extracted', ['length' => strlen($text), 'file' => $filename]);
+        return [
+            'text' => $text ?? '',
+            'pages' => $pages,
+        ];
+    }
 
-            $statementDate = $this->extractDateFromMonthlyStatement($text, $filename);
-            $grossSales = $this->extractAmountFromTextFlexible($text, [
-                'gross sales', 'total sales', 'restaurant sales', 'sales', 'subtotal', 'marketplace sales',
-                'total orders', 'order value',
-            ], true);
-            $marketingFees = $this->extractAmountFromTextFlexible($text, [
-                'marketing fee', 'commission', 'platform fee', 'marketplace fee', 'marketplace commission',
-                'partner fee', 'service fee', 'grubhub fee', 'ubereats fee', 'doordash fee',
-            ], false);
-            $deliveryFees = $this->extractAmountFromTextFlexible($text, [
-                'delivery fee', 'delivery', 'delivery charges', 'delivery commission',
-            ], false);
-            $processingFees = $this->extractAmountFromTextFlexible($text, [
-                'processing fee', 'payment processing', 'card processing', 'transaction fee',
-            ], false);
-            $netDeposit = $this->extractAmountFromTextFlexible($text, [
-                'net deposit', 'total payment', 'payout', 'net payout', 'transfer', 'total transfer',
-                'deposit', 'amount due', 'you will receive', 'payment to you',
-            ], true);
-            $salesTax = $this->extractAmountFromTextFlexible($text, ['sales tax', 'tax collected', 'tax'], true);
+    /**
+     * Normalize extracted text so regex rules are more stable across PDFs.
+     */
+    protected function normalizeExtractedText(string $text): string
+    {
+        if ($text === '') {
+            return '';
+        }
+        // Normalize whitespace and remove weird non-breaking spaces
+        $text = str_replace(["\u{00A0}", "\u{2007}", "\u{202F}"], ' ', $text);
+        $text = preg_replace('/[ \t]+/', ' ', $text);
+        $text = preg_replace('/\r\n|\r/', "\n", $text);
+        $text = preg_replace("/\n{3,}/", "\n\n", $text);
+        return trim($text);
+    }
 
-            return [
-                'statement_date' => $statementDate ?: now(),
-                'statement_id' => $this->extractStatementIdFromGrubhub($text),
-                'gross_sales' => round($grossSales, 2),
-                'marketing_fees' => round(abs($marketingFees), 2),
-                'delivery_fees' => round(abs($deliveryFees), 2),
-                'processing_fees' => round(abs($processingFees), 2),
-                'net_deposit' => round(max(0, $netDeposit), 2),
-                'sales_tax_collected' => round($salesTax, 2),
-            ];
-        } catch (\Exception $e) {
-            Log::error('Monthly statement PDF parse error: ' . $e->getMessage(), [
-                'trace' => $e->getTraceAsString(),
-            ]);
-            return [
-                'statement_date' => now(),
-                'statement_id' => null,
-                'gross_sales' => 0,
-                'marketing_fees' => 0,
-                'delivery_fees' => 0,
-                'processing_fees' => 0,
-                'net_deposit' => 0,
-                'sales_tax_collected' => 0,
-            ];
+    /**
+     * Ensure parsed data has the minimum fields needed for DB + downstream records.
+     * If parsing looks suspicious, throw InvalidArgumentException (returns 400 to UI).
+     */
+    protected function assertStatementDataIsUsable(?array $data, ?string $debugText = null): void
+    {
+        if (! is_array($data)) {
+            throw new \InvalidArgumentException('Failed to parse statement: no data was extracted.');
+        }
+
+        foreach (self::REQUIRED_STATEMENT_FIELDS as $field) {
+            if (! array_key_exists($field, $data)) {
+                throw new \InvalidArgumentException("Failed to parse statement: missing field {$field}.");
+            }
+        }
+
+        // Validate key numeric fields (gross/net must be > 0 for a statement)
+        $gross = (float) ($data['gross_sales'] ?? 0);
+        $net = (float) ($data['net_deposit'] ?? 0);
+        if ($gross <= 0 && $net <= 0) {
+            if ($debugText !== null) {
+                Log::info('Third-party parse debug (first 1200 chars)', [
+                    'snippet' => mb_substr($debugText, 0, 1200),
+                ]);
+            }
+            throw new \InvalidArgumentException('Failed to parse statement: could not find gross sales or net deposit.');
         }
     }
 
@@ -300,51 +392,37 @@ class ThirdPartyImportController extends Controller
      */
     protected function parseGrubhubPDF($file)
     {
-        try {
-            $parser = new Parser();
-            $pdf = $parser->parseFile($file->getRealPath());
-            $text = $pdf->getText();
-            
-            // Log extracted text for debugging
-            Log::info('Grubhub PDF text extracted', ['length' => strlen($text)]);
-            
-            // Extract data using regex patterns
-            $statementDate = $this->extractDateFromGrubhub($text);
-            $grossSales = $this->extractAmountFromText($text, ['gross sales', 'total sales', 'restaurant sales']);
-            $marketingFees = $this->extractAmountFromText($text, ['marketing fee', 'commission', 'platform fee']);
-            $deliveryFees = $this->extractAmountFromText($text, ['delivery fee', 'delivery']);
-            $processingFees = $this->extractAmountFromText($text, ['processing fee', 'payment processing']);
-            $netDeposit = $this->extractAmountFromText($text, ['net deposit', 'total payment', 'payout']);
-            $salesTax = $this->extractAmountFromText($text, ['sales tax', 'tax collected']);
-            
-            return [
-                'statement_date' => $statementDate ?: now(),
-                'statement_id' => $this->extractStatementIdFromGrubhub($text),
-                'gross_sales' => $grossSales,
-                'marketing_fees' => $marketingFees,
-                'delivery_fees' => $deliveryFees,
-                'processing_fees' => $processingFees,
-                'net_deposit' => $netDeposit,
-                'sales_tax_collected' => $salesTax,
-            ];
-            
-        } catch (\Exception $e) {
-            Log::error('Error parsing Grubhub PDF: ' . $e->getMessage(), [
-                'trace' => $e->getTraceAsString()
-            ]);
-            
-            // Return empty structure on error
-            return [
-                'statement_date' => now(),
-                'statement_id' => null,
-                'gross_sales' => 0,
-                'marketing_fees' => 0,
-                'delivery_fees' => 0,
-                'processing_fees' => 0,
-                'net_deposit' => 0,
-                'sales_tax_collected' => 0,
-            ];
+        $extracted = $this->extractPdfText($file);
+        $text = $this->normalizeExtractedText($extracted['text'] ?? '');
+
+        Log::info('Grubhub PDF text extracted', ['length' => strlen($text)]);
+
+        if (trim($text) === '') {
+            throw new \InvalidArgumentException('Failed to parse statement: PDF text extraction returned empty text.');
         }
+
+        // Extract data using regex patterns
+        $statementDate = $this->extractDateFromGrubhub($text);
+        $grossSales = $this->extractAmountFromText($text, ['gross sales', 'total sales', 'restaurant sales']);
+        $marketingFees = $this->extractAmountFromText($text, ['marketing fee', 'commission', 'platform fee']);
+        $deliveryFees = $this->extractAmountFromText($text, ['delivery fee', 'delivery']);
+        $processingFees = $this->extractAmountFromText($text, ['processing fee', 'payment processing']);
+        $netDeposit = $this->extractAmountFromText($text, ['net deposit', 'total payment', 'payout']);
+        $salesTax = $this->extractAmountFromText($text, ['sales tax', 'tax collected']);
+
+        $data = [
+            'statement_date' => $statementDate ?: now(),
+            'statement_id' => $this->extractStatementIdFromGrubhub($text),
+            'gross_sales' => $grossSales,
+            'marketing_fees' => abs($marketingFees),
+            'delivery_fees' => abs($deliveryFees),
+            'processing_fees' => abs($processingFees),
+            'net_deposit' => max(0, $netDeposit),
+            'sales_tax_collected' => $salesTax,
+        ];
+
+        $this->assertStatementDataIsUsable($data, $text);
+        return $data;
     }
     
     /**
