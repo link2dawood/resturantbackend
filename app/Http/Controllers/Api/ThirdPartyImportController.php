@@ -14,6 +14,11 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Smalot\PdfParser\Parser;
 
+/**
+ * Third-party platform statement import (Grubhub, UberEats, DoorDash).
+ * PDF extraction uses Smalot PDF Parser (text-based PDFs): parseFile → getText(),
+ * then regex/string matching to extract totals (Sales, Commission, Net total, etc.).
+ */
 class ThirdPartyImportController extends Controller
 {
     /**
@@ -350,7 +355,8 @@ class ThirdPartyImportController extends Controller
     }
 
     /**
-     * Extract raw text from a PDF using smalot/pdfparser (Composer-only).
+     * Extract raw text from a PDF using Smalot PDF Parser (text-based PDFs).
+     * Pattern: Parser::parseFile() → getText() → then parse with regex/string matching.
      */
     protected function extractPdfText($file): array
     {
