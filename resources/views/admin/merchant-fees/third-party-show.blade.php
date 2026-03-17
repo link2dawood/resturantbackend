@@ -81,15 +81,23 @@
     </div>
 
     <div class="row mb-4">
-        <div class="col-md-6">
+        <div class="col-md-4">
             <div class="card">
                 <div class="card-body">
                     <div class="subheader text-muted">Total Fees</div>
-                    <div class="h2 mb-0 text-danger">${{ number_format($statement->marketing_fees + $statement->delivery_fees + $statement->processing_fees, 2) }}</div>
+                    <div class="h2 mb-0 text-danger">${{ number_format($statement->marketing_fees + $statement->delivery_fees + $statement->processing_fees + ($statement->adjustments ?? 0), 2) }}</div>
                 </div>
             </div>
         </div>
-        <div class="col-md-6">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <div class="subheader text-muted">Adjustments</div>
+                    <div class="h2 mb-0 text-danger">${{ number_format($statement->adjustments ?? 0, 2) }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
             <div class="card">
                 <div class="card-body">
                     <div class="subheader text-muted">Net Deposit</div>

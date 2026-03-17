@@ -19,6 +19,7 @@ class ThirdPartyStatement extends Model
         'marketing_fees',
         'delivery_fees',
         'processing_fees',
+        'adjustments',
         'net_deposit',
         'sales_tax_collected',
         'import_batch_id',
@@ -34,6 +35,7 @@ class ThirdPartyStatement extends Model
         'marketing_fees' => 'decimal:2',
         'delivery_fees' => 'decimal:2',
         'processing_fees' => 'decimal:2',
+        'adjustments' => 'decimal:2',
         'net_deposit' => 'decimal:2',
         'sales_tax_collected' => 'decimal:2',
     ];

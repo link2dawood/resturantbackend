@@ -141,6 +141,7 @@
                                     <th class="text-end">Marketing Fees</th>
                                     <th class="text-end">Delivery Fees</th>
                                     <th class="text-end">Processing Fees</th>
+                                    <th class="text-end">Adjustments</th>
                                     <th class="text-end">Total Fees</th>
                                     <th class="text-end">Net Deposits</th>
                                     <th class="text-end">Fee %</th>
@@ -158,6 +159,7 @@
                                     <td class="text-end">${{ number_format($platform->total_marketing_fees, 2) }}</td>
                                     <td class="text-end">${{ number_format($platform->total_delivery_fees, 2) }}</td>
                                     <td class="text-end">${{ number_format($platform->total_processing_fees, 2) }}</td>
+                                    <td class="text-end">${{ number_format($platform->total_adjustments ?? 0, 2) }}</td>
                                     <td class="text-end"><strong class="text-danger">${{ number_format($platform->total_fees, 2) }}</strong></td>
                                     <td class="text-end"><strong class="text-success">${{ number_format($platform->total_net_deposit, 2) }}</strong></td>
                                     <td class="text-end"><strong>{{ number_format($feePct, 2) }}%</strong></td>
@@ -165,7 +167,7 @@
                                 </tr>
                                 @empty
                                 <tr>
-                                    <td colspan="9" class="text-center text-muted py-4">No data found</td>
+                                    <td colspan="10" class="text-center text-muted py-4">No data found</td>
                                 </tr>
                                 @endforelse
                             </tbody>
@@ -207,7 +209,7 @@
                                     <td><span class="badge bg-info">{{ ucfirst($statement->platform) }}</span></td>
                                     <td>{{ $statement->store->store_info ?? 'N/A' }}</td>
                                     <td class="text-end">${{ number_format($statement->gross_sales, 2) }}</td>
-                                    <td class="text-end text-danger">${{ number_format($totalFees, 2) }}</td>
+                                    <td class="text-end text-danger">${{ number_format($totalFees + ($statement->adjustments ?? 0), 2) }}</td>
                                     <td class="text-end text-success">${{ number_format($statement->net_deposit, 2) }}</td>
                                     <td class="text-center">
                                         <a href="{{ route('admin.merchant-fees.third-party.show', $statement) }}" class="btn btn-sm btn-primary me-1" title="View details">

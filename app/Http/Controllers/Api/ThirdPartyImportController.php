@@ -100,6 +100,7 @@ class ThirdPartyImportController extends Controller
                 'marketing_fees' => $statementData['marketing_fees'] ?? 0,
                 'delivery_fees' => $statementData['delivery_fees'] ?? 0,
                 'processing_fees' => $statementData['processing_fees'] ?? 0,
+                'adjustments' => $statementData['adjustments'] ?? 0,
                 'net_deposit' => $statementData['net_deposit'] ?? 0,
                 'sales_tax_collected' => $statementData['sales_tax_collected'] ?? 0,
                 'file_name' => $file->getClientOriginalName(),
@@ -180,8 +181,13 @@ class ThirdPartyImportController extends Controller
             throw new \InvalidArgumentException('Failed to parse statement: PDF text extraction returned empty text.');
         }
 
-        // Platform-specific extraction (for now monthly PDFs share the same heuristics)
-        $data = $this->extractMonthlyStatementDataFromText($text, $filename);
+        // Platform-specific extraction (monthly PDFs vary significantly by platform)
+        $data = match ($platform) {
+            'doordash' => $this->extractDoorDashMonthlyStatementDataFromText($text, $filename),
+            'grubhub' => $this->extractGrubhubMonthlyStatementDataFromText($text, $filename),
+            'ubereats' => $this->extractUberMonthlyStatementDataFromText($text, $filename),
+            default => $this->extractMonthlyStatementDataFromText($text, $filename),
+        };
         $data['platform'] = $platform;
 
         $this->assertStatementDataIsUsable($data, $text);
@@ -216,7 +222,7 @@ class ThirdPartyImportController extends Controller
 
         return [
             'statement_date' => $statementDate ?: now(),
-            'statement_id' => $this->extractStatementIdFromGrubhub($text),
+            'statement_id' => $this->extractStatementIdFromText($text),
             'gross_sales' => round($grossSales, 2),
             'marketing_fees' => round(abs($marketingFees), 2),
             'delivery_fees' => round(abs($deliveryFees), 2),
@@ -224,6 +230,123 @@ class ThirdPartyImportController extends Controller
             'net_deposit' => round(max(0, $netDeposit), 2),
             'sales_tax_collected' => round($salesTax, 2),
         ];
+    }
+
+    /**
+     * DoorDash monthly statement PDF (text) extractor.
+     * Example labels in PDFs: "Subtotal $X", "Tax (subtotal) $X", "Commission -$X",
+     * "Marketing fees -$X", "Merchant fees $X", "Error charges -$X", "Net total $X".
+     */
+    protected function extractDoorDashMonthlyStatementDataFromText(string $text, string $filename = ''): array
+    {
+        $statementDate = $this->extractDateFromMonthlyStatement($text, $filename);
+
+        $subtotal = $this->extractAmountFromTextFlexible($text, ['subtotal'], true);
+        $taxSubtotal = $this->extractAmountFromTextFlexible($text, ['tax (subtotal)'], true);
+
+        // Fees
+        $commission = $this->extractAmountFromTextFlexible($text, ['commission'], false);
+        $merchantFees = $this->extractAmountFromTextFlexible($text, ['merchant fees'], false);
+        $marketingFees = $this->extractAmountFromTextFlexible($text, ['marketing fees', 'marketing spend'], false);
+        $amendments = $this->extractAmountFromTextFlexible($text, ['amendments', 'error charges'], false);
+
+        // Net total is the best net-deposit proxy for DoorDash monthly statements.
+        $netTotal = $this->extractAmountFromTextFlexible($text, ['net total'], true);
+
+        return [
+            'statement_date' => $statementDate ?: now(),
+            'statement_id' => $this->extractStatementIdFromText($text),
+            // Treat subtotal + tax as gross sales (closest comparable to other platforms)
+            'gross_sales' => round(max(0, $subtotal + $taxSubtotal), 2),
+            'marketing_fees' => round(abs($marketingFees), 2),
+            // DoorDash monthly statement doesn't reliably separate delivery fees in the summary
+            'delivery_fees' => 0,
+            // Use commission + merchant fees as "processing_fees" bucket for now
+            'processing_fees' => round(abs($commission) + abs($merchantFees), 2),
+            // Amendments should roll into Adjustments
+            'adjustments' => round(abs($amendments), 2),
+            'net_deposit' => round(max(0, $netTotal), 2),
+            'sales_tax_collected' => round(max(0, $taxSubtotal), 2),
+        ];
+    }
+
+    /**
+     * Grubhub statement PDF (text) extractor.
+     * Uses "Total payments to you" as net deposit and "Restaurant sales" as gross.
+     * Marketing / Deliveries by Grubhub / Order processing appear as (X.XX).
+     */
+    protected function extractGrubhubMonthlyStatementDataFromText(string $text, string $filename = ''): array
+    {
+        $statementDate = $this->extractDateFromMonthlyStatement($text, $filename) ?: $this->extractDateFromGrubhub($text);
+
+        $gross = $this->extractAmountFromTextFlexible($text, ['restaurant sales'], true);
+        $net = $this->extractAmountFromTextFlexible($text, ['total payments to you', 'paid directly to your bank account'], true);
+
+        $marketing = $this->extractAmountFromTextFlexible($text, ['marketing'], false);
+        $delivery = $this->extractAmountFromTextFlexible($text, ['deliveries by grubhub', 'delivery'], false);
+        $processing = $this->extractAmountFromTextFlexible($text, ['order processing', 'processing'], false);
+
+        $tax = $this->extractAmountFromTextFlexible($text, ['includes', 'taxes you are responsible'], true);
+
+        return [
+            'statement_date' => $statementDate ?: now(),
+            'statement_id' => $this->extractStatementIdFromText($text),
+            'gross_sales' => round(max(0, $gross), 2),
+            'marketing_fees' => round(abs($marketing), 2),
+            'delivery_fees' => round(abs($delivery), 2),
+            'processing_fees' => round(abs($processing), 2),
+            'net_deposit' => round(max(0, $net), 2),
+            'sales_tax_collected' => round(max(0, $tax), 2),
+        ];
+    }
+
+    /**
+     * Uber Eats monthly statement PDF (text) extractor.
+     * Uses "Sales" as gross and "Net Total" as net deposit.
+     * Fees often appear as "Total Uber Fees -$X.XX".
+     */
+    protected function extractUberMonthlyStatementDataFromText(string $text, string $filename = ''): array
+    {
+        $statementDate = $this->extractDateFromMonthlyStatement($text, $filename);
+
+        $gross = $this->extractAmountFromTextFlexible($text, ['sales (', 'sales'], true);
+        $net = $this->extractAmountFromTextFlexible($text, ['net total'], true);
+
+        // Uber statement groups fees; treat as processing for now (or marketing bucket)
+        $totalFees = $this->extractAmountFromTextFlexible($text, ['total uber fees', 'marketplace fees'], false);
+        $tax = $this->extractAmountFromTextFlexible($text, ['tax on sales', 'tax on marketplace fees', 'tax on sales'], true);
+
+        return [
+            'statement_date' => $statementDate ?: now(),
+            'statement_id' => $this->extractStatementIdFromText($text),
+            'gross_sales' => round(max(0, $gross), 2),
+            'marketing_fees' => 0,
+            'delivery_fees' => 0,
+            'processing_fees' => round(abs($totalFees), 2),
+            'net_deposit' => round(max(0, $net), 2),
+            'sales_tax_collected' => round(max(0, $tax), 2),
+        ];
+    }
+
+    /**
+     * Extract a platform-agnostic statement identifier from PDF text.
+     * Avoids false positives like "January 2026 Statement" -> "Jan".
+     */
+    protected function extractStatementIdFromText(string $text): ?string
+    {
+        $patterns = [
+            '/statement\\s*(number)?\\s*#\\s*([A-Z0-9\\-]{6,})/i',
+            '/statement\\s*#\\s*([A-Z0-9\\-]{6,})/i',
+            '/invoice\\s*#\\s*([A-Z0-9\\-]{6,})/i',
+        ];
+
+        foreach ($patterns as $pattern) {
+            if (preg_match($pattern, $text, $m)) {
+                $id = trim($m[count($m) - 1]);
+                return $id !== '' ? $id : null;
+            }
+        }
+        return null;
     }
 
     /**
@@ -285,6 +408,20 @@ class ThirdPartyImportController extends Controller
         // Validate key numeric fields (gross/net must be > 0 for a statement)
         $gross = (float) ($data['gross_sales'] ?? 0);
         $net = (float) ($data['net_deposit'] ?? 0);
+        $fees = (float) ($data['marketing_fees'] ?? 0) + (float) ($data['delivery_fees'] ?? 0) + (float) ($data['processing_fees'] ?? 0);
+
+        // Hard sanity bounds to catch mis-parses like "2026" or "Store ID" being treated as money
+        $maxReasonable = 1000000.0;
+        foreach (['gross_sales' => $gross, 'net_deposit' => $net, 'total_fees' => $fees] as $k => $v) {
+            if (abs($v) > $maxReasonable) {
+                if ($debugText !== null) {
+                    Log::info('Third-party parse debug (first 1200 chars)', [
+                        'snippet' => mb_substr($debugText, 0, 1200),
+                    ]);
+                }
+                throw new \InvalidArgumentException("Failed to parse statement: extracted {$k} looks invalid ({$v}).");
+            }
+        }
         if ($gross <= 0 && $net <= 0) {
             if ($debugText !== null) {
                 Log::info('Third-party parse debug (first 1200 chars)', [
@@ -745,6 +882,7 @@ class ThirdPartyImportController extends Controller
         $marketingCoa = ChartOfAccount::where('account_name', 'Marketing Fees (Grubhub)')->first();
         $deliveryCoa = ChartOfAccount::where('account_name', 'Delivery Service Fees')->first();
         $processingCoa = ChartOfAccount::where('account_name', 'Merchant Processing Fees')->first();
+        $adjustmentsCoa = ChartOfAccount::where('account_name', 'Adjustments - Overrings/Returns')->first();
 
         // Create marketing fee expense if exists
         if ($data['marketing_fees'] > 0 && $marketingCoa) {
@@ -794,6 +932,23 @@ class ThirdPartyImportController extends Controller
                 'third_party_statement_id' => $statement->id,
                 'created_by' => auth()->id(),
                 'duplicate_check_hash' => md5($statement->id . 'processing'),
+            ]);
+        }
+
+        // Create adjustments expense if exists (DoorDash amendments -> adjustments)
+        if (! empty($data['adjustments']) && (float) $data['adjustments'] > 0 && $adjustmentsCoa) {
+            ExpenseTransaction::create([
+                'transaction_type' => 'credit_card',
+                'transaction_date' => $statement->statement_date,
+                'store_id' => $statement->store_id,
+                'vendor_id' => $vendor->id,
+                'coa_id' => $adjustmentsCoa->id,
+                'amount' => (float) $data['adjustments'],
+                'description' => "{$platformName} adjustments - {$statement->statement_date->format('M d, Y')}",
+                'payment_method' => 'credit_card',
+                'third_party_statement_id' => $statement->id,
+                'created_by' => auth()->id(),
+                'duplicate_check_hash' => md5($statement->id . 'adjustments'),
             ]);
         }
     }

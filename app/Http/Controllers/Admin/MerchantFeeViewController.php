@@ -333,7 +333,7 @@ class MerchantFeeViewController extends Controller
 
         $stats = $query->select(
             DB::raw('COALESCE(SUM(gross_sales), 0) as total_gross_sales'),
-            DB::raw('COALESCE(SUM(marketing_fees + delivery_fees + processing_fees), 0) as total_fees'),
+            DB::raw('COALESCE(SUM(marketing_fees + delivery_fees + processing_fees + adjustments), 0) as total_fees'),
             DB::raw('COALESCE(SUM(net_deposit), 0) as total_net_deposit')
         )->first();
 
@@ -360,7 +360,8 @@ class MerchantFeeViewController extends Controller
             DB::raw('SUM(marketing_fees) as total_marketing_fees'),
             DB::raw('SUM(delivery_fees) as total_delivery_fees'),
             DB::raw('SUM(processing_fees) as total_processing_fees'),
-            DB::raw('SUM(marketing_fees + delivery_fees + processing_fees) as total_fees'),
+            DB::raw('SUM(adjustments) as total_adjustments'),
+            DB::raw('SUM(marketing_fees + delivery_fees + processing_fees + adjustments) as total_fees'),
             DB::raw('SUM(net_deposit) as total_net_deposit'),
             DB::raw('COUNT(*) as statement_count')
         );
