@@ -78,6 +78,9 @@
 
     <!-- Summary Cards -->
     <div class="row row-cards mb-4">
+        @php
+            $platformLabel = $platform ? ucfirst($platform) : 'All platforms';
+        @endphp
         <div class="col-sm-6 col-lg-3">
             <div class="card">
                 <div class="card-body">
@@ -85,7 +88,7 @@
                     <div class="h1 mb-3 text-success">
                         ${{ number_format($summary['total_gross_sales'], 2) }}
                     </div>
-                    <div class="d-flex align-items-center text-muted">All platforms</div>
+                    <div class="d-flex align-items-center text-muted">{{ $platformLabel }}</div>
                 </div>
             </div>
         </div>
@@ -96,7 +99,7 @@
                     <div class="h1 mb-3 text-danger">
                         ${{ number_format($summary['total_fees'], 2) }}
                     </div>
-                    <div class="d-flex align-items-center text-muted">Platform costs</div>
+                    <div class="d-flex align-items-center text-muted">{{ $platform ? ($platformLabel . ' costs') : 'Platform costs' }}</div>
                 </div>
             </div>
         </div>

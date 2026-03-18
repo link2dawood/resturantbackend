@@ -79,10 +79,10 @@ class MerchantFeeViewController extends Controller
         }
 
         // Get summary stats (scoped to accessible stores)
-        $summary = $this->getThirdPartySummary($storeId, $startDate, $endDate, $accessibleStoreIds);
+        $summary = $this->getThirdPartySummary($storeId, $startDate, $endDate, $accessibleStoreIds, $platform);
 
         // Get platform breakdown (scoped to accessible stores)
-        $platformBreakdown = $this->getThirdPartyBreakdown($storeId, $startDate, $endDate, $accessibleStoreIds);
+        $platformBreakdown = $this->getThirdPartyBreakdown($storeId, $startDate, $endDate, $accessibleStoreIds, $platform);
 
         // Get import history (only statements for accessible stores)
         $importHistory = $this->getThirdPartyImportHistory($storeId, $platform);
@@ -317,7 +317,7 @@ class MerchantFeeViewController extends Controller
     /**
      * Get third-party platform summary (optionally scoped to accessible store IDs).
      */
-    protected function getThirdPartySummary($storeId, $startDate, $endDate, array $accessibleStoreIds = [])
+    protected function getThirdPartySummary($storeId, $startDate, $endDate, array $accessibleStoreIds = [], ?string $platform = null)
     {
         $query = ThirdPartyStatement::query();
 
@@ -327,6 +327,10 @@ class MerchantFeeViewController extends Controller
 
         if ($storeId) {
             $query->where('store_id', $storeId);
+        }
+
+        if ($platform) {
+            $query->where('platform', $platform);
         }
 
         $query->whereBetween('statement_date', [$startDate, $endDate]);
@@ -352,7 +356,7 @@ class MerchantFeeViewController extends Controller
     /**
      * Get third-party platform breakdown (optionally scoped to accessible store IDs).
      */
-    protected function getThirdPartyBreakdown($storeId, $startDate, $endDate, array $accessibleStoreIds = [])
+    protected function getThirdPartyBreakdown($storeId, $startDate, $endDate, array $accessibleStoreIds = [], ?string $platform = null)
     {
         $query = ThirdPartyStatement::select(
             'platform',
@@ -372,6 +376,10 @@ class MerchantFeeViewController extends Controller
 
         if ($storeId) {
             $query->where('store_id', $storeId);
+        }
+
+        if ($platform) {
+            $query->where('platform', $platform);
         }
 
         $query->whereBetween('statement_date', [$startDate, $endDate]);

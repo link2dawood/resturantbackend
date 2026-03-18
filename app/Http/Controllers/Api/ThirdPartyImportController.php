@@ -248,7 +248,8 @@ class ThirdPartyImportController extends Controller
 
         // DoorDash PDFs include a consolidated summary on Page 1, then payout rows and appendix.
         // To avoid duplicates and keyword matches in the wrong sections, restrict parsing to the summary block.
-        $summaryBlock = $this->extractTextBetweenMarkers($text, 'Sales (', 'Page 2 of 5');
+        // End marker is intentionally loose because the PDF might say "Page 2 of 4/5/6".
+        $summaryBlock = $this->extractTextBetweenMarkers($text, 'Sales (', 'Page 2 of');
         if (trim($summaryBlock) === '') {
             $summaryBlock = $text;
         }
@@ -264,8 +265,17 @@ class ThirdPartyImportController extends Controller
         // Using only "marketing fees" avoids duplicate captures.
         $marketingFees = $this->extractAmountFromTextWithCents($summaryBlock, ['marketing fees'], false, false);
 
-        // Amendments appear as "Error charges (4) -$22.56" (and may be repeated).
-        $errorCharges = $this->extractAmountFromTextWithCents($summaryBlock, ['error charges'], false, false);
+        // Your PDF definitions:
+        // - "Amendments" = total error charges and other adjustments.
+        // Map DoorDash "adjustments" in our DB/UI to that total amendments amount.
+        $amendments = $this->extractAmountFromTextWithCents($summaryBlock, ['amendments'], false, false);
+        if ($amendments === 0.0) {
+            // Fallback if a standalone "Amendments" line isn't present:
+            // total error charges + any separate one-time adjustments line.
+            $errorCharges = $this->extractAmountFromTextWithCents($summaryBlock, ['error charges'], false, false);
+            $otherAdjustments = $this->extractAmountFromTextWithCents($summaryBlock, ['adjustments'], false, false);
+            $amendments = $errorCharges + $otherAdjustments;
+        }
 
         // Net total is the best net-deposit proxy for DoorDash monthly statements.
         $netTotal = $this->extractAmountFromTextWithCents($summaryBlock, ['net total'], true, false);
@@ -280,8 +290,8 @@ class ThirdPartyImportController extends Controller
             'delivery_fees' => 0,
             // Use commission & fees as "processing_fees"
             'processing_fees' => round(abs($commissionAndFees), 2),
-            // Amendments should roll into Adjustments
-            'adjustments' => round(abs($errorCharges), 2),
+            // Amendments roll into Adjustments
+            'adjustments' => round(abs($amendments), 2),
             'net_deposit' => round(max(0, $netTotal), 2),
             'sales_tax_collected' => round(max(0, $taxSubtotal), 2),
         ];
@@ -607,53 +617,66 @@ class ThirdPartyImportController extends Controller
      */
     protected function extractAmountFromTextWithCents(string $text, array $keywords, bool $preferPositive, bool $allowNextLineFallback = true): float
     {
+        // IMPORTANT:
+        // Extract amounts per-line so a "keyword match" cannot accidentally
+        // grab an amount from a different line (this was causing wrong DoorDash taxes).
         $amounts = [];
         $lines = preg_split('/\r\n|\r|\n/', $text);
 
+        // Match amounts with cents, including styles:
+        //   -$126.12
+        //   $-126.12
+        //   (123.45)
+        $amountRegex = '/(?:\(?-?\$?[\d,]+\.\d{2}\)?|\(?\$\-?[\d,]+\.\d{2}\)?)/';
+
         foreach ($keywords as $keyword) {
-            $quoted = preg_quote($keyword, '/');
-
-            // Same-line keyword match with a mandatory cents portion.
-            // Supports both "$-126.12" and "-$126.12" styles.
-            $patternSameLine = '/' . $quoted . '\s*[:\$]?\s*\$?\s*(\(?-?\$?[\d,]+\.\d{2}\)?)\s*/i';
-            if (preg_match_all($patternSameLine, $text, $matches, PREG_SET_ORDER)) {
-                foreach ($matches as $match) {
-                    if (! isset($match[1])) {
-                        continue;
-                    }
-                    $rawAmount = trim($match[1]);
-                    $amount = $this->parseAmount($rawAmount);
-                    if ($amount != 0.0) {
-                        $amounts[] = $amount;
-                    }
-                }
+            $keyword = trim($keyword);
+            if ($keyword === '') {
+                continue;
             }
 
-            // Same-line amount-then-keyword match (e.g. "-$126.12 Commission & fees")
-            $patternAmountFirst = '/(\(?-?\$?[\d,]+\.\d{2}\)?)\s*' . $quoted . '\s*/i';
-            if (preg_match_all($patternAmountFirst, $text, $matches, PREG_SET_ORDER)) {
-                foreach ($matches as $match) {
-                    if (! isset($match[1])) {
-                        continue;
-                    }
-                    $rawAmount = trim($match[1]);
-                    $amount = $this->parseAmount($rawAmount);
-                    if ($amount != 0.0) {
-                        $amounts[] = $amount;
-                    }
+            foreach ($lines as $i => $line) {
+                if (stripos($line, $keyword) === false) {
+                    continue;
                 }
-            }
 
-            if ($allowNextLineFallback) {
-                // Next-line keyword match fallback.
-                for ($i = 0; $i < count($lines) - 1; $i++) {
-                    if (preg_match('/' . $quoted . '/i', $lines[$i])) {
-                        // Support "-$60.17" where the minus comes before the dollar sign.
-                        if (preg_match('/\(?-?\$?[\d,]+\.\d{2}\)?/', $lines[$i + 1], $m)) {
-                            $amount = $this->parseAmount(trim($m[0] ?? ''));
-                            if ($amount != 0.0) {
-                                $amounts[] = $amount;
-                            }
+                // Prefer the closest cents-amount on the same line.
+                preg_match_all($amountRegex, $line, $matches, PREG_OFFSET_CAPTURE);
+                if (! empty($matches[0])) {
+                    $keywordPos = stripos($line, $keyword);
+                    $bestRaw = null;
+                    $bestDist = PHP_INT_MAX;
+
+                    foreach ($matches[0] as $m) {
+                        [$raw, $offset] = $m;
+                        if ($raw === '' || $offset === null) {
+                            continue;
+                        }
+                        $dist = abs($offset - $keywordPos);
+                        if ($dist < $bestDist) {
+                            $bestDist = $dist;
+                            $bestRaw = $raw;
+                        }
+                    }
+
+                    if ($bestRaw !== null) {
+                        $amount = $this->parseAmount(trim($bestRaw));
+                        if ($amount != 0.0) {
+                            $amounts[] = $amount;
+                        }
+                    }
+
+                    continue;
+                }
+
+                // Optional fallback: keyword appears on this line, amount may be next line.
+                if ($allowNextLineFallback && isset($lines[$i + 1])) {
+                    preg_match_all($amountRegex, $lines[$i + 1], $nextMatches, PREG_OFFSET_CAPTURE);
+                    if (! empty($nextMatches[0])) {
+                        $raw = $nextMatches[0][0][0];
+                        $amount = $this->parseAmount(trim($raw));
+                        if ($amount != 0.0) {
+                            $amounts[] = $amount;
                         }
                     }
                 }
@@ -665,10 +688,13 @@ class ThirdPartyImportController extends Controller
         }
 
         if ($preferPositive) {
+            // For values like gross sales or taxes, PDFs sometimes show negatives;
+            // take the maximum positive when present.
             $positive = array_filter($amounts, fn($a) => $a > 0);
-            return !empty($positive) ? max($positive) : abs(array_sum($amounts));
+            return ! empty($positive) ? max($positive) : abs(array_sum($amounts));
         }
 
+        // For fee/expense rows, DoorDash typically uses negative numbers; return abs(total).
         return abs(array_sum($amounts));
     }
 
