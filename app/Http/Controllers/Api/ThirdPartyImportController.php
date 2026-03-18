@@ -246,21 +246,22 @@ class ThirdPartyImportController extends Controller
     {
         $statementDate = $this->extractDateFromMonthlyStatement($text, $filename);
 
-        $subtotal = $this->extractAmountFromTextFlexible($text, ['subtotal'], true);
-        $taxSubtotal = $this->extractAmountFromTextFlexible($text, ['tax (subtotal)'], true);
+        $subtotal = $this->extractAmountFromTextWithCents($text, ['subtotal'], true);
+        $taxSubtotal = $this->extractAmountFromTextWithCents($text, ['tax (subtotal)'], true);
 
         // Fees
-        $commission = $this->extractAmountFromTextFlexible($text, ['commission'], false);
-        $merchantFees = $this->extractAmountFromTextFlexible($text, ['merchant fees'], false);
-        // DoorDash repeats marketing values (e.g. "Marketing spend" and again as a line).
-        // Using only "marketing fees" avoids double-counting.
-        $marketingFees = $this->extractAmountFromTextFlexible($text, ['marketing fees'], false);
+        // DoorDash has multiple commission rows. We want "Commission & fees" (e.g. -$126.12)
+        // to avoid double-counting "Commission -$124.50".
+        $commissionAndFees = $this->extractAmountFromTextWithCents($text, ['commission & fees'], false);
+
+        // Using only "marketing fees" avoids duplicate captures.
+        $marketingFees = $this->extractAmountFromTextWithCents($text, ['marketing fees'], false);
+
         // Amendments appear as "Error charges (4) -$22.56" (and may be repeated).
-        // Use only "error charges" to reduce false positives/double matches.
-        $amendments = $this->extractAmountFromTextFlexible($text, ['error charges'], false);
+        $errorCharges = $this->extractAmountFromTextWithCents($text, ['error charges'], false);
 
         // Net total is the best net-deposit proxy for DoorDash monthly statements.
-        $netTotal = $this->extractAmountFromTextFlexible($text, ['net total'], true);
+        $netTotal = $this->extractAmountFromTextWithCents($text, ['net total'], true);
 
         return [
             'statement_date' => $statementDate ?: now(),
@@ -270,10 +271,10 @@ class ThirdPartyImportController extends Controller
             'marketing_fees' => round(abs($marketingFees), 2),
             // DoorDash monthly statement doesn't reliably separate delivery fees in the summary
             'delivery_fees' => 0,
-            // Use commission + merchant fees as "processing_fees" bucket for now
-            'processing_fees' => round(abs($commission) + abs($merchantFees), 2),
+            // Use commission & fees as "processing_fees"
+            'processing_fees' => round(abs($commissionAndFees), 2),
             // Amendments should roll into Adjustments
-            'adjustments' => round(abs($amendments), 2),
+            'adjustments' => round(abs($errorCharges), 2),
             'net_deposit' => round(max(0, $netTotal), 2),
             'sales_tax_collected' => round(max(0, $taxSubtotal), 2),
         ];
@@ -590,6 +591,58 @@ class ThirdPartyImportController extends Controller
             $positive = array_filter($amounts, fn($a) => $a > 0);
             return !empty($positive) ? max($positive) : abs(array_sum($amounts));
         }
+        return abs(array_sum($amounts));
+    }
+
+    /**
+     * Extract money values that always include cents (e.g. $240.38).
+     * This helps avoid capturing integers like "2026" (year) or "Store ID" values.
+     */
+    protected function extractAmountFromTextWithCents(string $text, array $keywords, bool $preferPositive): float
+    {
+        $amounts = [];
+        $lines = preg_split('/\r\n|\r|\n/', $text);
+
+        foreach ($keywords as $keyword) {
+            $quoted = preg_quote($keyword, '/');
+
+            // Same-line keyword match with a mandatory cents portion.
+            $patternSameLine = '/' . $quoted . '\s*[:\$]?\s*\$?\s*(\(?-?[\d,]+\.\d{2}\)?)\s*/i';
+            if (preg_match_all($patternSameLine, $text, $matches, PREG_SET_ORDER)) {
+                foreach ($matches as $match) {
+                    if (! isset($match[1])) {
+                        continue;
+                    }
+                    $rawAmount = trim($match[1]);
+                    $amount = $this->parseAmount($rawAmount);
+                    if ($amount != 0.0) {
+                        $amounts[] = $amount;
+                    }
+                }
+            }
+
+            // Next-line keyword match fallback.
+            for ($i = 0; $i < count($lines) - 1; $i++) {
+                if (preg_match('/' . $quoted . '/i', $lines[$i])) {
+                    if (preg_match('/\(?-?[\d,]+\.\d{2}\)?/', $lines[$i + 1], $m)) {
+                        $amount = $this->parseAmount(trim($m[0] ?? ''));
+                        if ($amount != 0.0) {
+                            $amounts[] = $amount;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (empty($amounts)) {
+            return 0.0;
+        }
+
+        if ($preferPositive) {
+            $positive = array_filter($amounts, fn($a) => $a > 0);
+            return !empty($positive) ? max($positive) : abs(array_sum($amounts));
+        }
+
         return abs(array_sum($amounts));
     }
 
