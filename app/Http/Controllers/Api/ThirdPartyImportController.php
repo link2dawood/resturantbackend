@@ -246,22 +246,29 @@ class ThirdPartyImportController extends Controller
     {
         $statementDate = $this->extractDateFromMonthlyStatement($text, $filename);
 
-        $subtotal = $this->extractAmountFromTextWithCents($text, ['subtotal'], true);
-        $taxSubtotal = $this->extractAmountFromTextWithCents($text, ['tax (subtotal)'], true);
+        // DoorDash PDFs include a consolidated summary on Page 1, then payout rows and appendix.
+        // To avoid duplicates and keyword matches in the wrong sections, restrict parsing to the summary block.
+        $summaryBlock = $this->extractTextBetweenMarkers($text, 'Sales (', 'Page 2 of 5');
+        if (trim($summaryBlock) === '') {
+            $summaryBlock = $text;
+        }
+
+        $subtotal = $this->extractAmountFromTextWithCents($summaryBlock, ['subtotal'], true, false);
+        $taxSubtotal = $this->extractAmountFromTextWithCents($summaryBlock, ['tax (subtotal)'], true, false);
 
         // Fees
         // DoorDash has multiple commission rows. We want "Commission & fees" (e.g. -$126.12)
         // to avoid double-counting "Commission -$124.50".
-        $commissionAndFees = $this->extractAmountFromTextWithCents($text, ['commission & fees'], false);
+        $commissionAndFees = $this->extractAmountFromTextWithCents($summaryBlock, ['commission & fees'], false, false);
 
         // Using only "marketing fees" avoids duplicate captures.
-        $marketingFees = $this->extractAmountFromTextWithCents($text, ['marketing fees'], false);
+        $marketingFees = $this->extractAmountFromTextWithCents($summaryBlock, ['marketing fees'], false, false);
 
         // Amendments appear as "Error charges (4) -$22.56" (and may be repeated).
-        $errorCharges = $this->extractAmountFromTextWithCents($text, ['error charges'], false);
+        $errorCharges = $this->extractAmountFromTextWithCents($summaryBlock, ['error charges'], false, false);
 
         // Net total is the best net-deposit proxy for DoorDash monthly statements.
-        $netTotal = $this->extractAmountFromTextWithCents($text, ['net total'], true);
+        $netTotal = $this->extractAmountFromTextWithCents($summaryBlock, ['net total'], true, false);
 
         return [
             'statement_date' => $statementDate ?: now(),
@@ -598,7 +605,7 @@ class ThirdPartyImportController extends Controller
      * Extract money values that always include cents (e.g. $240.38).
      * This helps avoid capturing integers like "2026" (year) or "Store ID" values.
      */
-    protected function extractAmountFromTextWithCents(string $text, array $keywords, bool $preferPositive): float
+    protected function extractAmountFromTextWithCents(string $text, array $keywords, bool $preferPositive, bool $allowNextLineFallback = true): float
     {
         $amounts = [];
         $lines = preg_split('/\r\n|\r|\n/', $text);
@@ -607,7 +614,8 @@ class ThirdPartyImportController extends Controller
             $quoted = preg_quote($keyword, '/');
 
             // Same-line keyword match with a mandatory cents portion.
-            $patternSameLine = '/' . $quoted . '\s*[:\$]?\s*\$?\s*(\(?-?[\d,]+\.\d{2}\)?)\s*/i';
+            // Supports both "$-126.12" and "-$126.12" styles.
+            $patternSameLine = '/' . $quoted . '\s*[:\$]?\s*\$?\s*(\(?-?\$?[\d,]+\.\d{2}\)?)\s*/i';
             if (preg_match_all($patternSameLine, $text, $matches, PREG_SET_ORDER)) {
                 foreach ($matches as $match) {
                     if (! isset($match[1])) {
@@ -621,13 +629,31 @@ class ThirdPartyImportController extends Controller
                 }
             }
 
-            // Next-line keyword match fallback.
-            for ($i = 0; $i < count($lines) - 1; $i++) {
-                if (preg_match('/' . $quoted . '/i', $lines[$i])) {
-                    if (preg_match('/\(?-?[\d,]+\.\d{2}\)?/', $lines[$i + 1], $m)) {
-                        $amount = $this->parseAmount(trim($m[0] ?? ''));
-                        if ($amount != 0.0) {
-                            $amounts[] = $amount;
+            // Same-line amount-then-keyword match (e.g. "-$126.12 Commission & fees")
+            $patternAmountFirst = '/(\(?-?\$?[\d,]+\.\d{2}\)?)\s*' . $quoted . '\s*/i';
+            if (preg_match_all($patternAmountFirst, $text, $matches, PREG_SET_ORDER)) {
+                foreach ($matches as $match) {
+                    if (! isset($match[1])) {
+                        continue;
+                    }
+                    $rawAmount = trim($match[1]);
+                    $amount = $this->parseAmount($rawAmount);
+                    if ($amount != 0.0) {
+                        $amounts[] = $amount;
+                    }
+                }
+            }
+
+            if ($allowNextLineFallback) {
+                // Next-line keyword match fallback.
+                for ($i = 0; $i < count($lines) - 1; $i++) {
+                    if (preg_match('/' . $quoted . '/i', $lines[$i])) {
+                        // Support "-$60.17" where the minus comes before the dollar sign.
+                        if (preg_match('/\(?-?\$?[\d,]+\.\d{2}\)?/', $lines[$i + 1], $m)) {
+                            $amount = $this->parseAmount(trim($m[0] ?? ''));
+                            if ($amount != 0.0) {
+                                $amounts[] = $amount;
+                            }
                         }
                     }
                 }
