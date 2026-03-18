@@ -252,8 +252,12 @@ class ThirdPartyImportController extends Controller
         // Fees
         $commission = $this->extractAmountFromTextFlexible($text, ['commission'], false);
         $merchantFees = $this->extractAmountFromTextFlexible($text, ['merchant fees'], false);
-        $marketingFees = $this->extractAmountFromTextFlexible($text, ['marketing fees', 'marketing spend'], false);
-        $amendments = $this->extractAmountFromTextFlexible($text, ['amendments', 'error charges'], false);
+        // DoorDash repeats marketing values (e.g. "Marketing spend" and again as a line).
+        // Using only "marketing fees" avoids double-counting.
+        $marketingFees = $this->extractAmountFromTextFlexible($text, ['marketing fees'], false);
+        // Amendments appear as "Error charges (4) -$22.56" (and may be repeated).
+        // Use only "error charges" to reduce false positives/double matches.
+        $amendments = $this->extractAmountFromTextFlexible($text, ['error charges'], false);
 
         // Net total is the best net-deposit proxy for DoorDash monthly statements.
         $netTotal = $this->extractAmountFromTextFlexible($text, ['net total'], true);
@@ -284,22 +288,44 @@ class ThirdPartyImportController extends Controller
     {
         $statementDate = $this->extractDateFromMonthlyStatement($text, $filename) ?: $this->extractDateFromGrubhub($text);
 
-        $gross = $this->extractAmountFromTextFlexible($text, ['restaurant sales'], true);
-        $net = $this->extractAmountFromTextFlexible($text, ['total payments to you', 'paid directly to your bank account'], true);
+        $read = function (string $pattern, bool $abs = true) use ($text) {
+            if (! preg_match($pattern, $text, $m)) {
+                return 0.0;
+            }
+            $val = $this->parseAmount($m[1] ?? null);
+            if ($abs) {
+                $val = abs($val);
+            }
+            return (float) $val;
+        };
 
-        $marketing = $this->extractAmountFromTextFlexible($text, ['marketing'], false);
-        $delivery = $this->extractAmountFromTextFlexible($text, ['deliveries by grubhub', 'delivery'], false);
-        $processing = $this->extractAmountFromTextFlexible($text, ['order processing', 'processing'], false);
+        // Your sample Grubhub PDF text looks like:
+        // Total payments to you $ 37.75
+        // Restaurant sales for 2 orders $ 22.18
+        // Grubhub order services $ (6.10)
+        // 1 Marketing (3.07)
+        // 3 Deliveries by Grubhub (2.05)
+        // 1 Order processing (0.98)
+        // Includes $1.69 in taxes...
+        // Account adjustments $ 21.67
+        $gross = $read('/Restaurant\s+sales\s+for\s+\d+\s+orders\s*\$?\s*([0-9\.,]+)\b/i');
+        $net = $read('/Total\s+payments\s+to\s+you\s*\$?\s*([0-9\.,]+)\b/i');
 
-        $tax = $this->extractAmountFromTextFlexible($text, ['includes', 'taxes you are responsible'], true);
+        $marketing = $read('/\bMarketing\s*\(\s*([0-9\.,]+)\s*\)/i');
+        $delivery = $read('/\bDeliveries\s+by\s+Grubhub\s*\(\s*([0-9\.,]+)\s*\)/i');
+        $processing = $read('/\bOrder\s+processing\s*\(\s*([0-9\.,]+)\s*\)/i');
+
+        $tax = $read('/Includes\s*\$?\s*([0-9\.,]+)\s*in\s+taxes/i', true);
+        $adjustments = $read('/Account\s+adjustments\s*\$?\s*([0-9\.,]+)\b/i');
 
         return [
             'statement_date' => $statementDate ?: now(),
             'statement_id' => $this->extractStatementIdFromText($text),
             'gross_sales' => round(max(0, $gross), 2),
-            'marketing_fees' => round(abs($marketing), 2),
-            'delivery_fees' => round(abs($delivery), 2),
-            'processing_fees' => round(abs($processing), 2),
+            'marketing_fees' => round(max(0, $marketing), 2),
+            'delivery_fees' => round(max(0, $delivery), 2),
+            'processing_fees' => round(max(0, $processing), 2),
+            'adjustments' => round(max(0, $adjustments), 2),
             'net_deposit' => round(max(0, $net), 2),
             'sales_tax_collected' => round(max(0, $tax), 2),
         ];
@@ -307,30 +333,67 @@ class ThirdPartyImportController extends Controller
 
     /**
      * Uber Eats monthly statement PDF (text) extractor.
-     * Uses "Sales" as gross and "Net Total" as net deposit.
-     * Fees often appear as "Total Uber Fees -$X.XX".
+     * Uses "Consolidated Monthly Summary" totals:
+     * - gross_sales: Total Earnings
+     * - processing_fees: Total Uber Fees
+     * - marketing_fees: Total Marketing Spends
+     * - adjustments: Total Amendments
+     * - net_deposit: Net Total
+     * Taxes: Tax on Sales + Tax on Container Fees + Tax on Other Earnings
      */
     protected function extractUberMonthlyStatementDataFromText(string $text, string $filename = ''): array
     {
-        $statementDate = $this->extractDateFromMonthlyStatement($text, $filename);
+        $statementDate = $this->extractDateFromMonthlyStatement($text, $filename) ?: now();
 
-        $gross = $this->extractAmountFromTextFlexible($text, ['sales (', 'sales'], true);
-        $net = $this->extractAmountFromTextFlexible($text, ['net total'], true);
+        // Prefer extracting from the consolidated summary block to avoid duplications in payouts tables.
+        $summaryBlock = $this->extractTextBetweenMarkers(
+            $text,
+            'Consolidated Monthly Summary',
+            'Payouts received in the month'
+        );
 
-        // Uber statement groups fees; treat as processing for now (or marketing bucket)
-        $totalFees = $this->extractAmountFromTextFlexible($text, ['total uber fees', 'marketplace fees'], false);
-        $tax = $this->extractAmountFromTextFlexible($text, ['tax on sales', 'tax on marketplace fees', 'tax on sales'], true);
+        $gross = $this->extractAmountFromTextFlexible($summaryBlock, ['total earnings'], true);
+        $net = $this->extractAmountFromTextFlexible($summaryBlock, ['net total'], true);
+
+        $processing = $this->extractAmountFromTextFlexible($summaryBlock, ['total uber fees'], false);
+        $marketing = $this->extractAmountFromTextFlexible($summaryBlock, ['total marketing spends'], false);
+        $adjustments = $this->extractAmountFromTextFlexible($summaryBlock, ['total amendments'], false);
+
+        $taxSales = $this->extractAmountFromTextFlexible($summaryBlock, ['tax on sales'], true);
+        $taxContainer = $this->extractAmountFromTextFlexible($summaryBlock, ['tax on container fees'], true);
+        $taxOtherEarnings = $this->extractAmountFromTextFlexible($summaryBlock, ['tax on other earnings'], true);
+        $tax = $taxSales + $taxContainer + $taxOtherEarnings;
 
         return [
-            'statement_date' => $statementDate ?: now(),
+            'statement_date' => $statementDate,
             'statement_id' => $this->extractStatementIdFromText($text),
             'gross_sales' => round(max(0, $gross), 2),
-            'marketing_fees' => 0,
+            'marketing_fees' => round(abs($marketing), 2),
             'delivery_fees' => 0,
-            'processing_fees' => round(abs($totalFees), 2),
+            'processing_fees' => round(abs($processing), 2),
+            'adjustments' => round(abs($adjustments), 2),
             'net_deposit' => round(max(0, $net), 2),
             'sales_tax_collected' => round(max(0, $tax), 2),
         ];
+    }
+
+    /**
+     * Extract a substring between two markers (case-insensitive).
+     * If either marker is missing, falls back to the full text.
+     */
+    protected function extractTextBetweenMarkers(string $text, string $startMarker, string $endMarker): string
+    {
+        $startPos = mb_stripos($text, $startMarker);
+        if ($startPos === false) {
+            return $text;
+        }
+
+        $endPos = mb_stripos($text, $endMarker, $startPos + mb_strlen($startMarker));
+        if ($endPos === false) {
+            return mb_substr($text, $startPos);
+        }
+
+        return mb_substr($text, $startPos, $endPos - $startPos);
     }
 
     /**
