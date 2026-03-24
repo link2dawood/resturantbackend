@@ -333,6 +333,81 @@
         </div>
     </div>
 
+    <!-- Third-Party Platform Fees -->
+    @if($analytics['thirdParty']['statement_count'] > 0)
+    <div class="row g-3 g-md-4 mb-4">
+        <div class="col-12">
+            <div class="card-material" style="background: white; padding: 1.5rem;">
+                <div class="chart-card-header d-flex justify-content-between align-items-center">
+                    <h3 class="chart-card-title">
+                        <i class="bi bi-truck"></i>
+                        Third-Party Platform Fees
+                        <span class="badge bg-secondary ms-2" style="font-size: 0.7rem; font-weight: 400;">{{ $analytics['thirdParty']['statement_count'] }} statements · all time</span>
+                    </h3>
+                    <a href="{{ route('admin.merchant-fees.third-party') }}" class="btn btn-sm btn-outline-secondary">View All</a>
+                </div>
+                <div class="chart-card-body">
+                    <div class="row g-3 mb-3">
+                        <div class="col-6 col-md-3">
+                            <div class="text-center p-3" style="background: #e8f5e9; border-radius: 4px;">
+                                <div class="stat-value" style="font-size: 1.5rem; color: #388e3c;">${{ number_format($analytics['thirdParty']['total_gross_sales'], 0) }}</div>
+                                <div class="stat-meta">Gross Sales</div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="text-center p-3" style="background: #ffebee; border-radius: 4px;">
+                                <div class="stat-value" style="font-size: 1.5rem; color: #c62828;">${{ number_format($analytics['thirdParty']['total_fees'], 0) }}</div>
+                                <div class="stat-meta">Total Fees</div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="text-center p-3" style="background: #e3f2fd; border-radius: 4px;">
+                                <div class="stat-value" style="font-size: 1.5rem; color: #1565c0;">${{ number_format($analytics['thirdParty']['total_net_deposit'], 0) }}</div>
+                                <div class="stat-meta">Net Deposits</div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="text-center p-3" style="background: #fff3e0; border-radius: 4px;">
+                                <div class="stat-value" style="font-size: 1.5rem; color: #e65100;">{{ $analytics['thirdParty']['avg_fee_percentage'] }}%</div>
+                                <div class="stat-meta">Avg Fee %</div>
+                            </div>
+                        </div>
+                    </div>
+                    @if($analytics['thirdParty']['breakdown']->count() > 0)
+                    <div class="table-responsive">
+                        <table class="table table-sm mb-0">
+                            <thead style="background: #f8f9fa;">
+                                <tr>
+                                    <th>Platform</th>
+                                    <th class="text-end">Gross Sales</th>
+                                    <th class="text-end">Total Fees</th>
+                                    <th class="text-end">Net Deposits</th>
+                                    <th class="text-end">Fee %</th>
+                                    <th class="text-end">Statements</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($analytics['thirdParty']['breakdown'] as $row)
+                                @php $feePct = $row->total_gross_sales > 0 ? round($row->total_fees / $row->total_gross_sales * 100, 2) : 0; @endphp
+                                <tr>
+                                    <td><strong>{{ ucfirst($row->platform) }}</strong></td>
+                                    <td class="text-end">${{ number_format($row->total_gross_sales, 2) }}</td>
+                                    <td class="text-end text-danger">${{ number_format($row->total_fees, 2) }}</td>
+                                    <td class="text-end text-success">${{ number_format($row->total_net_deposit, 2) }}</td>
+                                    <td class="text-end">{{ $feePct }}%</td>
+                                    <td class="text-end">{{ $row->statement_count }}</td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
     <div class="row g-3 g-md-4">
         <!-- Charts Column -->
         <div class="col-12 col-lg-8">
@@ -341,7 +416,7 @@
                 <div class="chart-card-header">
                     <h3 class="chart-card-title">
                         <i class="bi bi-graph-up"></i>
-                        Daily Sales Trends (Last 30 Days)
+                        Daily Sales Trends (Last 90 Days)
                     </h3>
                 </div>
                 <div class="chart-card-body">
@@ -461,7 +536,7 @@
                 <div class="chart-card-header">
                     <h3 class="chart-card-title">
                         <i class="bi bi-cash-coin"></i>
-                        Financial Analysis (Last 30 Days)
+                        Financial Analysis (Last 90 Days)
                     </h3>
                 </div>
                 <div class="chart-card-body">
@@ -515,7 +590,7 @@
                 <div class="chart-card-header">
                     <h3 class="chart-card-title">
                         <i class="bi bi-people"></i>
-                        Customer Analytics (Last 30 Days)
+                        Customer Analytics (Last 90 Days)
                     </h3>
                 </div>
                 <div class="chart-card-body">

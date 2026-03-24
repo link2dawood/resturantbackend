@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\DailyReport;
 use App\Models\Store;
+use App\Models\ThirdPartyStatement;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -102,6 +103,9 @@ class DashboardController extends Controller
 
             // Customer analytics
             'customerAnalytics' => $this->getCustomerAnalytics(clone $baseQuery, $user),
+
+            // Third-party platform fees (all-time, role-scoped)
+            'thirdParty' => $this->getThirdPartyDashboardStats($user),
         ];
     }
 
@@ -132,7 +136,7 @@ class DashboardController extends Controller
 
     private function getDailyTrends($query, $today)
     {
-        return $query->where('report_date', '>=', $today->copy()->subDays(30))
+        return $query->where('report_date', '>=', $today->copy()->subDays(90))
             ->select(
                 DB::raw('DATE(report_date) as date'),
                 DB::raw('SUM(gross_sales) as total_gross'),
@@ -147,7 +151,7 @@ class DashboardController extends Controller
 
     private function getWeeklyTrends($query, $thisWeek)
     {
-        return $query->where('report_date', '>=', $thisWeek->copy()->subWeeks(12))
+        return $query->where('report_date', '>=', $thisWeek->copy()->subWeeks(26))
             ->select(
                 DB::raw('YEARWEEK(report_date) as week'),
                 DB::raw('SUM(gross_sales) as total_gross'),
@@ -214,7 +218,7 @@ class DashboardController extends Controller
 
     private function getStorePerformance($query)
     {
-        return $query->where('report_date', '>=', Carbon::now()->subDays(30))
+        return $query->where('report_date', '>=', Carbon::now()->subDays(90))
             ->join('stores', 'daily_reports.store_id', '=', 'stores.id')
             ->select(
                 'stores.store_info',
@@ -316,7 +320,7 @@ class DashboardController extends Controller
 
     private function getTopPerformingDays($query)
     {
-        return $query->where('report_date', '>=', Carbon::now()->subDays(30))
+        return $query->where('report_date', '>=', Carbon::now()->subDays(90))
             ->orderBy('gross_sales', 'desc')
             ->take(5)
             ->get();
@@ -366,7 +370,7 @@ class DashboardController extends Controller
             });
         }
 
-        $financialData = $financialQuery->where('report_date', '>=', Carbon::now()->subDays(30))
+        $financialData = $financialQuery->where('report_date', '>=', Carbon::now()->subDays(90))
             ->selectRaw('
                 SUM(gross_sales) as total_gross,
                 SUM(net_sales) as total_net,
@@ -421,7 +425,7 @@ class DashboardController extends Controller
             });
         }
 
-        $customerData = $customerQuery->where('report_date', '>=', Carbon::now()->subDays(30))
+        $customerData = $customerQuery->where('report_date', '>=', Carbon::now()->subDays(90))
             ->selectRaw('
                 SUM(total_customers) as total_customers,
                 AVG(total_customers) as avg_daily_customers,
@@ -451,7 +455,7 @@ class DashboardController extends Controller
             });
         }
 
-        $dailyCustomerTrends = $trendsQuery->where('report_date', '>=', Carbon::now()->subDays(30))
+        $dailyCustomerTrends = $trendsQuery->where('report_date', '>=', Carbon::now()->subDays(90))
             ->select(
                 DB::raw('DATE(report_date) as date'),
                 DB::raw('SUM(total_customers) as customers'),
@@ -473,6 +477,61 @@ class DashboardController extends Controller
             'totalSales' => round($customerData->total_sales, 2),
             'customerTrends' => $dailyCustomerTrends,
             'revenuePerCustomer' => round($actualAvgTicket, 2),
+        ];
+    }
+
+    /**
+     * Get all-time third-party platform fee totals, scoped to the user's accessible stores.
+     */
+    private function getThirdPartyDashboardStats($user): array
+    {
+        $query = ThirdPartyStatement::query();
+
+        if ($user->isOwner()) {
+            $ownedStoreIds = Store::where('created_by', $user->id)->pluck('id');
+            $query->whereIn('store_id', $ownedStoreIds);
+        } elseif ($user->isManager()) {
+            $query->where('store_id', $user->store_id);
+        }
+
+        $stats = $query->selectRaw('
+            COALESCE(SUM(gross_sales), 0)                                                      as total_gross_sales,
+            COALESCE(SUM(marketing_fees + delivery_fees + processing_fees + COALESCE(adjustments, 0)), 0) as total_fees,
+            COALESCE(SUM(net_deposit), 0)                                                      as total_net_deposit,
+            COUNT(*)                                                                            as statement_count
+        ')->first();
+
+        $avgFeePercent = $stats->total_gross_sales > 0
+            ? round(($stats->total_fees / $stats->total_gross_sales) * 100, 2)
+            : 0;
+
+        // Per-platform breakdown (all time)
+        $breakdownQuery = ThirdPartyStatement::query();
+        if ($user->isOwner()) {
+            $ownedStoreIds = Store::where('created_by', $user->id)->pluck('id');
+            $breakdownQuery->whereIn('store_id', $ownedStoreIds);
+        } elseif ($user->isManager()) {
+            $breakdownQuery->where('store_id', $user->store_id);
+        }
+
+        $breakdown = $breakdownQuery->select(
+            'platform',
+            DB::raw('SUM(gross_sales) as total_gross_sales'),
+            DB::raw('SUM(marketing_fees + delivery_fees + processing_fees + COALESCE(adjustments, 0)) as total_fees'),
+            DB::raw('SUM(net_deposit) as total_net_deposit'),
+            DB::raw('COUNT(*) as statement_count')
+        )
+            ->groupBy('platform')
+            ->orderByDesc('total_fees')
+            ->get();
+
+        return [
+            'total_gross_sales'   => (float) $stats->total_gross_sales,
+            'total_fees'          => (float) $stats->total_fees,
+            'total_net_deposit'   => (float) $stats->total_net_deposit,
+            'statement_count'     => (int) $stats->statement_count,
+            'avg_fee_percentage'  => $avgFeePercent,
+            'breakdown'           => $breakdown,
         ];
     }
 
