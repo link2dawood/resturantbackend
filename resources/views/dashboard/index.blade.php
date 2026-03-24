@@ -8,7 +8,7 @@
         display: flex;
         flex-direction: column;
         gap: 24px;
-        padding: 8px 0 32px;
+        padding: 8px clamp(10px, 1.6vw, 22px) 32px;
     }
 
     .home-hero {
