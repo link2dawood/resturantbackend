@@ -116,10 +116,19 @@
         color: #fff;
     }
 
-    .home-action--primary:hover {
+    .home-action--primary,
+    .home-action--primary:visited,
+    .home-action--primary i,
+    .home-action--primary span {
+        color: #fff !important;
+    }
+
+    .home-action--primary:hover,
+    .home-action--primary:focus,
+    .home-action--primary:active {
         background: #1967d2;
         border-color: #1967d2;
-        color: #fff;
+        color: #fff !important;
     }
 
     .home-hero__meta {
