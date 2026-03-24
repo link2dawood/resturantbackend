@@ -248,8 +248,11 @@ class ThirdPartyImportController extends Controller
 
         // DoorDash PDFs include a consolidated summary on Page 1, then payout rows and appendix.
         // To avoid duplicates and keyword matches in the wrong sections, restrict parsing to the summary block.
-        // End marker is intentionally loose because the PDF might say "Page 2 of 4/5/6".
-        $summaryBlock = $this->extractTextBetweenMarkers($text, 'Sales (', 'Page 2 of');
+        // Use "Page 1 of" as the end marker: in Smalot's text extraction, the page 2 payout table data
+        // appears BEFORE "Page 2 of" (the body is encoded before the page header in DoorDash PDFs),
+        // so "Page 2 of" was letting through per-payout marketing fees lines. "Page 1 of" appears
+        // after the page 1 financial summary but before any page 2 content.
+        $summaryBlock = $this->extractTextBetweenMarkers($text, 'Sales (', 'Page 1 of');
         if (trim($summaryBlock) === '') {
             $summaryBlock = $text;
         }
