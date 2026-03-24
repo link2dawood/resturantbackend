@@ -67,9 +67,9 @@ class MerchantFeeViewController extends Controller
         $accessibleStoreIds = $user->getAccessibleStoreIds();
         $stores = Store::whereIn('id', $accessibleStoreIds)->orderBy('store_info')->get();
 
-        // Set default date range
-        $startDate = $request->input('start_date', now()->startOfMonth()->format('Y-m-d'));
-        $endDate = $request->input('end_date', now()->endOfMonth()->format('Y-m-d'));
+        // No default date range — show all data unless user explicitly filters
+        $startDate = $request->input('start_date');
+        $endDate = $request->input('end_date');
         $storeId = $request->input('store_id');
         $platform = $request->input('platform');
 
@@ -333,7 +333,13 @@ class MerchantFeeViewController extends Controller
             $query->where('platform', $platform);
         }
 
-        $query->whereBetween('statement_date', [$startDate, $endDate]);
+        if ($startDate && $endDate) {
+            $query->whereBetween('statement_date', [$startDate, $endDate]);
+        } elseif ($startDate) {
+            $query->where('statement_date', '>=', $startDate);
+        } elseif ($endDate) {
+            $query->where('statement_date', '<=', $endDate);
+        }
 
         $stats = $query->select(
             DB::raw('COALESCE(SUM(gross_sales), 0) as total_gross_sales'),
@@ -382,7 +388,13 @@ class MerchantFeeViewController extends Controller
             $query->where('platform', $platform);
         }
 
-        $query->whereBetween('statement_date', [$startDate, $endDate]);
+        if ($startDate && $endDate) {
+            $query->whereBetween('statement_date', [$startDate, $endDate]);
+        } elseif ($startDate) {
+            $query->where('statement_date', '>=', $startDate);
+        } elseif ($endDate) {
+            $query->where('statement_date', '<=', $endDate);
+        }
 
         return $query->groupBy('platform')
             ->orderByDesc('total_fees')

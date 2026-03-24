@@ -57,11 +57,11 @@
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">Start Date</label>
-                    <input type="date" class="form-control" name="start_date" value="{{ $startDate }}">
+                    <input type="date" class="form-control" name="start_date" value="{{ $startDate ?? '' }}">
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">End Date</label>
-                    <input type="date" class="form-control" name="end_date" value="{{ $endDate }}">
+                    <input type="date" class="form-control" name="end_date" value="{{ $endDate ?? '' }}">
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">&nbsp;</label>
@@ -80,6 +80,9 @@
     <div class="row row-cards mb-4">
         @php
             $platformLabel = $platform ? ucfirst($platform) : 'All platforms';
+            $dateLabel = ($startDate && $endDate)
+                ? \Carbon\Carbon::parse($startDate)->format('M j') . ' – ' . \Carbon\Carbon::parse($endDate)->format('M j, Y')
+                : 'All time';
         @endphp
         <div class="col-sm-6 col-lg-3">
             <div class="card">
@@ -88,7 +91,7 @@
                     <div class="h1 mb-3 text-success">
                         ${{ number_format($summary['total_gross_sales'], 2) }}
                     </div>
-                    <div class="d-flex align-items-center text-muted">{{ $platformLabel }}</div>
+                    <div class="d-flex align-items-center text-muted">{{ $platformLabel }} · {{ $dateLabel }}</div>
                 </div>
             </div>
         </div>
