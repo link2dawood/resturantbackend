@@ -74,10 +74,8 @@ class DailyReportObserver
                 ]);
             }
 
-            // Get or find Merchant Processing Fees COA (account_code: 6000)
-            $merchantCoa = ChartOfAccount::where('account_name', 'Merchant Processing Fees')
-                ->orWhere('account_code', '6000')
-                ->first();
+            // Get or find Merchant Processing Fees COA (account_code: 6100 in current seed data)
+            $merchantCoa = ChartOfAccount::merchantProcessingFeesAccount();
 
             if (!$merchantCoa) {
                 Log::error('Merchant Processing Fees COA not found. Please run ChartOfAccountsSeeder.');

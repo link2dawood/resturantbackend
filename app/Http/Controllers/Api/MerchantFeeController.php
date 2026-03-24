@@ -17,11 +17,16 @@ class MerchantFeeController extends Controller
      */
     public function summary(Request $request)
     {
+        $accessibleStoreIds = auth()->user()->getAccessibleStoreIds();
         $storeId = $request->input('store_id');
         $startDate = $request->input('start_date');
         $endDate = $request->input('end_date');
 
-        $merchantFeeCoa = ChartOfAccount::where('account_name', 'Merchant Processing Fees')->first();
+        if ($storeId && ! in_array((int) $storeId, $accessibleStoreIds, true)) {
+            $storeId = null;
+        }
+
+        $merchantFeeCoa = ChartOfAccount::merchantProcessingFeesAccount();
         
         if (!$merchantFeeCoa) {
             return response()->json([
@@ -31,6 +36,8 @@ class MerchantFeeController extends Controller
 
         // Base query for merchant processing fees
         $query = ExpenseTransaction::where('coa_id', $merchantFeeCoa->id);
+
+        $query->whereIn('store_id', $accessibleStoreIds);
 
         if ($storeId) {
             $query->where('store_id', $storeId);
@@ -50,6 +57,8 @@ class MerchantFeeController extends Controller
         // Get corresponding credit card sales from daily reports
         $dailyReportsQuery = DailyReport::whereNotNull('credit_cards')
             ->where('credit_cards', '>', 0);
+
+        $dailyReportsQuery->whereIn('store_id', $accessibleStoreIds);
 
         if ($storeId) {
             $dailyReportsQuery->where('store_id', $storeId);
@@ -72,6 +81,8 @@ class MerchantFeeController extends Controller
 
         // Get third-party fees
         $thirdPartyQuery = ThirdPartyStatement::query();
+
+        $thirdPartyQuery->whereIn('store_id', $accessibleStoreIds);
         
         if ($storeId) {
             $thirdPartyQuery->where('store_id', $storeId);
@@ -112,11 +123,16 @@ class MerchantFeeController extends Controller
      */
     public function byProcessor(Request $request)
     {
+        $accessibleStoreIds = auth()->user()->getAccessibleStoreIds();
         $storeId = $request->input('store_id');
         $startDate = $request->input('start_date');
         $endDate = $request->input('end_date');
 
-        $merchantFeeCoa = ChartOfAccount::where('account_name', 'Merchant Processing Fees')->first();
+        if ($storeId && ! in_array((int) $storeId, $accessibleStoreIds, true)) {
+            $storeId = null;
+        }
+
+        $merchantFeeCoa = ChartOfAccount::merchantProcessingFeesAccount();
         
         if (!$merchantFeeCoa) {
             return response()->json([
@@ -131,6 +147,8 @@ class MerchantFeeController extends Controller
             )
             ->join('vendors', 'expense_transactions.vendor_id', '=', 'vendors.id')
             ->where('expense_transactions.coa_id', $merchantFeeCoa->id);
+
+        $query->whereIn('expense_transactions.store_id', $accessibleStoreIds);
 
         if ($storeId) {
             $query->where('expense_transactions.store_id', $storeId);
@@ -156,12 +174,17 @@ class MerchantFeeController extends Controller
      */
     public function trends(Request $request)
     {
+        $accessibleStoreIds = auth()->user()->getAccessibleStoreIds();
         $storeId = $request->input('store_id');
         $startDate = $request->input('start_date', now()->subDays(30));
         $endDate = $request->input('end_date', now());
         $groupBy = $request->input('group_by', 'day'); // day, week, month
 
-        $merchantFeeCoa = ChartOfAccount::where('account_name', 'Merchant Processing Fees')->first();
+        if ($storeId && ! in_array((int) $storeId, $accessibleStoreIds, true)) {
+            $storeId = null;
+        }
+
+        $merchantFeeCoa = ChartOfAccount::merchantProcessingFeesAccount();
         
         if (!$merchantFeeCoa) {
             return response()->json([
@@ -170,6 +193,8 @@ class MerchantFeeController extends Controller
         }
 
         $query = ExpenseTransaction::where('coa_id', $merchantFeeCoa->id);
+
+        $query->whereIn('store_id', $accessibleStoreIds);
 
         if ($storeId) {
             $query->where('store_id', $storeId);
@@ -233,9 +258,14 @@ class MerchantFeeController extends Controller
      */
     public function thirdPartyBreakdown(Request $request)
     {
+        $accessibleStoreIds = auth()->user()->getAccessibleStoreIds();
         $storeId = $request->input('store_id');
         $startDate = $request->input('start_date');
         $endDate = $request->input('end_date');
+
+        if ($storeId && ! in_array((int) $storeId, $accessibleStoreIds, true)) {
+            $storeId = null;
+        }
 
         $query = ThirdPartyStatement::select(
                 'platform',
@@ -247,6 +277,8 @@ class MerchantFeeController extends Controller
                 DB::raw('SUM(net_deposit) as total_net_deposit'),
                 DB::raw('COUNT(*) as statement_count')
             );
+
+        $query->whereIn('store_id', $accessibleStoreIds);
 
         if ($storeId) {
             $query->where('store_id', $storeId);
@@ -272,12 +304,17 @@ class MerchantFeeController extends Controller
      */
     public function transactions(Request $request)
     {
+        $accessibleStoreIds = auth()->user()->getAccessibleStoreIds();
         $storeId = $request->input('store_id');
         $startDate = $request->input('start_date');
         $endDate = $request->input('end_date');
         $processor = $request->input('processor');
 
-        $merchantFeeCoa = ChartOfAccount::where('account_name', 'Merchant Processing Fees')->first();
+        if ($storeId && ! in_array((int) $storeId, $accessibleStoreIds, true)) {
+            $storeId = null;
+        }
+
+        $merchantFeeCoa = ChartOfAccount::merchantProcessingFeesAccount();
         
         if (!$merchantFeeCoa) {
             return response()->json([
@@ -287,6 +324,8 @@ class MerchantFeeController extends Controller
 
         $query = ExpenseTransaction::with(['store', 'vendor', 'dailyReport'])
             ->where('coa_id', $merchantFeeCoa->id);
+
+        $query->whereIn('store_id', $accessibleStoreIds);
 
         if ($storeId) {
             $query->where('store_id', $storeId);

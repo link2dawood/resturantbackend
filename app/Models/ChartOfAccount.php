@@ -12,6 +12,8 @@ class ChartOfAccount extends Model
 {
     use HasFactory;
 
+    public const MERCHANT_PROCESSING_FEE_CODES = ['6100', '6000'];
+
     /**
      * Account codes that are rollup "totals" (sum of rows below). Hidden from
      * transaction-type/COA dropdowns on daily reports and owner CC statements.
@@ -30,6 +32,19 @@ class ChartOfAccount extends Model
             '6900', // Travel and Expense Total
             '6950', // Utilities Total
         ];
+    }
+
+    public static function merchantProcessingFeesAccount(): ?self
+    {
+        return static::query()
+            ->where(function ($query) {
+                $query->whereIn('account_code', self::MERCHANT_PROCESSING_FEE_CODES)
+                    ->orWhere('account_name', 'Merchant Processing Fees')
+                    ->orWhere('account_name', 'Merchant Processing Fees (CC)')
+                    ->orWhere('account_name', 'like', 'Merchant Processing Fees%');
+            })
+            ->orderByRaw("CASE WHEN account_code = '6100' THEN 0 WHEN account_name = 'Merchant Processing Fees' THEN 1 ELSE 2 END")
+            ->first();
     }
 
     protected $fillable = [

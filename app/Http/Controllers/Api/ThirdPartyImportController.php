@@ -1058,7 +1058,7 @@ class ThirdPartyImportController extends Controller
         // Get COA categories for fees
         $marketingCoa = ChartOfAccount::where('account_name', 'Marketing Fees (Grubhub)')->first();
         $deliveryCoa = ChartOfAccount::where('account_name', 'Delivery Service Fees')->first();
-        $processingCoa = ChartOfAccount::where('account_name', 'Merchant Processing Fees')->first();
+        $processingCoa = ChartOfAccount::merchantProcessingFeesAccount();
         $adjustmentsCoa = ChartOfAccount::where('account_name', 'Adjustments - Overrings/Returns')->first();
 
         // Create marketing fee expense if exists
