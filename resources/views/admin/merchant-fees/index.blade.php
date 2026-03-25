@@ -28,7 +28,7 @@
         <div>
             <h1 class="mb-0" style="font-family: 'Google Sans', sans-serif; font-size: 1.75rem; font-weight: 400; color: var(--on-surface, #202124);">Merchant Fee Analytics</h1>
             <p class="text-muted mb-0" id="merchantFeeSummaryText" style="font-family: 'Google Sans', sans-serif; margin-top: 0.25rem;">
-                Merchant fee analytics is {{ number_format($merchantProcessing['average_fee_percentage'], 2) }}% of all credit card sales received. Online and third-party platform fees average {{ number_format($thirdPartyPlatforms['average_fee_percentage'], 2) }}% of platform sales.
+                Merchant fee analytics is {{ number_format($merchantProcessing['average_fee_percentage'], 2) }}% of all credit card and online platform sales received. Third-party platform fees average {{ number_format($thirdPartyPlatforms['average_fee_percentage'], 2) }}% of platform sales.
             </p>
         </div>
         <div class="btn-group">
@@ -99,7 +99,7 @@
                     <div class="h1 mb-3 text-primary" id="merchantProcessingAverageFee">
                         {{ number_format($merchantProcessing['average_fee_percentage'], 2) }}%
                     </div>
-                    <div class="d-flex align-items-center text-muted" id="merchantProcessingAverageFeeLabel">of all credit card sales received</div>
+                    <div class="d-flex align-items-center text-muted" id="merchantProcessingAverageFeeLabel">of all credit card &amp; online platform sales</div>
                 </div>
             </div>
         </div>
@@ -110,7 +110,7 @@
                     <div class="h1 mb-3 text-success" id="merchantProcessingTotalSales">
                         ${{ number_format($merchantProcessing['total_sales'], 2) }}
                     </div>
-                    <div class="d-flex align-items-center text-muted">Credit card sales</div>
+                    <div class="d-flex align-items-center text-muted">Credit card &amp; online platform sales</div>
                 </div>
             </div>
         </div>
@@ -242,6 +242,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     filterForm.addEventListener('submit', function(event) {
         event.preventDefault();
+        const params = currentParams();
+        const queryString = params.toString();
+        history.pushState({}, '', queryString ? `?${queryString}` : window.location.pathname);
         refreshMerchantFeeSections();
     });
 
@@ -331,9 +334,10 @@ document.addEventListener('DOMContentLoaded', function() {
         merchantProcessingTotalFees.textContent = formatCurrency(merchantProcessing.total_fees || 0);
         merchantProcessingAverageFee.textContent = `${merchantFeePct.toFixed(2)}%`;
         merchantProcessingTotalSales.textContent = formatCurrency(merchantProcessing.total_sales || 0);
+        document.getElementById('merchantProcessingAverageFeeLabel').textContent = 'of all credit card & online platform sales';
         thirdPartyTotalFees.textContent = formatCurrency(thirdParty.total_fees || 0);
         thirdPartyAverageFeeLabel.textContent = `${thirdPartyPct.toFixed(2)}% of online / third-party sales`;
-        summaryText.textContent = `Merchant fee analytics is ${merchantFeePct.toFixed(2)}% of all credit card sales received. Online and third-party platform fees average ${thirdPartyPct.toFixed(2)}% of platform sales.`;
+        summaryText.textContent = `Merchant fee analytics is ${merchantFeePct.toFixed(2)}% of all credit card and online platform sales received. Third-party platform fees average ${thirdPartyPct.toFixed(2)}% of platform sales.`;
     }
 
     function renderTrendsChart(trendsData) {

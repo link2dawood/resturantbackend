@@ -180,44 +180,62 @@ class MerchantFeeViewController extends Controller
             return [
                 'total_fees' => 0,
                 'total_sales' => 0,
+                'third_party_sales' => 0,
                 'average_fee_percentage' => 0,
             ];
         }
-        
+
         // Get total merchant fees
         $query = ExpenseTransaction::where('coa_id', $merchantFeeCoa->id);
 
         if (! empty($accessibleStoreIds)) {
             $query->whereIn('store_id', $accessibleStoreIds);
         }
-        
+
         if ($storeId) {
             $query->where('store_id', $storeId);
         }
-        
+
         $query->whereBetween('transaction_date', [$startDate, $endDate]);
-        
+
         $totalFees = $query->sum('amount');
-        
-        // Get credit card sales
+
+        // Get credit card sales (in-store)
         $dailyReportsQuery = DailyReport::whereNotNull('credit_cards')->where('credit_cards', '>', 0);
 
         if (! empty($accessibleStoreIds)) {
             $dailyReportsQuery->whereIn('store_id', $accessibleStoreIds);
         }
-        
+
         if ($storeId) {
             $dailyReportsQuery->where('store_id', $storeId);
         }
-        
+
         $dailyReportsQuery->whereBetween('report_date', [$startDate, $endDate]);
-        $totalSales = $dailyReportsQuery->sum('credit_cards');
-        
+        $creditCardSales = $dailyReportsQuery->sum('credit_cards');
+
+        // Get third-party platform net deposits (online platform payouts)
+        $thirdPartyQuery = ThirdPartyStatement::query();
+
+        if (! empty($accessibleStoreIds)) {
+            $thirdPartyQuery->whereIn('store_id', $accessibleStoreIds);
+        }
+
+        if ($storeId) {
+            $thirdPartyQuery->where('store_id', $storeId);
+        }
+
+        $thirdPartyQuery->whereBetween('statement_date', [$startDate, $endDate]);
+        $thirdPartySales = (float) $thirdPartyQuery->sum('net_deposit');
+
+        $totalSales = $creditCardSales + $thirdPartySales;
         $averageFeePercentage = $totalSales > 0 ? ($totalFees / $totalSales) * 100 : 0;
-        
+
         return [
             'total_fees' => $totalFees,
             'total_sales' => $totalSales,
+            'credit_card_sales' => $creditCardSales,
+            'third_party_sales' => $thirdPartySales,
             'average_fee_percentage' => round($averageFeePercentage, 2),
         ];
     }

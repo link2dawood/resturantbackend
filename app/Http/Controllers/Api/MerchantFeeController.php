@@ -54,7 +54,7 @@ class MerchantFeeController extends Controller
         // Get total fees
         $totalFees = $query->sum('amount');
 
-        // Get corresponding credit card sales from daily reports
+        // Get credit card sales (in-store) from daily reports
         $dailyReportsQuery = DailyReport::whereNotNull('credit_cards')
             ->where('credit_cards', '>', 0);
 
@@ -74,9 +74,18 @@ class MerchantFeeController extends Controller
 
         $totalCreditCardSales = $dailyReportsQuery->sum('credit_cards');
 
-        // Calculate average fee percentage
-        $averageFeePercentage = $totalCreditCardSales > 0 
-            ? ($totalFees / $totalCreditCardSales) * 100 
+        // Get third-party platform net deposits for the same period
+        $thirdPartyNetQuery = ThirdPartyStatement::query();
+        $thirdPartyNetQuery->whereIn('store_id', $accessibleStoreIds);
+        if ($storeId) $thirdPartyNetQuery->where('store_id', $storeId);
+        if ($startDate) $thirdPartyNetQuery->where('statement_date', '>=', $startDate);
+        if ($endDate) $thirdPartyNetQuery->where('statement_date', '<=', $endDate);
+        $thirdPartyNetDeposits = (float) $thirdPartyNetQuery->sum('net_deposit');
+
+        // Calculate average fee percentage across all credit card and online platform sales
+        $totalAllSales = $totalCreditCardSales + $thirdPartyNetDeposits;
+        $averageFeePercentage = $totalAllSales > 0
+            ? ($totalFees / $totalAllSales) * 100
             : 0;
 
         // Get third-party fees
@@ -108,7 +117,9 @@ class MerchantFeeController extends Controller
         return response()->json([
             'merchant_processing' => [
                 'total_fees' => (float) $totalFees,
-                'total_sales' => (float) $totalCreditCardSales,
+                'total_sales' => (float) $totalAllSales,
+                'credit_card_sales' => (float) $totalCreditCardSales,
+                'third_party_sales' => $thirdPartyNetDeposits,
                 'average_fee_percentage' => round($averageFeePercentage, 2),
             ],
             'third_party_platforms' => [
