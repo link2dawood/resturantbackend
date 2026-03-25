@@ -197,7 +197,7 @@ class MerchantFeeViewController extends Controller
 
         $query->whereBetween('transaction_date', [$startDate, $endDate]);
 
-        $totalFees = $query->sum('amount');
+        $totalFees = (float) $query->sum('amount');
 
         // Get credit card sales
         $dailyReportsQuery = DailyReport::whereNotNull('credit_cards')->where('credit_cards', '>', 0);
@@ -211,7 +211,13 @@ class MerchantFeeViewController extends Controller
         }
 
         $dailyReportsQuery->whereBetween('report_date', [$startDate, $endDate]);
-        $totalSales = $dailyReportsQuery->sum('credit_cards');
+        $totalSales = (float) $dailyReportsQuery->sum('credit_cards');
+
+        // Fall back to configured rate when no fee transactions exist yet for this period
+        $merchantFeeRate = config('services.square.fee_rate', 0.0245);
+        if ($totalFees == 0 && $totalSales > 0) {
+            $totalFees = round($totalSales * $merchantFeeRate, 2);
+        }
 
         $averageFeePercentage = $totalSales > 0 ? ($totalFees / $totalSales) * 100 : 0;
 

@@ -72,11 +72,17 @@ class MerchantFeeController extends Controller
             $dailyReportsQuery->where('report_date', '<=', $endDate);
         }
 
-        $totalCreditCardSales = $dailyReportsQuery->sum('credit_cards');
+        $totalCreditCardSales = (float) $dailyReportsQuery->sum('credit_cards');
+
+        // Fall back to configured rate when no fee transactions exist yet for this period
+        $merchantFeeRate = config('services.square.fee_rate', 0.0245);
+        if ((float) $totalFees == 0 && $totalCreditCardSales > 0) {
+            $totalFees = round($totalCreditCardSales * $merchantFeeRate, 2);
+        }
 
         // Calculate average fee percentage based on credit card sales
         $averageFeePercentage = $totalCreditCardSales > 0
-            ? ($totalFees / $totalCreditCardSales) * 100
+            ? ((float) $totalFees / $totalCreditCardSales) * 100
             : 0;
 
         // Get third-party fees
