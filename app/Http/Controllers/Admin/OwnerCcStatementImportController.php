@@ -345,23 +345,61 @@ class OwnerCcStatementImportController extends Controller
     /**
      * Download this statement's records as CSV.
      */
-    public function download(OwnerCcStatementImport $ownerCcStatementImport): StreamedResponse
+    public function download(Request $request, OwnerCcStatementImport $ownerCcStatementImport): StreamedResponse
     {
         $import = $ownerCcStatementImport->load('lines');
         $filename = 'cc-statement-' . pathinfo($import->file_name, PATHINFO_FILENAME) . '-' . $import->created_at->format('Y-m-d') . '.csv';
 
         $import->load('lines.transactionType', 'lines.chartOfAccount', 'lines.store');
+        $user = auth()->user();
+        $accessibleStoreIds = $user->getAccessibleStoreIds();
 
-        return response()->streamDownload(function () use ($import) {
+        $lineSelections = collect($request->input('lines', []))
+            ->filter(fn ($line) => is_array($line) && ! empty($line['id']))
+            ->mapWithKeys(function (array $line) use ($accessibleStoreIds) {
+                $requestedStoreId = isset($line['store_id']) && in_array((int) $line['store_id'], $accessibleStoreIds, true)
+                    ? (int) $line['store_id']
+                    : null;
+
+                $requestedCoaId = ! empty($line['coa_id']) ? (int) $line['coa_id'] : null;
+
+                return [
+                    (int) $line['id'] => [
+                        'store_id' => $requestedStoreId,
+                        'coa_id' => $requestedCoaId,
+                    ],
+                ];
+            });
+
+        $selectedStoreIds = $lineSelections->pluck('store_id')->filter()->unique()->values();
+        $selectedCoaIds = $lineSelections->pluck('coa_id')->filter()->unique()->values();
+
+        $selectedStores = $selectedStoreIds->isNotEmpty()
+            ? Store::whereIn('id', $selectedStoreIds)->get()->keyBy('id')
+            : collect();
+
+        $selectedCoas = $selectedCoaIds->isNotEmpty()
+            ? ChartOfAccount::whereIn('id', $selectedCoaIds)->get()->keyBy('id')
+            : collect();
+
+        return response()->streamDownload(function () use ($import, $lineSelections, $selectedStores, $selectedCoas) {
             $handle = fopen('php://output', 'w');
             fputcsv($handle, ['Last 4 CC', 'Date', 'Description', 'Debit', 'Credit', 'Member Name', 'Store', 'Chart of Account']);
 
             foreach ($import->lines as $line) {
+                $selectedLine = $lineSelections->get((int) $line->id, []);
+                $selectedStore = ! empty($selectedLine['store_id']) ? $selectedStores->get((int) $selectedLine['store_id']) : null;
+                $selectedCoa = ! empty($selectedLine['coa_id']) ? $selectedCoas->get((int) $selectedLine['coa_id']) : null;
+
                 $last4 = $line->card_last4 ?? $import->card_last4 ?? '';
-                $storeLabel = $line->store ? $line->store->store_info : ($import->store ? $import->store->store_info : '');
-                $coaLabel = $line->chartOfAccount
-                    ? ($line->chartOfAccount->account_code . ' - ' . $line->chartOfAccount->account_name)
+                $effectiveStore = $selectedStore ?? $line->store ?? $import->store;
+                $effectiveCoa = $selectedCoa ?? $line->chartOfAccount;
+
+                $storeLabel = $effectiveStore ? $effectiveStore->store_info : '';
+                $coaLabel = $effectiveCoa
+                    ? ($effectiveCoa->account_code . ' - ' . $effectiveCoa->account_name)
                     : '';
+
                 fputcsv($handle, [
                     $last4,
                     $line->transaction_date->format('m/d/Y'),
