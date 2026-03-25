@@ -97,9 +97,13 @@ class MerchantFeeController extends Controller
         }
 
         $thirdPartyStats = $thirdPartyQuery->select(
-            DB::raw('COALESCE(SUM(marketing_fees + delivery_fees + processing_fees), 0) as total_fees'),
+            DB::raw('COALESCE(SUM(marketing_fees + delivery_fees + processing_fees + COALESCE(adjustments, 0)), 0) as total_fees'),
             DB::raw('COALESCE(SUM(gross_sales), 0) as total_sales')
         )->first();
+
+        $thirdPartyAverageFeePercentage = (float) $thirdPartyStats->total_sales > 0
+            ? ((float) $thirdPartyStats->total_fees / (float) $thirdPartyStats->total_sales) * 100
+            : 0;
 
         return response()->json([
             'merchant_processing' => [
@@ -110,6 +114,7 @@ class MerchantFeeController extends Controller
             'third_party_platforms' => [
                 'total_fees' => (float) $thirdPartyStats->total_fees,
                 'total_sales' => (float) $thirdPartyStats->total_sales,
+                'average_fee_percentage' => round($thirdPartyAverageFeePercentage, 2),
             ],
             'period' => [
                 'start_date' => $startDate,

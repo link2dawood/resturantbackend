@@ -240,11 +240,18 @@ class MerchantFeeViewController extends Controller
         $query->whereBetween('statement_date', [$startDate, $endDate]);
         
         $stats = $query->select(
-            DB::raw('COALESCE(SUM(marketing_fees + delivery_fees + processing_fees), 0) as total_fees')
+            DB::raw('COALESCE(SUM(marketing_fees + delivery_fees + processing_fees + COALESCE(adjustments, 0)), 0) as total_fees'),
+            DB::raw('COALESCE(SUM(gross_sales), 0) as total_sales')
         )->first();
+
+        $totalFees = (float) ($stats->total_fees ?? 0);
+        $totalSales = (float) ($stats->total_sales ?? 0);
+        $averageFeePercentage = $totalSales > 0 ? ($totalFees / $totalSales) * 100 : 0;
         
         return [
-            'total_fees' => $stats->total_fees,
+            'total_fees' => $totalFees,
+            'total_sales' => $totalSales,
+            'average_fee_percentage' => round($averageFeePercentage, 2),
         ];
     }
     

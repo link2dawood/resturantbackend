@@ -27,7 +27,9 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h1 class="mb-0" style="font-family: 'Google Sans', sans-serif; font-size: 1.75rem; font-weight: 400; color: var(--on-surface, #202124);">Merchant Fee Analytics</h1>
-            <p class="text-muted mb-0" style="font-family: 'Google Sans', sans-serif; margin-top: 0.25rem;">Merchant fee analytics is {{ number_format($merchantProcessing['average_fee_percentage'], 2) }}% of all credit card sales received.</p>
+            <p class="text-muted mb-0" id="merchantFeeSummaryText" style="font-family: 'Google Sans', sans-serif; margin-top: 0.25rem;">
+                Merchant fee analytics is {{ number_format($merchantProcessing['average_fee_percentage'], 2) }}% of all credit card sales received. Online and third-party platform fees average {{ number_format($thirdPartyPlatforms['average_fee_percentage'], 2) }}% of platform sales.
+            </p>
         </div>
         <div class="btn-group">
             <a href="{{ route('admin.merchant-fees.third-party') }}" class="btn btn-outline-primary">
@@ -83,7 +85,7 @@
             <div class="card">
                 <div class="card-body">
                     <div class="subheader">Total Fees This Period</div>
-                    <div class="h1 mb-3 text-danger">
+                    <div class="h1 mb-3 text-danger" id="merchantProcessingTotalFees">
                         ${{ number_format($merchantProcessing['total_fees'], 2) }}
                     </div>
                     <div class="d-flex align-items-center text-muted">Merchant Processing</div>
@@ -94,10 +96,10 @@
             <div class="card">
                 <div class="card-body">
                     <div class="subheader">Average Fee %</div>
-                    <div class="h1 mb-3 text-primary">
+                    <div class="h1 mb-3 text-primary" id="merchantProcessingAverageFee">
                         {{ number_format($merchantProcessing['average_fee_percentage'], 2) }}%
                     </div>
-                    <div class="d-flex align-items-center text-muted">of all credit card sales received</div>
+                    <div class="d-flex align-items-center text-muted" id="merchantProcessingAverageFeeLabel">of all credit card sales received</div>
                 </div>
             </div>
         </div>
@@ -105,7 +107,7 @@
             <div class="card">
                 <div class="card-body">
                     <div class="subheader">Total Sales</div>
-                    <div class="h1 mb-3 text-success">
+                    <div class="h1 mb-3 text-success" id="merchantProcessingTotalSales">
                         ${{ number_format($merchantProcessing['total_sales'], 2) }}
                     </div>
                     <div class="d-flex align-items-center text-muted">Credit card sales</div>
@@ -116,10 +118,10 @@
             <div class="card">
                 <div class="card-body">
                     <div class="subheader">Third-Party Fees</div>
-                    <div class="h1 mb-3 text-warning">
+                    <div class="h1 mb-3 text-warning" id="thirdPartyTotalFees">
                         ${{ number_format($thirdPartyPlatforms['total_fees'], 2) }}
                     </div>
-                    <div class="d-flex align-items-center text-muted">Platform costs</div>
+                    <div class="d-flex align-items-center text-muted" id="thirdPartyAverageFeeLabel">{{ number_format($thirdPartyPlatforms['average_fee_percentage'], 2) }}% of online / third-party sales</div>
                 </div>
             </div>
         </div>
@@ -221,6 +223,12 @@ let trendsChart;
 document.addEventListener('DOMContentLoaded', function() {
     const filterForm = document.getElementById('merchant-fee-filters');
     const applyButton = document.getElementById('merchant-fee-apply');
+    const summaryText = document.getElementById('merchantFeeSummaryText');
+    const merchantProcessingTotalFees = document.getElementById('merchantProcessingTotalFees');
+    const merchantProcessingAverageFee = document.getElementById('merchantProcessingAverageFee');
+    const merchantProcessingTotalSales = document.getElementById('merchantProcessingTotalSales');
+    const thirdPartyTotalFees = document.getElementById('thirdPartyTotalFees');
+    const thirdPartyAverageFeeLabel = document.getElementById('thirdPartyAverageFeeLabel');
     const processorList = document.getElementById('byProcessorList');
     const transactionsBody = document.getElementById('merchantFeeTransactionsBody');
     const trendsChartState = document.getElementById('trendsChartState');
@@ -260,20 +268,23 @@ document.addEventListener('DOMContentLoaded', function() {
         setLoadingState(true);
 
         try {
-            const [trendsResponse, processorsResponse, transactionsResponse] = await Promise.all([
+            const [summaryResponse, trendsResponse, processorsResponse, transactionsResponse] = await Promise.all([
+                fetch(`/api/merchant-fees/summary${suffix}`, { headers: { 'Accept': 'application/json' } }),
                 fetch(`/api/merchant-fees/trends${suffix}`, { headers: { 'Accept': 'application/json' } }),
                 fetch(`/api/merchant-fees/by-processor${suffix}`, { headers: { 'Accept': 'application/json' } }),
                 fetch(`/api/merchant-fees/transactions${suffix}`, { headers: { 'Accept': 'application/json' } }),
             ]);
 
-            if (!trendsResponse.ok || !processorsResponse.ok || !transactionsResponse.ok) {
+            if (!summaryResponse.ok || !trendsResponse.ok || !processorsResponse.ok || !transactionsResponse.ok) {
                 throw new Error('Failed to load merchant fee analytics');
             }
 
+            const summaryPayload = await summaryResponse.json();
             const trendsPayload = await trendsResponse.json();
             const processorsPayload = await processorsResponse.json();
             const transactionsPayload = await transactionsResponse.json();
 
+            renderSummary(summaryPayload);
             const trendsData = trendsPayload.trends || [];
             const processorData = Array.isArray(processorsPayload) ? processorsPayload : [];
             const transactionData = Array.isArray(transactionsPayload.data) ? transactionsPayload.data : [];
@@ -308,6 +319,21 @@ document.addEventListener('DOMContentLoaded', function() {
             processorList.innerHTML = '<p class="merchant-fee-loading text-center py-4 mb-0">Loading processors...</p>';
             transactionsBody.innerHTML = '<tr><td colspan="5" class="merchant-fee-loading text-center py-4">Loading transactions...</td></tr>';
         }
+    }
+
+    function renderSummary(summary) {
+        const merchantProcessing = summary?.merchant_processing || {};
+        const thirdParty = summary?.third_party_platforms || {};
+
+        const merchantFeePct = Number(merchantProcessing.average_fee_percentage || 0);
+        const thirdPartyPct = Number(thirdParty.average_fee_percentage || 0);
+
+        merchantProcessingTotalFees.textContent = formatCurrency(merchantProcessing.total_fees || 0);
+        merchantProcessingAverageFee.textContent = `${merchantFeePct.toFixed(2)}%`;
+        merchantProcessingTotalSales.textContent = formatCurrency(merchantProcessing.total_sales || 0);
+        thirdPartyTotalFees.textContent = formatCurrency(thirdParty.total_fees || 0);
+        thirdPartyAverageFeeLabel.textContent = `${thirdPartyPct.toFixed(2)}% of online / third-party sales`;
+        summaryText.textContent = `Merchant fee analytics is ${merchantFeePct.toFixed(2)}% of all credit card sales received. Online and third-party platform fees average ${thirdPartyPct.toFixed(2)}% of platform sales.`;
     }
 
     function renderTrendsChart(trendsData) {
@@ -410,6 +436,13 @@ document.addEventListener('DOMContentLoaded', function() {
             .replace(/>/g, '&gt;')
             .replace(/"/g, '&quot;')
             .replace(/'/g, '&#039;');
+    }
+
+    function formatCurrency(value) {
+        return '$' + Number(value || 0).toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        });
     }
 });
 </script>
