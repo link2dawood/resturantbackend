@@ -27,7 +27,7 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h1 class="mb-0" style="font-family: 'Google Sans', sans-serif; font-size: 1.75rem; font-weight: 400; color: var(--on-surface, #202124);">Merchant Fee Analytics</h1>
-            <p class="text-muted mb-0" style="font-family: 'Google Sans', sans-serif; margin-top: 0.25rem;">Track credit card processing and third-party platform fees</p>
+            <p class="text-muted mb-0" style="font-family: 'Google Sans', sans-serif; margin-top: 0.25rem;">Merchant fee analytics is {{ number_format($merchantProcessing['average_fee_percentage'], 2) }}% of all credit card sales received.</p>
         </div>
         <div class="btn-group">
             <a href="{{ route('admin.merchant-fees.third-party') }}" class="btn btn-outline-primary">
@@ -97,7 +97,7 @@
                     <div class="h1 mb-3 text-primary">
                         {{ number_format($merchantProcessing['average_fee_percentage'], 2) }}%
                     </div>
-                    <div class="d-flex align-items-center text-muted">of gross sales</div>
+                    <div class="d-flex align-items-center text-muted">of all credit card sales received</div>
                 </div>
             </div>
         </div>
