@@ -180,7 +180,6 @@ class MerchantFeeViewController extends Controller
             return [
                 'total_fees' => 0,
                 'total_sales' => 0,
-                'third_party_sales' => 0,
                 'average_fee_percentage' => 0,
             ];
         }
@@ -200,7 +199,7 @@ class MerchantFeeViewController extends Controller
 
         $totalFees = $query->sum('amount');
 
-        // Get credit card sales (in-store)
+        // Get credit card sales
         $dailyReportsQuery = DailyReport::whereNotNull('credit_cards')->where('credit_cards', '>', 0);
 
         if (! empty($accessibleStoreIds)) {
@@ -212,30 +211,13 @@ class MerchantFeeViewController extends Controller
         }
 
         $dailyReportsQuery->whereBetween('report_date', [$startDate, $endDate]);
-        $creditCardSales = $dailyReportsQuery->sum('credit_cards');
+        $totalSales = $dailyReportsQuery->sum('credit_cards');
 
-        // Get third-party platform net deposits (online platform payouts)
-        $thirdPartyQuery = ThirdPartyStatement::query();
-
-        if (! empty($accessibleStoreIds)) {
-            $thirdPartyQuery->whereIn('store_id', $accessibleStoreIds);
-        }
-
-        if ($storeId) {
-            $thirdPartyQuery->where('store_id', $storeId);
-        }
-
-        $thirdPartyQuery->whereBetween('statement_date', [$startDate, $endDate]);
-        $thirdPartySales = (float) $thirdPartyQuery->sum('net_deposit');
-
-        $totalSales = $creditCardSales + $thirdPartySales;
         $averageFeePercentage = $totalSales > 0 ? ($totalFees / $totalSales) * 100 : 0;
 
         return [
             'total_fees' => $totalFees,
             'total_sales' => $totalSales,
-            'credit_card_sales' => $creditCardSales,
-            'third_party_sales' => $thirdPartySales,
             'average_fee_percentage' => round($averageFeePercentage, 2),
         ];
     }
