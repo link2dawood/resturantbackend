@@ -109,7 +109,7 @@
         <div class="col-sm-6 col-lg-3">
             <div class="card">
                 <div class="card-body">
-                    <div class="subheader">Net Deposits</div>
+                    <div class="subheader">Net Totals / Deposits</div>
                     <div class="h1 mb-3 text-primary">
                         ${{ number_format($summary['total_net_deposit'], 2) }}
                     </div>
@@ -147,9 +147,9 @@
                                     <th class="text-end">Marketing Fees</th>
                                     <th class="text-end">Delivery Fees</th>
                                     <th class="text-end">Processing Fees</th>
-                                    <th class="text-end">Adjustments</th>
+                                    <th class="text-end">Amendments / Adjustments</th>
                                     <th class="text-end">Total Fees</th>
-                                    <th class="text-end">Net Deposits</th>
+                                    <th class="text-end">Net Total / Deposit</th>
                                     <th class="text-end">Fee %</th>
                                     <th>Statements</th>
                                 </tr>
@@ -201,7 +201,7 @@
                                     <th>Store</th>
                                     <th class="text-end">Gross Sales</th>
                                     <th class="text-end">Total Fees</th>
-                                    <th class="text-end">Net Deposit</th>
+                                    <th class="text-end">Net Total / Deposit</th>
                                     <th class="text-center" style="min-width: 160px;">View / Delete</th>
                                 </tr>
                             </thead>

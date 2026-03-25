@@ -4,6 +4,10 @@
 
 @section('content')
 <div class="container-xl mt-4">
+    @php
+        $adjustmentLabel = $statement->platform === 'ubereats' ? 'Amendments' : 'Adjustments';
+        $netLabel = $statement->platform === 'ubereats' ? 'Net Total' : 'Net Deposit';
+    @endphp
     @if(session('success'))
         <div class="alert alert-success alert-dismissible fade show" role="alert">
             {{ session('success') }}
@@ -92,7 +96,7 @@
         <div class="col-md-4">
             <div class="card">
                 <div class="card-body">
-                    <div class="subheader text-muted">Adjustments</div>
+                    <div class="subheader text-muted">{{ $adjustmentLabel }}</div>
                     <div class="h2 mb-0 text-danger">${{ number_format($statement->adjustments ?? 0, 2) }}</div>
                 </div>
             </div>
@@ -100,7 +104,7 @@
         <div class="col-md-4">
             <div class="card">
                 <div class="card-body">
-                    <div class="subheader text-muted">Net Deposit</div>
+                    <div class="subheader text-muted">{{ $netLabel }}</div>
                     <div class="h2 mb-0 text-primary">${{ number_format($statement->net_deposit, 2) }}</div>
                 </div>
             </div>

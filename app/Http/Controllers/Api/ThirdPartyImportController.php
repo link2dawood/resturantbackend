@@ -373,16 +373,19 @@ class ThirdPartyImportController extends Controller
             'Payouts received in the month'
         );
 
-        $gross = $this->extractAmountFromTextFlexible($summaryBlock, ['total earnings'], true);
-        $net = $this->extractAmountFromTextFlexible($summaryBlock, ['net total'], true);
+        // Use the stricter cents-based extractor here so a zero-value line like
+        // "Total Amendments $0.00" cannot drift down and capture the later
+        // "Net Total $61.23*" amount from the PDF text.
+        $gross = $this->extractAmountFromTextWithCents($summaryBlock, ['total earnings'], true);
+        $net = $this->extractAmountFromTextWithCents($summaryBlock, ['net total'], true);
 
-        $processing = $this->extractAmountFromTextFlexible($summaryBlock, ['total uber fees'], false);
-        $marketing = $this->extractAmountFromTextFlexible($summaryBlock, ['total marketing spends'], false);
-        $adjustments = $this->extractAmountFromTextFlexible($summaryBlock, ['total amendments'], false);
+        $processing = $this->extractAmountFromTextWithCents($summaryBlock, ['total uber fees'], false);
+        $marketing = $this->extractAmountFromTextWithCents($summaryBlock, ['total marketing spends'], false);
+        $adjustments = $this->extractAmountFromTextWithCents($summaryBlock, ['total amendments'], false);
 
-        $taxSales = $this->extractAmountFromTextFlexible($summaryBlock, ['tax on sales'], true);
-        $taxContainer = $this->extractAmountFromTextFlexible($summaryBlock, ['tax on container fees'], true);
-        $taxOtherEarnings = $this->extractAmountFromTextFlexible($summaryBlock, ['tax on other earnings'], true);
+        $taxSales = $this->extractAmountFromTextWithCents($summaryBlock, ['tax on sales'], true);
+        $taxContainer = $this->extractAmountFromTextWithCents($summaryBlock, ['tax on container fees'], true);
+        $taxOtherEarnings = $this->extractAmountFromTextWithCents($summaryBlock, ['tax on other earnings'], true);
         $tax = $taxSales + $taxContainer + $taxOtherEarnings;
 
         return [
