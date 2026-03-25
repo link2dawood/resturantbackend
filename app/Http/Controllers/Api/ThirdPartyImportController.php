@@ -851,9 +851,66 @@ class ThirdPartyImportController extends Controller
             $headerMap = [];
             
             foreach ($header as $index => $column) {
-                $normalized = strtolower(trim($column));
+                $normalized = $this->normalizeCsvHeader($column);
                 $headerMap[$normalized] = $index;
             }
+
+            $dateColumn = $this->findCsvHeaderIndex($headerMap, [
+                'date',
+                'transaction date',
+                'statement date',
+                'payout date',
+            ]);
+
+            $grossColumn = $this->findCsvHeaderIndex($headerMap, [
+                'gross sales',
+                'subtotal',
+                'total sales',
+                'total earnings',
+                'order subtotal',
+                'sales',
+            ]);
+
+            $marketingColumn = $this->findCsvHeaderIndex($headerMap, [
+                'marketing fees',
+                'marketing fee',
+                'total marketing spends',
+                'marketing spend',
+                'promotion fees',
+                'promotions',
+                'promo spend',
+                'ads',
+            ]);
+
+            $deliveryColumn = $this->findCsvHeaderIndex($headerMap, [
+                'delivery fees',
+                'delivery fee',
+                'delivery',
+                'delivery charges',
+                'courier payment',
+                'courier payments',
+            ]);
+
+            $processingColumn = $this->findCsvHeaderIndex($headerMap, [
+                'processing fees',
+                'processing fee',
+                'payment processing',
+                'service fee',
+                'service fees',
+                'total uber fees',
+                'uber fees',
+                'commission',
+            ]);
+
+            $netDepositColumn = $this->findCsvHeaderIndex($headerMap, [
+                'net deposit',
+                'payout',
+                'net payment',
+                'net payout',
+                'net total',
+                'deposit',
+                'total payout',
+            ]);
             
             // Aggregate totals from all rows
             $grossSales = 0;
@@ -869,40 +926,32 @@ class ThirdPartyImportController extends Controller
                 
                 // Try to find date column
                 $date = null;
-                if (isset($headerMap['date'])) {
-                    $date = $this->parseDate($row[$headerMap['date']]);
-                } elseif (isset($headerMap['transaction date'])) {
-                    $date = $this->parseDate($row[$headerMap['transaction date']]);
-                } elseif (isset($headerMap['statement date'])) {
-                    $date = $this->parseDate($row[$headerMap['statement date']]);
+                if ($dateColumn !== null && isset($row[$dateColumn])) {
+                    $date = $this->parseDate($row[$dateColumn]);
                 }
                 
                 if (!$firstDate) $firstDate = $date;
                 $lastDate = $date ?: $lastDate;
                 
                 // Parse amounts based on column headers
-                if (isset($headerMap['gross sales']) || isset($headerMap['subtotal'])) {
-                    $col = $headerMap['gross sales'] ?? $headerMap['subtotal'];
-                    $grossSales += $this->parseAmount($row[$col] ?? '0');
+                if ($grossColumn !== null) {
+                    $grossSales += $this->parseAmount($row[$grossColumn] ?? '0');
                 }
                 
-                if (isset($headerMap['marketing fees']) || isset($headerMap['commission'])) {
-                    $col = $headerMap['marketing fees'] ?? $headerMap['commission'];
-                    $marketingFees += $this->parseAmount($row[$col] ?? '0');
+                if ($marketingColumn !== null) {
+                    $marketingFees += $this->parseAmount($row[$marketingColumn] ?? '0');
                 }
                 
-                if (isset($headerMap['delivery fees'])) {
-                    $deliveryFees += $this->parseAmount($row[$headerMap['delivery fees']] ?? '0');
+                if ($deliveryColumn !== null) {
+                    $deliveryFees += $this->parseAmount($row[$deliveryColumn] ?? '0');
                 }
                 
-                if (isset($headerMap['processing fees']) || isset($headerMap['payment processing'])) {
-                    $col = $headerMap['processing fees'] ?? $headerMap['payment processing'];
-                    $processingFees += $this->parseAmount($row[$col] ?? '0');
+                if ($processingColumn !== null) {
+                    $processingFees += $this->parseAmount($row[$processingColumn] ?? '0');
                 }
                 
-                if (isset($headerMap['net deposit']) || isset($headerMap['payout'])) {
-                    $col = $headerMap['net deposit'] ?? $headerMap['payout'];
-                    $netDeposit += $this->parseAmount($row[$col] ?? '0');
+                if ($netDepositColumn !== null) {
+                    $netDeposit += $this->parseAmount($row[$netDepositColumn] ?? '0');
                 }
             }
             
@@ -950,9 +999,51 @@ class ThirdPartyImportController extends Controller
             $headerMap = [];
             
             foreach ($header as $index => $column) {
-                $normalized = strtolower(trim($column));
+                $normalized = $this->normalizeCsvHeader($column);
                 $headerMap[$normalized] = $index;
             }
+
+            $dateColumn = $this->findCsvHeaderIndex($headerMap, [
+                'date',
+                'transaction date',
+                'statement date',
+                'payout date',
+            ]);
+
+            $grossColumn = $this->findCsvHeaderIndex($headerMap, [
+                'gross sales',
+                'subtotal',
+                'total sales',
+                'sales',
+            ]);
+
+            $marketingColumn = $this->findCsvHeaderIndex($headerMap, [
+                'marketing fees',
+                'marketing fee',
+                'platform fee',
+            ]);
+
+            $deliveryColumn = $this->findCsvHeaderIndex($headerMap, [
+                'delivery fees',
+                'delivery fee',
+                'delivery',
+            ]);
+
+            $processingColumn = $this->findCsvHeaderIndex($headerMap, [
+                'processing fees',
+                'processing fee',
+                'payment processing',
+                'service fee',
+                'service fees',
+            ]);
+
+            $netDepositColumn = $this->findCsvHeaderIndex($headerMap, [
+                'net deposit',
+                'payout',
+                'net payment',
+                'net payout',
+                'net total',
+            ]);
             
             // Aggregate totals from all rows
             $grossSales = 0;
@@ -968,41 +1059,32 @@ class ThirdPartyImportController extends Controller
                 
                 // Try to find date column
                 $date = null;
-                if (isset($headerMap['date'])) {
-                    $date = $this->parseDate($row[$headerMap['date']]);
-                } elseif (isset($headerMap['transaction date'])) {
-                    $date = $this->parseDate($row[$headerMap['transaction date']]);
-                } elseif (isset($headerMap['statement date'])) {
-                    $date = $this->parseDate($row[$headerMap['statement date']]);
+                if ($dateColumn !== null && isset($row[$dateColumn])) {
+                    $date = $this->parseDate($row[$dateColumn]);
                 }
                 
                 if (!$firstDate) $firstDate = $date;
                 $lastDate = $date ?: $lastDate;
                 
                 // Parse amounts based on column headers
-                if (isset($headerMap['gross sales']) || isset($headerMap['subtotal']) || isset($headerMap['total sales'])) {
-                    $col = $headerMap['gross sales'] ?? ($headerMap['subtotal'] ?? $headerMap['total sales']);
-                    $grossSales += $this->parseAmount($row[$col] ?? '0');
+                if ($grossColumn !== null) {
+                    $grossSales += $this->parseAmount($row[$grossColumn] ?? '0');
                 }
                 
-                if (isset($headerMap['marketing fees']) || isset($headerMap['platform fee'])) {
-                    $col = $headerMap['marketing fees'] ?? $headerMap['platform fee'];
-                    $marketingFees += $this->parseAmount($row[$col] ?? '0');
+                if ($marketingColumn !== null) {
+                    $marketingFees += $this->parseAmount($row[$marketingColumn] ?? '0');
                 }
                 
-                if (isset($headerMap['delivery fees']) || isset($headerMap['delivery'])) {
-                    $col = $headerMap['delivery fees'] ?? $headerMap['delivery'];
-                    $deliveryFees += $this->parseAmount($row[$col] ?? '0');
+                if ($deliveryColumn !== null) {
+                    $deliveryFees += $this->parseAmount($row[$deliveryColumn] ?? '0');
                 }
                 
-                if (isset($headerMap['processing fees']) || isset($headerMap['payment processing'])) {
-                    $col = $headerMap['processing fees'] ?? $headerMap['payment processing'];
-                    $processingFees += $this->parseAmount($row[$col] ?? '0');
+                if ($processingColumn !== null) {
+                    $processingFees += $this->parseAmount($row[$processingColumn] ?? '0');
                 }
                 
-                if (isset($headerMap['net deposit']) || isset($headerMap['payout']) || isset($headerMap['net payment'])) {
-                    $col = $headerMap['net deposit'] ?? ($headerMap['payout'] ?? $headerMap['net payment']);
-                    $netDeposit += $this->parseAmount($row[$col] ?? '0');
+                if ($netDepositColumn !== null) {
+                    $netDeposit += $this->parseAmount($row[$netDepositColumn] ?? '0');
                 }
             }
             
@@ -1260,5 +1342,26 @@ class ThirdPartyImportController extends Controller
 
         $amount = floatval($amountString);
         return is_numeric($amount) ? $amount : 0;
+    }
+
+    protected function normalizeCsvHeader(?string $header): string
+    {
+        $header = strtolower(trim((string) $header));
+        $header = preg_replace('/[\s_\-\/]+/', ' ', $header);
+        $header = preg_replace('/[^a-z0-9 ]+/', '', $header);
+
+        return trim($header);
+    }
+
+    protected function findCsvHeaderIndex(array $headerMap, array $aliases): ?int
+    {
+        foreach ($aliases as $alias) {
+            $normalizedAlias = $this->normalizeCsvHeader($alias);
+            if (array_key_exists($normalizedAlias, $headerMap)) {
+                return $headerMap[$normalizedAlias];
+            }
+        }
+
+        return null;
     }
 }

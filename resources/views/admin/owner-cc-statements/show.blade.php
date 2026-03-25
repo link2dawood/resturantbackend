@@ -50,14 +50,14 @@
                         Exception report
                     </a>
                 @endif
-                <a href="{{ route('admin.owner-cc-statements.download', $import) }}" class="btn btn-primary">
+                <button type="submit" form="owner-cc-lines-form" formaction="{{ route('admin.owner-cc-statements.download', $import) }}" formmethod="POST" class="btn btn-primary">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-1">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                         <polyline points="7 10 12 15 17 10"/>
                         <line x1="12" y1="15" x2="12" y2="3"/>
                     </svg>
                     Download CSV
-                </a>
+                </button>
             </div>
         </div>
     </div>
@@ -91,10 +91,10 @@
     <div class="card">
         <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
             <h3 class="card-title mb-0">Statement records ({{ number_format($import->lines->count()) }})</h3>
-            <p class="text-muted small mb-0">Assign a Chart of Account below; the system will remember and auto-apply it for similar descriptions on future imports.</p>
+            <p class="text-muted small mb-0">Assign a store and Chart of Account below; Download CSV will use the current selections even before you save them.</p>
         </div>
         <div class="table-responsive">
-            <form action="{{ route('admin.owner-cc-statements.lines.bulk-update', $import) }}" method="POST">
+            <form id="owner-cc-lines-form" action="{{ route('admin.owner-cc-statements.lines.bulk-update', $import) }}" method="POST">
                 @csrf
                 <table class="table table-vcenter card-table table-striped">
                     <thead>
@@ -119,10 +119,15 @@
                                 <td class="text-end">{{ $line->credit > 0 ? '$' . number_format($line->credit, 2) : '—' }}</td>
                                 <td>{{ $line->member_name ?? '—' }}</td>
                                 <td>
+                                    @php
+                                        $effectiveStoreId = $line->store_id ?: $import->store_id;
+                                    @endphp
                                     <select name="lines[{{ $index }}][store_id]" class="form-select form-select-sm" style="min-width: 160px;">
-                                        <option value="">— Same as import —</option>
+                                        <option value="" {{ empty($line->store_id) ? 'selected' : '' }}>
+                                            {{ $import->store ? $import->store->store_info . ' (Same as import)' : '— Same as import —' }}
+                                        </option>
                                         @foreach($stores as $store)
-                                            <option value="{{ $store->id }}" {{ (int) $line->store_id === (int) $store->id ? 'selected' : '' }}>{{ $store->store_info }}</option>
+                                            <option value="{{ $store->id }}" {{ (int) $effectiveStoreId === (int) $store->id && !empty($line->store_id) ? 'selected' : '' }}>{{ $store->store_info }}</option>
                                         @endforeach
                                     </select>
                                 </td>

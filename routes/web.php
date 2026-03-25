@@ -209,7 +209,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/owner-cc-statements', [OwnerCcStatementImportController::class, 'store'])->name('admin.owner-cc-statements.store');
         Route::get('/owner-cc-statements/{ownerCcStatementImport}', [OwnerCcStatementImportController::class, 'show'])->name('admin.owner-cc-statements.show');
         Route::post('/owner-cc-statements/{ownerCcStatementImport}/card-last4', [OwnerCcStatementImportController::class, 'updateCardLast4'])->name('admin.owner-cc-statements.card-last4');
-        Route::get('/owner-cc-statements/{ownerCcStatementImport}/download', [OwnerCcStatementImportController::class, 'download'])->name('admin.owner-cc-statements.download');
+        Route::match(['get', 'post'], '/owner-cc-statements/{ownerCcStatementImport}/download', [OwnerCcStatementImportController::class, 'download'])->name('admin.owner-cc-statements.download');
         Route::post('/owner-cc-statements/{ownerCcStatementImport}/lines/bulk-update', [OwnerCcStatementImportController::class, 'bulkUpdateLines'])->name('admin.owner-cc-statements.lines.bulk-update');
         Route::put('/owner-cc-statements/lines/{ownerCcStatementLine}/transaction-type', [OwnerCcStatementImportController::class, 'updateLineTransactionType'])->name('admin.owner-cc-statements.lines.update-type');
         Route::get('/owner-cc-statements/{ownerCcStatementImport}/exceptions', [OwnerCcStatementImportController::class, 'downloadExceptionReport'])->name('admin.owner-cc-statements.exceptions');
