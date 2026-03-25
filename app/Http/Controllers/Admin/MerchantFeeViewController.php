@@ -115,6 +115,7 @@ class MerchantFeeViewController extends Controller
             abort(403, 'You do not have access to this statement.');
         }
 
+        $this->syncThirdPartyExpenseCoas($statement);
         $statement->load(['store', 'importer', 'expenses.vendor', 'expenses.coa']);
 
         return view('admin.merchant-fees.third-party-show', compact('statement'));
@@ -150,6 +151,24 @@ class MerchantFeeViewController extends Controller
         return redirect()
             ->route('admin.merchant-fees.third-party')
             ->with('success', 'Statement and all related records have been deleted.');
+    }
+
+    protected function syncThirdPartyExpenseCoas(ThirdPartyStatement $statement): void
+    {
+        $platformExpenseCoa = ChartOfAccount::thirdPartyPlatformExpenseAccount($statement->platform);
+
+        if (! $platformExpenseCoa) {
+            return;
+        }
+
+        $statement->expenses()
+            ->where(function ($query) use ($platformExpenseCoa) {
+                $query->whereNull('coa_id')
+                    ->orWhere('coa_id', '!=', $platformExpenseCoa->id);
+            })
+            ->update([
+                'coa_id' => $platformExpenseCoa->id,
+            ]);
     }
     
     /**

@@ -47,6 +47,31 @@ class ChartOfAccount extends Model
             ->first();
     }
 
+    public static function thirdPartyPlatformExpenseAccount(string $platform): ?self
+    {
+        $platform = strtolower(trim($platform));
+
+        $mapping = [
+            'doordash' => ['6451', 'Doordash Expense'],
+            'grubhub' => ['6452', 'Grubhub Expense'],
+            'ubereats' => ['6453', 'Uber Expense'],
+        ];
+
+        if (! isset($mapping[$platform])) {
+            return null;
+        }
+
+        [$accountCode, $accountName] = $mapping[$platform];
+
+        return static::query()
+            ->where(function ($query) use ($accountCode, $accountName) {
+                $query->where('account_code', $accountCode)
+                    ->orWhere('account_name', $accountName);
+            })
+            ->orderByRaw("CASE WHEN account_code = ? THEN 0 WHEN account_name = ? THEN 1 ELSE 2 END", [$accountCode, $accountName])
+            ->first();
+    }
+
     protected $fillable = [
         'account_code',
         'account_name',

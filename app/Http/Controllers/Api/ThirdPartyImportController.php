@@ -821,19 +821,7 @@ class ThirdPartyImportController extends Controller
      */
     protected function getDefaultCoaForPlatform(string $platform): ?ChartOfAccount
     {
-        // Map platforms to their default COA
-        $coaMapping = [
-            'grubhub' => 'Marketing Fees (Grubhub)',
-            'ubereats' => 'Marketing Fees (Grubhub)', // Reuse Grubhub category
-            'doordash' => 'Marketing Fees (Grubhub)', // Reuse Grubhub category
-        ];
-        
-        $coaName = $coaMapping[$platform] ?? null;
-        if ($coaName) {
-            return ChartOfAccount::where('account_name', $coaName)->first();
-        }
-        
-        return null;
+        return ChartOfAccount::thirdPartyPlatformExpenseAccount($platform);
     }
 
     /**
@@ -1123,28 +1111,31 @@ class ThirdPartyImportController extends Controller
     protected function createFeeExpenses(ThirdPartyStatement $statement, array $data)
     {
         $platformName = ucfirst($statement->platform);
+        $platformExpenseCoa = ChartOfAccount::thirdPartyPlatformExpenseAccount($statement->platform);
         
         // Get or create vendor for platform
         $vendor = Vendor::where('vendor_name', $platformName)->first();
         if (!$vendor) {
-            // Get appropriate default COA based on platform
-            $defaultCoa = $this->getDefaultCoaForPlatform($statement->platform);
-            
             $vendor = Vendor::create([
                 'vendor_name' => $platformName,
                 'vendor_identifier' => $platformName,
                 'vendor_type' => 'Services',
-                'default_coa_id' => $defaultCoa?->id,
+                'default_coa_id' => $platformExpenseCoa?->id,
                 'is_active' => true,
                 'created_by' => auth()->id(),
             ]);
+        } elseif ($platformExpenseCoa && $vendor->default_coa_id !== $platformExpenseCoa->id) {
+            $vendor->update([
+                'default_coa_id' => $platformExpenseCoa->id,
+            ]);
         }
 
-        // Get COA categories for fees
-        $marketingCoa = ChartOfAccount::where('account_name', 'Marketing Fees (Grubhub)')->first();
-        $deliveryCoa = ChartOfAccount::where('account_name', 'Delivery Service Fees')->first();
-        $processingCoa = ChartOfAccount::merchantProcessingFeesAccount();
-        $adjustmentsCoa = ChartOfAccount::where('account_name', 'Adjustments - Overrings/Returns')->first();
+        // Third-party platform costs should post to the platform-specific expense COA
+        // rather than the generic merchant processing account.
+        $marketingCoa = $platformExpenseCoa;
+        $deliveryCoa = $platformExpenseCoa;
+        $processingCoa = $platformExpenseCoa;
+        $adjustmentsCoa = $platformExpenseCoa;
 
         // Create marketing fee expense if exists
         if ($data['marketing_fees'] > 0 && $marketingCoa) {
