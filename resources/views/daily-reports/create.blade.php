@@ -50,7 +50,7 @@
                         <div>
                             <i class="fas fa-check-circle me-2"></i>
                             <strong>Store:</strong> {{ $store->store_info }} |
-                            <strong>Date:</strong> {{ \Carbon\Carbon::parse($reportDate)->format('l, M j, Y') }}
+                            <strong>Date:</strong> {{ \Carbon\Carbon::parse($reportDate)->format('l') }}, {{ \Carbon\Carbon::parse($reportDate)->format(config('dates.display')) }}
                         </div>
                         <div class="d-flex flex-wrap align-items-center gap-2">
                             @if(isset($prevReport) && $prevReport)

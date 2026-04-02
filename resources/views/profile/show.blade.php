@@ -168,11 +168,11 @@
                 <div class="neuro-info-grid">
                     <div class="neuro-info-item">
                         <label class="neuro-label">Account Created</label>
-                        <div class="text-muted">{{ $user->created_at->format('M d, Y') }}</div>
+                        <div class="text-muted">{{ $user->created_at->format(config('dates.display')) }}</div>
                     </div>
                     <div class="neuro-info-item">
                         <label class="neuro-label">Last Updated</label>
-                        <div class="text-muted">{{ $user->updated_at->format('M d, Y') }}</div>
+                        <div class="text-muted">{{ $user->updated_at->format(config('dates.display')) }}</div>
                     </div>
                     <div class="neuro-info-item">
                         <label class="neuro-label">Email Verified</label>

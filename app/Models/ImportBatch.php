@@ -50,6 +50,11 @@ class ImportBatch extends Model
         return $this->belongsTo(User::class, 'imported_by');
     }
 
+    public function bankTransactions()
+    {
+        return $this->hasMany(BankTransaction::class, 'import_batch_id');
+    }
+
     public function expenseTransactions()
     {
         return $this->hasMany(ExpenseTransaction::class, 'import_batch_id');

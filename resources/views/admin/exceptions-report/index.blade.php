@@ -108,7 +108,7 @@
                         <div class="list-group-item">
                             <div class="row align-items-center">
                                 <div class="col-auto">@can('review', 'categorize')<input type="checkbox" class="form-check-input" data-expense-id="{{ $expense->id }}" data-group="{{ $reason }}">@endcan</div>
-                                <div class="col-md-2"><strong>{{ $expense->transaction_date->format('M d, Y') }}</strong><br><small class="text-muted">{{ $expense->store->store_info ?? 'Unknown' }}</small></div>
+                                <div class="col-md-2"><strong>{{ $expense->transaction_date->format(config('dates.display')) }}</strong><br><small class="text-muted">{{ $expense->store->store_info ?? 'Unknown' }}</small></div>
                                 <div class="col-md-4"><div class="fw-bold">{{ $expense->description ?? $expense->vendor_name_raw ?? 'No description' }}</div>@if($expense->reference_number)<small class="text-muted">Ref: {{ $expense->reference_number }}</small>@endif</div>
                                 <div class="col-md-2 text-end"><strong class="text-danger">${{ number_format($expense->amount, 2) }}</strong><br><small class="text-muted">{{ ucwords(str_replace('_', ' ', $expense->transaction_type)) }}</small></div>
                                 <div class="col-md-2 text-center"><span class="badge bg-{{ $badgeColor }}">{{ $reason }}</span></div>

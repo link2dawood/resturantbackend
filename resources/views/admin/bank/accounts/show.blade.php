@@ -151,7 +151,7 @@
                             <tbody>
                                 @foreach($account->transactions->take(5) as $transaction)
                                 <tr>
-                                    <td>{{ $transaction->transaction_date->format('M d, Y') }}</td>
+                                    <td>{{ $transaction->transaction_date->format(config('dates.display')) }}</td>
                                     <td class="text-truncate" style="max-width: 200px;">{{ $transaction->description }}</td>
                                     <td class="text-end">
                                         <span class="{{ $transaction->transaction_type == 'credit' ? 'text-success' : 'text-danger' }}">

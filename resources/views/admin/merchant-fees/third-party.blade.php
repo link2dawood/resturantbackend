@@ -81,7 +81,7 @@
         @php
             $platformLabel = $platform ? ucfirst($platform) : 'All platforms';
             $dateLabel = ($startDate && $endDate)
-                ? \Carbon\Carbon::parse($startDate)->format('M j') . ' – ' . \Carbon\Carbon::parse($endDate)->format('M j, Y')
+                ? \Carbon\Carbon::parse($startDate)->format(config('dates.display')) . ' – ' . \Carbon\Carbon::parse($endDate)->format(config('dates.display'))
                 : 'All time';
         @endphp
         <div class="col-sm-6 col-lg-3">
@@ -214,7 +214,7 @@
                                         : $coreFees + ($statement->adjustments ?? 0);
                                 @endphp
                                 <tr>
-                                    <td>{{ $statement->statement_date->format('M d, Y') }}</td>
+                                    <td>{{ $statement->statement_date->format(config('dates.display')) }}</td>
                                     <td><span class="badge bg-info">{{ ucfirst($statement->platform) }}</span></td>
                                     <td>{{ $statement->store->store_info ?? 'N/A' }}</td>
                                     <td class="text-end">${{ number_format($statement->gross_sales, 2) }}</td>

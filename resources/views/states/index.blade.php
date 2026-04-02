@@ -43,9 +43,9 @@
                                 </td>
                                 <td class="w-100">
                                     {{ $state->name }}
-                                    <small class="d-block d-md-none text-muted">{{ $state->created_at->format('M d, Y') }}</small>
+                                    <small class="d-block d-md-none text-muted">{{ $state->created_at->format(config('dates.display')) }}</small>
                                 </td>
-                                <td class="text-muted d-none d-md-table-cell">{{ $state->created_at->format('M d, Y') }}</td>
+                                <td class="text-muted d-none d-md-table-cell">{{ $state->created_at->format(config('dates.display')) }}</td>
                             </tr>
                             @endforeach
                         </tbody>
@@ -133,7 +133,7 @@ document.addEventListener('DOMContentLoaded', function() {
         '{{ $state->code }}': {
             name: '{{ $state->name }}',
             code: '{{ $state->code }}',
-            created: '{{ $state->created_at->format("M d, Y H:i") }}'
+            created: '{{ $state->created_at->format(config("dates.display_datetime_24h")) }}'
         },
         @endforeach
     };

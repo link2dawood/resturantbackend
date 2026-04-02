@@ -92,7 +92,7 @@
                             </td>
                             <td style="padding: 1rem; vertical-align: middle;">
                                 @if($account->last_reconciled_date)
-                                    {{ $account->last_reconciled_date->format('M d, Y') }}
+                                    {{ $account->last_reconciled_date->format(config('dates.display')) }}
                                 @else
                                     <span class="text-muted">Never</span>
                                 @endif

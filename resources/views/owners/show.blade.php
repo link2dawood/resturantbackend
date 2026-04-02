@@ -117,7 +117,7 @@
                         <div class="col-md-6 mb-3">
                             <label class="form-label text-muted" style="font-size: 0.813rem; font-weight: 500; letter-spacing: 0.3px;">Establishment Date</label>
                             <div style="font-weight: 500; font-size: 1rem; color: var(--google-grey-900, #202124);">
-                                {{ $owner->corporate_creation_date ? \Carbon\Carbon::parse($owner->corporate_creation_date)->format('M d, Y') : '—' }}
+                                {{ $owner->corporate_creation_date ? \Carbon\Carbon::parse($owner->corporate_creation_date)->format(config('dates.display')) : '—' }}
                             </div>
                         </div>
                         <div class="col-md-6 mb-3">

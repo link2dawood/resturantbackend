@@ -1042,7 +1042,7 @@
                         Prioritized from the latest dashboard insights
                     </div>
                 @elseif($bestDay)
-                    <h2 class="home-signal__headline">Best recent day: {{ $bestDay->report_date->format('M j') }}</h2>
+                    <h2 class="home-signal__headline">Best recent day: {{ $bestDay->report_date->format(config('dates.display')) }}</h2>
                     <p class="home-signal__body">
                         {{ $bestDay->store?->store_info ?? 'Store data unavailable' }} led recent reporting with
                         ${{ number_format($bestDay->gross_sales, 0) }} in gross sales.
@@ -1157,7 +1157,7 @@
                                     </p>
                                     <p class="home-metric-stack__meta">
                                         @if($bestDay)
-                                            {{ $bestDay->report_date->format('M j, Y') }}
+                                            {{ $bestDay->report_date->format(config('dates.display')) }}
                                         @else
                                             Add more reports to unlock rankings.
                                         @endif
@@ -1458,7 +1458,7 @@
                             @foreach($analytics['topDays']->take(4) as $index => $day)
                                 <div class="home-list-item">
                                     <div>
-                                        <p class="home-list-item__title">{{ $day->report_date->format('M j, Y') }}</p>
+                                        <p class="home-list-item__title">{{ $day->report_date->format(config('dates.display')) }}</p>
                                         <p class="home-list-item__meta">{{ $day->store?->store_info ?? 'Store unavailable' }}</p>
                                     </div>
                                     <div class="home-list-item__value">

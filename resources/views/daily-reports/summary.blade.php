@@ -189,7 +189,7 @@
     <div class="card">
         <div class="card-header border-0 pb-0">
             <h3 class="card-title" style="font-family: 'Google Sans', sans-serif; font-size: 1.125rem; font-weight: 500;">
-                Summary Report - {{ \Carbon\Carbon::parse(request('from_date'))->format('M d, Y') }} to {{ \Carbon\Carbon::parse(request('to_date'))->format('M d, Y') }}
+                Summary Report - {{ \Carbon\Carbon::parse(request('from_date'))->format(config('dates.display')) }} to {{ \Carbon\Carbon::parse(request('to_date'))->format(config('dates.display')) }}
             </h3>
         </div>
         <div class="card-body">

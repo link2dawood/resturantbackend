@@ -298,7 +298,7 @@
                             <span class="material-symbols-outlined gd-text-warning" style="font-size: 20px;">trophy</span>
                             @endif
                             <div>
-                                <div class="gd-label-medium">{{ $day->report_date->format('M j, Y') }}</div>
+                                <div class="gd-label-medium">{{ $day->report_date->format(config('dates.display')) }}</div>
                                 <div class="gd-body-small gd-text-secondary">{{ $day->store?->store_info ?? 'N/A' }}</div>
                             </div>
                         </div>

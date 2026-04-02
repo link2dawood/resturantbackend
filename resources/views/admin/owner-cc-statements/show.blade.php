@@ -33,7 +33,7 @@
             <div>
                 <h1 class="mb-2" style="font-size: 1.5rem; font-weight: 500;">{{ $import->file_name }}</h1>
                 <p class="text-muted mb-0">
-                    Imported {{ $import->created_at->format('M j, Y g:i A') }} by {{ $import->importer?->name ?? '—' }}
+                    Imported {{ $import->created_at->format(config('dates.display_datetime')) }} by {{ $import->importer?->name ?? '—' }}
                     @if($import->cardPlatformLabel())
                         · {{ $import->cardPlatformLabel() }}
                     @endif
@@ -115,7 +115,7 @@
                     <tbody>
                         @forelse($import->lines as $index => $line)
                             <tr>
-                                <td>{{ $line->transaction_date->format('m/d/Y') }}</td>
+                                <td>{{ $line->transaction_date->format(config('dates.display')) }}</td>
                                 <td><span class="badge bg-azure-lt">{{ $line->card_last4 ?? $import->card_last4 ?? '—' }}</span></td>
                                 <td>{{ Str::limit($line->description, 50) }}</td>
                                 <td class="text-end">{{ $line->debit > 0 ? '$' . number_format($line->debit, 2) : '—' }}</td>

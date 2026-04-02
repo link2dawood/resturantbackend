@@ -79,8 +79,8 @@
 
     <div class="info">
         <p><strong>Store:</strong> {{ $storeName }}</p>
-        <p><strong>Period:</strong> {{ \Carbon\Carbon::parse($startDate)->format('M d, Y') }} to {{ \Carbon\Carbon::parse($endDate)->format('M d, Y') }}</p>
-        <p><strong>Generated:</strong> {{ $generatedAt->format('M d, Y H:i:s') }}</p>
+        <p><strong>Period:</strong> {{ \Carbon\Carbon::parse($startDate)->format(config('dates.display')) }} to {{ \Carbon\Carbon::parse($endDate)->format(config('dates.display')) }}</p>
+        <p><strong>Generated:</strong> {{ $generatedAt->format(config('dates.display_datetime_seconds')) }}</p>
     </div>
 
     <table>

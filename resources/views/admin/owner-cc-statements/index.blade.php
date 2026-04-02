@@ -70,7 +70,7 @@
                 <tbody>
                     @forelse($imports as $imp)
                         <tr>
-                            <td>{{ $imp->created_at->format('M j, Y g:i A') }}</td>
+                            <td>{{ $imp->created_at->format(config('dates.display_datetime')) }}</td>
                             <td>{{ $imp->file_name }}</td>
                             <td>{{ $imp->cardPlatformLabel() ?? '—' }}</td>
                             <td>{{ $imp->store?->store_info ?? '—' }}</td>

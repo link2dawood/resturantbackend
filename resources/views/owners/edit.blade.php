@@ -234,7 +234,7 @@
                                     <div class="mb-3">
                                         <label class="form-label required">Corporate Creation Date</label>
                                         <input type="text" name="corporate_creation_date" required class="form-control date-input @error('corporate_creation_date') is-invalid @enderror" 
-                                               value="{{ old('corporate_creation_date', $owner->corporate_creation_date?->format('m/d/Y')) }}" placeholder="MM/DD/YYYY" maxlength="10">
+                                               value="{{ old('corporate_creation_date', $owner->corporate_creation_date?->format(config('dates.display'))) }}" placeholder="MM-DD-YYYY" maxlength="10">
                                         @error('corporate_creation_date')
                                             <div class="invalid-feedback">{{ $message }}</div>
                                         @enderror

@@ -12,6 +12,7 @@ use App\Models\Vendor;
 use App\Models\TransactionMappingRule;
 use App\Models\ChartOfAccount;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -81,173 +82,204 @@ class BankImportController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
+        $file = $request->file('file');
+        $bankAccount = BankAccount::findOrFail($request->bank_account_id);
+        $fileHash = md5_file($file->getRealPath());
+
+        $existingBatch = ImportBatch::where('file_hash', $fileHash)
+            ->where('import_type', 'bank_statement')
+            ->first();
+
+        if ($existingBatch) {
+            return response()->json([
+                'error' => 'This file has already been imported',
+                'existing_batch_id' => $existingBatch->id,
+            ], 422);
+        }
+
         try {
             DB::beginTransaction();
 
-            $file = $request->file('file');
-            $bankAccount = BankAccount::findOrFail($request->bank_account_id);
-            
-            // Get file hash to check for duplicates
-            $fileHash = md5_file($file->getRealPath());
-            
-            // Check if file already imported
-            $existingBatch = ImportBatch::where('file_hash', $fileHash)
-                ->where('import_type', 'bank_statement')
-                ->first();
-            
-            if ($existingBatch) {
-                return response()->json([
-                    'error' => 'This file has already been imported',
-                    'existing_batch_id' => $existingBatch->id
-                ], 422);
-            }
-
-            // Parse CSV
-            $transactions = $this->parseCsvFile($file->getRealPath(), $request->format);
-            
-            // Create import batch
-            $importBatch = ImportBatch::create([
-                'import_type' => 'bank_statement',
-                'file_name' => $file->getClientOriginalName(),
-                'file_hash' => $fileHash,
-                'store_id' => $bankAccount->store_id,
-                'transaction_count' => count($transactions),
-                'imported_count' => 0,
-                'duplicate_count' => 0,
-                'error_count' => 0,
-                'needs_review_count' => 0,
-                'date_range_start' => collect($transactions)->min('transaction_date'),
-                'date_range_end' => collect($transactions)->max('transaction_date'),
-                'status' => 'processing',
-                'imported_by' => auth()->id(),
-                'imported_at' => now(),
-            ]);
-
-            $importedCount = 0;
-            $duplicateCount = 0;
-            $errorCount = 0;
-            $needsReviewCount = 0;
-            $expenseTransactionsCreated = 0;
-
-            foreach ($transactions as $row) {
-                try {
-                    // Generate duplicate check hash
-                    $duplicateHash = md5(
-                        $bankAccount->id .
-                        $row['transaction_date'] .
-                        $row['amount'] .
-                        $row['description']
-                    );
-
-                    // Check for duplicate
-                    $existingTransaction = BankTransaction::where('duplicate_check_hash', $duplicateHash)->first();
-                    if ($existingTransaction) {
-                        $duplicateCount++;
-                        continue;
-                    }
-
-                    // Create bank transaction
-                    $bankTransaction = BankTransaction::create([
-                        'bank_account_id' => $bankAccount->id,
-                        'transaction_date' => $row['transaction_date'],
-                        'post_date' => $row['post_date'] ?? $row['transaction_date'],
-                        'description' => $row['description'],
-                        'transaction_type' => $row['transaction_type'],
-                        'amount' => abs($row['amount']),
-                        'balance' => $row['balance'] ?? null,
-                        'reference_number' => $row['reference_number'] ?? null,
-                        'reconciliation_status' => 'unmatched',
-                        'import_batch_id' => $importBatch->id,
-                        'duplicate_check_hash' => $duplicateHash,
-                    ]);
-
-                    $importedCount++;
-
-                    // Attempt automatic reconciliation
-                    $reconciled = false;
-                    
-                    if ($row['transaction_type'] === 'credit') {
-                        // Match deposits to daily reports
-                        $reconciled = $this->attemptDepositMatching($bankTransaction, $bankAccount);
-                        
-                        // If deposit not matched, flag for review
-                        if (!$reconciled) {
-                            $bankTransaction->reconciliation_status = 'exception';
-                            $bankTransaction->reconciliation_notes = 'Unmatched deposit - requires review';
-                            $bankTransaction->save();
-                            $needsReviewCount++;
-                        }
-                    } elseif ($row['transaction_type'] === 'debit') {
-                        // Match withdrawals to expense transactions
-                        $reconciled = $this->attemptWithdrawalMatching($bankTransaction, $bankAccount);
-                        
-                        // If not matched, create expense transaction with vendor matching
-                        if (!$reconciled) {
-                            $expenseCreated = $this->createExpenseFromBankTransaction(
-                                $bankTransaction,
-                                $bankAccount,
-                                $importBatch,
-                                $row['card_last_four'] ?? null,
-                                $row['card_type'] ?? null
-                            );
-
-                            if ($expenseCreated) {
-                                $expenseTransactionsCreated++;
-                                
-                                // Try to match the newly created expense
-                                if ($expenseCreated->id) {
-                                    $bankTransaction->matched_expense_id = $expenseCreated->id;
-                                    $bankTransaction->reconciliation_status = 'matched';
-                                    $bankTransaction->save();
-                                    $reconciled = true;
-                                } elseif ($expenseCreated->needs_review) {
-                                    $needsReviewCount++;
-                                    // Flag for pending review if unmatched
-                                    $bankTransaction->reconciliation_status = 'exception';
-                                    $bankTransaction->reconciliation_notes = 'Unmatched withdrawal - requires review';
-                                    $bankTransaction->save();
-                                }
-                            } else {
-                                // No expense created, flag for review
-                                $bankTransaction->reconciliation_status = 'exception';
-                                $bankTransaction->reconciliation_notes = 'Unmatched withdrawal - requires review';
-                                $bankTransaction->save();
-                            }
-                        }
-                    }
-
-                } catch (\Exception $e) {
-                    Log::error('Error importing bank transaction: ' . $e->getMessage(), ['row' => $row]);
-                    $errorCount++;
-                }
-            }
-
-            // Update import batch
-            $importBatch->update([
-                'imported_count' => $importedCount,
-                'duplicate_count' => $duplicateCount,
-                'error_count' => $errorCount,
-                'needs_review_count' => $needsReviewCount,
-                'status' => 'completed',
-            ]);
+            [$importBatch, $expenseTransactionsCreated] = $this->processBankStatementImport(
+                $file,
+                $bankAccount,
+                $request->input('format'),
+                $fileHash,
+                (int) auth()->id()
+            );
 
             DB::commit();
 
             return response()->json([
                 'message' => 'Bank statement imported successfully',
-                'imported' => $importedCount,
-                'duplicates' => $duplicateCount,
-                'errors' => $errorCount,
+                'imported' => $importBatch->imported_count,
+                'duplicates' => $importBatch->duplicate_count,
+                'errors' => $importBatch->error_count,
                 'expense_transactions_created' => $expenseTransactionsCreated,
-                'needs_review' => $needsReviewCount,
+                'needs_review' => $importBatch->needs_review_count,
                 'batch_id' => $importBatch->id,
             ]);
-
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error importing bank statement: ' . $e->getMessage());
             return response()->json(['error' => 'Import failed: ' . $e->getMessage()], 500);
         }
+    }
+
+    /**
+     * Run import inside a transaction; used by admin Bank Statement Import UI.
+     * Caller must not start a transaction. Throws if the file was already imported.
+     */
+    public function runBankStatementImportForAdmin(UploadedFile $file, BankAccount $bankAccount, ?string $format, int $importedByUserId): ImportBatch
+    {
+        $fileHash = md5_file($file->getRealPath());
+
+        if (ImportBatch::where('file_hash', $fileHash)->where('import_type', 'bank_statement')->exists()) {
+            throw new \InvalidArgumentException('This file has already been imported.');
+        }
+
+        DB::beginTransaction();
+        try {
+            [$batch, ] = $this->processBankStatementImport($file, $bankAccount, $format, $fileHash, $importedByUserId);
+            DB::commit();
+
+            return $batch;
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            throw $e;
+        }
+    }
+
+    /**
+     * Parse CSV, create batch, insert bank transactions, reconcile / create expenses.
+     * Caller must wrap in a DB transaction (except {@see runBankStatementImportForAdmin}).
+     *
+     * @return array{0: ImportBatch, 1: int}
+     */
+    protected function processBankStatementImport(
+        UploadedFile $file,
+        BankAccount $bankAccount,
+        ?string $format,
+        string $fileHash,
+        int $importedByUserId
+    ): array {
+        $transactions = $this->parseCsvFile($file->getRealPath(), $format);
+
+        $dates = collect($transactions)->pluck('transaction_date')->filter();
+
+        $importBatch = ImportBatch::create([
+            'import_type' => 'bank_statement',
+            'file_name' => $file->getClientOriginalName(),
+            'file_hash' => $fileHash,
+            'store_id' => $bankAccount->store_id,
+            'transaction_count' => count($transactions),
+            'imported_count' => 0,
+            'duplicate_count' => 0,
+            'error_count' => 0,
+            'needs_review_count' => 0,
+            'date_range_start' => $dates->min(),
+            'date_range_end' => $dates->max(),
+            'status' => 'processing',
+            'imported_by' => $importedByUserId,
+            'imported_at' => now(),
+        ]);
+
+        $importedCount = 0;
+        $duplicateCount = 0;
+        $errorCount = 0;
+        $needsReviewCount = 0;
+        $expenseTransactionsCreated = 0;
+
+        foreach ($transactions as $row) {
+            try {
+                $duplicateHash = md5(
+                    $bankAccount->id .
+                    $row['transaction_date'] .
+                    $row['amount'] .
+                    $row['description']
+                );
+
+                $existingTransaction = BankTransaction::where('duplicate_check_hash', $duplicateHash)->first();
+                if ($existingTransaction) {
+                    $duplicateCount++;
+                    continue;
+                }
+
+                $bankTransaction = BankTransaction::create([
+                    'bank_account_id' => $bankAccount->id,
+                    'transaction_date' => $row['transaction_date'],
+                    'post_date' => $row['post_date'] ?? $row['transaction_date'],
+                    'description' => $row['description'],
+                    'transaction_type' => $row['transaction_type'],
+                    'amount' => abs($row['amount']),
+                    'balance' => $row['balance'] ?? null,
+                    'reference_number' => $row['reference_number'] ?? null,
+                    'reconciliation_status' => 'unmatched',
+                    'import_batch_id' => $importBatch->id,
+                    'duplicate_check_hash' => $duplicateHash,
+                ]);
+
+                $importedCount++;
+
+                $reconciled = false;
+
+                if ($row['transaction_type'] === 'credit') {
+                    $reconciled = $this->attemptDepositMatching($bankTransaction, $bankAccount);
+
+                    if (! $reconciled) {
+                        $bankTransaction->reconciliation_status = 'exception';
+                        $bankTransaction->reconciliation_notes = 'Unmatched deposit - requires review';
+                        $bankTransaction->save();
+                        $needsReviewCount++;
+                    }
+                } elseif ($row['transaction_type'] === 'debit') {
+                    $reconciled = $this->attemptWithdrawalMatching($bankTransaction, $bankAccount);
+
+                    if (! $reconciled) {
+                        $expenseCreated = $this->createExpenseFromBankTransaction(
+                            $bankTransaction,
+                            $bankAccount,
+                            $importBatch,
+                            $row['card_last_four'] ?? null,
+                            $row['card_type'] ?? null
+                        );
+
+                        if ($expenseCreated) {
+                            $expenseTransactionsCreated++;
+
+                            if ($expenseCreated->id) {
+                                $bankTransaction->matched_expense_id = $expenseCreated->id;
+                                $bankTransaction->reconciliation_status = 'matched';
+                                $bankTransaction->save();
+                                $reconciled = true;
+                            } elseif ($expenseCreated->needs_review) {
+                                $needsReviewCount++;
+                                $bankTransaction->reconciliation_status = 'exception';
+                                $bankTransaction->reconciliation_notes = 'Unmatched withdrawal - requires review';
+                                $bankTransaction->save();
+                            }
+                        } else {
+                            $bankTransaction->reconciliation_status = 'exception';
+                            $bankTransaction->reconciliation_notes = 'Unmatched withdrawal - requires review';
+                            $bankTransaction->save();
+                        }
+                    }
+                }
+            } catch (\Exception $e) {
+                Log::error('Error importing bank transaction: ' . $e->getMessage(), ['row' => $row]);
+                $errorCount++;
+            }
+        }
+
+        $importBatch->update([
+            'imported_count' => $importedCount,
+            'duplicate_count' => $duplicateCount,
+            'error_count' => $errorCount,
+            'needs_review_count' => $needsReviewCount,
+            'status' => 'completed',
+        ]);
+
+        return [$importBatch, $expenseTransactionsCreated];
     }
 
     /**
@@ -275,6 +307,14 @@ class BankImportController extends Controller
             return 'generic';
         }
 
+        // Bank of the West activity export: Account, ChkRef, Debit, Credit, Balance, Date, Description
+        if (str_contains($firstLine, 'chkref')
+            && str_contains($firstLine, 'date')
+            && (str_contains($firstLine, 'debit') || str_contains($firstLine, 'credit'))
+            && str_contains($firstLine, 'description')) {
+            return 'bank_west';
+        }
+
         return 'unknown';
     }
 
@@ -283,15 +323,21 @@ class BankImportController extends Controller
      */
     protected function parseCsvFile(string $filePath, ?string $format = null): array
     {
-        $transactions = [];
         $lines = file($filePath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-        
-        // Skip header row
+        if ($lines === false || $lines === []) {
+            return [];
+        }
+
+        if ($format === 'bank_west' || ($format === null && $this->isBankOfTheWestHeaderLine($lines[0]))) {
+            return $this->parseBankOfTheWestCsv($lines);
+        }
+
+        $transactions = [];
         array_shift($lines);
 
         foreach ($lines as $line) {
             $row = str_getcsv($line);
-            
+
             if (count($row) < 3) {
                 continue;
             }
@@ -303,6 +349,158 @@ class BankImportController extends Controller
         }
 
         return $transactions;
+    }
+
+    protected function isBankOfTheWestHeaderLine(string $line): bool
+    {
+        $l = strtolower($line);
+
+        return str_contains($l, 'chkref')
+            && str_contains($l, 'date')
+            && (str_contains($l, 'debit') || str_contains($l, 'credit'))
+            && str_contains($l, 'description');
+    }
+
+    /**
+     * @param  list<string>  $lines
+     * @return list<array<string, mixed>>
+     */
+    protected function parseBankOfTheWestCsv(array $lines): array
+    {
+        $headerRow = str_getcsv(array_shift($lines));
+        $map = $this->buildBankOfTheWestHeaderMap($headerRow);
+        if ($map === []) {
+            return [];
+        }
+
+        $out = [];
+        foreach ($lines as $line) {
+            $cells = str_getcsv($line);
+            $tx = $this->mapBankOfTheWestRow($cells, $map);
+            if ($tx !== null) {
+                $out[] = $tx;
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param  list<string>  $headerRow
+     * @return array<string, int>
+     */
+    protected function buildBankOfTheWestHeaderMap(array $headerRow): array
+    {
+        $aliases = [
+            'account' => ['account', 'acct'],
+            'chkref' => ['chkref', 'chk ref', 'check ref'],
+            'debit' => ['debit', 'debits', 'withdrawal', 'withdrawals'],
+            'credit' => ['credit', 'credits', 'deposit', 'deposits'],
+            'balance' => ['balance', 'running balance'],
+            'date' => ['date', 'trans date', 'transaction date', 'post date'],
+            'description' => ['description', 'memo', 'details', 'narrative'],
+        ];
+
+        $map = [];
+        foreach ($headerRow as $i => $raw) {
+            $key = strtolower(trim(str_replace("\u{FEFF}", '', $raw)));
+            foreach ($aliases as $canonical => $names) {
+                if (in_array($key, $names, true) && ! isset($map[$canonical])) {
+                    $map[$canonical] = $i;
+                    break;
+                }
+            }
+        }
+
+        $required = ['date', 'description', 'debit', 'credit'];
+        foreach ($required as $col) {
+            if (! isset($map[$col])) {
+                return [];
+            }
+        }
+
+        return $map;
+    }
+
+    /**
+     * @param  list<string>  $cells
+     * @param  array<string, int>  $map
+     * @return array<string, mixed>|null
+     */
+    protected function mapBankOfTheWestRow(array $cells, array $map): ?array
+    {
+        $get = function (string $key) use ($cells, $map): string {
+            if (! isset($map[$key])) {
+                return '';
+            }
+            $idx = $map[$key];
+
+            return isset($cells[$idx]) ? trim((string) $cells[$idx]) : '';
+        };
+
+        $dateStr = $get('date');
+        $date = $this->parseDate($dateStr);
+        if (! $date) {
+            return null;
+        }
+
+        $debitRaw = $get('debit');
+        $creditRaw = $get('credit');
+        $debit = abs((float) ($this->parseAmount($debitRaw) ?? 0));
+        $credit = abs((float) ($this->parseAmount($creditRaw) ?? 0));
+
+        $type = null;
+        $amount = null;
+
+        if ($debit > 0.00001 && $credit > 0.00001) {
+            $net = $debit - $credit;
+            if ($net > 0.00001) {
+                $type = 'debit';
+                $amount = $net;
+            } elseif ($net < -0.00001) {
+                $type = 'credit';
+                $amount = abs($net);
+            } else {
+                return null;
+            }
+        } elseif ($debit > 0.00001) {
+            $type = 'debit';
+            $amount = $debit;
+        } elseif ($credit > 0.00001) {
+            $type = 'credit';
+            $amount = $credit;
+        } else {
+            return null;
+        }
+
+        $account = $get('account');
+        $chkref = $get('chkref');
+        $desc = $get('description');
+
+        $prefixParts = [];
+        if ($account !== '') {
+            $prefixParts[] = 'Acct '.$account;
+        }
+        if ($chkref !== '') {
+            $prefixParts[] = 'Ref '.$chkref;
+        }
+        $description = $desc;
+        if ($prefixParts !== []) {
+            $description = implode(' · ', $prefixParts).($desc !== '' ? ' — '.$desc : '');
+        }
+
+        $balanceVal = $get('balance');
+        $balance = $balanceVal !== '' ? $this->parseAmount($balanceVal) : null;
+
+        return [
+            'transaction_date' => $date,
+            'post_date' => $date,
+            'description' => $description,
+            'transaction_type' => $type,
+            'amount' => $amount,
+            'balance' => $balance,
+            'reference_number' => $chkref !== '' ? $chkref : null,
+        ];
     }
 
     /**

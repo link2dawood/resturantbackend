@@ -145,7 +145,7 @@
                                     @endcan
                                 </div>
                                 <div class="col-md-2">
-                                    <strong>{{ $expense->transaction_date->format('M d, Y') }}</strong><br>
+                                    <strong>{{ $expense->transaction_date->format(config('dates.display')) }}</strong><br>
                                     <small class="text-muted">{{ $expense->store->store_info ?? 'Unknown' }}</small>
                                 </div>
                                 <div class="col-md-4">

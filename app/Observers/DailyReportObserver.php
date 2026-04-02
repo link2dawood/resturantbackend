@@ -93,7 +93,7 @@ class DailyReportObserver
                 $pct = round($merchantFeeRate * 100, 2);
                 $existingFee->update([
                     'amount' => $merchantFee,
-                    'description' => "Merchant processing fee ({$pct}%) for {$dailyReport->report_date->format('M d, Y')} - Gross: $" . number_format($grossAmount, 2),
+                    'description' => "Merchant processing fee ({$pct}%) for {$dailyReport->report_date->format(config('dates.display'))} - Gross: $" . number_format($grossAmount, 2),
                 ]);
                 $feeTransaction = $existingFee;
             } else {
@@ -107,7 +107,7 @@ class DailyReportObserver
                     'vendor_id' => $squareVendor->id,
                     'coa_id' => $merchantCoa->id, // 'Merchant Processing Fees' COA
                     'amount' => $merchantFee,
-                    'description' => "Merchant processing fee ({$pct}%) for {$dailyReport->report_date->format('M d, Y')} - Gross: $" . number_format($grossAmount, 2) . ", Net: $" . number_format($netDeposit, 2),
+                    'description' => "Merchant processing fee ({$pct}%) for {$dailyReport->report_date->format(config('dates.display'))} - Gross: $" . number_format($grossAmount, 2) . ", Net: $" . number_format($netDeposit, 2),
                     'payment_method' => 'credit_card',
                     'daily_report_id' => $dailyReport->id,
                     'created_by' => auth()->id() ?? $dailyReport->created_by,
@@ -134,7 +134,7 @@ class DailyReportObserver
                     // Update existing deposit if daily report was modified
                     $existingDeposit->update([
                         'amount' => $netDeposit,
-                        'description' => "Expected CC deposit for {$dailyReport->report_date->format('M d, Y')} (Gross: $" . number_format($grossAmount, 2) . ", Fee: $" . number_format($merchantFee, 2) . ")",
+                        'description' => "Expected CC deposit for {$dailyReport->report_date->format(config('dates.display'))} (Gross: $" . number_format($grossAmount, 2) . ", Fee: $" . number_format($merchantFee, 2) . ")",
                     ]);
                 } else {
                     // Create new expected deposit in bank ledger
@@ -144,7 +144,7 @@ class DailyReportObserver
                         'post_date' => $dailyReport->report_date,
                         'transaction_type' => 'credit',
                         'amount' => $netDeposit,
-                        'description' => "Expected CC deposit for {$dailyReport->report_date->format('M d, Y')} (Gross: $" . number_format($grossAmount, 2) . ", Fee: $" . number_format($merchantFee, 2) . ")",
+                        'description' => "Expected CC deposit for {$dailyReport->report_date->format(config('dates.display'))} (Gross: $" . number_format($grossAmount, 2) . ", Fee: $" . number_format($merchantFee, 2) . ")",
                         'reference_number' => "CC-{$dailyReport->id}",
                         'reconciliation_status' => 'unmatched', // Will be matched when bank CSV is imported
                         'import_batch_id' => null, // System-generated, not from import

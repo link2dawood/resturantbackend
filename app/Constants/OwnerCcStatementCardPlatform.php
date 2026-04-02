@@ -47,7 +47,7 @@ final class OwnerCcStatementCardPlatform
         return match ($platform) {
             self::CITY_BANK => 'Status, Date, Description, Debit, Credit, Member Name',
             self::CHASE_BANK => 'Card, Transaction Date, Post Date, Description, Category, Type, Amount (positive = charge/debit, negative = payment/credit), Memo',
-            self::AMERICAN_EXPRESS => 'Account, ChkRef, Debit, Credit, Date, Description (a second Credit column is supported if present)',
+            self::AMERICAN_EXPRESS => 'Date, Receipt, Description, Amount (positive = charge/debit, negative = payment/credit)',
             default => 'Status, Date, Description, Debit, Credit, Member Name',
         };
     }

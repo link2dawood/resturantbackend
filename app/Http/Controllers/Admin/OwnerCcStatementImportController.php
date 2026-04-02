@@ -413,7 +413,7 @@ class OwnerCcStatementImportController extends Controller
 
                 fputcsv($handle, [
                     $last4,
-                    $line->transaction_date->format('m/d/Y'),
+                    $line->transaction_date->format(config('dates.display')),
                     $line->description ?? '',
                     $line->debit > 0 ? (string) $line->debit : '',
                     $line->credit > 0 ? (string) $line->credit : '',
@@ -688,12 +688,11 @@ class OwnerCcStatementImportController extends Controller
     }
 
     /**
-     * American Express: Account, ChkRef, Debit, Credit (×2 if duplicated), Date, Description.
+     * American Express: Date, Receipt, Description, Amount (signed).
      */
     protected function buildHeaderMapAmex(array $header): array
     {
         $map = [];
-        $creditIndices = [];
         foreach ($header as $index => $col) {
             $raw = $this->stripBom(trim((string) $col));
             $n = strtolower($raw);
@@ -701,47 +700,30 @@ class OwnerCcStatementImportController extends Controller
                 continue;
             }
 
-            if ($n === 'account' || ($n !== 'date' && str_contains($n, 'account'))) {
-                if (! isset($map['account'])) {
-                    $map['account'] = $index;
-                }
-                continue;
-            }
-            if (str_contains($n, 'chkref') || str_contains($n, 'chk ref') || str_contains($n, 'check ref')) {
-                if (! isset($map['chkref'])) {
-                    $map['chkref'] = $index;
-                }
-                continue;
-            }
-            if ($n === 'debit') {
-                $map['debit'] = $index;
-                continue;
-            }
-            if ($n === 'credit') {
-                $creditIndices[] = $index;
-                continue;
-            }
             if ($n === 'date' || $n === 'transaction date' || $n === 'trans date') {
                 $map['date'] = $index;
                 continue;
             }
-            if ($n === 'description' || $n === 'desc') {
-                $map['description'] = $index;
+            if ($n === 'receipt' || str_starts_with($n, 'receipt ') || $n === 'receipt #') {
+                if (! isset($map['receipt'])) {
+                    $map['receipt'] = $index;
+                }
                 continue;
+            }
+            if ($n === 'description' || $n === 'desc' || str_contains($n, 'description')) {
+                if (! isset($map['description'])) {
+                    $map['description'] = $index;
+                }
+                continue;
+            }
+            if ($n === 'amount' || (str_contains($n, 'amount') && ! str_contains($n, 'debit') && ! str_contains($n, 'credit'))) {
+                if (! isset($map['amount'])) {
+                    $map['amount'] = $index;
+                }
             }
         }
 
-        if (count($creditIndices) >= 1) {
-            $map['credit'] = $creditIndices[0];
-        }
-        if (count($creditIndices) >= 2) {
-            $map['credit_2'] = $creditIndices[1];
-        }
-
-        if (! isset($map['date']) || ! isset($map['description'])) {
-            return [];
-        }
-        if (! isset($map['debit']) && ! isset($map['credit'])) {
+        if (! isset($map['date']) || ! isset($map['description']) || ! isset($map['amount'])) {
             return [];
         }
 
@@ -761,7 +743,8 @@ class OwnerCcStatementImportController extends Controller
         if (! $this->parseDate($dateStr)) {
             return 'Invalid date format';
         }
-        if ($cardPlatform === OwnerCcStatementCardPlatform::CHASE_BANK) {
+        if ($cardPlatform === OwnerCcStatementCardPlatform::CHASE_BANK
+            || $cardPlatform === OwnerCcStatementCardPlatform::AMERICAN_EXPRESS) {
             $amountRaw = $get('amount');
             if ($amountRaw === null || $amountRaw === '' || abs($this->parseAmount($amountRaw)) < 0.00001) {
                 return 'Missing or zero amount';
@@ -899,28 +882,27 @@ class OwnerCcStatementImportController extends Controller
             return null;
         }
 
-        $debit = $this->parseAmount($get('debit') ?? '0');
-        $credit = $this->parseAmount($get('credit') ?? '0');
-        if (isset($headerMap['credit_2'])) {
-            $credit += $this->parseAmount($get('credit_2') ?? '0');
+        $amountRaw = $get('amount');
+        if ($amountRaw === null || $amountRaw === '') {
+            return null;
         }
-
-        if ($credit === 0.0 && $debit < 0) {
-            $credit = abs($debit);
-            $debit = 0.0;
-        }
-
-        if ($debit === 0.0 && $credit === 0.0) {
+        $amount = $this->parseAmount($amountRaw);
+        if (abs($amount) < 0.00001) {
             return null;
         }
 
-        $baseDesc = $get('description') ?? '';
-        $prefixParts = array_filter([
-            $get('chkref') ? 'ChkRef ' . $get('chkref') : null,
-            $get('account') ? 'Account ' . $get('account') : null,
-        ]);
-        $description = $prefixParts !== []
-            ? implode(' · ', $prefixParts) . ($baseDesc !== '' ? ' · ' . $baseDesc : '')
+        $debit = 0.0;
+        $credit = 0.0;
+        if ($amount >= 0) {
+            $debit = $amount;
+        } else {
+            $credit = abs($amount);
+        }
+
+        $baseDesc = trim((string) ($get('description') ?? ''));
+        $receipt = $get('receipt');
+        $description = $receipt
+            ? ('Receipt ' . trim($receipt) . ($baseDesc !== '' ? ' · ' . $baseDesc : ''))
             : $baseDesc;
 
         return [
@@ -930,7 +912,7 @@ class OwnerCcStatementImportController extends Controller
             'description' => $description !== '' ? $description : null,
             'debit' => $debit,
             'credit' => $credit,
-            'member_name' => $get('account'),
+            'member_name' => null,
             'card_last4' => null,
         ];
     }

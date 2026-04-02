@@ -188,7 +188,7 @@
                                 @foreach($reports as $report)
                                     <x-table-row>
                                         <x-table-cell>
-                                            <div style="font-weight: 500;">{{ $report->report_date->format('M j, Y') }}</div>
+                                            <div style="font-weight: 500;">{{ $report->report_date->format(config('dates.display')) }}</div>
                                             <div style="font-size: 12px; color: var(--google-grey-600); margin-top: 2px;">{{ $report->report_date->format('l') }}</div>
                                         </x-table-cell>
                                         <x-table-cell>
@@ -225,7 +225,7 @@
                                         </x-table-cell>
                                         <x-table-cell>
                                             <div style="font-weight: 500;">{{ $report->creator->name ?? 'N/A' }}</div>
-                                            <div style="font-size: 12px; color: var(--google-grey-600); margin-top: 2px;">{{ $report->created_at->format('M j, g:i A') }}</div>
+                                            <div style="font-size: 12px; color: var(--google-grey-600); margin-top: 2px;">{{ $report->created_at->format(config('dates.display_datetime')) }}</div>
                                         </x-table-cell>
                                         <x-table-cell align="center">
                                             <div class="d-flex gap-1 justify-content-center">

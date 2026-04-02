@@ -1,5 +1,5 @@
 /**
- * US date inputs: visible MM/DD/YYYY, values submitted as YYYY-MM-DD (hidden field).
+ * US date inputs: visible MM-DD-YYYY, values submitted as YYYY-MM-DD (hidden field).
  */
 (function () {
     function pad2(n) {
@@ -65,7 +65,7 @@
         },
 
         displayFormat: function (dateValue) {
-            return this.format(dateValue, '/');
+            return this.format(dateValue, '-');
         },
     };
 
@@ -94,26 +94,6 @@
         }
     }
 
-    function syncVisibleFromHidden(hiddenInput) {
-        if (!hiddenInput || !window.dateFormatter) return;
-        var vis = hiddenInput.nextElementSibling;
-        if (vis && vis.classList && vis.classList.contains('us-date-visible')) {
-            vis.value = hiddenInput.value ? window.dateFormatter.displayFormat(hiddenInput.value) : '';
-        }
-    }
-
-    window.refreshUsDateVisible = syncVisibleFromHidden;
-
-    window.setUsDateVisibleIso = function (visibleId, iso) {
-        var vis = typeof visibleId === 'string' ? document.getElementById(visibleId) : visibleId;
-        if (!vis || !window.dateFormatter) return;
-        var hid = vis.previousElementSibling;
-        if (hid && hid.tagName === 'INPUT' && hid.type === 'hidden' && hid.name) {
-            hid.value = iso || '';
-            vis.value = iso ? window.dateFormatter.displayFormat(iso) : '';
-        }
-    };
-
     function syncHiddenFromVisible(visibleInput, hiddenInput) {
         var raw = visibleInput.value.trim();
         if (!raw) {
@@ -125,24 +105,25 @@
         applyMinMax(hiddenInput, visibleInput);
     }
 
-    function attachSlashMask(visibleInput) {
+    /** Typing mask for MM-DD-YYYY */
+    function attachUsDateMask(visibleInput) {
         visibleInput.addEventListener('input', function (e) {
             var digits = e.target.value.replace(/\D/g, '').slice(0, 8);
             var formatted = digits;
-            if (digits.length >= 2) formatted = digits.slice(0, 2) + '/' + digits.slice(2);
-            if (digits.length >= 4) formatted = digits.slice(0, 2) + '/' + digits.slice(2, 4) + '/' + digits.slice(4);
+            if (digits.length >= 2) formatted = digits.slice(0, 2) + '-' + digits.slice(2);
+            if (digits.length >= 4) formatted = digits.slice(0, 2) + '-' + digits.slice(2, 4) + '-' + digits.slice(4);
             e.target.value = formatted;
         });
     }
 
     function attachVisibleHandlers(visibleInput, hiddenInput) {
-        attachSlashMask(visibleInput);
+        attachUsDateMask(visibleInput);
 
         visibleInput.addEventListener('blur', function () {
             syncHiddenFromVisible(visibleInput, hiddenInput);
             if (visibleInput.value && !window.dateFormatter.validate(visibleInput.value)) {
                 visibleInput.classList.add('date-invalid');
-                showDateError(visibleInput, 'Please enter a valid date in MM/DD/YYYY format');
+                showDateError(visibleInput, 'Please enter a valid date in MM-DD-YYYY format');
             } else {
                 visibleInput.classList.remove('date-invalid');
                 var err = visibleInput.parentNode.querySelector('.date-error');
@@ -184,7 +165,7 @@
             input.removeAttribute('name');
             input.type = 'text';
             input.classList.add('us-date-visible');
-            input.setAttribute('placeholder', 'MM/DD/YYYY');
+            input.setAttribute('placeholder', 'MM-DD-YYYY');
             input.setAttribute('maxlength', '10');
             input.setAttribute('autocomplete', 'off');
             if (min) {
@@ -207,7 +188,7 @@
         } else {
             input.type = 'text';
             input.classList.add('us-date-visible');
-            input.setAttribute('placeholder', 'MM/DD/YYYY');
+            input.setAttribute('placeholder', 'MM-DD-YYYY');
             input.setAttribute('maxlength', '10');
             input.setAttribute('autocomplete', 'off');
             if (min) {
@@ -219,11 +200,11 @@
                 input.removeAttribute('max');
             }
             input.value = initial ? window.dateFormatter.displayFormat(initial) : '';
-            attachSlashMask(input);
+            attachUsDateMask(input);
             input.addEventListener('blur', function () {
                 if (input.value && !window.dateFormatter.validate(input.value)) {
                     input.classList.add('date-invalid');
-                    showDateError(input, 'Please enter a valid date in MM/DD/YYYY format');
+                    showDateError(input, 'Please enter a valid date in MM-DD-YYYY format');
                 } else {
                     input.classList.remove('date-invalid');
                     var err = input.parentNode.querySelector('.date-error');
@@ -242,9 +223,9 @@
         document.querySelectorAll('input.date-input:not([data-date-formatted])').forEach(function (input) {
             if (input.type === 'hidden' || input.closest('.no-us-date-wrap')) return;
             input.setAttribute('data-date-formatted', 'true');
-            input.setAttribute('placeholder', 'MM/DD/YYYY');
+            input.setAttribute('placeholder', 'MM-DD-YYYY');
             input.setAttribute('maxlength', '10');
-            attachSlashMask(input);
+            attachUsDateMask(input);
 
             if (input.value) {
                 var iso = window.dateFormatter.toISO(input.value);
@@ -254,7 +235,7 @@
             input.addEventListener('blur', function () {
                 if (input.value && !window.dateFormatter.validate(input.value)) {
                     input.classList.add('date-invalid');
-                    showDateError(input, 'Please enter a valid date in MM/DD/YYYY format');
+                    showDateError(input, 'Please enter a valid date in MM-DD-YYYY format');
                 } else {
                     input.classList.remove('date-invalid');
                     var err = input.parentNode.querySelector('.date-error');

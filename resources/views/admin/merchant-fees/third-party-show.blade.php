@@ -33,7 +33,7 @@
                     {{ ucfirst($statement->platform) }} Statement
                 </h1>
                 <p class="text-muted mb-0" style="font-family: 'Google Sans', sans-serif;">
-                    {{ $statement->statement_date->format('F j, Y') }}
+                    {{ $statement->statement_date->format(config('dates.display')) }}
                     @if($statement->store)
                         · {{ $statement->store->store_info }}
                     @endif
@@ -158,7 +158,7 @@
                 @endif
                 <div class="col-md-4">
                     <label class="form-label text-muted small">Statement date</label>
-                    <div>{{ $statement->statement_date->format('M j, Y') }}</div>
+                    <div>{{ $statement->statement_date->format(config('dates.display')) }}</div>
                 </div>
                 @if($statement->importer)
                 <div class="col-md-4">
@@ -206,7 +206,7 @@
                         <tbody>
                             @foreach($statement->expenses as $exp)
                             <tr>
-                                <td>{{ $exp->transaction_date ? \Carbon\Carbon::parse($exp->transaction_date)->format('M j, Y') : '—' }}</td>
+                                <td>{{ $exp->transaction_date ? \Carbon\Carbon::parse($exp->transaction_date)->format(config('dates.display')) : '—' }}</td>
                                 <td class="text-break">{{ $exp->description ?? '—' }}</td>
                                 <td>{{ $exp->vendor->vendor_name ?? '—' }}</td>
                                 <td>{{ $exp->coa ? $exp->coa->account_code . ' ' . $exp->coa->account_name : '—' }}</td>

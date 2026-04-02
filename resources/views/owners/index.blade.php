@@ -58,7 +58,7 @@
                     </x-table-cell>
                     <x-table-cell>
                         <div style="font-size: 0.875rem; color: var(--google-grey-600, #5f6368);">
-                            {{ $owner->created_at->format('M d, Y') }}
+                            {{ $owner->created_at->format(config('dates.display')) }}
                         </div>
                     </x-table-cell>
                     <x-table-cell align="center">

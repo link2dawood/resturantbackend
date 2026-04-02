@@ -125,7 +125,7 @@
                             <tbody>
                                 @forelse($expenses as $expense)
                                 <tr>
-                                    <td style="padding: 1rem; vertical-align: middle;">{{ $expense->transaction_date->format('M d, Y') }}</td>
+                                    <td style="padding: 1rem; vertical-align: middle;">{{ $expense->transaction_date->format(config('dates.display')) }}</td>
                                     <td style="padding: 1rem; vertical-align: middle;">{{ $expense->store->store_info ?? 'N/A' }}</td>
                                     <td style="padding: 1rem; vertical-align: middle;">
                                         @if($expense->vendor)

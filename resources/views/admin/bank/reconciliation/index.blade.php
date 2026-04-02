@@ -131,7 +131,7 @@
                             <tbody>
                                 @forelse($transactions as $transaction)
                                 <tr>
-                                    <td>{{ $transaction->transaction_date->format('M d, Y') }}</td>
+                                    <td>{{ $transaction->transaction_date->format(config('dates.display')) }}</td>
                                     <td>{{ $transaction->description ?? '-' }}</td>
                                     <td class="text-center">
                                         @if($transaction->transaction_type == 'credit')

@@ -54,9 +54,9 @@
                                     $dayBeforeYesterday = $today->copy()->subDays(2);
 
                                     $quickDates = [
-                                        ['date' => $today->format('Y-m-d'), 'label' => 'Today (' . $today->format('M j, Y') . ')', 'class' => 'success'],
-                                        ['date' => $yesterday->format('Y-m-d'), 'label' => 'Yesterday (' . $yesterday->format('M j, Y') . ')', 'class' => 'primary'],
-                                        ['date' => $dayBeforeYesterday->format('Y-m-d'), 'label' => $dayBeforeYesterday->format('M j, Y'), 'class' => 'secondary']
+                                        ['date' => $today->format('Y-m-d'), 'label' => 'Today (' . $today->format(config('dates.display')) . ')', 'class' => 'success'],
+                                        ['date' => $yesterday->format('Y-m-d'), 'label' => 'Yesterday (' . $yesterday->format(config('dates.display')) . ')', 'class' => 'primary'],
+                                        ['date' => $dayBeforeYesterday->format('Y-m-d'), 'label' => $dayBeforeYesterday->format(config('dates.display')), 'class' => 'secondary']
                                     ];
                                 @endphp
 
@@ -101,7 +101,7 @@
                                         @foreach(array_slice($existingDates, 0, 5) as $existingDate)
                                             <span class="badge bg-light text-dark me-1 mb-1">
                                                 <i class="fas fa-file-alt me-1"></i>
-                                                {{ \Carbon\Carbon::parse($existingDate)->format('M j, Y') }}
+                                                {{ \Carbon\Carbon::parse($existingDate)->format(config('dates.display')) }}
                                             </span>
                                         @endforeach
                                         @if(count($existingDates) > 5)

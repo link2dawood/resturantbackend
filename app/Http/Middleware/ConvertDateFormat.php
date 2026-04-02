@@ -9,7 +9,7 @@ use Illuminate\Http\Request;
 class ConvertDateFormat
 {
     /**
-     * Convert US-style dates (MM/DD/YYYY or MM-DD-YYYY, with 1–2 digit month/day) to Y-m-d for Laravel.
+     * Convert US-style dates (primary display MM-DD-YYYY; slashes also accepted) with 1–2 digit month/day to Y-m-d for Laravel.
      */
     public function handle(Request $request, Closure $next)
     {

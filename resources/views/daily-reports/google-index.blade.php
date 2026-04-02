@@ -182,7 +182,7 @@
                 <tr class="gd-border-b gd-border-surface-2 hover:gd-bg-surface-1 gd-transition-colors gd-duration-200">
                     <!-- Date -->
                     <td class="gd-px-lg gd-py-md">
-                        <div class="gd-label-medium">{{ $report->report_date->format('M j, Y') }}</div>
+                        <div class="gd-label-medium">{{ $report->report_date->format(config('dates.display')) }}</div>
                         <div class="gd-body-small gd-text-secondary gd-mt-xs">{{ $report->report_date->format('l') }}</div>
                     </td>
 
@@ -230,7 +230,7 @@
                     <!-- Created By -->
                     <td class="gd-px-lg gd-py-md">
                         <div class="gd-label-medium">{{ $report->creator->name ?? 'N/A' }}</div>
-                        <div class="gd-body-small gd-text-secondary gd-mt-xs">{{ $report->created_at->format('M j, g:i A') }}</div>
+                        <div class="gd-body-small gd-text-secondary gd-mt-xs">{{ $report->created_at->format(config('dates.display_datetime')) }}</div>
                     </td>
 
                     <!-- Actions -->
@@ -240,7 +240,7 @@
                             <a href="{{ route('daily-reports.show', $report) }}"
                                class="gd-inline-flex gd-items-center gd-justify-center w-8 h-8 gd-bg-trust gd-text-trust-600 gd-rounded-full hover:gd-bg-trust-100 gd-transition-colors"
                                title="View Report"
-                               aria-label="View report for {{ $report->report_date->format('M j, Y') }}">
+                               aria-label="View report for {{ $report->report_date->format(config('dates.display')) }}">
                                 <span class="material-symbols-outlined" style="font-size: 16px;">visibility</span>
                             </a>
 
@@ -249,7 +249,7 @@
                             <a href="{{ route('daily-reports.edit', $report) }}"
                                class="gd-inline-flex gd-items-center gd-justify-center w-8 h-8 gd-bg-warning gd-text-warning-600 gd-rounded-full hover:gd-bg-warning-100 gd-transition-colors"
                                title="Edit Report"
-                               aria-label="Edit report for {{ $report->report_date->format('M j, Y') }}">
+                               aria-label="Edit report for {{ $report->report_date->format(config('dates.display')) }}">
                                 <span class="material-symbols-outlined" style="font-size: 16px;">edit</span>
                             </a>
                             @endif
@@ -258,7 +258,7 @@
                             <a href="{{ route('daily-reports.export-pdf', $report) }}"
                                class="gd-inline-flex gd-items-center gd-justify-center w-8 h-8 gd-bg-gray-100 gd-text-gray-600 gd-rounded-full hover:gd-bg-gray-200 gd-transition-colors"
                                title="Export PDF"
-                               aria-label="Export PDF for {{ $report->report_date->format('M j, Y') }}">
+                               aria-label="Export PDF for {{ $report->report_date->format(config('dates.display')) }}">
                                 <span class="material-symbols-outlined" style="font-size: 16px;">picture_as_pdf</span>
                             </a>
                         </div>

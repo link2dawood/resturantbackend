@@ -68,7 +68,7 @@
                                 </div>
                                 <div class="col-6 mb-3">
                                     <strong class="text-muted">Created</strong>
-                                    <div>{{ $manager->created_at->format('M j, Y') }}</div>
+                                    <div>{{ $manager->created_at->format(config('dates.display')) }}</div>
                                 </div>
                                 <div class="col-6 mb-3">
                                     <strong class="text-muted">Last Online</strong>

@@ -625,7 +625,7 @@
                         <div class="side-panel">
                             <div class="form-group">
                                 <label>Date:</label>
-                                <input type="text" name="report_date" class="form-control date-input {{ isset($reportDate) ? 'bg-light' : '' }}" value="{{ isset($reportDate) ? \Carbon\Carbon::parse($reportDate)->format('m/d/Y') : date('m/d/Y') }}" placeholder="MM/DD/YYYY" maxlength="10" required {{ isset($reportDate) ? 'readonly' : '' }}>
+                                <input type="text" name="report_date" class="form-control date-input {{ isset($reportDate) ? 'bg-light' : '' }}" value="{{ isset($reportDate) ? \Carbon\Carbon::parse($reportDate)->format(config('dates.display')) : \Carbon\Carbon::now()->format(config('dates.display')) }}" placeholder="MM-DD-YYYY" maxlength="10" required {{ isset($reportDate) ? 'readonly' : '' }}>
                                 @if(isset($reportDate))
                                     <small class="text-muted">
                                         <i class="fas fa-lock me-1"></i>Date pre-selected from multi-step process

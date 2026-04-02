@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\BankAccountViewController;
+use App\Http\Controllers\Admin\BankStatementImportController;
 use App\Http\Controllers\Admin\ChartOfAccountController;
 use App\Http\Controllers\Admin\ExpenseViewController;
 use App\Http\Controllers\Admin\ImportLogController;
@@ -214,6 +215,13 @@ Route::middleware('auth')->group(function () {
         Route::put('/owner-cc-statements/lines/{ownerCcStatementLine}/transaction-type', [OwnerCcStatementImportController::class, 'updateLineTransactionType'])->name('admin.owner-cc-statements.lines.update-type');
         Route::get('/owner-cc-statements/{ownerCcStatementImport}/exceptions', [OwnerCcStatementImportController::class, 'downloadExceptionReport'])->name('admin.owner-cc-statements.exceptions');
         Route::delete('/owner-cc-statements/{ownerCcStatementImport}', [OwnerCcStatementImportController::class, 'destroy'])->name('admin.owner-cc-statements.destroy');
+
+        Route::get('/bank-statement-imports', [BankStatementImportController::class, 'index'])->name('admin.bank-statement-imports.index');
+        Route::get('/bank-statement-imports/create', [BankStatementImportController::class, 'create'])->name('admin.bank-statement-imports.create');
+        Route::post('/bank-statement-imports', [BankStatementImportController::class, 'store'])->name('admin.bank-statement-imports.store');
+        Route::get('/bank-statement-imports/batches/{importBatch}', [BankStatementImportController::class, 'show'])->name('admin.bank-statement-imports.show');
+        Route::post('/bank-statement-imports/batches/{importBatch}/bulk-update-coa', [BankStatementImportController::class, 'bulkUpdateCoa'])->name('admin.bank-statement-imports.bulk-update-coa');
+        Route::delete('/bank-statement-imports/batches/{importBatch}', [BankStatementImportController::class, 'destroy'])->name('admin.bank-statement-imports.destroy');
     });
 
     // P&L Reports - Admin, Owner (full access), Manager (view only)

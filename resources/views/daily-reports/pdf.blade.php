@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Daily Report - {{ $dailyReport->report_date->format('M d, Y') }}</title>
+    <title>Daily Report - {{ $dailyReport->report_date->format(config('dates.display')) }}</title>
     <style>
         * {
             margin: 0;
@@ -250,7 +250,7 @@
         <tr>
             <td class="logo-cell">
                 <img src="https://stores.fannsphilly.com/images/logo.jpg" alt="Logo" class="logo" />
-                <div class="report-title">Daily Report - {{ $dailyReport->report_date->format('m/d/Y') }}</div>
+                <div class="report-title">Daily Report - {{ $dailyReport->report_date->format(config('dates.display')) }}</div>
             </td>
             <td class="store-info-cell text-center">
                 <div class="store-name">{{ $dailyReport->store->store_info ?? 'Store Name' }}</div>

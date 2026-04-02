@@ -199,7 +199,7 @@
                     <tbody id="merchantFeeTransactionsBody">
                         @forelse($recentTransactions as $transaction)
                         <tr>
-                            <td>{{ \Carbon\Carbon::parse($transaction['transaction_date'])->format('M d, Y') }}</td>
+                            <td>{{ \Carbon\Carbon::parse($transaction['transaction_date'])->format(config('dates.display')) }}</td>
                             <td>{{ $transaction['store_name'] }}</td>
                             <td>{{ $transaction['processor'] }}</td>
                             <td class="text-end"><strong class="text-danger">${{ number_format($transaction['amount'], 2) }}</strong></td>
@@ -427,6 +427,17 @@ document.addEventListener('DOMContentLoaded', function() {
         `).join('');
     }
 
+    function formatUsDateDisplay(isoOrDateStr) {
+        if (!isoOrDateStr) return '-';
+        const s = String(isoOrDateStr);
+        const d = new Date(s.length <= 10 ? s + 'T12:00:00' : s);
+        if (isNaN(d.getTime())) return '-';
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        const yyyy = d.getFullYear();
+        return `${mm}-${dd}-${yyyy}`;
+    }
+
     function renderTransactions(transactions) {
         if (!Array.isArray(transactions) || transactions.length === 0) {
             transactionsBody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">No transactions found</td></tr>';
@@ -435,7 +446,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         transactionsBody.innerHTML = transactions.map((transaction) => {
             const transactionDate = transaction.transaction_date
-                ? new Date(transaction.transaction_date + (String(transaction.transaction_date).length <= 10 ? 'T12:00:00' : '')).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })
+                ? formatUsDateDisplay(transaction.transaction_date)
                 : '-';
 
             const storeName = transaction.store_name || transaction.store?.store_info || 'N/A';

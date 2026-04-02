@@ -806,7 +806,7 @@
                         <!-- Transactions (Admin, Owner) - Owner CC Statements, Merchant Fee Analytics, Third-Party, etc. -->
                         @if(Auth::user()->isAdmin() || Auth::user()->isOwner())
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle d-flex align-items-center {{ request()->routeIs('admin.owner-cc-statements.*') || request()->routeIs('admin.merchant-fees.*') || request()->routeIs('admin.exceptions-report.*') || request()->routeIs('admin.import-log.*') || request()->routeIs('audit-logs.*') ? 'active' : '' }}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="padding: 8px 16px; border-radius: 20px; font-family: 'Google Sans', sans-serif; font-weight: 500; font-size: 14px; transition: all 0.2s ease; {{ request()->routeIs('admin.owner-cc-statements.*') || request()->routeIs('admin.merchant-fees.*') || request()->routeIs('admin.exceptions-report.*') || request()->routeIs('admin.import-log.*') || request()->routeIs('audit-logs.*') ? 'background: #4285f4; color: white;' : 'color: #5f6368;' }}" onmouseover="if(!this.classList.contains('active')) { this.style.background='#f1f3f4'; this.style.color='#1a73e8'; }" onmouseout="if(!this.classList.contains('active')) { this.style.background='transparent'; this.style.color='#5f6368'; }">
+                            <a class="nav-link dropdown-toggle d-flex align-items-center {{ request()->routeIs('admin.owner-cc-statements.*') || request()->routeIs('admin.bank-statement-imports.*') || request()->routeIs('admin.merchant-fees.*') || request()->routeIs('admin.exceptions-report.*') || request()->routeIs('admin.import-log.*') || request()->routeIs('audit-logs.*') ? 'active' : '' }}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="padding: 8px 16px; border-radius: 20px; font-family: 'Google Sans', sans-serif; font-weight: 500; font-size: 14px; transition: all 0.2s ease; {{ request()->routeIs('admin.owner-cc-statements.*') || request()->routeIs('admin.bank-statement-imports.*') || request()->routeIs('admin.merchant-fees.*') || request()->routeIs('admin.exceptions-report.*') || request()->routeIs('admin.import-log.*') || request()->routeIs('audit-logs.*') ? 'background: #4285f4; color: white;' : 'color: #5f6368;' }}" onmouseover="if(!this.classList.contains('active')) { this.style.background='#f1f3f4'; this.style.color='#1a73e8'; }" onmouseout="if(!this.classList.contains('active')) { this.style.background='transparent'; this.style.color='#5f6368'; }">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
                                     <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
                                     <line x1="1" y1="10" x2="23" y2="10"/>
@@ -819,6 +819,14 @@
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/><path d="M12 15h4"/></svg>
                                     Owner CC Statements
                                 </a></li>
+                                @endif
+                                @if(Route::has('admin.bank-statement-imports.index'))
+                                <li><a class="dropdown-item d-flex align-items-center" href="{{ route('admin.bank-statement-imports.index') }}" style="padding: 8px 16px; font-family: 'Google Sans', sans-serif; font-size: 14px; border-radius: 8px; margin: 0 8px;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                                    Bank Statement Imports
+                                </a></li>
+                                @endif
+                                @if(Route::has('admin.owner-cc-statements.index') || Route::has('admin.bank-statement-imports.index'))
                                 <li><hr class="dropdown-divider mx-3"></li>
                                 @endif
                                 <li><a class="dropdown-item d-flex align-items-center" href="{{ route('admin.merchant-fees.index') }}" style="padding: 8px 16px; font-family: 'Google Sans', sans-serif; font-size: 14px; border-radius: 8px; margin: 0 8px;">

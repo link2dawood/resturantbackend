@@ -66,7 +66,7 @@
 
                                 <dt class="col-sm-5">Created At</dt>
                                 <dd class="col-sm-7">
-                                    {{ $chartOfAccount->created_at->format('M d, Y h:i A') }}
+                                    {{ $chartOfAccount->created_at->format(config('dates.display_datetime')) }}
                                 </dd>
                             </dl>
                         </div>

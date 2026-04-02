@@ -3,7 +3,6 @@
 namespace App\Helpers;
 
 use Carbon\Carbon;
-
 class DateFormatter
 {
     /**
@@ -24,14 +23,14 @@ class DateFormatter
                 return '';
             }
 
-            return $carbon->format('m-d-Y');
+            return $carbon->format((string) config('dates.display', 'm-d-Y'));
         } catch (\Exception $e) {
             return '';
         }
     }
 
     /**
-     * Format date to US format with time (MM-DD-YYYY h:i A)
+     * Format date to US format with time (uses config dates.display_datetime)
      */
     public static function toUSWithTime($date)
     {
@@ -48,58 +47,36 @@ class DateFormatter
                 return '';
             }
 
-            return $carbon->format('m-d-Y h:i A');
+            return $carbon->format((string) config('dates.display_datetime', 'm-d-Y g:i A'));
         } catch (\Exception $e) {
             return '';
         }
     }
 
     /**
-     * Format date to US short format (M d, Y)
+     * Format date to configured display format (default MM-DD-YYYY).
      */
     public static function toUSShort($date)
     {
-        if (! $date) {
-            return '';
-        }
-
-        try {
-            if (is_string($date)) {
-                $carbon = Carbon::parse($date);
-            } elseif ($date instanceof Carbon) {
-                $carbon = $date;
-            } else {
-                return '';
-            }
-
-            return $carbon->format('M d, Y');
-        } catch (\Exception $e) {
-            return '';
-        }
+        return self::toUS($date);
     }
 
     /**
-     * Format date to display format with slashes (MM/DD/YYYY)
+     * Same as {@see toUS()} — aligns with config `dates.display`.
      */
     public static function toUSDisplay($date)
     {
-        if (! $date) {
-            return '';
-        }
+        return self::toUS($date);
+    }
 
-        try {
-            if (is_string($date)) {
-                $carbon = Carbon::parse($date);
-            } elseif ($date instanceof Carbon) {
-                $carbon = $date;
-            } else {
-                return '';
-            }
+    public static function displayFormat(): string
+    {
+        return (string) config('dates.display', 'm-d-Y');
+    }
 
-            return $carbon->format('m/d/Y');
-        } catch (\Exception $e) {
-            return '';
-        }
+    public static function displayDateTimeFormat(): string
+    {
+        return (string) config('dates.display_datetime', 'm-d-Y g:i A');
     }
 
     /**

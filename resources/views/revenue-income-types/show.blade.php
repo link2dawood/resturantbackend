@@ -94,13 +94,13 @@
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label class="form-label">Created</label>
-                                <div class="form-control-plaintext">{{ $revenueIncomeType->created_at->format('M j, Y g:i A') }}</div>
+                                <div class="form-control-plaintext">{{ $revenueIncomeType->created_at->format(config('dates.display_datetime')) }}</div>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label class="form-label">Last Updated</label>
-                                <div class="form-control-plaintext">{{ $revenueIncomeType->updated_at->format('M j, Y g:i A') }}</div>
+                                <div class="form-control-plaintext">{{ $revenueIncomeType->updated_at->format(config('dates.display_datetime')) }}</div>
                             </div>
                         </div>
                     </div>

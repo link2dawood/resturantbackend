@@ -151,7 +151,7 @@
             @if($manager->username)
             <li><strong>Username:</strong> {{ $manager->username }}</li>
             @endif
-            <li><strong>Account Created:</strong> {{ $manager->created_at->format('F j, Y \a\t g:i A') }}</li>
+            <li><strong>Account Created:</strong> {{ $manager->created_at->format(config('dates.display')) }} at {{ $manager->created_at->format('g:i A') }}</li>
             <li><strong>Created By:</strong> {{ $createdBy->name }} ({{ $createdBy->role->label() }})</li>
             <li><strong>Store Access:</strong> {{ $stores->count() }} store(s)</li>
         </ul>

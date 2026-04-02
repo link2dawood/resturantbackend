@@ -37,7 +37,7 @@
                 @foreach($summaryData['stores'] as $store)
                     @if(isset($storesData[$store->id]))
                         <tr>
-                            <td>{{ \Carbon\Carbon::parse($date)->format('M d, Y') }}</td>
+                            <td>{{ \Carbon\Carbon::parse($date)->format(config('dates.display')) }}</td>
                             <td><strong>{{ $store->store_info }}</strong></td>
                             @foreach($dataItems as $itemKey)
                                 <td>

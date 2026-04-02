@@ -115,7 +115,7 @@
             <li><strong>Email:</strong> {{ $owner->email }}</li>
             <li><strong>Role:</strong> Owner</li>
             <li><strong>State:</strong> {{ $owner->state ?? 'Not specified' }}</li>
-            <li><strong>Account Created:</strong> {{ $owner->created_at->format('F j, Y \a\t g:i A') }}</li>
+            <li><strong>Account Created:</strong> {{ $owner->created_at->format(config('dates.display')) }} at {{ $owner->created_at->format('g:i A') }}</li>
             <li><strong>Created By:</strong> {{ $createdBy->name }} ({{ $createdBy->role->label() }})</li>
         </ul>
         

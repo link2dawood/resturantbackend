@@ -61,7 +61,7 @@
                             <td class="{{ ($snapshot->pl_data['net_profit'] ?? 0) >= 0 ? 'text-success' : 'text-danger' }}">
                                 ${{ number_format($snapshot->pl_data['net_profit'] ?? 0, 2) }}
                             </td>
-                            <td>{{ $snapshot->created_at->format('M d, Y H:i') }}</td>
+                            <td>{{ $snapshot->created_at->format(config('dates.display_datetime_24h')) }}</td>
                             <td>
                                 <button class="btn btn-sm btn-outline-primary" onclick="viewSnapshot({{ $snapshot->id }})">View</button>
                             </td>

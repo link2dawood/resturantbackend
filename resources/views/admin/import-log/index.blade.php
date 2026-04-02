@@ -37,7 +37,7 @@
                                     <span class="badge bg-success">Online Platform</span>
                                 @endif
                             </td>
-                            <td>{{ \Carbon\Carbon::parse($imp->date)->format('M j, Y g:i A') }}</td>
+                            <td>{{ \Carbon\Carbon::parse($imp->date)->format(config('dates.display_datetime')) }}</td>
                             <td>
                                 {{ $imp->file_name }}
                                 @if(!empty($imp->detail))
