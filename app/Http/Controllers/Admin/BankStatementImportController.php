@@ -10,6 +10,7 @@ use App\Models\BankTransaction;
 use App\Models\ChartOfAccount;
 use App\Models\ExpenseTransaction;
 use App\Models\ImportBatch;
+use App\Models\OwnerCcDescriptionMapping;
 use App\Models\Store;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
@@ -159,6 +160,7 @@ class BankStatementImportController extends Controller
             ->orderBy('id')
             ->get();
 
+        // Same COA picker list as Owner CC statements (Expense/COGS detail accounts in 5001–5999 / 6001–6999).
         $chartOfAccounts = ChartOfAccount::active()
             ->whereIn('account_type', ['Expense', 'COGS'])
             ->where(function ($q) {
@@ -169,10 +171,25 @@ class BankStatementImportController extends Controller
             ->orderBy('account_code')
             ->get();
 
+        $patterns = $transactions
+            ->filter(fn (BankTransaction $t) => $t->matched_expense_id)
+            ->map(fn (BankTransaction $t) => OwnerCcDescriptionMapping::normalizeDescription($t->description))
+            ->filter()
+            ->unique()
+            ->values();
+
+        $learnedCoaByPattern = $patterns->isEmpty()
+            ? collect()
+            : OwnerCcDescriptionMapping::query()
+                ->whereIn('description_pattern', $patterns->all())
+                ->whereNotNull('coa_id')
+                ->pluck('coa_id', 'description_pattern');
+
         return view('admin.bank-statement-imports.show', [
             'batch' => $importBatch,
             'transactions' => $transactions,
             'chartOfAccounts' => $chartOfAccounts,
+            'learnedCoaByPattern' => $learnedCoaByPattern,
         ]);
     }
 
@@ -201,10 +218,12 @@ class BankStatementImportController extends Controller
                     'needs_review' => $coaId === null,
                     'review_reason' => $coaId === null ? 'COA not assigned' : null,
                 ]);
+
+                $this->saveLearnedCoaMappingFromBankDescription($bankTxn->description, $coaId);
             }
         });
 
-        return back()->with('success', 'Chart of Account assignments saved.');
+        return back()->with('success', 'Chart of Account assignments saved. Matching descriptions on future bank or Owner CC imports will suggest this COA.');
     }
 
     public function destroy(ImportBatch $importBatch): RedirectResponse
@@ -251,5 +270,25 @@ class BankStatementImportController extends Controller
         }
 
         abort(403);
+    }
+
+    /**
+     * Persist description → COA for auto-suggest (same table as Owner CC statement imports).
+     */
+    protected function saveLearnedCoaMappingFromBankDescription(?string $description, $coaId): void
+    {
+        $pattern = OwnerCcDescriptionMapping::normalizeDescription($description);
+        if ($pattern === '') {
+            return;
+        }
+
+        OwnerCcDescriptionMapping::updateOrCreate(
+            ['description_pattern' => $pattern],
+            [
+                'coa_id' => $coaId ?: null,
+                'transaction_type_id' => null,
+                'created_by' => auth()->id(),
+            ]
+        );
     }
 }

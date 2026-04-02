@@ -42,7 +42,7 @@
         <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
             <h3 class="card-title mb-0">Transactions ({{ number_format($transactions->count()) }})</h3>
             <p class="text-muted small mb-0">
-                For <strong>debits</strong> that created an expense, assign Chart of Account (same list as Owner CC statements). Credits / deposits have no expense — COA does not apply.
+                For <strong>debits</strong> that created an expense, pick a Chart of Account from the same list as <strong>Owner CC statements</strong> (Expense / COGS detail accounts). The dropdown pre-selects a COA when you (or Owner CC) already chose one for the same normalized description. Save to store on the expense and teach future imports. Credits / deposits have no expense — COA does not apply.
             </p>
         </div>
         <div class="table-responsive">
@@ -77,16 +77,25 @@
                                     @if($txn->matched_expense_id)
                                         <input type="hidden" name="lines[{{ $index }}][id]" value="{{ $txn->id }}">
                                         @php
-                                            $coaId = $txn->matchedExpense?->coa_id;
+                                            $descPattern = \App\Models\OwnerCcDescriptionMapping::normalizeDescription($txn->description);
+                                            $storedCoaId = $txn->matchedExpense?->coa_id;
+                                            $learnedCoaId = ($descPattern !== '' && $learnedCoaByPattern->has($descPattern))
+                                                ? (int) $learnedCoaByPattern->get($descPattern)
+                                                : null;
+                                            $selectedCoaId = $storedCoaId ? (int) $storedCoaId : $learnedCoaId;
+                                            $suggestedOnly = ! $storedCoaId && $learnedCoaId;
                                         @endphp
-                                        <select name="lines[{{ $index }}][coa_id]" class="form-select form-select-sm" style="min-width: 220px;">
+                                        <select name="lines[{{ $index }}][coa_id]" class="form-select form-select-sm" style="min-width: 220px;" @if($suggestedOnly) title="Suggested from a prior assignment for this description; click Save to apply to this expense." @endif>
                                             <option value="">— None —</option>
                                             @foreach($chartOfAccounts as $coa)
-                                                <option value="{{ $coa->id }}" {{ (int) $coaId === (int) $coa->id ? 'selected' : '' }}>
+                                                <option value="{{ $coa->id }}" {{ (int) $selectedCoaId === (int) $coa->id ? 'selected' : '' }}>
                                                     {{ $coa->account_code }} - {{ $coa->account_name }}
                                                 </option>
                                             @endforeach
                                         </select>
+                                        @if($suggestedOnly)
+                                            <div class="text-muted small mt-1">Suggested</div>
+                                        @endif
                                     @else
                                         <span class="text-muted">—</span>
                                     @endif

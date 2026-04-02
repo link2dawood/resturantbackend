@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\BankAccount;
 use App\Models\BankTransaction;
 use App\Models\ImportBatch;
+use App\Models\OwnerCcDescriptionMapping;
 use App\Models\DailyReport;
 use App\Models\ExpenseTransaction;
 use App\Models\Vendor;
@@ -742,6 +743,18 @@ class BankImportController extends Controller
             // If no mapping rule, use vendor's default COA
             if (!$coaId && $vendor && $vendor->default_coa_id) {
                 $coaId = $vendor->default_coa_id;
+            }
+
+            // Learned description → COA (shared with Owner CC statement imports; exact normalized match).
+            if (! $coaId) {
+                $pattern = OwnerCcDescriptionMapping::normalizeDescription($bankTransaction->description);
+                if ($pattern !== '') {
+                    $learned = OwnerCcDescriptionMapping::where('description_pattern', $pattern)->first();
+                    if ($learned && $learned->coa_id) {
+                        $coaId = $learned->coa_id;
+                        $learned->increment('times_matched');
+                    }
+                }
             }
 
             // Determine payment method based on transaction type
