@@ -47,6 +47,24 @@ class ChartOfAccount extends Model
             ->first();
     }
 
+    /**
+     * Expense COA ids shown in Merchant Fee Analytics (in-store processing + third-party platform fee expenses).
+     */
+    public static function merchantFeeAnalyticsCoaIds(): array
+    {
+        $ids = [];
+        if ($m = static::merchantProcessingFeesAccount()) {
+            $ids[] = (int) $m->id;
+        }
+        foreach (['grubhub', 'ubereats', 'doordash'] as $platform) {
+            if ($c = static::thirdPartyPlatformExpenseAccount($platform)) {
+                $ids[] = (int) $c->id;
+            }
+        }
+
+        return array_values(array_unique(array_filter($ids)));
+    }
+
     public static function thirdPartyPlatformExpenseAccount(string $platform): ?self
     {
         $platform = strtolower(trim($platform));

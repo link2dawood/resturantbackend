@@ -298,7 +298,12 @@ document.addEventListener('DOMContentLoaded', function() {
             renderSummary(summaryPayload);
             const trendsData = trendsPayload.trends || [];
             const processorData = Array.isArray(processorsPayload) ? processorsPayload : [];
-            const transactionData = Array.isArray(transactionsPayload.data) ? transactionsPayload.data : [];
+            let transactionData = [];
+            if (Array.isArray(transactionsPayload)) {
+                transactionData = transactionsPayload;
+            } elseif (Array.isArray(transactionsPayload?.data)) {
+                transactionData = transactionsPayload.data;
+            }
 
             renderTrendsChart(trendsData);
             renderProcessors(processorData);

@@ -33,23 +33,20 @@ class MerchantFeeViewController extends Controller
             $storeId = null;
         }
 
-        // Get merchant fee COA
+        // Get merchant fee COA (in-store / Square-style — summary card still uses this)
         $merchantFeeCoa = ChartOfAccount::merchantProcessingFeesAccount();
-        
+        $feeAnalyticsCoaIds = ChartOfAccount::merchantFeeAnalyticsCoaIds();
+
         // Calculate merchant processing stats
         $merchantProcessing = $this->getMerchantProcessingStats($merchantFeeCoa, $storeId, $startDate, $endDate, $accessibleStoreIds);
         
         // Get third-party stats
         $thirdPartyPlatforms = $this->getThirdPartyStats($storeId, $startDate, $endDate, $accessibleStoreIds);
         
-        // Get fees by processor
-        $byProcessor = $this->getFeesByProcessor($merchantFeeCoa, $storeId, $startDate, $endDate, $accessibleStoreIds);
-        
-        // Get trends data
-        $trends = $this->getFeeTrends($merchantFeeCoa, $storeId, $startDate, $endDate, 'day', $accessibleStoreIds);
-        
-        // Get recent transactions
-        $recentTransactions = $this->getRecentFeeTransactions($merchantFeeCoa, $storeId, $startDate, $endDate, $accessibleStoreIds);
+        // Processor breakdown / trends / recent rows: include platform fee expenses (Grubhub/Uber/DoorDash COAs), not only 6100
+        $byProcessor = $this->getFeesByProcessor($feeAnalyticsCoaIds, $storeId, $startDate, $endDate, $accessibleStoreIds);
+        $trends = $this->getFeeTrends($feeAnalyticsCoaIds, $storeId, $startDate, $endDate, 'day', $accessibleStoreIds);
+        $recentTransactions = $this->getRecentFeeTransactions($feeAnalyticsCoaIds, $storeId, $startDate, $endDate, $accessibleStoreIds);
         
         return view('admin.merchant-fees.index', compact(
             'stores', 
@@ -264,19 +261,19 @@ class MerchantFeeViewController extends Controller
     /**
      * Get fees grouped by processor
      */
-    protected function getFeesByProcessor($merchantFeeCoa, $storeId, $startDate, $endDate, array $accessibleStoreIds = [])
+    protected function getFeesByProcessor(array $coaIds, $storeId, $startDate, $endDate, array $accessibleStoreIds = [])
     {
-        if (!$merchantFeeCoa) {
+        if ($coaIds === []) {
             return collect([]);
         }
-        
+
         $query = ExpenseTransaction::select(
                 'vendors.vendor_name as processor',
                 DB::raw('SUM(expense_transactions.amount) as total_fees'),
                 DB::raw('COUNT(*) as transaction_count')
             )
             ->join('vendors', 'expense_transactions.vendor_id', '=', 'vendors.id')
-            ->where('expense_transactions.coa_id', $merchantFeeCoa->id);
+            ->whereIn('expense_transactions.coa_id', $coaIds);
 
         if (! empty($accessibleStoreIds)) {
             $query->whereIn('expense_transactions.store_id', $accessibleStoreIds);
@@ -296,13 +293,13 @@ class MerchantFeeViewController extends Controller
     /**
      * Get fee trends over time
      */
-    protected function getFeeTrends($merchantFeeCoa, $storeId, $startDate, $endDate, $groupBy = 'day', array $accessibleStoreIds = [])
+    protected function getFeeTrends(array $coaIds, $storeId, $startDate, $endDate, $groupBy = 'day', array $accessibleStoreIds = [])
     {
-        if (!$merchantFeeCoa) {
+        if ($coaIds === []) {
             return collect([]);
         }
-        
-        $query = ExpenseTransaction::where('coa_id', $merchantFeeCoa->id);
+
+        $query = ExpenseTransaction::whereIn('coa_id', $coaIds);
 
         if (! empty($accessibleStoreIds)) {
             $query->whereIn('store_id', $accessibleStoreIds);
@@ -349,16 +346,16 @@ class MerchantFeeViewController extends Controller
     }
     
     /**
-     * Get recent merchant fee transactions
+     * Get recent merchant fee transactions (processing + third-party platform fee expenses)
      */
-    protected function getRecentFeeTransactions($merchantFeeCoa, $storeId, $startDate, $endDate, array $accessibleStoreIds = [])
+    protected function getRecentFeeTransactions(array $coaIds, $storeId, $startDate, $endDate, array $accessibleStoreIds = [])
     {
-        if (!$merchantFeeCoa) {
+        if ($coaIds === []) {
             return collect([]);
         }
-        
+
         $query = ExpenseTransaction::with(['store', 'vendor', 'dailyReport'])
-            ->where('coa_id', $merchantFeeCoa->id);
+            ->whereIn('coa_id', $coaIds);
 
         if (! empty($accessibleStoreIds)) {
             $query->whereIn('store_id', $accessibleStoreIds);
@@ -372,7 +369,7 @@ class MerchantFeeViewController extends Controller
         
         return $query->orderBy('transaction_date', 'desc')
             ->orderBy('created_at', 'desc')
-            ->limit(10)
+            ->limit(25)
             ->get();
     }
     

@@ -143,11 +143,10 @@ class MerchantFeeController extends Controller
             $storeId = null;
         }
 
-        $merchantFeeCoa = ChartOfAccount::merchantProcessingFeesAccount();
-        
-        if (!$merchantFeeCoa) {
+        $coaIds = ChartOfAccount::merchantFeeAnalyticsCoaIds();
+        if ($coaIds === []) {
             return response()->json([
-                'message' => 'Merchant Processing Fees COA not found'
+                'message' => 'No merchant fee COA accounts configured (processing or platform fees).',
             ], 404);
         }
 
@@ -157,7 +156,7 @@ class MerchantFeeController extends Controller
                 DB::raw('COUNT(*) as transaction_count')
             )
             ->join('vendors', 'expense_transactions.vendor_id', '=', 'vendors.id')
-            ->where('expense_transactions.coa_id', $merchantFeeCoa->id);
+            ->whereIn('expense_transactions.coa_id', $coaIds);
 
         $query->whereIn('expense_transactions.store_id', $accessibleStoreIds);
 
@@ -195,15 +194,14 @@ class MerchantFeeController extends Controller
             $storeId = null;
         }
 
-        $merchantFeeCoa = ChartOfAccount::merchantProcessingFeesAccount();
-        
-        if (!$merchantFeeCoa) {
+        $coaIds = ChartOfAccount::merchantFeeAnalyticsCoaIds();
+        if ($coaIds === []) {
             return response()->json([
-                'message' => 'Merchant Processing Fees COA not found'
+                'message' => 'No merchant fee COA accounts configured (processing or platform fees).',
             ], 404);
         }
 
-        $query = ExpenseTransaction::where('coa_id', $merchantFeeCoa->id);
+        $query = ExpenseTransaction::whereIn('coa_id', $coaIds);
 
         $query->whereIn('store_id', $accessibleStoreIds);
 
@@ -325,16 +323,15 @@ class MerchantFeeController extends Controller
             $storeId = null;
         }
 
-        $merchantFeeCoa = ChartOfAccount::merchantProcessingFeesAccount();
-        
-        if (!$merchantFeeCoa) {
+        $coaIds = ChartOfAccount::merchantFeeAnalyticsCoaIds();
+        if ($coaIds === []) {
             return response()->json([
-                'message' => 'Merchant Processing Fees COA not found'
+                'message' => 'No merchant fee COA accounts configured (processing or platform fees).',
             ], 404);
         }
 
         $query = ExpenseTransaction::with(['store', 'vendor', 'dailyReport'])
-            ->where('coa_id', $merchantFeeCoa->id);
+            ->whereIn('coa_id', $coaIds);
 
         $query->whereIn('store_id', $accessibleStoreIds);
 
@@ -358,7 +355,7 @@ class MerchantFeeController extends Controller
 
         $transactions = $query->orderBy('transaction_date', 'desc')
             ->orderBy('created_at', 'desc')
-            ->paginate($request->input('per_page', 50));
+            ->paginate(min((int) $request->input('per_page', 25), 100));
 
         return response()->json($transactions);
     }

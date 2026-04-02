@@ -119,6 +119,7 @@ Record **core changes** here (new routes, nav changes, renames, new modules, maj
 
 | Date | Change |
 |------|--------|
+| 2026-04-02 | **Merchant Fee Analytics transactions:** Recent transactions, by-processor list, trends chart, and `GET /api/merchant-fees/transactions` now include expenses on **platform fee COAs** (Grubhub/Uber/DoorDash expense accounts), not only merchant processing (6100/6000). `ChartOfAccount::merchantFeeAnalyticsCoaIds()` centralizes the COA set. |
 | 2026-04-02 | **US date inputs:** `public/js/date-formatter.js` upgrades `input[type="date"]` to MM/DD/YYYY text + hidden `YYYY-MM-DD`; `ConvertDateFormat` middleware accepts additional fields (`start_date`, `end_date`, `from_date`, `to_date`, `transaction_date`) and slash or dash US dates. `convert_date_format` applied to expenses, merchant fees, P&L, and bank account GET routes. |
 | 2025-03-04 | **Merchant Fees navbar:** Added dropdown “Merchant Fees” with Merchant Fee Analytics, Third-Party Platforms, Exceptions Report, Download/Upload Log, Admin Reports (admin only). Removed standalone Audit Logs link for Admin/Owner. |
 | 2025-03-04 | **Exceptions Report:** New page at `/merchant-fees/exceptions` (`ReviewQueueViewController@exceptionsReport`, view `admin.exceptions-report.index`). “Remember for future uploads” default on; uses `POST /api/expenses/{id}/resolve` with `create_mapping_rule` and `TransactionMappingRule`. |
