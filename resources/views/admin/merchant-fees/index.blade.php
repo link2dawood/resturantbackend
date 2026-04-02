@@ -18,6 +18,13 @@
     .merchant-fee-muted {
         color: #5f6368;
     }
+
+    /* Fixed plot area so Chart.js (maintainAspectRatio: false) does not jump with data */
+    .merchant-fees-trends-chart-wrap {
+        height: 300px;
+        width: 100%;
+        position: relative;
+    }
 </style>
 @endpush
 
@@ -137,7 +144,9 @@
                 </div>
                 <div class="card-body">
                     <div id="trendsChartState" class="merchant-fee-loading mb-2">Loading chart data...</div>
-                    <canvas id="trendsChart" height="300"></canvas>
+                    <div class="merchant-fees-trends-chart-wrap">
+                        <canvas id="trendsChart"></canvas>
+                    </div>
                 </div>
             </div>
         </div>
