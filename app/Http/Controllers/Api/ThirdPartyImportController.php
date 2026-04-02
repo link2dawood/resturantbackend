@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 use Smalot\PdfParser\Parser;
 
 /**
@@ -238,20 +239,20 @@ class ThirdPartyImportController extends Controller
     }
 
     /**
-     * DoorDash monthly statement PDF (text) extractor.
-     * Example labels in PDFs: "Subtotal $X", "Tax (subtotal) $X", "Commission -$X",
-     * "Marketing fees -$X", "Merchant fees $X", "Error charges -$X", "Net total $X".
+     * DoorDash monthly statement PDF (text) extractor (e.g. monthly-statement-generator PDF).
+     * Mapping (per merchant definitions for this layout):
+     * - Commission (line item, not "Commission & fees" rollup) → delivery_fees
+     * - Merchant fees → processing_fees
+     * - Marketing fees → marketing_fees
+     * - Tax (commission) → sales_tax_collected
+     * - Subtotal + Tax (subtotal) → gross_sales (marketplace sales total)
+     * - Amendments / error charges → adjustments as negative values (payout reductions)
      */
     protected function extractDoorDashMonthlyStatementDataFromText(string $text, string $filename = ''): array
     {
         $statementDate = $this->extractDateFromMonthlyStatement($text, $filename);
 
-        // DoorDash PDFs include a consolidated summary on Page 1, then payout rows and appendix.
-        // To avoid duplicates and keyword matches in the wrong sections, restrict parsing to the summary block.
-        // Use "Page 1 of" as the end marker: in Smalot's text extraction, the page 2 payout table data
-        // appears BEFORE "Page 2 of" (the body is encoded before the page header in DoorDash PDFs),
-        // so "Page 2 of" was letting through per-payout marketing fees lines. "Page 1 of" appears
-        // after the page 1 financial summary but before any page 2 content.
+        // Restrict to page-1 consolidated summary (see marker notes in history).
         $summaryBlock = $this->extractTextBetweenMarkers($text, 'Sales (', 'Page 1 of');
         if (trim($summaryBlock) === '') {
             $summaryBlock = $text;
@@ -260,57 +261,100 @@ class ThirdPartyImportController extends Controller
         $subtotal = $this->extractAmountFromTextWithCents($summaryBlock, ['subtotal'], true, false);
         $taxSubtotal = $this->extractAmountFromTextWithCents($summaryBlock, ['tax (subtotal)'], true, false);
 
-        // Fees
-        // DoorDash has multiple commission rows. We want "Commission & fees" (e.g. -$126.12)
-        // to avoid double-counting "Commission -$124.50".
-        $commissionAndFees = $this->extractAmountFromTextWithCents($summaryBlock, ['commission & fees'], false, false);
+        // Standalone "Commission -$X" line only (exclude "Commission & fees" header line).
+        $commissionLine = $this->extractDoorDashLineStartingWith($summaryBlock, 'Commission');
+        $merchantFees = $this->extractDoorDashLineStartingWith($summaryBlock, 'Merchant fees');
+        $taxOnCommission = $this->extractAmountFromTextWithCents($summaryBlock, ['tax (commission)'], false, false);
 
-        // Using only "marketing fees" avoids duplicate captures.
         $marketingFees = $this->extractAmountFromTextWithCents($summaryBlock, ['marketing fees'], false, false);
 
-        // Your PDF definitions:
-        // - "Amendments" = total error charges and other adjustments.
-        // Map DoorDash "adjustments" in our DB/UI to that total amendments amount.
-        $amendments = $this->extractAmountFromTextWithCents($summaryBlock, ['amendments'], false, false);
-        if ($amendments === 0.0) {
-            // Fallback if a standalone "Amendments" line isn't present:
-            // total error charges + any separate one-time adjustments line.
-            $errorCharges = $this->extractAmountFromTextWithCents($summaryBlock, ['error charges'], false, false);
-            $otherAdjustments = $this->extractAmountFromTextWithCents($summaryBlock, ['adjustments'], false, false);
-            $amendments = $errorCharges + $otherAdjustments;
+        // Amendments: error charges (and optional "Adjustments ($)" line) as magnitude; store signed negative.
+        $errorCharges = $this->extractAmountFromTextWithCents($summaryBlock, ['error charges'], false, false);
+        $lineAdjustments = $this->extractDoorDashAdjustmentsParentheticalLine($summaryBlock);
+        $amendmentsMagnitude = $errorCharges + $lineAdjustments;
+        if ($amendmentsMagnitude <= 0 && $this->extractAmountFromTextWithCents($summaryBlock, ['adjustments'], false, false) > 0) {
+            $amendmentsMagnitude = $this->extractAmountFromTextWithCents($summaryBlock, ['adjustments'], false, false);
         }
+        $adjustments = $amendmentsMagnitude > 0 ? -round($amendmentsMagnitude, 2) : 0.0;
 
-        // Net total is the best net-deposit proxy for DoorDash monthly statements.
         $netTotal = $this->extractAmountFromTextWithCents($summaryBlock, ['net total'], true, false);
 
         return [
             'statement_date' => $statementDate ?: now(),
             'statement_id' => $this->extractStatementIdFromText($text),
-            // Treat subtotal + tax as gross sales (closest comparable to other platforms)
             'gross_sales' => round(max(0, $subtotal + $taxSubtotal), 2),
             'marketing_fees' => round(abs($marketingFees), 2),
-            // DoorDash monthly statement doesn't reliably separate delivery fees in the summary
-            'delivery_fees' => 0,
-            // Use commission & fees as "processing_fees"
-            'processing_fees' => round(abs($commissionAndFees), 2),
-            // Amendments roll into Adjustments
-            'adjustments' => round(abs($amendments), 2),
+            'delivery_fees' => round(abs($commissionLine), 2),
+            'processing_fees' => round(abs($merchantFees), 2),
+            'adjustments' => $adjustments,
             'net_deposit' => round(max(0, $netTotal), 2),
-            'sales_tax_collected' => round(max(0, $taxSubtotal), 2),
+            'sales_tax_collected' => round(abs($taxOnCommission), 2),
         ];
+    }
+
+    /**
+     * First line in $text that starts with $prefix (case-insensitive), excluding "Commission &".
+     */
+    protected function extractDoorDashLineStartingWith(string $text, string $prefix): float
+    {
+        $prefixLower = strtolower($prefix);
+        foreach (preg_split('/\r\n|\r|\n/', $text) as $line) {
+            $trim = trim($line);
+            if ($trim === '') {
+                continue;
+            }
+            if (stripos($trim, $prefixLower) !== 0) {
+                continue;
+            }
+            if ($prefixLower === 'commission' && str_contains(strtolower($trim), 'commission &')) {
+                continue;
+            }
+            if (preg_match('/(\(?-?\$?[\d,]+\.\d{2}\)?)/', $trim, $m)) {
+                return abs((float) $this->parseAmount(trim($m[1])));
+            }
+        }
+
+        return 0.0;
+    }
+
+    /**
+     * "Adjustments (n) $X.XX" line under Amendments (positive = extra withholding → negative adjustment overall).
+     */
+    protected function extractDoorDashAdjustmentsParentheticalLine(string $text): float
+    {
+        foreach (preg_split('/\r\n|\r|\n/', $text) as $line) {
+            $trim = trim($line);
+            if (preg_match('/^Adjustments\s*\(\s*\d+\s*\)\s*(\(?-?\$?[\d,]+\.\d{2}\)?)/i', $trim, $m)) {
+                return abs((float) $this->parseAmount(trim($m[1])));
+            }
+        }
+
+        return 0.0;
     }
 
     /**
      * Grubhub statement PDF (text) extractor.
      * Uses "Total payments to you" as net deposit and "Restaurant sales" as gross.
-     * Marketing / Deliveries by Grubhub / Order processing appear as (X.XX).
+     * Marketing (N), Deliveries by Grubhub (N), Order processing (N) are the fee breakdown;
+     * "Grubhub order services" is the authoritative sum of those three (scaled if PDF lines disagree).
+     * Positive "Account adjustments" are payout additions—stored on the statement but not posted as expenses.
      */
     protected function extractGrubhubMonthlyStatementDataFromText(string $text, string $filename = ''): array
     {
         $statementDate = $this->extractDateFromMonthlyStatement($text, $filename) ?: $this->extractDateFromGrubhub($text);
 
-        $read = function (string $pattern, bool $abs = true) use ($text) {
-            if (! preg_match($pattern, $text, $m)) {
+        // Page 2 deposit grids repeat Marketing / Deliveries / Processing as ($x.xx) and can confuse
+        // whole-document regexes. Keep extraction to the narrative summary before deposit lines.
+        $summaryBlock = $this->extractTextBetweenMarkers($text, 'Total payments to you', 'Distribution ID');
+        if (trim($summaryBlock) === '') {
+            $summaryBlock = $this->extractTextBetweenMarkers($text, 'Restaurant sales for', 'Distribution ID');
+        }
+        if (trim($summaryBlock) === '') {
+            $summaryBlock = $text;
+        }
+
+        $read = function (string $pattern, bool $abs = true) use ($summaryBlock) {
+            if (! preg_match($pattern, $summaryBlock, $m)) {
                 return 0.0;
             }
             $val = $this->parseAmount($m[1] ?? null);
@@ -323,25 +367,42 @@ class ThirdPartyImportController extends Controller
         // Your sample Grubhub PDF text looks like:
         // Total payments to you $ 37.75
         // Restaurant sales for 2 orders $ 22.18
-        // Grubhub order services $ (6.10)
+        // Grubhub order services $ (6.10)  ← authoritative total for Marketing + Deliveries + Processing
         // 1 Marketing (3.07)
         // 3 Deliveries by Grubhub (2.05)
         // 1 Order processing (0.98)
         // Includes $1.69 in taxes...
-        // Account adjustments $ 21.67
-        $gross = $read('/Restaurant\s+sales\s+for\s+\d+\s+orders\s*\$?\s*([0-9\.,]+)\b/i');
+        // Account adjustments $ 21.67  ← payout addition (credit); not part of order-service fees
+        $gross = $read('/Restaurant\s+sales\s+for\s+\d+\s+(?:orders|order)\s*\$?\s*([0-9\.,]+)\b/i');
         $net = $read('/Total\s+payments\s+to\s+you\s*\$?\s*([0-9\.,]+)\b/i');
 
         $marketing = $read('/\bMarketing\s*\(\s*([0-9\.,]+)\s*\)/i');
         $delivery = $read('/\bDeliveries\s+by\s+Grubhub\s*\(\s*([0-9\.,]+)\s*\)/i');
         $processing = $read('/\bOrder\s+processing\s*\(\s*([0-9\.,]+)\s*\)/i');
 
+        $orderServicesTotal = $this->extractGrubhubOrderServicesTotal($summaryBlock);
+
         $tax = $read('/Includes\s*\$?\s*([0-9\.,]+)\s*in\s+taxes/i', true);
         $adjustments = $read('/Account\s+adjustments\s*\$?\s*([0-9\.,]+)\b/i');
 
+        // If "Restaurant sales" appears above "Total payments" in extracted text, recover gross from the sales block.
+        if ($gross <= 0) {
+            $altBlock = $this->extractTextBetweenMarkers($text, 'Restaurant sales for', 'Distribution ID');
+            if (trim($altBlock) !== '' && preg_match('/Restaurant\s+sales\s+for\s+\d+\s+(?:orders|order)\s*\$?\s*([0-9\.,]+)\b/i', $altBlock, $gm)) {
+                $gross = abs((float) $this->parseAmount($gm[1] ?? null));
+            }
+        }
+
+        [$marketing, $delivery, $processing] = $this->normalizeGrubhubFeeLinesToOrderServicesTotal(
+            $marketing,
+            $delivery,
+            $processing,
+            $orderServicesTotal
+        );
+
         return [
             'statement_date' => $statementDate ?: now(),
-            'statement_id' => $this->extractStatementIdFromText($text),
+            'statement_id' => $this->extractGrubhubAccountStatementId($text) ?? $this->extractStatementIdFromText($text),
             'gross_sales' => round(max(0, $gross), 2),
             'marketing_fees' => round(max(0, $marketing), 2),
             'delivery_fees' => round(max(0, $delivery), 2),
@@ -350,6 +411,63 @@ class ThirdPartyImportController extends Controller
             'net_deposit' => round(max(0, $net), 2),
             'sales_tax_collected' => round(max(0, $tax), 2),
         ];
+    }
+
+    /**
+     * Grubhub account reference e.g. "(#7595744)" in the statement header block.
+     */
+    protected function extractGrubhubAccountStatementId(string $text): ?string
+    {
+        if (preg_match('/\(#\s*([0-9]{6,})\s*\)/', $text, $m)) {
+            return trim($m[1]);
+        }
+
+        return null;
+    }
+
+    /**
+     * "Grubhub order services" line total (e.g. "$ (6.10)" or "$ (6.10)" after label).
+     */
+    protected function extractGrubhubOrderServicesTotal(string $summaryBlock): float
+    {
+        if (preg_match('/Grubhub\s+order\s+services\s*\$?\s*(\([^)]+\))/i', $summaryBlock, $m)) {
+            return abs((float) $this->parseAmount(trim($m[1])));
+        }
+        if (preg_match('/Grubhub\s+order\s+services\s*\$?\s*(-?\$?[\d,]+\.\d{2})/i', $summaryBlock, $m)) {
+            return abs((float) $this->parseAmount(trim($m[1])));
+        }
+
+        return 0.0;
+    }
+
+    /**
+     * Scale Marketing / Deliveries / Processing so they sum to "Grubhub order services" when that total is present.
+     */
+    protected function normalizeGrubhubFeeLinesToOrderServicesTotal(
+        float $marketing,
+        float $delivery,
+        float $processing,
+        float $orderServicesTotal
+    ): array {
+        if ($orderServicesTotal <= 0) {
+            return [$marketing, $delivery, $processing];
+        }
+
+        $sum = $marketing + $delivery + $processing;
+        if ($sum <= 0) {
+            return [0.0, 0.0, $orderServicesTotal];
+        }
+
+        if (abs($sum - $orderServicesTotal) < 0.02) {
+            return [$marketing, $delivery, $processing];
+        }
+
+        $scale = $orderServicesTotal / $sum;
+        $m = round($marketing * $scale, 2);
+        $d = round($delivery * $scale, 2);
+        $p = round($orderServicesTotal - $m - $d, 2);
+
+        return [$m, $d, max(0, $p)];
     }
 
     /**
@@ -531,6 +649,14 @@ class ThirdPartyImportController extends Controller
     protected function extractDateFromMonthlyStatement(string $text, string $filename = ''): ?string
     {
         $combined = $text . "\n" . $filename;
+
+        // Grubhub monthly PDFs: "For 1/2/2026 to 1/23/2026" (uses "to", not a hyphen range)
+        if (preg_match('/\bFor\s+(\d{1,2}\/\d{1,2}\/\d{2,4})\s+to\s+(\d{1,2}\/\d{1,2}\/\d{2,4})\b/i', $combined, $m)) {
+            $end = $this->parseDate($m[2]);
+            if ($end) {
+                return Carbon::parse($end)->startOfMonth()->format('Y-m-d');
+            }
+        }
 
         $patterns = [
             '/\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+(\d{4})\b/i',
@@ -1188,16 +1314,26 @@ class ThirdPartyImportController extends Controller
             ]);
         }
 
-        // Create adjustments expense if exists (DoorDash amendments -> adjustments)
-        if (! empty($data['adjustments']) && (float) $data['adjustments'] > 0 && $adjustmentsCoa) {
+        // Adjustments: DoorDash may store negative amendments (post expense as abs). Other platforms unchanged (positive only).
+        // Grubhub: skip positive credits only.
+        $adj = (float) ($data['adjustments'] ?? 0);
+        $skipPositiveGrubhubAdjustmentExpense = $statement->platform === 'grubhub' && $adj > 0;
+        $postAdjustmentExpense = $adjustmentsCoa && ! $skipPositiveGrubhubAdjustmentExpense;
+        if ($postAdjustmentExpense) {
+            $postAdjustmentExpense = $statement->platform === 'doordash'
+                ? abs($adj) >= 0.005
+                : $adj > 0;
+        }
+
+        if ($postAdjustmentExpense) {
             ExpenseTransaction::create([
                 'transaction_type' => 'credit_card',
                 'transaction_date' => $statement->statement_date,
                 'store_id' => $statement->store_id,
                 'vendor_id' => $vendor->id,
                 'coa_id' => $adjustmentsCoa->id,
-                'amount' => (float) $data['adjustments'],
-                'description' => "{$platformName} adjustments - {$statement->statement_date->format('M d, Y')}",
+                'amount' => abs($adj), // statement may store DoorDash amendments as negative; book positive expense
+                'description' => "{$platformName} amendments/adjustments - {$statement->statement_date->format('M d, Y')}",
                 'payment_method' => 'credit_card',
                 'third_party_statement_id' => $statement->id,
                 'created_by' => auth()->id(),

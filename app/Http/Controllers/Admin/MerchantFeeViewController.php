@@ -246,7 +246,7 @@ class MerchantFeeViewController extends Controller
         $query->whereBetween('statement_date', [$startDate, $endDate]);
         
         $stats = $query->select(
-            DB::raw('COALESCE(SUM(marketing_fees + delivery_fees + processing_fees + COALESCE(adjustments, 0)), 0) as total_fees'),
+            DB::raw('COALESCE(SUM(marketing_fees + delivery_fees + processing_fees + CASE WHEN platform = \'grubhub\' THEN 0 ELSE COALESCE(adjustments, 0) END), 0) as total_fees'),
             DB::raw('COALESCE(SUM(gross_sales), 0) as total_sales')
         )->first();
 
@@ -405,7 +405,7 @@ class MerchantFeeViewController extends Controller
 
         $stats = $query->select(
             DB::raw('COALESCE(SUM(gross_sales), 0) as total_gross_sales'),
-            DB::raw('COALESCE(SUM(marketing_fees + delivery_fees + processing_fees + adjustments), 0) as total_fees'),
+            DB::raw('COALESCE(SUM(marketing_fees + delivery_fees + processing_fees + CASE WHEN platform = \'grubhub\' THEN 0 ELSE COALESCE(adjustments, 0) END), 0) as total_fees'),
             DB::raw('COALESCE(SUM(net_deposit), 0) as total_net_deposit')
         )->first();
 
@@ -433,7 +433,7 @@ class MerchantFeeViewController extends Controller
             DB::raw('SUM(delivery_fees) as total_delivery_fees'),
             DB::raw('SUM(processing_fees) as total_processing_fees'),
             DB::raw('SUM(adjustments) as total_adjustments'),
-            DB::raw('SUM(marketing_fees + delivery_fees + processing_fees + adjustments) as total_fees'),
+            DB::raw('SUM(marketing_fees + delivery_fees + processing_fees + CASE WHEN platform = \'grubhub\' THEN 0 ELSE COALESCE(adjustments, 0) END) as total_fees'),
             DB::raw('SUM(net_deposit) as total_net_deposit'),
             DB::raw('COUNT(*) as statement_count')
         );

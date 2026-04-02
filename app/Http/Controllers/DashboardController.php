@@ -496,7 +496,7 @@ class DashboardController extends Controller
 
         $stats = $query->selectRaw('
             COALESCE(SUM(gross_sales), 0)                                                      as total_gross_sales,
-            COALESCE(SUM(marketing_fees + delivery_fees + processing_fees + COALESCE(adjustments, 0)), 0) as total_fees,
+            COALESCE(SUM(marketing_fees + delivery_fees + processing_fees + CASE WHEN platform = \'grubhub\' THEN 0 ELSE COALESCE(adjustments, 0) END), 0) as total_fees,
             COALESCE(SUM(net_deposit), 0)                                                      as total_net_deposit,
             COUNT(*)                                                                            as statement_count
         ')->first();
@@ -517,7 +517,7 @@ class DashboardController extends Controller
         $breakdown = $breakdownQuery->select(
             'platform',
             DB::raw('SUM(gross_sales) as total_gross_sales'),
-            DB::raw('SUM(marketing_fees + delivery_fees + processing_fees + COALESCE(adjustments, 0)) as total_fees'),
+            DB::raw('SUM(marketing_fees + delivery_fees + processing_fees + CASE WHEN platform = \'grubhub\' THEN 0 ELSE COALESCE(adjustments, 0) END) as total_fees'),
             DB::raw('SUM(net_deposit) as total_net_deposit'),
             DB::raw('COUNT(*) as statement_count')
         )

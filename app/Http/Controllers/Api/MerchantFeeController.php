@@ -103,7 +103,7 @@ class MerchantFeeController extends Controller
         }
 
         $thirdPartyStats = $thirdPartyQuery->select(
-            DB::raw('COALESCE(SUM(marketing_fees + delivery_fees + processing_fees + COALESCE(adjustments, 0)), 0) as total_fees'),
+            DB::raw('COALESCE(SUM(marketing_fees + delivery_fees + processing_fees + CASE WHEN platform = \'grubhub\' THEN 0 ELSE COALESCE(adjustments, 0) END), 0) as total_fees'),
             DB::raw('COALESCE(SUM(gross_sales), 0) as total_sales')
         )->first();
 

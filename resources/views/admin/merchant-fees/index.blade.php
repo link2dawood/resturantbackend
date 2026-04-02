@@ -183,7 +183,8 @@
                             <th>Store</th>
                             <th>Processor</th>
                             <th class="text-end">Amount</th>
-                            <th>Report</th>
+                            <th class="text-end">CC Net Deposit</th>
+                            <th class="text-center" style="white-space:nowrap;">Report</th>
                         </tr>
                     </thead>
                     <tbody id="merchantFeeTransactionsBody">
@@ -193,7 +194,14 @@
                             <td>{{ $transaction->store->store_info ?? 'N/A' }}</td>
                             <td>{{ $transaction->vendor->vendor_name ?? 'Unknown' }}</td>
                             <td class="text-end"><strong class="text-danger">${{ number_format($transaction->amount, 2) }}</strong></td>
-                            <td>
+                            <td class="text-end">
+                                @if($transaction->dailyReport)
+                                    <span class="text-success">${{ number_format($transaction->dailyReport->credit_cards ?? 0, 2) }}</span>
+                                @else
+                                    <span class="text-muted">—</span>
+                                @endif
+                            </td>
+                            <td class="text-center">
                                 @if($transaction->daily_report_id)
                                     <a href="/daily-reports/{{ $transaction->daily_report_id }}" class="btn btn-sm btn-outline-primary">View</a>
                                 @else
@@ -203,7 +211,7 @@
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="5" class="text-center text-muted py-4">No transactions found</td>
+                            <td colspan="6" class="text-center text-muted py-4">No transactions found</td>
                         </tr>
                         @endforelse
                     </tbody>
@@ -320,7 +328,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (isLoading) {
             trendsChartState.textContent = 'Loading chart data...';
             processorList.innerHTML = '<p class="merchant-fee-loading text-center py-4 mb-0">Loading processors...</p>';
-            transactionsBody.innerHTML = '<tr><td colspan="5" class="merchant-fee-loading text-center py-4">Loading transactions...</td></tr>';
+            transactionsBody.innerHTML = '<tr><td colspan="6" class="merchant-fee-loading text-center py-4">Loading transactions...</td></tr>';
         }
     }
 
@@ -403,7 +411,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function renderTransactions(transactions) {
         if (!Array.isArray(transactions) || transactions.length === 0) {
-            transactionsBody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">No transactions found</td></tr>';
+            transactionsBody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">No transactions found</td></tr>';
             return;
         }
 
@@ -415,6 +423,12 @@ document.addEventListener('DOMContentLoaded', function() {
             const storeName = transaction.store?.store_info || 'N/A';
             const processorName = transaction.vendor?.vendor_name || 'Unknown';
             const amount = Number(transaction.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            const ccNet = transaction.daily_report?.credit_cards != null
+                ? Number(transaction.daily_report.credit_cards).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                : null;
+            const ccCell = ccNet != null
+                ? `<span class="text-success">$${ccNet}</span>`
+                : '<span class="text-muted">—</span>';
             const reportCell = transaction.daily_report_id
                 ? `<a href="/daily-reports/${transaction.daily_report_id}" class="btn btn-sm btn-outline-primary">View</a>`
                 : '<span class="text-muted">-</span>';
@@ -425,7 +439,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     <td>${escapeHtml(storeName)}</td>
                     <td>${escapeHtml(processorName)}</td>
                     <td class="text-end"><strong class="text-danger">$${amount}</strong></td>
-                    <td>${reportCell}</td>
+                    <td class="text-end">${ccCell}</td>
+                    <td class="text-center">${reportCell}</td>
                 </tr>
             `;
         }).join('');

@@ -208,14 +208,17 @@
                             <tbody>
                                 @forelse($importHistory as $statement)
                                 @php
-                                    $totalFees = $statement->marketing_fees + $statement->delivery_fees + $statement->processing_fees;
+                                    $coreFees = $statement->marketing_fees + $statement->delivery_fees + $statement->processing_fees;
+                                    $totalFeesColumn = $statement->platform === 'grubhub'
+                                        ? $coreFees
+                                        : $coreFees + ($statement->adjustments ?? 0);
                                 @endphp
                                 <tr>
                                     <td>{{ $statement->statement_date->format('M d, Y') }}</td>
                                     <td><span class="badge bg-info">{{ ucfirst($statement->platform) }}</span></td>
                                     <td>{{ $statement->store->store_info ?? 'N/A' }}</td>
                                     <td class="text-end">${{ number_format($statement->gross_sales, 2) }}</td>
-                                    <td class="text-end text-danger">${{ number_format($totalFees + ($statement->adjustments ?? 0), 2) }}</td>
+                                    <td class="text-end text-danger">${{ number_format($totalFeesColumn, 2) }}</td>
                                     <td class="text-end text-success">${{ number_format($statement->net_deposit, 2) }}</td>
                                     <td class="text-center">
                                         <a href="{{ route('admin.merchant-fees.third-party.show', $statement) }}" class="btn btn-sm btn-primary me-1" title="View details">
