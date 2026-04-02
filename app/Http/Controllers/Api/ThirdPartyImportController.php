@@ -344,8 +344,10 @@ class ThirdPartyImportController extends Controller
     {
         $statementDate = $this->extractDateFromMonthlyStatement($text, $filename) ?: $this->extractDateFromGrubhub($text);
 
-        // Page 2 deposit grids repeat Marketing / Deliveries / Processing as ($x.xx) and can confuse
-        // whole-document regexes. Keep extraction to the narrative summary before deposit lines.
+        // Page 2 deposit grids repeat Marketing / Deliveries / Processing and can confuse whole-document regexes.
+        // Narrative totals: prefer text between "Total payments" and "Distribution ID", but some PDF extractors
+        // place "Distribution ID" before the fee lines → Marketing/Delivery/Processing must use the block from
+        // "Grubhub order services" through "Account adjustments" (matches real statement layout).
         $summaryBlock = $this->extractTextBetweenMarkers($text, 'Total payments to you', 'Distribution ID');
         if (trim($summaryBlock) === '') {
             $summaryBlock = $this->extractTextBetweenMarkers($text, 'Restaurant sales for', 'Distribution ID');
@@ -354,8 +356,22 @@ class ThirdPartyImportController extends Controller
             $summaryBlock = $text;
         }
 
+        $feeNarrativeBlock = $this->extractGrubhubOrderServicesDetailBlock($text);
+        $feeContext = (trim($feeNarrativeBlock) !== '') ? $feeNarrativeBlock : $summaryBlock;
+
         $read = function (string $pattern, bool $abs = true) use ($summaryBlock) {
             if (! preg_match($pattern, $summaryBlock, $m)) {
+                return 0.0;
+            }
+            $val = $this->parseAmount($m[1] ?? null);
+            if ($abs) {
+                $val = abs($val);
+            }
+            return (float) $val;
+        };
+
+        $readFees = function (string $pattern, bool $abs = true) use ($feeContext) {
+            if (! preg_match($pattern, $feeContext, $m)) {
                 return 0.0;
             }
             $val = $this->parseAmount($m[1] ?? null);
@@ -370,19 +386,19 @@ class ThirdPartyImportController extends Controller
         // Restaurant sales for 2 orders $ 22.18
         // Grubhub order services $ (6.10)  ← authoritative total for Marketing + Deliveries + Processing
         // 1 Marketing (3.07)
+        // (description may continue on following lines: "Services such as customer acquisition…")
         // 3 Deliveries by Grubhub (2.05)
         // 1 Order processing (0.98)
-        // Includes $1.69 in taxes...
-        // Account adjustments $ 21.67  ← payout addition (credit); not part of order-service fees
+        // Account adjustments $ 21.67
         $gross = $read('/Restaurant\s+sales\s+for\s+\d+\s+(?:orders|order)\s*\$?\s*([0-9\.,]+)\b/i');
         $net = $read('/Total\s+payments\s+to\s+you\s*\$?\s*([0-9\.,]+)\b/i');
 
-        // Short: "1 Marketing (3.07)" — long: "1 Marketing Services such as … search (3.07)"
-        $marketing = $this->extractGrubhubMarketingFeeFromSummary($summaryBlock);
-        $delivery = $read('/\bDeliveries\s+by\s+Grubhub\s*\(\s*([0-9\.,]+)\s*\)/i');
-        $processing = $read('/\bOrder\s+processing\s*\(\s*([0-9\.,]+)\s*\)/i');
+        // Fee lines: parse from feeContext (order-services narrative block), not Distribution ID–trimmed summary.
+        $marketing = $this->extractGrubhubMarketingFeeFromSummary($feeContext);
+        $delivery = $readFees('/\bDeliveries\s+by\s+Grubhub\s*\(\s*([0-9\.,]+)\s*\)/i');
+        $processing = $readFees('/\bOrder\s+processing\s*\(\s*([0-9\.,]+)\s*\)/i');
 
-        $orderServicesTotal = $this->extractGrubhubOrderServicesTotal($summaryBlock);
+        $orderServicesTotal = $this->extractGrubhubOrderServicesTotal($feeContext);
 
         $tax = $read('/Includes\s*\$?\s*([0-9\.,]+)\s*in\s+taxes/i', true);
 
@@ -422,13 +438,38 @@ class ThirdPartyImportController extends Controller
     }
 
     /**
-     * Grubhub marketing / order-services line fee: amount is always in parentheses at end of the line.
-     * Older PDFs: "1 Marketing (3.07)". Newer: "1 Marketing Services such as … search (3.07)".
+     * Narrative block: "Grubhub order services …" through "Account adjustments" (fee lines live here;
+     * avoids PDF text-order issues with "Distribution ID" cutting off the summary too early).
      */
-    protected function extractGrubhubMarketingFeeFromSummary(string $summaryBlock): float
+    protected function extractGrubhubOrderServicesDetailBlock(string $text): string
     {
-        if (preg_match('/\bMarketing(?:\s+Services\b[\s\S]*?)?\s*\(\s*([0-9\.,]+)\s*\)/i', $summaryBlock, $m)) {
-            return abs((float) $this->parseAmount($m[1] ?? null));
+        if (mb_stripos($text, 'Grubhub order services') === false) {
+            return '';
+        }
+
+        $block = $this->extractTextBetweenMarkers($text, 'Grubhub order services', 'Account adjustments');
+        if (trim($block) !== '') {
+            return $block;
+        }
+
+        return $this->extractTextBetweenMarkers($text, 'Grubhub order services', 'Adjustments to your account');
+    }
+
+    /**
+     * Grubhub marketing fee on the numbered narrative line ("1 Marketing …").
+     * Requires a leading count so we do not match the "Marketing services" rates section (wrong parentheses).
+     * Supports: "1 Marketing (3.07)" and multi-line descriptions before "(3.07)".
+     */
+    protected function extractGrubhubMarketingFeeFromSummary(string $block): float
+    {
+        $patterns = [
+            '/^\s*\d+\s+Marketing(?:\s+Services\b[\s\S]*?)?\s*\(\s*([0-9\.,]+)\s*\)/im',
+            '/\b\d+\s+Marketing(?:\s+Services\b[\s\S]*?)?\s*\(\s*([0-9\.,]+)\s*\)/is',
+        ];
+        foreach ($patterns as $pattern) {
+            if (preg_match($pattern, $block, $m)) {
+                return abs((float) $this->parseAmount($m[1] ?? null));
+            }
         }
 
         return 0.0;
