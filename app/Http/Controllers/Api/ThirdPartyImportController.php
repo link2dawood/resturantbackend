@@ -377,7 +377,8 @@ class ThirdPartyImportController extends Controller
         $gross = $read('/Restaurant\s+sales\s+for\s+\d+\s+(?:orders|order)\s*\$?\s*([0-9\.,]+)\b/i');
         $net = $read('/Total\s+payments\s+to\s+you\s*\$?\s*([0-9\.,]+)\b/i');
 
-        $marketing = $read('/\bMarketing\s*\(\s*([0-9\.,]+)\s*\)/i');
+        // Short: "1 Marketing (3.07)" — long: "1 Marketing Services such as … search (3.07)"
+        $marketing = $this->extractGrubhubMarketingFeeFromSummary($summaryBlock);
         $delivery = $read('/\bDeliveries\s+by\s+Grubhub\s*\(\s*([0-9\.,]+)\s*\)/i');
         $processing = $read('/\bOrder\s+processing\s*\(\s*([0-9\.,]+)\s*\)/i');
 
@@ -418,6 +419,19 @@ class ThirdPartyImportController extends Controller
             'net_deposit' => round(max(0, $net), 2),
             'sales_tax_collected' => round(max(0, $tax), 2),
         ];
+    }
+
+    /**
+     * Grubhub marketing / order-services line fee: amount is always in parentheses at end of the line.
+     * Older PDFs: "1 Marketing (3.07)". Newer: "1 Marketing Services such as … search (3.07)".
+     */
+    protected function extractGrubhubMarketingFeeFromSummary(string $summaryBlock): float
+    {
+        if (preg_match('/\bMarketing(?:\s+Services\b[\s\S]*?)?\s*\(\s*([0-9\.,]+)\s*\)/i', $summaryBlock, $m)) {
+            return abs((float) $this->parseAmount($m[1] ?? null));
+        }
+
+        return 0.0;
     }
 
     /**
