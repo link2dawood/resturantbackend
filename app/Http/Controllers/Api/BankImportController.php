@@ -373,9 +373,18 @@ class BankImportController extends Controller
             return [];
         }
 
+        $maxCol = max(array_values($map));
+
         $out = [];
         foreach ($lines as $line) {
+            $line = rtrim((string) $line, "\r\n");
+            if ($line === '') {
+                continue;
+            }
             $cells = str_getcsv($line);
+            if (count($cells) <= $maxCol) {
+                continue;
+            }
             $tx = $this->mapBankOfTheWestRow($cells, $map);
             if ($tx !== null) {
                 $out[] = $tx;
@@ -581,30 +590,64 @@ class BankImportController extends Controller
     }
 
     /**
-     * Parse date from various formats
+     * Parse date from various formats.
+     * Bank CSVs often include a time portion; Carbon::createFromFormat('m/d/Y', '1/15/2026 12:00:00')
+     * throws "Trailing data" / "Unexpected data found" — strip time and use strict DateTime parsing.
      */
     protected function parseDate(string $dateString): ?string
     {
-        // Remove any whitespace
-        $dateString = trim($dateString);
+        $dateString = trim(str_replace("\u{FEFF}", '', $dateString));
+        if ($dateString === '') {
+            return null;
+        }
 
-        // Try common date formats
+        if (str_contains($dateString, 'T')) {
+            $dateString = trim(explode('T', $dateString, 2)[0]);
+        }
+
+        // "MM/DD/YYYY HH:MM:SS" or "YYYY-MM-DD 00:00:00"
+        if (preg_match('/^(.+)\s+\d{1,2}:\d{2}/', $dateString, $m)) {
+            $dateString = trim($m[1]);
+        }
+
+        // Bank of the West / similar exports use 1/30/2026 (no leading zeros) — try n/j before m/d so
+        // !m/d/Y does not mis-parse or warn (see docs/docs/Transactions-* sample exports).
         $formats = [
-            'Y-m-d',           // 2024-01-15
-            'm/d/Y',           // 01/15/2024
-            'm-d-Y',           // 01-15-2024
-            'Y/m/d',           // 2024/01/15
-            'M d, Y',          // Jan 15, 2024
+            'Y-m-d',
+            'n/j/Y',
+            'n/j/y',
+            'm/d/Y',
+            'm/d/y',
+            'm-d-Y',
+            'n-j-Y',
+            'Y/m/d',
+            'M j, Y',
+            'M d, Y',
         ];
 
         foreach ($formats as $format) {
-            $date = \Carbon\Carbon::createFromFormat($format, $dateString);
-            if ($date) {
-                return $date->format('Y-m-d');
+            $dt = \DateTimeImmutable::createFromFormat('!'.$format, $dateString);
+            if ($dt === false) {
+                continue;
             }
+            $errors = \DateTimeImmutable::getLastErrors();
+            if ($errors !== false && ($errors['warning_count'] > 0 || $errors['error_count'] > 0)) {
+                continue;
+            }
+
+            return $dt->format('Y-m-d');
         }
 
-        return null;
+        // Avoid Carbon::parse() for n/n/n slash dates — locale can swap d/m and hide failures.
+        if (preg_match('#^\d{1,2}[/\-]\d{1,2}[/\-]\d{2,4}$#', $dateString)) {
+            return null;
+        }
+
+        try {
+            return \Carbon\Carbon::parse($dateString)->format('Y-m-d');
+        } catch (\Throwable $e) {
+            return null;
+        }
     }
 
     /**
