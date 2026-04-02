@@ -130,8 +130,16 @@ class BankImportController extends Controller
      * Run import inside a transaction; used by admin Bank Statement Import UI.
      * Caller must not start a transaction. Throws if the file was already imported.
      */
-    public function runBankStatementImportForAdmin(UploadedFile $file, BankAccount $bankAccount, ?string $format, int $importedByUserId): ImportBatch
-    {
+    /**
+     * @param  int|null  $batchStoreId  Store chosen in the web import UI (required when bank account is corporate / null store_id).
+     */
+    public function runBankStatementImportForAdmin(
+        UploadedFile $file,
+        BankAccount $bankAccount,
+        ?string $format,
+        int $importedByUserId,
+        ?int $batchStoreId = null
+    ): ImportBatch {
         $fileHash = md5_file($file->getRealPath());
 
         if (ImportBatch::where('file_hash', $fileHash)->where('import_type', 'bank_statement')->exists()) {
@@ -140,7 +148,14 @@ class BankImportController extends Controller
 
         DB::beginTransaction();
         try {
-            [$batch, ] = $this->processBankStatementImport($file, $bankAccount, $format, $fileHash, $importedByUserId);
+            [$batch, ] = $this->processBankStatementImport(
+                $file,
+                $bankAccount,
+                $format,
+                $fileHash,
+                $importedByUserId,
+                $batchStoreId
+            );
             DB::commit();
 
             return $batch;
@@ -161,7 +176,8 @@ class BankImportController extends Controller
         BankAccount $bankAccount,
         ?string $format,
         string $fileHash,
-        int $importedByUserId
+        int $importedByUserId,
+        ?int $batchStoreId = null
     ): array {
         $transactions = $this->parseCsvFile($file->getRealPath(), $format);
 
@@ -171,7 +187,7 @@ class BankImportController extends Controller
             'import_type' => 'bank_statement',
             'file_name' => $file->getClientOriginalName(),
             'file_hash' => $fileHash,
-            'store_id' => $bankAccount->store_id,
+            'store_id' => $batchStoreId ?? $bankAccount->store_id,
             'transaction_count' => count($transactions),
             'imported_count' => 0,
             'duplicate_count' => 0,
@@ -189,6 +205,8 @@ class BankImportController extends Controller
         $errorCount = 0;
         $needsReviewCount = 0;
         $expenseTransactionsCreated = 0;
+
+        $reconciliationStoreId = $importBatch->store_id ?? $bankAccount->store_id;
 
         foreach ($transactions as $row) {
             try {
@@ -224,7 +242,7 @@ class BankImportController extends Controller
                 $reconciled = false;
 
                 if ($row['transaction_type'] === 'credit') {
-                    $reconciled = $this->attemptDepositMatching($bankTransaction, $bankAccount);
+                    $reconciled = $this->attemptDepositMatching($bankTransaction, $bankAccount, $reconciliationStoreId);
 
                     if (! $reconciled) {
                         $bankTransaction->reconciliation_status = 'exception';
@@ -233,7 +251,7 @@ class BankImportController extends Controller
                         $needsReviewCount++;
                     }
                 } elseif ($row['transaction_type'] === 'debit') {
-                    $reconciled = $this->attemptWithdrawalMatching($bankTransaction, $bankAccount);
+                    $reconciled = $this->attemptWithdrawalMatching($bankTransaction, $bankAccount, $reconciliationStoreId);
 
                     if (! $reconciled) {
                         $expenseCreated = $this->createExpenseFromBankTransaction(
@@ -705,6 +723,16 @@ class BankImportController extends Controller
         ?string $cardType = null
     ): ?ExpenseTransaction {
         try {
+            $storeId = $importBatch->store_id ?? $bankAccount->store_id;
+            if ($storeId === null) {
+                Log::warning('Skipping expense from bank transaction: no store on import batch or bank account.', [
+                    'bank_transaction_id' => $bankTransaction->id,
+                    'import_batch_id' => $importBatch->id,
+                ]);
+
+                return null;
+            }
+
             // Try to match vendor from description
             $vendor = $this->matchVendor($bankTransaction->description);
             
@@ -723,7 +751,7 @@ class BankImportController extends Controller
             // Use vendor ID if matched, otherwise use normalized vendor name from description
             $vendorIdentifier = $vendor?->id ?? $this->extractVendorNameFromDescription($bankTransaction->description);
             $expenseDuplicateHash = $this->generateExpenseDuplicateHash(
-                $bankAccount->store_id,
+                $storeId,
                 $bankTransaction->transaction_date,
                 $vendorIdentifier,
                 $bankTransaction->amount
@@ -758,7 +786,7 @@ class BankImportController extends Controller
                 'transaction_type' => $this->mapPaymentMethodToTransactionType($paymentMethod),
                 'transaction_date' => $bankTransaction->transaction_date,
                 'post_date' => $bankTransaction->post_date,
-                'store_id' => $bankAccount->store_id,
+                'store_id' => $storeId,
                 'vendor_id' => $vendor?->id,
                 'vendor_name_raw' => $this->extractVendorNameFromDescription($bankTransaction->description),
                 'coa_id' => $coaId,
@@ -933,9 +961,14 @@ class BankImportController extends Controller
     /**
      * Attempt to match deposit (credit) to daily report totals
      */
-    protected function attemptDepositMatching(BankTransaction $bankTransaction, BankAccount $bankAccount): bool
+    protected function attemptDepositMatching(BankTransaction $bankTransaction, BankAccount $bankAccount, ?int $storeId = null): bool
     {
         try {
+            $storeId = $storeId ?? $bankAccount->store_id;
+            if ($storeId === null) {
+                return false;
+            }
+
             // Date range: ±3 days for deposits
             $dateFrom = $bankTransaction->transaction_date->copy()->subDays(3);
             $dateTo = $bankTransaction->transaction_date->copy()->addDays(3);
@@ -947,7 +980,7 @@ class BankImportController extends Controller
             
             // Find matching daily reports (with revenues eager loaded to avoid N+1)
             $dailyReports = DailyReport::with('revenues.revenueIncomeType')
-                ->where('store_id', $bankAccount->store_id)
+                ->where('store_id', $storeId)
                 ->whereBetween('report_date', [$dateFrom, $dateTo])
                 ->where('status', 'approved') // Only match to approved reports
                 ->get();
@@ -1026,9 +1059,14 @@ class BankImportController extends Controller
     /**
      * Attempt to match withdrawal (debit) to expense transactions
      */
-    protected function attemptWithdrawalMatching(BankTransaction $bankTransaction, BankAccount $bankAccount): bool
+    protected function attemptWithdrawalMatching(BankTransaction $bankTransaction, BankAccount $bankAccount, ?int $storeId = null): bool
     {
         try {
+            $storeId = $storeId ?? $bankAccount->store_id;
+            if ($storeId === null) {
+                return false;
+            }
+
             // Date range: ±3 days
             $dateFrom = $bankTransaction->transaction_date->copy()->subDays(3);
             $dateTo = $bankTransaction->transaction_date->copy()->addDays(3);
@@ -1046,7 +1084,7 @@ class BankImportController extends Controller
                 ->toArray();
             
             // Find matching expense transactions
-            $expenses = ExpenseTransaction::where('store_id', $bankAccount->store_id)
+            $expenses = ExpenseTransaction::where('store_id', $storeId)
                 ->whereBetween('transaction_date', [$dateFrom, $dateTo])
                 ->whereBetween('amount', [$amountMin, $amountMax])
                 ->whereNotIn('id', $matchedExpenseIds)

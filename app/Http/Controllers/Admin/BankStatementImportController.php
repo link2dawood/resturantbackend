@@ -11,6 +11,7 @@ use App\Models\ChartOfAccount;
 use App\Models\ExpenseTransaction;
 use App\Models\ImportBatch;
 use App\Models\Store;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -26,7 +27,16 @@ class BankStatementImportController extends Controller
         $query = ImportBatch::query()
             ->with(['store', 'importer'])
             ->where('import_type', 'bank_statement')
-            ->whereIn('store_id', $accessibleIds)
+            ->where(function ($q) use ($accessibleIds, $user) {
+                $q->whereIn('store_id', $accessibleIds);
+                if ($user->isAdmin() || $user->isFranchisor()) {
+                    $q->orWhereNull('store_id');
+                } elseif ($user->isOwner()) {
+                    $q->orWhere(function ($q2) use ($user) {
+                        $q2->whereNull('store_id')->where('imported_by', $user->id);
+                    });
+                }
+            })
             ->orderByDesc('imported_at');
 
         if ($request->filled('store_id')) {
@@ -121,7 +131,8 @@ class BankStatementImportController extends Controller
                 $request->file('file'),
                 $account,
                 'bank_west',
-                (int) auth()->id()
+                (int) auth()->id(),
+                $storeId
             );
         } catch (\InvalidArgumentException $e) {
             return back()->with('error', $e->getMessage())->withInput();
@@ -138,14 +149,7 @@ class BankStatementImportController extends Controller
 
     public function show(ImportBatch $importBatch)
     {
-        if ($importBatch->import_type !== 'bank_statement') {
-            abort(404);
-        }
-
-        $user = auth()->user();
-        if (! $user->hasStoreAccess((int) $importBatch->store_id)) {
-            abort(403);
-        }
+        $this->authorizeBankStatementBatch($importBatch);
 
         $importBatch->load(['store', 'importer']);
 
@@ -174,14 +178,7 @@ class BankStatementImportController extends Controller
 
     public function bulkUpdateCoa(Request $request, ImportBatch $importBatch): RedirectResponse
     {
-        if ($importBatch->import_type !== 'bank_statement') {
-            abort(404);
-        }
-
-        $user = auth()->user();
-        if (! $user->hasStoreAccess((int) $importBatch->store_id)) {
-            abort(403);
-        }
+        $this->authorizeBankStatementBatch($importBatch);
 
         $data = $request->validate([
             'lines' => ['required', 'array'],
@@ -212,13 +209,7 @@ class BankStatementImportController extends Controller
 
     public function destroy(ImportBatch $importBatch): RedirectResponse
     {
-        if ($importBatch->import_type !== 'bank_statement') {
-            abort(404);
-        }
-
-        if (! auth()->user()->hasStoreAccess((int) $importBatch->store_id)) {
-            abort(403);
-        }
+        $this->authorizeBankStatementBatch($importBatch);
 
         DB::transaction(function () use ($importBatch) {
             ExpenseTransaction::query()->where('import_batch_id', $importBatch->id)->delete();
@@ -229,5 +220,36 @@ class BankStatementImportController extends Controller
         return redirect()
             ->route('admin.bank-statement-imports.index')
             ->with('success', 'Bank statement import, bank lines, and expenses created from this import have been deleted.');
+    }
+
+    /**
+     * Web authorization for bank_statement batches. Never cast null store_id to 0 (that always fails hasStoreAccess).
+     */
+    protected function authorizeBankStatementBatch(ImportBatch $importBatch): void
+    {
+        if ($importBatch->import_type !== 'bank_statement') {
+            abort(404);
+        }
+
+        /** @var User $user */
+        $user = auth()->user();
+
+        if ($importBatch->store_id !== null) {
+            if (! $user->hasStoreAccess((int) $importBatch->store_id)) {
+                abort(403);
+            }
+
+            return;
+        }
+
+        if ($user->isAdmin() || $user->isFranchisor()) {
+            return;
+        }
+
+        if ($user->isOwner() && (int) $importBatch->imported_by === (int) $user->id) {
+            return;
+        }
+
+        abort(403);
     }
 }
