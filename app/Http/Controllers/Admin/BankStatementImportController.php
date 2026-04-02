@@ -51,12 +51,17 @@ class BankStatementImportController extends Controller
         $accessibleIds = $user->getAccessibleStoreIds();
         $stores = Store::whereIn('id', $accessibleIds)->orderBy('store_info')->get();
 
+        // Store-scoped accounts plus corporate (null store_id); plain whereIn(store_id, …) never matches NULL.
         $bankAccounts = BankAccount::query()
             ->where('is_active', true)
-            ->whereIn('store_id', $accessibleIds)
+            ->where(function ($q) use ($accessibleIds) {
+                $q->whereIn('store_id', $accessibleIds)
+                    ->orWhereNull('store_id');
+            })
+            ->with('store')
             ->orderBy('bank_name')
             ->orderBy('id')
-            ->get(['id', 'store_id', 'bank_name', 'account_number_last_four', 'account_type']);
+            ->get();
 
         $bankAccountsPayload = $bankAccounts->map(function (BankAccount $ba) {
             $tail = $ba->account_number_last_four ? ' · …'.$ba->account_number_last_four : '';
@@ -72,8 +77,8 @@ class BankStatementImportController extends Controller
         return view('admin.bank-statement-imports.create', [
             'stores' => $stores,
             'bankLabel' => BankStatementSupportedBank::BANK_OF_THE_WEST_LABEL,
+            'bankAccounts' => $bankAccounts,
             'bankAccountsPayload' => $bankAccountsPayload,
-            'hasAnyBankAccount' => $bankAccounts->isNotEmpty(),
         ]);
     }
 
@@ -95,14 +100,20 @@ class BankStatementImportController extends Controller
 
         $account = BankAccount::query()
             ->whereKey((int) $request->bank_account_id)
-            ->where('store_id', $storeId)
             ->where('is_active', true)
+            ->where(function ($q) use ($storeId, $accessibleIds) {
+                $q->where('store_id', $storeId)->orWhereNull('store_id');
+            })
             ->first();
 
         if (! $account) {
             return back()
-                ->with('error', 'The selected bank account is inactive, missing, or does not belong to the chosen store.')
+                ->with('error', 'The selected bank account is inactive, missing, or is not valid for the chosen store.')
                 ->withInput();
+        }
+
+        if ($account->store_id !== null && ! in_array((int) $account->store_id, $accessibleIds, true)) {
+            abort(403);
         }
 
         try {

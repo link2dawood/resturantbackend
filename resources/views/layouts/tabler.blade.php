@@ -892,6 +892,15 @@
                                     </svg>
                                     Profile Settings
                                 </a></li>
+                                @if(Auth::user()->isAdmin() && Route::has('admin.bank.accounts.index'))
+                                <li><a class="dropdown-item d-flex align-items-center" href="{{ route('admin.bank.accounts.index') }}" style="padding: 10px 16px; font-family: 'Google Sans', sans-serif; font-size: 14px; border-radius: 8px; margin: 0 8px;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-3">
+                                        <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
+                                        <line x1="1" y1="10" x2="23" y2="10"/>
+                                    </svg>
+                                    Bank accounts
+                                </a></li>
+                                @endif
                                 <li><hr class="dropdown-divider" style="margin: 8px 0;"></li>
                                 <li>
                                     <form action="{{ route('logout') }}" method="POST" class="m-0">

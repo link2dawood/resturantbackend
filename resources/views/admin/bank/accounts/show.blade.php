@@ -115,7 +115,13 @@
                         </tr>
                         <tr>
                             <td><strong>Store:</strong></td>
-                            <td>{{ $account->store ? $account->store->store_info : '<span class="text-muted">Corporate Account</span>' }}</td>
+                            <td>
+                                @if($account->store)
+                                    {{ $account->store->store_info }}
+                                @else
+                                    <span class="text-muted">Corporate account</span>
+                                @endif
+                            </td>
                         </tr>
                         <tr>
                             <td><strong>Status:</strong></td>

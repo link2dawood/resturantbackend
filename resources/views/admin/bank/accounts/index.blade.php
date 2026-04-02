@@ -85,7 +85,11 @@
                             </td>
                             <td style="padding: 1rem; vertical-align: middle;"><span class="badge bg-info">{{ ucwords($account->account_type) }}</span></td>
                             <td style="padding: 1rem; vertical-align: middle;">
-                                {{ $account->store ? $account->store->store_info : '<span class="text-muted">Corporate</span>' }}
+                                @if($account->store)
+                                    {{ $account->store->store_info }}
+                                @else
+                                    <span class="text-muted">Corporate</span>
+                                @endif
                             </td>
                             <td style="padding: 1rem; vertical-align: middle; text-align: right;">
                                 <strong class="text-success">${{ number_format($account->current_balance, 2) }}</strong>
