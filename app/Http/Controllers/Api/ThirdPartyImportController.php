@@ -395,6 +395,9 @@ class ThirdPartyImportController extends Controller
 
         // Fee lines: parse from feeContext (order-services narrative block), not Distribution ID–trimmed summary.
         $marketing = $this->extractGrubhubMarketingFeeFromSummary($feeContext);
+        if ($marketing <= 0) {
+            $marketing = $this->extractGrubhubMarketingFeeLoose($text);
+        }
         $delivery = $readFees('/\bDeliveries\s+by\s+Grubhub\s*\(\s*([0-9\.,]+)\s*\)/i');
         $processing = $readFees('/\bOrder\s+processing\s*\(\s*([0-9\.,]+)\s*\)/i');
 
@@ -438,41 +441,74 @@ class ThirdPartyImportController extends Controller
     }
 
     /**
-     * Narrative block: "Grubhub order services …" through "Account adjustments" (fee lines live here;
-     * avoids PDF text-order issues with "Distribution ID" cutting off the summary too early).
+     * Narrative block from "Grubhub order services" through "Account adjustments".
+     * Uses regex markers so PDF line breaks inside labels (e.g. "Grubhub order\nservices") still match;
+     * literal mb_stripos fails on those exports and left marketing_fees at 0.
      */
     protected function extractGrubhubOrderServicesDetailBlock(string $text): string
     {
-        if (mb_stripos($text, 'Grubhub order services') === false) {
+        $startRe = '/Grubhub\s+order\s+services/is';
+        $ends = [
+            '/Account\s+adjustments\b/is',
+            '/Adjustments\s+to\s+your\s+account\b/is',
+        ];
+
+        if (! preg_match($startRe, $text, $sm, PREG_OFFSET_CAPTURE)) {
             return '';
         }
 
-        $block = $this->extractTextBetweenMarkers($text, 'Grubhub order services', 'Account adjustments');
-        if (trim($block) !== '') {
-            return $block;
+        $blockStart = $sm[0][1];
+        $afterStartLabel = $blockStart + strlen($sm[0][0]);
+        $tail = substr($text, $afterStartLabel);
+
+        foreach ($ends as $endRe) {
+            if (preg_match($endRe, $tail, $em, PREG_OFFSET_CAPTURE)) {
+                $blockEndExclusive = $afterStartLabel + $em[0][1];
+
+                return substr($text, $blockStart, $blockEndExclusive - $blockStart);
+            }
         }
 
-        return $this->extractTextBetweenMarkers($text, 'Grubhub order services', 'Adjustments to your account');
+        return substr($text, $blockStart);
     }
 
     /**
      * Grubhub marketing fee on the numbered narrative line ("1 Marketing …").
-     * Requires a leading count so we do not match the "Marketing services" rates section (wrong parentheses).
-     * Supports: "1 Marketing (3.07)" and multi-line descriptions before "(3.07)".
+     * Leading count avoids matching the "Marketing services" rates section.
+     * Tolerates PDF line breaks between the count, "Marketing", and "(3.07)".
      */
     protected function extractGrubhubMarketingFeeFromSummary(string $block): float
     {
-        $patterns = [
-            '/^\s*\d+\s+Marketing(?:\s+Services\b[\s\S]*?)?\s*\(\s*([0-9\.,]+)\s*\)/im',
-            '/\b\d+\s+Marketing(?:\s+Services\b[\s\S]*?)?\s*\(\s*([0-9\.,]+)\s*\)/is',
+        $patternAmountIndex = [
+            ['/^\s*\d+\s+Marketing(?:\s+Services\b[\s\S]*?)?\s*\(\s*([0-9\.,]+)\s*\)/im', 1],
+            ['/(\d+)\s+Marketing(?:\s+Services\b[\s\S]*?)?\s*\(\s*([0-9\.,]+)\s*\)/is', 2],
+            ['/(\d+)[\s\x{00A0}]*[\r\n]+[\s\x{00A0}]*Marketing(?:\s+Services\b[\s\S]*?)?\s*\(\s*([0-9\.,]+)\s*\)/iu', 2],
+            ['/(\d+)[\s\x{00A0}]+Marketing[\s\x{00A0}]*[\r\n]+[\s\x{00A0}]*Services\b[\s\S]*?\(\s*([0-9\.,]+)\s*\)/iu', 2],
         ];
-        foreach ($patterns as $pattern) {
+
+        foreach ($patternAmountIndex as [$pattern, $idx]) {
             if (preg_match($pattern, $block, $m)) {
-                return abs((float) $this->parseAmount($m[1] ?? null));
+                return abs((float) $this->parseAmount($m[$idx] ?? null));
             }
         }
 
         return 0.0;
+    }
+
+    /**
+     * Last-resort: find "1 Marketing (amount)" in a window after flexible "Grubhub order services".
+     */
+    protected function extractGrubhubMarketingFeeLoose(string $text): float
+    {
+        if (! preg_match(
+            '/Grubhub\s+order\s+services[\s\S]{0,3000}?\b\d+\s+Marketing(?:\s+Services\b[\s\S]*?)?\s*\(\s*([0-9\.,]+)\s*\)/is',
+            $text,
+            $m
+        )) {
+            return 0.0;
+        }
+
+        return abs((float) $this->parseAmount($m[1] ?? null));
     }
 
     /**
@@ -492,10 +528,11 @@ class ThirdPartyImportController extends Controller
      */
     protected function extractGrubhubOrderServicesTotal(string $summaryBlock): float
     {
-        if (preg_match('/Grubhub\s+order\s+services\s*\$?\s*(\([^)]+\))/i', $summaryBlock, $m)) {
+        // Allow line breaks between the label and "$ (6.10)" (common in Smalot output).
+        if (preg_match('/Grubhub\s+order\s+services[\s\r\n]*\$?\s*(\([^)]+\))/is', $summaryBlock, $m)) {
             return abs((float) $this->parseAmount(trim($m[1])));
         }
-        if (preg_match('/Grubhub\s+order\s+services\s*\$?\s*(-?\$?[\d,]+\.\d{2})/i', $summaryBlock, $m)) {
+        if (preg_match('/Grubhub\s+order\s+services[\s\r\n]*\$?\s*(-?\$?[\d,]+\.\d{2})/is', $summaryBlock, $m)) {
             return abs((float) $this->parseAmount(trim($m[1])));
         }
 
