@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Constants\OwnerCcStatementCardPlatform;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -11,6 +12,7 @@ class OwnerCcStatementImport extends Model
     protected $fillable = [
         'imported_by',
         'store_id',
+        'card_platform',
         'file_name',
         'file_hash',
         'file_path',
@@ -39,5 +41,10 @@ class OwnerCcStatementImport extends Model
     public function lines(): HasMany
     {
         return $this->hasMany(OwnerCcStatementLine::class, 'owner_cc_statement_import_id');
+    }
+
+    public function cardPlatformLabel(): ?string
+    {
+        return OwnerCcStatementCardPlatform::label($this->card_platform);
     }
 }

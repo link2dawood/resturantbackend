@@ -15,9 +15,14 @@
                     <h3 class="card-title">Import Owner CC Statement</h3>
                 </div>
                 <div class="card-body">
-                    <p class="text-muted mb-3">
-                        Upload a CSV or XLSX file exported from your credit card statement. Expected columns: <strong>Status</strong>, <strong>Date</strong>, <strong>Description</strong>, <strong>Debit</strong>, <strong>Credit</strong>, <strong>Member Name</strong>.
+                    <p class="text-muted mb-2">
+                        Upload a CSV or XLSX from your card issuer. <strong>Choose the issuer first</strong> — each bank uses different column headers.
                     </p>
+                    <ul class="text-muted small mb-3 ps-3">
+                        @foreach(\App\Constants\OwnerCcStatementCardPlatform::LABELS as $platformValue => $platformLabel)
+                            <li class="mb-1"><strong>{{ $platformLabel }}:</strong> {{ \App\Constants\OwnerCcStatementCardPlatform::expectedColumnsDescription($platformValue) }}</li>
+                        @endforeach
+                    </ul>
 
                     @if (session('error'))
                         <div class="alert alert-danger">{{ session('error') }}</div>
@@ -25,6 +30,18 @@
 
                     <form action="{{ route('admin.owner-cc-statements.store') }}" method="POST" enctype="multipart/form-data">
                         @csrf
+                        <div class="mb-3">
+                            <label class="form-label required">Card issuer / platform</label>
+                            <select name="card_platform" class="form-select @error('card_platform') is-invalid @enderror" required>
+                                <option value="" disabled {{ old('card_platform') ? '' : 'selected' }}>— Select —</option>
+                                @foreach($cardPlatforms as $value => $label)
+                                    <option value="{{ $value }}" {{ old('card_platform') === $value ? 'selected' : '' }}>{{ $label }}</option>
+                                @endforeach
+                            </select>
+                            @error('card_platform')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
                         <div class="mb-3">
                             <label class="form-label required">File (CSV or XLSX)</label>
                             <input type="file" name="file" class="form-control @error('file') is-invalid @enderror" accept=".csv,.xlsx,.xls" required>

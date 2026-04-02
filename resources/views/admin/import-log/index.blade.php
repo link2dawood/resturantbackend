@@ -38,7 +38,12 @@
                                 @endif
                             </td>
                             <td>{{ \Carbon\Carbon::parse($imp->date)->format('M j, Y g:i A') }}</td>
-                            <td>{{ $imp->file_name }}</td>
+                            <td>
+                                {{ $imp->file_name }}
+                                @if(!empty($imp->detail))
+                                    <span class="text-muted small">· {{ $imp->detail }}</span>
+                                @endif
+                            </td>
                             <td>{{ $imp->store ?? '—' }}</td>
                             <td>{{ $imp->user ?? '—' }}</td>
                             <td>{{ $imp->rows !== null ? number_format($imp->rows) : '—' }}</td>

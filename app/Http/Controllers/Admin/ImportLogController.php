@@ -35,6 +35,7 @@ class ImportLogController extends Controller
                     'store' => $imp->store?->store_info,
                     'user' => $imp->importer?->name,
                     'rows' => $imp->rows_imported,
+                    'detail' => $imp->cardPlatformLabel(),
                 ];
             });
         $items = $items->merge($ccImports);
@@ -51,6 +52,7 @@ class ImportLogController extends Controller
                     'store' => $st->store?->store_info,
                     'user' => $st->importer?->name,
                     'rows' => null,
+                    'detail' => null,
                 ];
             });
         $items = $items->merge($thirdParty);
@@ -70,6 +72,7 @@ class ImportLogController extends Controller
                     'store' => $batch->store?->store_info,
                     'user' => $batch->importer?->name,
                     'rows' => $batch->imported_count,
+                    'detail' => null,
                 ];
             });
         $items = $items->merge($bankBatches);

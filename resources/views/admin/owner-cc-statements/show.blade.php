@@ -34,6 +34,9 @@
                 <h1 class="mb-2" style="font-size: 1.5rem; font-weight: 500;">{{ $import->file_name }}</h1>
                 <p class="text-muted mb-0">
                     Imported {{ $import->created_at->format('M j, Y g:i A') }} by {{ $import->importer?->name ?? '—' }}
+                    @if($import->cardPlatformLabel())
+                        · {{ $import->cardPlatformLabel() }}
+                    @endif
                     @if($import->store)
                         · Store: {{ $import->store->store_info }}
                     @endif

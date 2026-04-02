@@ -60,6 +60,7 @@
                     <tr>
                         <th>Imported</th>
                         <th>File</th>
+                        <th>Platform</th>
                         <th>Store</th>
                         <th>Rows</th>
                         <th>By</th>
@@ -71,6 +72,7 @@
                         <tr>
                             <td>{{ $imp->created_at->format('M j, Y g:i A') }}</td>
                             <td>{{ $imp->file_name }}</td>
+                            <td>{{ $imp->cardPlatformLabel() ?? '—' }}</td>
                             <td>{{ $imp->store?->store_info ?? '—' }}</td>
                             <td>{{ number_format($imp->rows_imported) }}</td>
                             <td>{{ $imp->importer?->name ?? '—' }}</td>
@@ -89,7 +91,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="text-center text-muted py-4">No imports yet. <a href="{{ route('admin.owner-cc-statements.create') }}">Import your first statement</a>.</td>
+                            <td colspan="7" class="text-center text-muted py-4">No imports yet. <a href="{{ route('admin.owner-cc-statements.create') }}">Import your first statement</a>.</td>
                         </tr>
                     @endforelse
                 </tbody>
