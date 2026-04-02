@@ -261,8 +261,8 @@ document.addEventListener('DOMContentLoaded', function() {
     function currentParams() {
         const params = new URLSearchParams();
         const storeId = document.getElementById('merchant-fee-store').value;
-        const startDate = document.getElementById('merchant-fee-start-date').value;
-        const endDate = document.getElementById('merchant-fee-end-date').value;
+        const startDate = filterForm.querySelector('input[name="start_date"]')?.value;
+        const endDate = filterForm.querySelector('input[name="end_date"]')?.value;
 
         if (storeId) params.set('store_id', storeId);
         if (startDate) params.set('start_date', startDate);

@@ -337,7 +337,8 @@ class ThirdPartyImportController extends Controller
      * Uses "Total payments to you" as net deposit and "Restaurant sales" as gross.
      * Marketing (N), Deliveries by Grubhub (N), Order processing (N) are the fee breakdown;
      * "Grubhub order services" is the authoritative sum of those three (scaled if PDF lines disagree).
-     * Positive "Account adjustments" are payout additions—stored on the statement but not posted as expenses.
+     * "Account adjustments" may be a payout credit (positive) or debit (negative, e.g. parentheses).
+     * Stored signed on the statement; positive credits are not posted as expenses, negative debits are.
      */
     protected function extractGrubhubMonthlyStatementDataFromText(string $text, string $filename = ''): array
     {
@@ -383,7 +384,13 @@ class ThirdPartyImportController extends Controller
         $orderServicesTotal = $this->extractGrubhubOrderServicesTotal($summaryBlock);
 
         $tax = $read('/Includes\s*\$?\s*([0-9\.,]+)\s*in\s+taxes/i', true);
-        $adjustments = $read('/Account\s+adjustments\s*\$?\s*([0-9\.,]+)\b/i');
+
+        $adjustments = 0.0;
+        if (preg_match('/Account\s+adjustments\s*\$?\s*(\([^)]+\)|-?\$?[\d,]+\.\d{2})\b/i', $summaryBlock, $adjMatch)) {
+            $adjustments = round((float) ($this->parseAmount(trim($adjMatch[1])) ?? 0), 2);
+        } elseif (preg_match('/Account\s+adjustments\s*\$?\s*([0-9\.,]+)\b/i', $summaryBlock, $adjMatch)) {
+            $adjustments = round((float) ($this->parseAmount($adjMatch[1] ?? null) ?? 0), 2);
+        }
 
         // If "Restaurant sales" appears above "Total payments" in extracted text, recover gross from the sales block.
         if ($gross <= 0) {
@@ -407,7 +414,7 @@ class ThirdPartyImportController extends Controller
             'marketing_fees' => round(max(0, $marketing), 2),
             'delivery_fees' => round(max(0, $delivery), 2),
             'processing_fees' => round(max(0, $processing), 2),
-            'adjustments' => round(max(0, $adjustments), 2),
+            'adjustments' => $adjustments,
             'net_deposit' => round(max(0, $net), 2),
             'sales_tax_collected' => round(max(0, $tax), 2),
         ];
@@ -1314,15 +1321,19 @@ class ThirdPartyImportController extends Controller
             ]);
         }
 
-        // Adjustments: DoorDash may store negative amendments (post expense as abs). Other platforms unchanged (positive only).
-        // Grubhub: skip positive credits only.
+        // Adjustments: DoorDash may store negative amendments (post expense as abs).
+        // Grubhub: post expense only for negative adjustments (payout debits); skip positive credits.
+        // Other platforms: post when adjustments > 0 (fee-style).
         $adj = (float) ($data['adjustments'] ?? 0);
-        $skipPositiveGrubhubAdjustmentExpense = $statement->platform === 'grubhub' && $adj > 0;
-        $postAdjustmentExpense = $adjustmentsCoa && ! $skipPositiveGrubhubAdjustmentExpense;
-        if ($postAdjustmentExpense) {
-            $postAdjustmentExpense = $statement->platform === 'doordash'
-                ? abs($adj) >= 0.005
-                : $adj > 0;
+        $postAdjustmentExpense = false;
+        if ($adjustmentsCoa && abs($adj) >= 0.005) {
+            if ($statement->platform === 'doordash') {
+                $postAdjustmentExpense = true;
+            } elseif ($statement->platform === 'grubhub') {
+                $postAdjustmentExpense = $adj < 0;
+            } else {
+                $postAdjustmentExpense = $adj > 0;
+            }
         }
 
         if ($postAdjustmentExpense) {

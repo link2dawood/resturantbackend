@@ -57,7 +57,7 @@
     <!-- Filters -->
     <div class="card mb-4">
         <div class="card-body">
-            <form action="{{ route('admin.reports.profit-loss.index') }}" method="GET" class="row g-3">
+            <form id="profitLossFilterForm" action="{{ route('admin.reports.profit-loss.index') }}" method="GET" class="row g-3">
                 @canViewAllStores
                 <div class="col-md-3">
                     <label class="form-label">Store</label>
@@ -391,7 +391,14 @@
 function applyDatePreset(preset) {
     const today = new Date();
     let start, end;
-    
+
+    function toLocalYmd(d) {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return y + '-' + m + '-' + day;
+    }
+
     switch(preset) {
         case 'this_month':
             start = new Date(today.getFullYear(), today.getMonth(), 1);
@@ -414,8 +421,17 @@ function applyDatePreset(preset) {
             return;
     }
     
-    document.querySelector('input[name="start_date"]').value = start.toISOString().split('T')[0];
-    document.querySelector('input[name="end_date"]').value = end.toISOString().split('T')[0];
+    const form = document.getElementById('profitLossFilterForm');
+    if (!form) return;
+    const startHidden = form.querySelector('input[name="start_date"]');
+    const endHidden = form.querySelector('input[name="end_date"]');
+    if (!startHidden || !endHidden) return;
+    startHidden.value = toLocalYmd(start);
+    endHidden.value = toLocalYmd(end);
+    if (window.refreshUsDateVisible) {
+        window.refreshUsDateVisible(startHidden);
+        window.refreshUsDateVisible(endHidden);
+    }
 }
 
 function saveSnapshot() {
@@ -429,11 +445,12 @@ function saveSnapshot() {
 document.getElementById('snapshotForm')?.addEventListener('submit', function(e) {
     e.preventDefault();
     
+    const plForm = document.getElementById('profitLossFilterForm');
     const formData = {
         name: document.getElementById('snapshotName').value,
-        store_id: document.querySelector('select[name="store_id"]').value || null,
-        start_date: document.querySelector('input[name="start_date"]').value,
-        end_date: document.querySelector('input[name="end_date"]').value,
+        store_id: plForm ? (plForm.querySelector('select[name="store_id"]')?.value || null) : null,
+        start_date: plForm?.querySelector('input[name="start_date"]')?.value,
+        end_date: plForm?.querySelector('input[name="end_date"]')?.value,
     };
     
     fetch('/api/reports/pl/snapshot', {

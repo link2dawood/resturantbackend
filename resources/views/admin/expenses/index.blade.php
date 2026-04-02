@@ -502,7 +502,10 @@ function showSyncModal() { new bootstrap.Modal(document.getElementById('syncModa
 function openCreateModal() {
     document.getElementById('expenseModalLabel').textContent = 'Add Manual Expense';
     document.getElementById('expenseForm').reset();
-    document.getElementById('expenseDate').value = new Date().toISOString().split('T')[0];
+    var t = new Date();
+    var iso = t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0');
+    if (window.setUsDateVisibleIso) window.setUsDateVisibleIso('expenseDate', iso);
+    else document.getElementById('expenseDate').value = iso;
 }
 
 function saveExpense() {

@@ -9,8 +9,7 @@ use Illuminate\Http\Request;
 class ConvertDateFormat
 {
     /**
-     * Handle an incoming request.
-     * Convert MM-DD-YYYY format dates to YYYY-MM-DD for Laravel
+     * Convert US-style dates (MM/DD/YYYY or MM-DD-YYYY, with 1–2 digit month/day) to Y-m-d for Laravel.
      */
     public function handle(Request $request, Closure $next)
     {
@@ -19,27 +18,36 @@ class ConvertDateFormat
             'corporate_creation_date',
             'date_from',
             'date_to',
+            'start_date',
+            'end_date',
+            'from_date',
+            'to_date',
+            'transaction_date',
         ];
 
         foreach ($dateFields as $field) {
-            if ($request->has($field) && $request->get($field)) {
-                $dateValue = $request->get($field);
+            if (! $request->has($field)) {
+                continue;
+            }
+            $dateValue = $request->get($field);
+            if ($dateValue === '' || $dateValue === null) {
+                continue;
+            }
 
-                // Check if it's in MM-DD-YYYY format
-                if (preg_match('/^\d{2}-\d{2}-\d{4}$/', $dateValue)) {
-                    try {
-                        // Convert MM-DD-YYYY to YYYY-MM-DD
-                        $parts = explode('-', $dateValue);
-                        $convertedDate = $parts[2].'-'.$parts[0].'-'.$parts[1];
+            if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateValue)) {
+                continue;
+            }
 
-                        // Validate the date
-                        if (Carbon::createFromFormat('Y-m-d', $convertedDate)) {
-                            $request->merge([$field => $convertedDate]);
-                        }
-                    } catch (\Exception $e) {
-                        // If conversion fails, let Laravel's validation handle it
+            if (preg_match('/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/', $dateValue, $m)) {
+                try {
+                    $convertedDate = sprintf('%04d-%02d-%02d', (int) $m[3], (int) $m[1], (int) $m[2]);
+                    $parsed = Carbon::createFromFormat('Y-m-d', $convertedDate);
+                    if ($parsed->format('Y-m-d') !== $convertedDate) {
                         continue;
                     }
+                    $request->merge([$field => $convertedDate]);
+                } catch (\Exception $e) {
+                    continue;
                 }
             }
         }

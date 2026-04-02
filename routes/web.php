@@ -187,13 +187,13 @@ Route::middleware('auth')->group(function () {
     });
 
     // Expenses - Admin, Owner, Manager can view
-    Route::middleware('role:admin,owner,manager')->group(function () {
+    Route::middleware(['role:admin,owner,manager', 'convert_date_format'])->group(function () {
         Route::get('/expenses', [ExpenseViewController::class, 'index'])->name('admin.expenses.index');
         Route::get('/expenses/review', [ReviewQueueViewController::class, 'index'])->name('admin.expenses.review');
     });
     
     // Merchant Fees - Admin, Owner
-    Route::middleware('role:admin,owner')->group(function () {
+    Route::middleware(['role:admin,owner', 'convert_date_format'])->group(function () {
         Route::get('/merchant-fees', [MerchantFeeViewController::class, 'index'])->name('admin.merchant-fees.index');
         Route::get('/merchant-fees/third-party', [MerchantFeeViewController::class, 'thirdParty'])->name('admin.merchant-fees.third-party');
         Route::get('/merchant-fees/third-party/statements/{statement}', [MerchantFeeViewController::class, 'thirdPartyStatementShow'])->name('admin.merchant-fees.third-party.show');
@@ -217,14 +217,14 @@ Route::middleware('auth')->group(function () {
     });
 
     // P&L Reports - Admin, Owner (full access), Manager (view only)
-    Route::middleware('role:admin,owner,manager')->group(function () {
+    Route::middleware(['role:admin,owner,manager', 'convert_date_format'])->group(function () {
         // Managers can view but not export
         Route::get('/reports/profit-loss', [ProfitLossViewController::class, 'index'])->name('admin.reports.profit-loss.index');
         Route::get('/reports/profit-loss/drill-down', [ProfitLossViewController::class, 'drillDown'])->name('admin.reports.profit-loss.drill-down');
     });
     
     // P&L Export and Advanced Features - Admin and Owner only
-    Route::middleware('role:admin,owner')->group(function () {
+    Route::middleware(['role:admin,owner', 'convert_date_format'])->group(function () {
         Route::get('/reports/profit-loss/comparison', [ProfitLossViewController::class, 'comparison'])->name('admin.reports.profit-loss.comparison');
         Route::get('/reports/profit-loss/snapshots', [ProfitLossViewController::class, 'snapshots'])->name('admin.reports.profit-loss.snapshots');
         Route::get('/reports/profit-loss/export/csv', [ProfitLossViewController::class, 'exportCsv'])->name('admin.reports.profit-loss.export.csv');
@@ -232,7 +232,7 @@ Route::middleware('auth')->group(function () {
     });
 
     // Bank Accounts - Admin, Owner
-    Route::middleware('role:admin,owner')->group(function () {
+    Route::middleware(['role:admin,owner', 'convert_date_format'])->group(function () {
         Route::get('/bank-accounts', [BankAccountViewController::class, 'index'])->name('admin.bank.accounts.index');
         Route::get('/bank-accounts/{id}', [BankAccountViewController::class, 'show'])->name('admin.bank.accounts.show');
         Route::get('/bank-accounts/{accountId}/reconciliation', [BankAccountViewController::class, 'reconciliation'])->name('admin.bank.reconciliation.index');

@@ -8,12 +8,13 @@
         $adjustmentLabel = $statement->platform === 'ubereats' ? 'Amendments' : 'Adjustments';
         $netLabel = $statement->platform === 'ubereats' ? 'Net Total' : 'Net Deposit';
         $corePlatformFees = $statement->marketing_fees + $statement->delivery_fees + $statement->processing_fees;
-        // Grubhub: order-service fees only; account adjustments are payout additions (credits), not fees.
-        $totalFeesCard = $statement->platform === 'grubhub' ? $corePlatformFees : $corePlatformFees + ($statement->adjustments ?? 0);
-        $grubhubAdjustmentCredit = $statement->platform === 'grubhub' && ($statement->adjustments ?? 0) > 0;
-        // Extra "Positive adjustments" card + 4-column layout: Grubhub only (other platforms unchanged).
-        $showGrubhubPositiveAdjustmentsCard = $statement->platform === 'grubhub' && (float) ($statement->adjustments ?? 0) > 0;
-        $summaryColClass = $showGrubhubPositiveAdjustmentsCard ? 'col-sm-6 col-lg-3' : 'col-md-4';
+        $adjSigned = (float) ($statement->adjustments ?? 0);
+        // Grubhub: order-service fees only; account adjustments (signed) are not included in this total.
+        $totalFeesCard = $statement->platform === 'grubhub' ? $corePlatformFees : $corePlatformFees + $adjSigned;
+        $useGrubhubAdjustmentSplit = $statement->platform === 'grubhub';
+        $grubhubPositiveAdjustments = $useGrubhubAdjustmentSplit ? max(0, $adjSigned) : 0.0;
+        $grubhubNegativeAdjustments = $useGrubhubAdjustmentSplit ? max(0, -$adjSigned) : 0.0;
+        $summaryColClass = $useGrubhubAdjustmentSplit ? 'col-sm-6 col-lg-3' : 'col-md-4';
     @endphp
     @if(session('success'))
         <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -103,21 +104,31 @@
                 </div>
             </div>
         </div>
+        @if($useGrubhubAdjustmentSplit)
         <div class="{{ $summaryColClass }}">
-            <div class="card">
+            <div class="card border-danger border-opacity-25">
                 <div class="card-body">
-                    <div class="subheader text-muted">{{ $statement->platform === 'grubhub' ? 'Account adjustments (addition)' : $adjustmentLabel }}</div>
-                    <div class="h2 mb-0 {{ $grubhubAdjustmentCredit ? 'text-success' : 'text-danger' }}">${{ number_format($statement->adjustments ?? 0, 2) }}</div>
+                    <div class="subheader text-muted">Negative adjustments</div>
+                    <div class="h2 mb-0 text-danger">${{ number_format($grubhubNegativeAdjustments, 2) }}</div>
+                    <div class="text-muted small mt-1">Deducted from your payout (when the PDF shows a debit)</div>
                 </div>
             </div>
         </div>
-        @if($showGrubhubPositiveAdjustmentsCard)
         <div class="{{ $summaryColClass }}">
-            <div class="card border-success">
+            <div class="card border-success border-opacity-25">
                 <div class="card-body">
                     <div class="subheader text-muted">Positive adjustments</div>
-                    <div class="h2 mb-0 text-success">${{ number_format($statement->adjustments ?? 0, 2) }}</div>
+                    <div class="h2 mb-0 text-success">${{ number_format($grubhubPositiveAdjustments, 2) }}</div>
                     <div class="text-muted small mt-1">Added to your payout for this statement</div>
+                </div>
+            </div>
+        </div>
+        @else
+        <div class="{{ $summaryColClass }}">
+            <div class="card">
+                <div class="card-body">
+                    <div class="subheader text-muted">{{ $adjustmentLabel }}</div>
+                    <div class="h2 mb-0 text-danger">${{ number_format($statement->adjustments ?? 0, 2) }}</div>
                 </div>
             </div>
         </div>

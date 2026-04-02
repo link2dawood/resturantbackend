@@ -265,17 +265,20 @@
 
 <script>
 function updateEndDateMin() {
-    const startDate = document.querySelector('input[name="start_date"]').value;
-    const endDateInput = document.getElementById('end_date');
-    if (startDate && endDateInput) {
-        endDateInput.min = startDate;
-        if (endDateInput.value < startDate) {
-            endDateInput.value = startDate;
-        }
+    const form = document.getElementById('dateFilterForm');
+    if (!form || !window.dateFormatter) return;
+    const startDate = form.querySelector('input[name="start_date"]')?.value;
+    const endHidden = form.querySelector('input[name="end_date"]');
+    const endVisible = document.getElementById('end_date');
+    if (!startDate || !endVisible) return;
+    endVisible.setAttribute('data-date-min', startDate);
+    if (endHidden && endHidden.value && endHidden.value < startDate) {
+        endHidden.value = startDate;
+        endVisible.value = window.dateFormatter.displayFormat(startDate);
     }
 }
 
-// Initialize on page load
+document.addEventListener('usDateInputsReady', updateEndDateMin);
 document.addEventListener('DOMContentLoaded', function() {
     updateEndDateMin();
 });

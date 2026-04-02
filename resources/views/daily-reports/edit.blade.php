@@ -527,7 +527,7 @@
                         <div class="side-panel">
                             <div class="form-group">
                                 <label>Date:</label>
-                                <input type="text" name="report_date" class="form-control date-input bg-light" value="{{ $dailyReport->report_date->format('m-d-Y') }}" placeholder="MM-DD-YYYY" maxlength="10" required readonly>
+                                <input type="text" name="report_date" class="form-control date-input bg-light" value="{{ $dailyReport->report_date->format('m/d/Y') }}" placeholder="MM/DD/YYYY" maxlength="10" required readonly>
                                 <small class="text-muted">
                                     <i class="fas fa-lock me-1"></i>Date cannot be changed
                                 </small>

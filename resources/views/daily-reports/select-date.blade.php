@@ -148,7 +148,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Custom date selection
     document.getElementById('selectCustomDate').addEventListener('click', function() {
-        const customDate = document.getElementById('customDate').value;
+        const raw = document.getElementById('customDate').value;
+        const customDate = window.dateFormatter ? window.dateFormatter.toISO(raw) : raw;
         if (!customDate) {
             alert('Please select a date first.');
             return;
@@ -161,7 +162,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         // Check if date is not in the future
-        const selectedDate = new Date(customDate);
+        const selectedDate = new Date(customDate + 'T00:00:00');
         const today = new Date();
         today.setHours(23, 59, 59, 999); // End of today
 
@@ -175,10 +176,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Update custom date validation on change
     document.getElementById('customDate').addEventListener('change', function() {
-        const customDate = this.value;
+        const raw = this.value;
+        const customDate = window.dateFormatter ? window.dateFormatter.toISO(raw) : raw;
         const selectBtn = document.getElementById('selectCustomDate');
 
-        if (existingDates.includes(customDate)) {
+        if (customDate && existingDates.includes(customDate)) {
             selectBtn.textContent = 'Date Already Exists';
             selectBtn.className = 'btn btn-danger w-100';
             selectBtn.disabled = true;

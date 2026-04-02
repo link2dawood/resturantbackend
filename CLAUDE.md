@@ -76,4 +76,4 @@ The index page server-renders initial data from the view controller, then immedi
 
 ### Date handling
 
-`convert_date_format` middleware is applied to daily report and audit log routes to normalize incoming date strings. Use `report_date` on `DailyReport` and `transaction_date` on `ExpenseTransaction` for date filtering.
+`convert_date_format` middleware normalizes US-style dates (MM/DD/YYYY or MM-DD-YYYY) to `Y-m-d` on allowed fields: `report_date`, `corporate_creation_date`, `date_from`, `date_to`, `start_date`, `end_date`, `from_date`, `to_date`, `transaction_date`. Applied to daily reports, owners, audit logs, expenses, merchant fees, P&L, and bank account filters. `[type="date"]` inputs in the Blade UI are upgraded by `public/js/date-formatter.js` to MM/DD/YYYY display with hidden ISO values for submissions.
