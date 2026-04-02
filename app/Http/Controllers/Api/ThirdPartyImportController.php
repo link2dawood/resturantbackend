@@ -523,29 +523,25 @@ class ThirdPartyImportController extends Controller
 
     /**
      * Deposit grid row: "... $22.18 ($3.07) ($2.05) $0.00 ($0.98)" → marketing, delivery, processing.
-     * Anchored to "Marketplace order" so we don't match random parentheses elsewhere.
+     * Grubhub PDFs use dollar inside parens: ($3.07) not (3.07). Smalot may split the row across lines,
+     * so we scan a byte slice after "Marketplace order N", not a single \n-terminated line.
      */
     protected function extractGrubhubFeesFromMarketplaceOrderTableRow(string $text): ?array
     {
-        if (! preg_match(
-            '/Marketplace\s+order\s+(?:\d+\s+)([^\r\n]+)/iu',
-            $text,
-            $row
-        )) {
+        if (! preg_match('/Marketplace\s+order\s+\d+/iu', $text, $mm, PREG_OFFSET_CAPTURE)) {
             return null;
         }
 
-        $line = trim($row[1]);
-        if ($line === '') {
+        $start = $mm[0][1];
+        $len = strlen($text);
+        $chunk = substr($text, $start, min(1500, max(0, $len - $start)));
+        if ($chunk === '') {
             return null;
         }
 
-        // Trailing fee columns: (marketing) (delivery) $withheld (processing) — same on 4- or 5-col subtotal rows.
-        if (! preg_match(
-            '/\(([0-9\.,]+)\)\s+\(([0-9\.,]+)\)\s+\$[0-9\.,]+\s+\(([0-9\.,]+)\)\s*$/u',
-            $line,
-            $m
-        )) {
+        // Optional $ inside each parenthesis; trailing: (mkt) (deliv) $withheld (processing)
+        $feeTail = '/\(\s*\$?\s*([0-9\.,]+)\s*\)\s+\(\s*\$?\s*([0-9\.,]+)\s*\)\s+\$[0-9\.,]+\s+\(\s*\$?\s*([0-9\.,]+)\s*\)/u';
+        if (! preg_match($feeTail, $chunk, $m)) {
             return null;
         }
 
