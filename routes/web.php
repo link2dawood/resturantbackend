@@ -220,7 +220,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/bank-statement-imports/create', [BankStatementImportController::class, 'create'])->name('admin.bank-statement-imports.create');
         Route::post('/bank-statement-imports', [BankStatementImportController::class, 'store'])->name('admin.bank-statement-imports.store');
         Route::get('/bank-statement-imports/batches/{importBatch}', [BankStatementImportController::class, 'show'])->name('admin.bank-statement-imports.show');
-        Route::post('/bank-statement-imports/batches/{importBatch}/bulk-update-coa', [BankStatementImportController::class, 'bulkUpdateCoa'])->name('admin.bank-statement-imports.bulk-update-coa');
+        Route::post('/bank-statement-imports/batches/{importBatch}/bank-transactions/{bankTransaction}/coa', [BankStatementImportController::class, 'updateTransactionCoa'])->name('admin.bank-statement-imports.transaction-coa');
         Route::delete('/bank-statement-imports/batches/{importBatch}', [BankStatementImportController::class, 'destroy'])->name('admin.bank-statement-imports.destroy');
     });
 

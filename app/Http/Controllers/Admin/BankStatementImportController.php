@@ -13,6 +13,7 @@ use App\Models\ImportBatch;
 use App\Models\OwnerCcDescriptionMapping;
 use App\Models\Store;
 use App\Models\User;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -155,7 +156,7 @@ class BankStatementImportController extends Controller
         $importBatch->load(['store', 'importer']);
 
         $transactions = $importBatch->bankTransactions()
-            ->with(['matchedExpense.chartOfAccount'])
+            ->with(['matchedExpense.coa'])
             ->orderBy('transaction_date')
             ->orderBy('id')
             ->get();
@@ -193,37 +194,47 @@ class BankStatementImportController extends Controller
         ]);
     }
 
-    public function bulkUpdateCoa(Request $request, ImportBatch $importBatch): RedirectResponse
+    public function updateTransactionCoa(Request $request, ImportBatch $importBatch, BankTransaction $bankTransaction): JsonResponse
     {
         $this->authorizeBankStatementBatch($importBatch);
 
+        if ((int) $bankTransaction->import_batch_id !== (int) $importBatch->id) {
+            abort(404);
+        }
+
+        if (! $bankTransaction->matched_expense_id) {
+            return response()->json(['message' => 'This line has no linked expense.'], 422);
+        }
+
         $data = $request->validate([
-            'lines' => ['required', 'array'],
-            'lines.*.id' => ['required', 'integer', 'exists:bank_transactions,id'],
-            'lines.*.coa_id' => ['nullable', 'integer', 'exists:chart_of_accounts,id'],
+            'coa_id' => ['nullable', 'integer', 'exists:chart_of_accounts,id'],
         ]);
 
-        DB::transaction(function () use ($data, $importBatch) {
-            foreach ($data['lines'] as $row) {
-                $bankTxnId = (int) $row['id'];
-                $bankTxn = $importBatch->bankTransactions()->whereKey($bankTxnId)->first();
-                if (! $bankTxn || ! $bankTxn->matched_expense_id) {
-                    continue;
-                }
+        $coaId = isset($data['coa_id']) && $data['coa_id'] !== '' ? (int) $data['coa_id'] : null;
 
-                $coaId = ! empty($row['coa_id']) ? (int) $row['coa_id'] : null;
-
-                ExpenseTransaction::whereKey($bankTxn->matched_expense_id)->update([
-                    'coa_id' => $coaId,
-                    'needs_review' => $coaId === null,
-                    'review_reason' => $coaId === null ? 'COA not assigned' : null,
-                ]);
-
-                $this->saveLearnedCoaMappingFromBankDescription($bankTxn->description, $coaId);
-            }
+        DB::transaction(function () use ($bankTransaction, $coaId) {
+            $this->applyCoaToMatchedBankExpense($bankTransaction, $coaId);
         });
 
-        return back()->with('success', 'Chart of Account assignments saved. Matching descriptions on future bank or Owner CC imports will suggest this COA.');
+        return response()->json([
+            'message' => 'Chart of account saved.',
+            'coa_id' => $coaId,
+        ]);
+    }
+
+    protected function applyCoaToMatchedBankExpense(BankTransaction $bankTxn, ?int $coaId): void
+    {
+        if (! $bankTxn->matched_expense_id) {
+            return;
+        }
+
+        ExpenseTransaction::whereKey($bankTxn->matched_expense_id)->update([
+            'coa_id' => $coaId,
+            'needs_review' => $coaId === null,
+            'review_reason' => $coaId === null ? 'COA not assigned' : null,
+        ]);
+
+        $this->saveLearnedCoaMappingFromBankDescription($bankTxn->description, $coaId);
     }
 
     public function destroy(ImportBatch $importBatch): RedirectResponse

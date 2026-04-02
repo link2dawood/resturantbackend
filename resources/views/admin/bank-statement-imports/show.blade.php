@@ -42,12 +42,10 @@
         <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
             <h3 class="card-title mb-0">Transactions ({{ number_format($transactions->count()) }})</h3>
             <p class="text-muted small mb-0">
-                For <strong>debits</strong> that created an expense, pick a Chart of Account from the same list as <strong>Owner CC statements</strong> (Expense / COGS detail accounts). The dropdown pre-selects a COA when you (or Owner CC) already chose one for the same normalized description. Save to store on the expense and teach future imports. Credits / deposits have no expense — COA does not apply.
+                For <strong>debits</strong> that created an expense, pick a Chart of Account from the same list as <strong>Owner CC statements</strong> (Expense / COGS detail accounts). The dropdown pre-selects a COA when you (or Owner CC) already chose one for the same normalized description. <strong>Your choice saves as soon as you change it.</strong> Credits / deposits have no expense — COA does not apply.
             </p>
         </div>
         <div class="table-responsive">
-            <form action="{{ route('admin.bank-statement-imports.bulk-update-coa', $batch) }}" method="POST">
-                @csrf
                 <table class="table table-vcenter card-table table-striped">
                     <thead>
                         <tr>
@@ -75,7 +73,6 @@
                                 <td class="text-end">{{ $txn->balance !== null ? '$' . number_format((float) $txn->balance, 2) : '—' }}</td>
                                 <td>
                                     @if($txn->matched_expense_id)
-                                        <input type="hidden" name="lines[{{ $index }}][id]" value="{{ $txn->id }}">
                                         @php
                                             $descPattern = \App\Models\OwnerCcDescriptionMapping::normalizeDescription($txn->description);
                                             $storedCoaId = $txn->matchedExpense?->coa_id;
@@ -85,7 +82,12 @@
                                             $selectedCoaId = $storedCoaId ? (int) $storedCoaId : $learnedCoaId;
                                             $suggestedOnly = ! $storedCoaId && $learnedCoaId;
                                         @endphp
-                                        <select name="lines[{{ $index }}][coa_id]" class="form-select form-select-sm" style="min-width: 220px;" @if($suggestedOnly) title="Suggested from a prior assignment for this description; click Save to apply to this expense." @endif>
+                                        <select
+                                            class="form-select form-select-sm js-bank-coa-select"
+                                            style="min-width: 220px;"
+                                            data-save-url="{{ route('admin.bank-statement-imports.transaction-coa', [$batch, $txn]) }}"
+                                            @if($suggestedOnly) title="Suggested from a prior assignment for this description; saving applies it to this expense." @endif
+                                        >
                                             <option value="">— None —</option>
                                             @foreach($chartOfAccounts as $coa)
                                                 <option value="{{ $coa->id }}" {{ (int) $selectedCoaId === (int) $coa->id ? 'selected' : '' }}>
@@ -93,8 +95,9 @@
                                                 </option>
                                             @endforeach
                                         </select>
+                                        <div class="text-muted small mt-1 js-bank-coa-status" aria-live="polite"></div>
                                         @if($suggestedOnly)
-                                            <div class="text-muted small mt-1">Suggested</div>
+                                            <div class="text-muted small mt-1 bank-coa-suggested-note">Suggested</div>
                                         @endif
                                     @else
                                         <span class="text-muted">—</span>
@@ -108,13 +111,77 @@
                         @endforelse
                     </tbody>
                 </table>
-                @if($transactions->where('matched_expense_id', '!=', null)->count() > 0)
-                    <div class="card-footer d-flex justify-content-end">
-                        <button type="submit" class="btn btn-primary">Save COA assignments</button>
-                    </div>
-                @endif
-            </form>
         </div>
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+(function () {
+    const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    document.querySelectorAll('select.js-bank-coa-select').forEach(function (sel) {
+        let lastSaved = sel.value;
+        sel.addEventListener('change', function () {
+            const url = sel.getAttribute('data-save-url');
+            if (!url || !token) return;
+            const statusEl = sel.closest('td')?.querySelector('.js-bank-coa-status');
+            const suggestedNote = sel.closest('td')?.querySelector('.bank-coa-suggested-note');
+            const coaId = sel.value === '' ? null : parseInt(sel.value, 10);
+            if (coaId !== null && Number.isNaN(coaId)) return;
+            sel.disabled = true;
+            if (statusEl) {
+                statusEl.textContent = 'Saving…';
+                statusEl.classList.remove('text-danger');
+            }
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': token,
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({ coa_id: coaId }),
+            })
+                .then(async function (r) {
+                    let data = {};
+                    try {
+                        data = await r.json();
+                    } catch (e) { /* non-JSON error body */ }
+                    return { ok: r.ok, status: r.status, data: data };
+                })
+                .then(function (res) {
+                    sel.disabled = false;
+                    if (res.ok) {
+                        lastSaved = sel.value;
+                        if (statusEl) {
+                            statusEl.textContent = 'Saved';
+                            statusEl.classList.remove('text-danger');
+                        }
+                        if (suggestedNote) suggestedNote.remove();
+                        window.setTimeout(function () {
+                            if (statusEl && statusEl.textContent === 'Saved') statusEl.textContent = '';
+                        }, 2000);
+                    } else {
+                        if (statusEl) {
+                            statusEl.textContent = res.data?.message || ('Error (' + res.status + ')');
+                            statusEl.classList.add('text-danger');
+                        }
+                        sel.value = lastSaved;
+                    }
+                })
+                .catch(function () {
+                    sel.disabled = false;
+                    if (statusEl) {
+                        statusEl.textContent = 'Network error';
+                        statusEl.classList.add('text-danger');
+                    }
+                    sel.value = lastSaved;
+                });
+        });
+    });
+})();
+</script>
+@endpush
