@@ -398,10 +398,20 @@ class ThirdPartyImportController extends Controller
         if ($marketing <= 0) {
             $marketing = $this->extractGrubhubMarketingFeeLoose($text);
         }
-        $delivery = $readFees('/\bDeliveries\s+by\s+Grubhub\s*\(\s*([0-9\.,]+)\s*\)/i');
-        $processing = $readFees('/\bOrder\s+processing\s*\(\s*([0-9\.,]+)\s*\)/i');
+        $delivery = $readFees('/\bDeliveries\s+by\s+Grubhub\s*\(\s*([0-9\.,]+)\s*\)/iu');
+        $processing = $readFees('/\bOrder\s+processing\s*\(\s*([0-9\.,]+)\s*\)/iu');
 
         $orderServicesTotal = $this->extractGrubhubOrderServicesTotal($feeContext);
+
+        // Deposit table row lists exact fee splits; use when narrative failed entirely or doesn't sum to
+        // "Grubhub order services" (e.g. only processing parsed, marketing/delivery stayed 0).
+        $tableFees = $this->extractGrubhubFeesFromMarketplaceOrderTableRow($text);
+        if ($tableFees !== null && $orderServicesTotal > 0.005) {
+            $sumParsed = (float) $marketing + (float) $delivery + (float) $processing;
+            if ($sumParsed < 0.005 || abs($sumParsed - $orderServicesTotal) > 0.05) {
+                [$marketing, $delivery, $processing] = $tableFees;
+            }
+        }
 
         $tax = $read('/Includes\s*\$?\s*([0-9\.,]+)\s*in\s+taxes/i', true);
 
@@ -480,8 +490,8 @@ class ThirdPartyImportController extends Controller
     protected function extractGrubhubMarketingFeeFromSummary(string $block): float
     {
         $patternAmountIndex = [
-            ['/^\s*\d+\s+Marketing(?:\s+Services\b[\s\S]*?)?\s*\(\s*([0-9\.,]+)\s*\)/im', 1],
-            ['/(\d+)\s+Marketing(?:\s+Services\b[\s\S]*?)?\s*\(\s*([0-9\.,]+)\s*\)/is', 2],
+            ['/^\s*\d+\s+Marketing(?:\s+Services\b[\s\S]*?)?\s*\(\s*([0-9\.,]+)\s*\)/imu', 1],
+            ['/(\d+)\s+Marketing(?:\s+Services\b[\s\S]*?)?\s*\(\s*([0-9\.,]+)\s*\)/isu', 2],
             ['/(\d+)[\s\x{00A0}]*[\r\n]+[\s\x{00A0}]*Marketing(?:\s+Services\b[\s\S]*?)?\s*\(\s*([0-9\.,]+)\s*\)/iu', 2],
             ['/(\d+)[\s\x{00A0}]+Marketing[\s\x{00A0}]*[\r\n]+[\s\x{00A0}]*Services\b[\s\S]*?\(\s*([0-9\.,]+)\s*\)/iu', 2],
         ];
@@ -501,7 +511,7 @@ class ThirdPartyImportController extends Controller
     protected function extractGrubhubMarketingFeeLoose(string $text): float
     {
         if (! preg_match(
-            '/Grubhub\s+order\s+services[\s\S]{0,3000}?\b\d+\s+Marketing(?:\s+Services\b[\s\S]*?)?\s*\(\s*([0-9\.,]+)\s*\)/is',
+            '/Grubhub\s+order\s+services[\s\S]{0,3000}?(?<![0-9])\d+\s+Marketing(?:\s+Services\b[\s\S]*?)?\s*\(\s*([0-9\.,]+)\s*\)/isu',
             $text,
             $m
         )) {
@@ -509,6 +519,41 @@ class ThirdPartyImportController extends Controller
         }
 
         return abs((float) $this->parseAmount($m[1] ?? null));
+    }
+
+    /**
+     * Deposit grid row: "... $22.18 ($3.07) ($2.05) $0.00 ($0.98)" → marketing, delivery, processing.
+     * Anchored to "Marketplace order" so we don't match random parentheses elsewhere.
+     */
+    protected function extractGrubhubFeesFromMarketplaceOrderTableRow(string $text): ?array
+    {
+        if (! preg_match(
+            '/Marketplace\s+order\s+(?:\d+\s+)([^\r\n]+)/iu',
+            $text,
+            $row
+        )) {
+            return null;
+        }
+
+        $line = trim($row[1]);
+        if ($line === '') {
+            return null;
+        }
+
+        // Trailing fee columns: (marketing) (delivery) $withheld (processing) — same on 4- or 5-col subtotal rows.
+        if (! preg_match(
+            '/\(([0-9\.,]+)\)\s+\(([0-9\.,]+)\)\s+\$[0-9\.,]+\s+\(([0-9\.,]+)\)\s*$/u',
+            $line,
+            $m
+        )) {
+            return null;
+        }
+
+        return [
+            round(abs((float) $this->parseAmount($m[1] ?? null)), 2),
+            round(abs((float) $this->parseAmount($m[2] ?? null)), 2),
+            round(abs((float) $this->parseAmount($m[3] ?? null)), 2),
+        ];
     }
 
     /**
