@@ -42,7 +42,7 @@
         <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
             <h3 class="card-title mb-0">Transactions ({{ number_format($transactions->count()) }})</h3>
             <p class="text-muted small mb-0">
-                For <strong>debits</strong> that created an expense, pick a Chart of Account from the same list as <strong>Owner CC statements</strong> (Expense / COGS detail accounts). The dropdown pre-selects a COA when you (or Owner CC) already chose one for the same normalized description. <strong>Your choice saves as soon as you change it.</strong> Credits / deposits have no expense — COA does not apply.
+                Pick a Chart of Account from the same list as <strong>Owner CC statements</strong> (Expense / COGS detail accounts) for <strong>debits</strong> with a linked expense and for <strong>credits</strong> (deposits). The dropdown pre-selects a COA when you already chose one for the same normalized description (including from Owner CC). <strong>Your choice saves as soon as you change it.</strong> Other debits (no expense row) have no COA field here.
             </p>
         </div>
         <div class="table-responsive">
@@ -72,10 +72,14 @@
                                 <td class="text-end">${{ number_format((float) $txn->amount, 2) }}</td>
                                 <td class="text-end">{{ $txn->balance !== null ? '$' . number_format((float) $txn->balance, 2) : '—' }}</td>
                                 <td>
-                                    @if($txn->matched_expense_id)
+                                    @if($txn->matched_expense_id || $txn->transaction_type === 'credit')
                                         @php
                                             $descPattern = \App\Models\OwnerCcDescriptionMapping::normalizeDescription($txn->description);
-                                            $storedCoaId = $txn->matchedExpense?->coa_id;
+                                            if ($txn->matched_expense_id) {
+                                                $storedCoaId = $txn->matchedExpense?->coa_id;
+                                            } else {
+                                                $storedCoaId = $txn->coa_id;
+                                            }
                                             $learnedCoaId = ($descPattern !== '' && $learnedCoaByPattern->has($descPattern))
                                                 ? (int) $learnedCoaByPattern->get($descPattern)
                                                 : null;
@@ -86,7 +90,7 @@
                                             class="form-select form-select-sm js-bank-coa-select"
                                             style="min-width: 220px;"
                                             data-save-url="{{ route('admin.bank-statement-imports.transaction-coa', [$batch, $txn]) }}"
-                                            @if($suggestedOnly) title="Suggested from a prior assignment for this description; saving applies it to this expense." @endif
+                                            @if($suggestedOnly) title="Suggested from a prior assignment for this description; saving stores it for this line." @endif
                                         >
                                             <option value="">— None —</option>
                                             @foreach($chartOfAccounts as $coa)

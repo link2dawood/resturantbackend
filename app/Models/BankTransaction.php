@@ -21,6 +21,7 @@ class BankTransaction extends Model
         'reference_number',
         'matched_expense_id',
         'matched_revenue_id',
+        'coa_id',
         'reconciliation_status',
         'reconciliation_notes',
         'import_batch_id',
@@ -48,6 +49,11 @@ class BankTransaction extends Model
     public function matchedRevenue(): BelongsTo
     {
         return $this->belongsTo(DailyReport::class, 'matched_revenue_id');
+    }
+
+    public function coa(): BelongsTo
+    {
+        return $this->belongsTo(ChartOfAccount::class, 'coa_id');
     }
 
     public function importBatch(): BelongsTo

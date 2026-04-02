@@ -243,6 +243,8 @@ class BankImportController extends Controller
                 $reconciled = false;
 
                 if ($row['transaction_type'] === 'credit') {
+                    $this->applyLearnedCoaToBankTransactionIfKnown($bankTransaction);
+
                     $reconciled = $this->attemptDepositMatching($bankTransaction, $bankAccount, $reconciliationStoreId);
 
                     if (! $reconciled) {
@@ -268,6 +270,7 @@ class BankImportController extends Controller
 
                             if ($expenseCreated->id) {
                                 $bankTransaction->matched_expense_id = $expenseCreated->id;
+                                $bankTransaction->coa_id = $expenseCreated->coa_id;
                                 $bankTransaction->reconciliation_status = 'matched';
                                 $bankTransaction->save();
                                 $reconciled = true;
@@ -711,6 +714,33 @@ class BankImportController extends Controller
         $batches = $query->paginate(20);
 
         return response()->json($batches);
+    }
+
+    /**
+     * For bank import lines (credits), set COA from shared description → COA mappings when present.
+     */
+    protected function applyLearnedCoaToBankTransactionIfKnown(BankTransaction $bankTransaction): void
+    {
+        if ($bankTransaction->coa_id) {
+            return;
+        }
+
+        $pattern = OwnerCcDescriptionMapping::normalizeDescription((string) ($bankTransaction->description ?? ''));
+        if ($pattern === '') {
+            return;
+        }
+
+        $learned = OwnerCcDescriptionMapping::query()
+            ->where('description_pattern', $pattern)
+            ->whereNotNull('coa_id')
+            ->first();
+
+        if (! $learned) {
+            return;
+        }
+
+        $bankTransaction->update(['coa_id' => $learned->coa_id]);
+        $learned->increment('times_matched');
     }
 
     /**

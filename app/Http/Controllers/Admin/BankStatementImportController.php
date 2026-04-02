@@ -156,7 +156,7 @@ class BankStatementImportController extends Controller
         $importBatch->load(['store', 'importer']);
 
         $transactions = $importBatch->bankTransactions()
-            ->with(['matchedExpense.coa'])
+            ->with(['matchedExpense.coa', 'coa'])
             ->orderBy('transaction_date')
             ->orderBy('id')
             ->get();
@@ -173,7 +173,7 @@ class BankStatementImportController extends Controller
             ->get();
 
         $patterns = $transactions
-            ->filter(fn (BankTransaction $t) => $t->matched_expense_id)
+            ->filter(fn (BankTransaction $t) => $t->matched_expense_id || $t->transaction_type === 'credit')
             ->map(fn (BankTransaction $t) => OwnerCcDescriptionMapping::normalizeDescription($t->description))
             ->filter()
             ->unique()
@@ -202,19 +202,23 @@ class BankStatementImportController extends Controller
             abort(404);
         }
 
-        if (! $bankTransaction->matched_expense_id) {
-            return response()->json(['message' => 'This line has no linked expense.'], 422);
-        }
-
         $data = $request->validate([
             'coa_id' => ['nullable', 'integer', 'exists:chart_of_accounts,id'],
         ]);
 
         $coaId = isset($data['coa_id']) && $data['coa_id'] !== '' ? (int) $data['coa_id'] : null;
 
-        DB::transaction(function () use ($bankTransaction, $coaId) {
-            $this->applyCoaToMatchedBankExpense($bankTransaction, $coaId);
-        });
+        if ($bankTransaction->matched_expense_id) {
+            DB::transaction(function () use ($bankTransaction, $coaId) {
+                $this->applyCoaToMatchedBankExpense($bankTransaction, $coaId);
+            });
+        } elseif ($bankTransaction->transaction_type === 'credit') {
+            DB::transaction(function () use ($bankTransaction, $coaId) {
+                $this->applyCoaToCreditBankTransaction($bankTransaction, $coaId);
+            });
+        } else {
+            return response()->json(['message' => 'Chart of account applies to credits or to debits that have a linked expense.'], 422);
+        }
 
         return response()->json([
             'message' => 'Chart of account saved.',
@@ -234,6 +238,18 @@ class BankStatementImportController extends Controller
             'review_reason' => $coaId === null ? 'COA not assigned' : null,
         ]);
 
+        $this->saveLearnedCoaMappingFromBankDescription($bankTxn->description, $coaId);
+
+        $bankTxn->update(['coa_id' => $coaId]);
+    }
+
+    protected function applyCoaToCreditBankTransaction(BankTransaction $bankTxn, ?int $coaId): void
+    {
+        if ($bankTxn->transaction_type !== 'credit') {
+            return;
+        }
+
+        $bankTxn->update(['coa_id' => $coaId]);
         $this->saveLearnedCoaMappingFromBankDescription($bankTxn->description, $coaId);
     }
 
