@@ -7,6 +7,7 @@ use App\Models\ExpenseTransaction;
 use App\Models\DailyReport;
 use App\Models\ThirdPartyStatement;
 use App\Models\ChartOfAccount;
+use App\Support\MerchantFeeRecentRows;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -315,8 +316,8 @@ class MerchantFeeController extends Controller
     {
         $accessibleStoreIds = auth()->user()->getAccessibleStoreIds();
         $storeId = $request->input('store_id');
-        $startDate = $request->input('start_date');
-        $endDate = $request->input('end_date');
+        $startDate = $request->input('start_date', now()->startOfMonth()->format('Y-m-d'));
+        $endDate = $request->input('end_date', now()->endOfMonth()->format('Y-m-d'));
         $processor = $request->input('processor');
 
         if ($storeId && ! in_array((int) $storeId, $accessibleStoreIds, true)) {
@@ -324,39 +325,34 @@ class MerchantFeeController extends Controller
         }
 
         $coaIds = ChartOfAccount::merchantFeeAnalyticsCoaIds();
-        if ($coaIds === []) {
-            return response()->json([
-                'message' => 'No merchant fee COA accounts configured (processing or platform fees).',
-            ], 404);
+
+        $perPage = min(max((int) $request->input('per_page', 25), 1), 100);
+
+        $rows = MerchantFeeRecentRows::fetch(
+            $coaIds,
+            $storeId ? (int) $storeId : null,
+            $startDate,
+            $endDate,
+            $accessibleStoreIds,
+            500
+        );
+
+        if ($trim = trim((string) $processor)) {
+            $needle = mb_strtolower($trim);
+            $rows = $rows->filter(
+                fn (array $row) => str_contains(mb_strtolower((string) ($row['processor'] ?? '')), $needle)
+            )->values();
         }
 
-        $query = ExpenseTransaction::with(['store', 'vendor', 'dailyReport'])
-            ->whereIn('coa_id', $coaIds);
+        $page = max((int) $request->input('page', 1), 1);
+        $slice = $rows->forPage($page, $perPage)->values();
 
-        $query->whereIn('store_id', $accessibleStoreIds);
-
-        if ($storeId) {
-            $query->where('store_id', $storeId);
-        }
-
-        if ($startDate) {
-            $query->where('transaction_date', '>=', $startDate);
-        }
-
-        if ($endDate) {
-            $query->where('transaction_date', '<=', $endDate);
-        }
-
-        if ($processor) {
-            $query->whereHas('vendor', function($q) use ($processor) {
-                $q->where('vendor_name', 'like', "%{$processor}%");
-            });
-        }
-
-        $transactions = $query->orderBy('transaction_date', 'desc')
-            ->orderBy('created_at', 'desc')
-            ->paginate(min((int) $request->input('per_page', 25), 100));
-
-        return response()->json($transactions);
+        return response()->json([
+            'current_page' => $page,
+            'data' => $slice,
+            'per_page' => $perPage,
+            'total' => $rows->count(),
+            'last_page' => max((int) ceil($rows->count() / $perPage), 1),
+        ]);
     }
 }

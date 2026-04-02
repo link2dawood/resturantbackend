@@ -190,20 +190,24 @@
                     <tbody id="merchantFeeTransactionsBody">
                         @forelse($recentTransactions as $transaction)
                         <tr>
-                            <td>{{ $transaction->transaction_date->format('M d, Y') }}</td>
-                            <td>{{ $transaction->store->store_info ?? 'N/A' }}</td>
-                            <td>{{ $transaction->vendor->vendor_name ?? 'Unknown' }}</td>
-                            <td class="text-end"><strong class="text-danger">${{ number_format($transaction->amount, 2) }}</strong></td>
+                            <td>{{ \Carbon\Carbon::parse($transaction['transaction_date'])->format('M d, Y') }}</td>
+                            <td>{{ $transaction['store_name'] }}</td>
+                            <td>{{ $transaction['processor'] }}</td>
+                            <td class="text-end"><strong class="text-danger">${{ number_format($transaction['amount'], 2) }}</strong></td>
                             <td class="text-end">
-                                @if($transaction->dailyReport)
-                                    <span class="text-success">${{ number_format($transaction->dailyReport->credit_cards ?? 0, 2) }}</span>
+                                @if(array_key_exists('credit_cards', $transaction) && $transaction['credit_cards'] !== null)
+                                    <span class="text-success">${{ number_format($transaction['credit_cards'], 2) }}</span>
+                                @elseif(!empty($transaction['statement_gross_sales']))
+                                    <span class="text-success" title="Platform gross sales (statement)">${{ number_format($transaction['statement_gross_sales'], 2) }}</span>
                                 @else
                                     <span class="text-muted">—</span>
                                 @endif
                             </td>
                             <td class="text-center">
-                                @if($transaction->daily_report_id)
-                                    <a href="/daily-reports/{{ $transaction->daily_report_id }}" class="btn btn-sm btn-outline-primary">View</a>
+                                @if(!empty($transaction['daily_report_id']))
+                                    <a href="/daily-reports/{{ $transaction['daily_report_id'] }}" class="btn btn-sm btn-outline-primary">View</a>
+                                @elseif(!empty($transaction['third_party_statement_id']))
+                                    <a href="{{ route('admin.merchant-fees.third-party.show', $transaction['third_party_statement_id']) }}" class="btn btn-sm btn-outline-primary">View</a>
                                 @else
                                     <span class="text-muted">-</span>
                                 @endif
@@ -301,7 +305,7 @@ document.addEventListener('DOMContentLoaded', function() {
             let transactionData = [];
             if (Array.isArray(transactionsPayload)) {
                 transactionData = transactionsPayload;
-            } elseif (Array.isArray(transactionsPayload?.data)) {
+            } else if (Array.isArray(transactionsPayload?.data)) {
                 transactionData = transactionsPayload.data;
             }
 
@@ -422,21 +426,29 @@ document.addEventListener('DOMContentLoaded', function() {
 
         transactionsBody.innerHTML = transactions.map((transaction) => {
             const transactionDate = transaction.transaction_date
-                ? new Date(transaction.transaction_date).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })
+                ? new Date(transaction.transaction_date + (String(transaction.transaction_date).length <= 10 ? 'T12:00:00' : '')).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })
                 : '-';
 
-            const storeName = transaction.store?.store_info || 'N/A';
-            const processorName = transaction.vendor?.vendor_name || 'Unknown';
+            const storeName = transaction.store_name || transaction.store?.store_info || 'N/A';
+            const processorName = transaction.processor || transaction.vendor?.vendor_name || 'Unknown';
             const amount = Number(transaction.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-            const ccNet = transaction.daily_report?.credit_cards != null
-                ? Number(transaction.daily_report.credit_cards).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-                : null;
+            let ccNet = null;
+            if (transaction.credit_cards != null) {
+                ccNet = Number(transaction.credit_cards).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            } else if (transaction.statement_gross_sales != null) {
+                ccNet = Number(transaction.statement_gross_sales).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            } else if (transaction.daily_report?.credit_cards != null) {
+                ccNet = Number(transaction.daily_report.credit_cards).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            }
             const ccCell = ccNet != null
-                ? `<span class="text-success">$${ccNet}</span>`
+                ? `<span class="text-success" title="${transaction.statement_gross_sales != null ? 'Platform gross sales (statement)' : ''}">$${ccNet}</span>`
                 : '<span class="text-muted">—</span>';
-            const reportCell = transaction.daily_report_id
-                ? `<a href="/daily-reports/${transaction.daily_report_id}" class="btn btn-sm btn-outline-primary">View</a>`
-                : '<span class="text-muted">-</span>';
+            let reportCell = '<span class="text-muted">-</span>';
+            if (transaction.daily_report_id) {
+                reportCell = `<a href="/daily-reports/${transaction.daily_report_id}" class="btn btn-sm btn-outline-primary">View</a>`;
+            } else if (transaction.third_party_statement_id) {
+                reportCell = `<a href="/merchant-fees/third-party/statements/${transaction.third_party_statement_id}" class="btn btn-sm btn-outline-primary">View</a>`;
+            }
 
             return `
                 <tr>

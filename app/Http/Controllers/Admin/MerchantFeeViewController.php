@@ -9,6 +9,7 @@ use App\Models\ExpenseTransaction;
 use App\Models\DailyReport;
 use App\Models\ThirdPartyStatement;
 use App\Models\ChartOfAccount;
+use App\Support\MerchantFeeRecentRows;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -346,31 +347,18 @@ class MerchantFeeViewController extends Controller
     }
     
     /**
-     * Get recent merchant fee transactions (processing + third-party platform fee expenses)
+     * Get recent merchant fee transactions (processing + platform imports, including statement-only rows when no expenses were posted).
      */
     protected function getRecentFeeTransactions(array $coaIds, $storeId, $startDate, $endDate, array $accessibleStoreIds = [])
     {
-        if ($coaIds === []) {
-            return collect([]);
-        }
-
-        $query = ExpenseTransaction::with(['store', 'vendor', 'dailyReport'])
-            ->whereIn('coa_id', $coaIds);
-
-        if (! empty($accessibleStoreIds)) {
-            $query->whereIn('store_id', $accessibleStoreIds);
-        }
-        
-        if ($storeId) {
-            $query->where('store_id', $storeId);
-        }
-        
-        $query->whereBetween('transaction_date', [$startDate, $endDate]);
-        
-        return $query->orderBy('transaction_date', 'desc')
-            ->orderBy('created_at', 'desc')
-            ->limit(25)
-            ->get();
+        return MerchantFeeRecentRows::fetch(
+            $coaIds,
+            $storeId ? (int) $storeId : null,
+            $startDate,
+            $endDate,
+            $accessibleStoreIds,
+            25
+        );
     }
     
     /**

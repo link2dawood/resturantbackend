@@ -59,4 +59,18 @@ class ThirdPartyStatement extends Model
     {
         return $this->hasMany(ExpenseTransaction::class, 'third_party_statement_id');
     }
+
+    /**
+     * Total fees for analytics cards — matches MerchantFeeViewController third-party aggregates (Grubhub excludes adjustments).
+     */
+    public function analyticsTotalFees(): float
+    {
+        $marketing = (float) $this->marketing_fees;
+        $delivery = (float) $this->delivery_fees;
+        $processing = (float) $this->processing_fees;
+        $adjustments = (float) $this->adjustments;
+        $adjustmentsPart = $this->platform === 'grubhub' ? 0.0 : $adjustments;
+
+        return $marketing + $delivery + $processing + $adjustmentsPart;
+    }
 }
