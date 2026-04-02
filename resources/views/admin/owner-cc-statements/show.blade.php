@@ -107,7 +107,6 @@
                             <th>Description</th>
                             <th class="text-end">Debit</th>
                             <th class="text-end">Credit</th>
-                            <th>Member</th>
                             <th>Store</th>
                             <th>Chart of Account</th>
                         </tr>
@@ -120,7 +119,6 @@
                                 <td>{{ Str::limit($line->description, 50) }}</td>
                                 <td class="text-end">{{ $line->debit > 0 ? '$' . number_format($line->debit, 2) : '—' }}</td>
                                 <td class="text-end">{{ $line->credit > 0 ? '$' . number_format($line->credit, 2) : '—' }}</td>
-                                <td>{{ $line->member_name ?? '—' }}</td>
                                 <td>
                                     @php
                                         $effectiveStoreId = $line->store_id ?: $import->store_id;
@@ -148,7 +146,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="8" class="text-center text-muted py-4">No transactions in this import.</td>
+                                <td colspan="7" class="text-center text-muted py-4">No transactions in this import.</td>
                             </tr>
                         @endforelse
                     </tbody>

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Constants\BankStatementSupportedBank;
 use App\Http\Controllers\Api\BankImportController;
 use App\Http\Controllers\Controller;
+use App\Models\BankAccount;
 use App\Models\BankTransaction;
 use App\Models\ChartOfAccount;
 use App\Models\ExpenseTransaction;
@@ -47,11 +48,32 @@ class BankStatementImportController extends Controller
     public function create()
     {
         $user = auth()->user();
-        $stores = Store::whereIn('id', $user->getAccessibleStoreIds())->orderBy('store_info')->get();
+        $accessibleIds = $user->getAccessibleStoreIds();
+        $stores = Store::whereIn('id', $accessibleIds)->orderBy('store_info')->get();
+
+        $bankAccounts = BankAccount::query()
+            ->where('is_active', true)
+            ->whereIn('store_id', $accessibleIds)
+            ->orderBy('bank_name')
+            ->orderBy('id')
+            ->get(['id', 'store_id', 'bank_name', 'account_number_last_four', 'account_type']);
+
+        $bankAccountsPayload = $bankAccounts->map(function (BankAccount $ba) {
+            $tail = $ba->account_number_last_four ? ' · …'.$ba->account_number_last_four : '';
+
+            return [
+                'id' => $ba->id,
+                'store_id' => $ba->store_id,
+                'label' => $ba->bank_name.$tail,
+                'bow' => BankStatementSupportedBank::isLikelyBankOfTheWestName($ba->bank_name),
+            ];
+        })->values();
 
         return view('admin.bank-statement-imports.create', [
             'stores' => $stores,
             'bankLabel' => BankStatementSupportedBank::BANK_OF_THE_WEST_LABEL,
+            'bankAccountsPayload' => $bankAccountsPayload,
+            'hasAnyBankAccount' => $bankAccounts->isNotEmpty(),
         ]);
     }
 
@@ -62,6 +84,7 @@ class BankStatementImportController extends Controller
 
         $request->validate([
             'store_id' => 'required|integer|exists:stores,id',
+            'bank_account_id' => 'required|integer|exists:bank_accounts,id',
             'file' => 'required|file|mimes:csv,txt|max:10240',
         ]);
 
@@ -70,10 +93,15 @@ class BankStatementImportController extends Controller
             abort(403);
         }
 
-        $account = BankStatementSupportedBank::resolveBankOfTheWestAccount($storeId);
+        $account = BankAccount::query()
+            ->whereKey((int) $request->bank_account_id)
+            ->where('store_id', $storeId)
+            ->where('is_active', true)
+            ->first();
+
         if (! $account) {
             return back()
-                ->with('error', 'No active Bank of the West account found for this store. Add a bank account with bank name containing “Bank of the West” under Bank Accounts / reconciliation setup first.')
+                ->with('error', 'The selected bank account is inactive, missing, or does not belong to the chosen store.')
                 ->withInput();
         }
 
