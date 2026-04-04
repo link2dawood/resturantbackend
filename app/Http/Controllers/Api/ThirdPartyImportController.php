@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Support\ImportUniqueFileName;
 use App\Models\ThirdPartyStatement;
 use App\Models\ExpenseTransaction;
 use App\Models\BankTransaction;
@@ -59,7 +60,14 @@ class ThirdPartyImportController extends Controller
 
             // Generate file hash for duplicate detection
             $fileHash = md5_file($file->getRealPath());
-            
+
+            $normalizedName = ImportUniqueFileName::normalize($file->getClientOriginalName());
+            if (ImportUniqueFileName::thirdPartyStatementExists($normalizedName)) {
+                return response()->json([
+                    'message' => 'A file with this name has already been imported.',
+                ], 409);
+            }
+
             // Check for duplicate imports
             $existing = ThirdPartyStatement::where('file_hash', $fileHash)->first();
             if ($existing) {

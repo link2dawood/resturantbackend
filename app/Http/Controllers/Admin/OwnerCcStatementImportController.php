@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Constants\OwnerCcStatementCardPlatform;
+use App\Support\ImportUniqueFileName;
 use App\Http\Controllers\Controller;
 use App\Imports\OwnerCcStatementRowsImport;
 use App\Models\ChartOfAccount;
@@ -69,28 +70,18 @@ class OwnerCcStatementImportController extends Controller
         $file = $request->file('file');
         $extension = strtolower($file->getClientOriginalExtension());
         $fileHash = md5_file($file->getRealPath());
-        $storeId = $request->input('store_id');
 
-        // Only block if the same file was already imported for this same store (allow same file for different stores)
-        $existing = OwnerCcStatementImport::where('file_hash', $fileHash)
-            ->where(function ($q) use ($storeId) {
-                if ($storeId) {
-                    $q->where('store_id', $storeId);
-                } else {
-                    $q->whereNull('store_id');
-                }
-            })
-            ->first();
-        if ($existing) {
+        $normalizedName = ImportUniqueFileName::normalize($file->getClientOriginalName());
+        if (ImportUniqueFileName::ownerCcStatementImportExists($normalizedName)) {
             if ($request->wantsJson()) {
                 return response()->json([
-                    'message' => 'This file has already been imported for this store.',
-                    'import_id' => $existing->id,
+                    'message' => 'A file with this name has already been imported.',
                 ], 409);
             }
+
             return redirect()
                 ->route('admin.owner-cc-statements.index')
-                ->with('error', 'This file has already been imported for this store.');
+                ->with('error', 'A file with this name has already been imported.');
         }
 
         try {

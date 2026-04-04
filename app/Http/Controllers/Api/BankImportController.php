@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Support\ImportUniqueFileName;
 use App\Models\BankAccount;
 use App\Models\BankTransaction;
 use App\Models\ImportBatch;
@@ -87,6 +88,13 @@ class BankImportController extends Controller
         $bankAccount = BankAccount::findOrFail($request->bank_account_id);
         $fileHash = md5_file($file->getRealPath());
 
+        $normalizedName = ImportUniqueFileName::normalize($file->getClientOriginalName());
+        if (ImportUniqueFileName::bankStatementImportExists($normalizedName)) {
+            return response()->json([
+                'error' => 'A file with this name has already been imported.',
+            ], 422);
+        }
+
         $existingBatch = ImportBatch::where('file_hash', $fileHash)
             ->where('import_type', 'bank_statement')
             ->first();
@@ -142,6 +150,11 @@ class BankImportController extends Controller
         ?int $batchStoreId = null
     ): ImportBatch {
         $fileHash = md5_file($file->getRealPath());
+
+        $normalizedName = ImportUniqueFileName::normalize($file->getClientOriginalName());
+        if (ImportUniqueFileName::bankStatementImportExists($normalizedName)) {
+            throw new \InvalidArgumentException('A file with this name has already been imported.');
+        }
 
         if (ImportBatch::where('file_hash', $fileHash)->where('import_type', 'bank_statement')->exists()) {
             throw new \InvalidArgumentException('This file has already been imported.');
