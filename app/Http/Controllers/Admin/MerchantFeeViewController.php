@@ -9,6 +9,7 @@ use App\Models\ExpenseTransaction;
 use App\Models\DailyReport;
 use App\Models\ThirdPartyStatement;
 use App\Models\ChartOfAccount;
+use App\Support\MerchantFeeOwnerCcProcessingFees;
 use App\Support\MerchantFeeRecentRows;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -44,7 +45,7 @@ class MerchantFeeViewController extends Controller
         // Get third-party stats
         $thirdPartyPlatforms = $this->getThirdPartyStats($storeId, $startDate, $endDate, $accessibleStoreIds);
         
-        // Processor breakdown / trends / recent rows: include platform fee expenses (Grubhub/Uber/DoorDash COAs), not only 6100
+        // Processor breakdown / trends / recent: credit card processing COAs + Owner CC lines on those COAs
         $byProcessor = $this->getFeesByProcessor($feeAnalyticsCoaIds, $storeId, $startDate, $endDate, $accessibleStoreIds);
         $trends = $this->getFeeTrends($feeAnalyticsCoaIds, $storeId, $startDate, $endDate, 'day', $accessibleStoreIds);
         $recentTransactions = $this->getRecentFeeTransactions($feeAnalyticsCoaIds, $storeId, $startDate, $endDate, $accessibleStoreIds);
@@ -274,7 +275,8 @@ class MerchantFeeViewController extends Controller
                 DB::raw('COUNT(*) as transaction_count')
             )
             ->join('vendors', 'expense_transactions.vendor_id', '=', 'vendors.id')
-            ->whereIn('expense_transactions.coa_id', $coaIds);
+            ->whereIn('expense_transactions.coa_id', $coaIds)
+            ->whereNull('expense_transactions.third_party_statement_id');
 
         if (! empty($accessibleStoreIds)) {
             $query->whereIn('expense_transactions.store_id', $accessibleStoreIds);
@@ -286,9 +288,19 @@ class MerchantFeeViewController extends Controller
         
         $query->whereBetween('expense_transactions.transaction_date', [$startDate, $endDate]);
         
-        return $query->groupBy('vendors.vendor_name')
+        $byProcessor = $query->groupBy('vendors.vendor_name')
             ->orderByDesc('total_fees')
             ->get();
+
+        $ccRow = MerchantFeeOwnerCcProcessingFees::byProcessorRow(
+            $coaIds,
+            $storeId ? (int) $storeId : null,
+            $startDate,
+            $endDate,
+            $accessibleStoreIds
+        );
+
+        return MerchantFeeOwnerCcProcessingFees::mergeByProcessor($byProcessor, $ccRow);
     }
     
     /**
@@ -300,7 +312,8 @@ class MerchantFeeViewController extends Controller
             return collect([]);
         }
 
-        $query = ExpenseTransaction::whereIn('coa_id', $coaIds);
+        $query = ExpenseTransaction::whereIn('coa_id', $coaIds)
+            ->whereNull('third_party_statement_id');
 
         if (! empty($accessibleStoreIds)) {
             $query->whereIn('store_id', $accessibleStoreIds);
@@ -343,7 +356,18 @@ class MerchantFeeViewController extends Controller
                 break;
         }
         
-        return $query->get();
+        $expenseTrends = collect($query->get());
+
+        $ccTrends = MerchantFeeOwnerCcProcessingFees::trends(
+            $coaIds,
+            $storeId ? (int) $storeId : null,
+            $startDate,
+            $endDate,
+            $groupBy,
+            $accessibleStoreIds
+        );
+
+        return MerchantFeeOwnerCcProcessingFees::mergeTrends($expenseTrends, $ccTrends, $groupBy);
     }
     
     /**

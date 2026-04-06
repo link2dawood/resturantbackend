@@ -48,21 +48,32 @@ class ChartOfAccount extends Model
     }
 
     /**
-     * Expense COA ids shown in Merchant Fee Analytics (in-store processing + third-party platform fee expenses).
+     * All active chart rows that represent in-store / credit card merchant processing fees (e.g. 6100, 6000).
+     *
+     * @return array<int, int>
+     */
+    public static function merchantProcessingFeeCoaIds(): array
+    {
+        return static::query()
+            ->where(function ($query) {
+                $query->whereIn('account_code', self::MERCHANT_PROCESSING_FEE_CODES)
+                    ->orWhere('account_name', 'Merchant Processing Fees')
+                    ->orWhere('account_name', 'Merchant Processing Fees (CC)')
+                    ->orWhere('account_name', 'like', 'Merchant Processing Fees%');
+            })
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * COA ids for Merchant Fee Analytics: credit card / in-store processing fees only (not Grubhub/Uber/DoorDash expense accounts).
      */
     public static function merchantFeeAnalyticsCoaIds(): array
     {
-        $ids = [];
-        if ($m = static::merchantProcessingFeesAccount()) {
-            $ids[] = (int) $m->id;
-        }
-        foreach (['grubhub', 'ubereats', 'doordash'] as $platform) {
-            if ($c = static::thirdPartyPlatformExpenseAccount($platform)) {
-                $ids[] = (int) $c->id;
-            }
-        }
-
-        return array_values(array_unique(array_filter($ids)));
+        return static::merchantProcessingFeeCoaIds();
     }
 
     public static function thirdPartyPlatformExpenseAccount(string $platform): ?self

@@ -35,7 +35,7 @@
         <div>
             <h1 class="mb-0" style="font-family: 'Google Sans', sans-serif; font-size: 1.75rem; font-weight: 400; color: var(--on-surface, #202124);">Merchant Fee Analytics</h1>
             <p class="text-muted mb-0" id="merchantFeeSummaryText" style="font-family: 'Google Sans', sans-serif; margin-top: 0.25rem;">
-                Merchant fee analytics is {{ number_format($merchantProcessing['average_fee_percentage'], 2) }}% of all credit card sales received. This rate applies to all online and in-store platform transactions.
+                In-store credit card processing fees are {{ number_format($merchantProcessing['average_fee_percentage'], 2) }}% of credit card sales on daily reports (Square-style). Owner CC statement lines coded to merchant processing fees appear below. Use Third-Party Platforms for delivery app fees.
             </p>
         </div>
         <div class="btn-group">
@@ -128,7 +128,7 @@
                     <div class="h1 mb-3 text-warning" id="thirdPartyTotalFees">
                         ${{ number_format($thirdPartyPlatforms['total_fees'], 2) }}
                     </div>
-                    <div class="d-flex align-items-center text-muted" id="thirdPartyAverageFeeLabel">{{ number_format($merchantProcessing['average_fee_percentage'], 2) }}% merchant processing fee</div>
+                    <div class="d-flex align-items-center text-muted" id="thirdPartyAverageFeeLabel">{{ number_format($thirdPartyPlatforms['average_fee_percentage'], 2) }}% of platform gross</div>
                 </div>
             </div>
         </div>
@@ -217,6 +217,8 @@
                                     <a href="/daily-reports/{{ $transaction['daily_report_id'] }}" class="btn btn-sm btn-outline-primary">View</a>
                                 @elseif(!empty($transaction['third_party_statement_id']))
                                     <a href="{{ route('admin.merchant-fees.third-party.show', $transaction['third_party_statement_id']) }}" class="btn btn-sm btn-outline-primary">View</a>
+                                @elseif(!empty($transaction['owner_cc_statement_import_id']))
+                                    <a href="{{ route('admin.owner-cc-statements.show', $transaction['owner_cc_statement_import_id']) }}" class="btn btn-sm btn-outline-primary">View</a>
                                 @else
                                     <span class="text-muted">-</span>
                                 @endif
@@ -360,8 +362,9 @@ document.addEventListener('DOMContentLoaded', function() {
         merchantProcessingAverageFee.textContent = `${merchantFeePct.toFixed(2)}%`;
         merchantProcessingTotalSales.textContent = formatCurrency(merchantProcessing.total_sales || 0);
         thirdPartyTotalFees.textContent = formatCurrency(thirdParty.total_fees || 0);
-        thirdPartyAverageFeeLabel.textContent = `${merchantFeePct.toFixed(2)}% merchant processing fee`;
-        summaryText.textContent = `Merchant fee analytics is ${merchantFeePct.toFixed(2)}% of all credit card sales received. This rate applies to all online and in-store platform transactions.`;
+        const thirdPartyPct = Number(thirdParty.average_fee_percentage || 0);
+        thirdPartyAverageFeeLabel.textContent = `${thirdPartyPct.toFixed(2)}% of platform gross`;
+        summaryText.textContent = `In-store credit card processing fees are ${merchantFeePct.toFixed(2)}% of credit card sales on daily reports. Owner CC lines coded to merchant processing fees appear in the table. Open Third-Party Platforms for delivery app fees.`;
     }
 
     function renderTrendsChart(trendsData) {
@@ -468,6 +471,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 reportCell = `<a href="/daily-reports/${transaction.daily_report_id}" class="btn btn-sm btn-outline-primary">View</a>`;
             } else if (transaction.third_party_statement_id) {
                 reportCell = `<a href="/merchant-fees/third-party/statements/${transaction.third_party_statement_id}" class="btn btn-sm btn-outline-primary">View</a>`;
+            } else if (transaction.owner_cc_statement_import_id) {
+                reportCell = `<a href="/owner-cc-statements/${transaction.owner_cc_statement_import_id}" class="btn btn-sm btn-outline-primary">View</a>`;
             }
 
             return `

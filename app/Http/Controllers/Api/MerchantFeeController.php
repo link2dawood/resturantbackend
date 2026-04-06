@@ -7,6 +7,7 @@ use App\Models\ExpenseTransaction;
 use App\Models\DailyReport;
 use App\Models\ThirdPartyStatement;
 use App\Models\ChartOfAccount;
+use App\Support\MerchantFeeOwnerCcProcessingFees;
 use App\Support\MerchantFeeRecentRows;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -147,9 +148,12 @@ class MerchantFeeController extends Controller
         $coaIds = ChartOfAccount::merchantFeeAnalyticsCoaIds();
         if ($coaIds === []) {
             return response()->json([
-                'message' => 'No merchant fee COA accounts configured (processing or platform fees).',
+                'message' => 'No merchant processing fee (credit card) COA accounts configured.',
             ], 404);
         }
+
+        $rangeStart = $startDate ?? now()->startOfMonth()->format('Y-m-d');
+        $rangeEnd = $endDate ?? now()->endOfMonth()->format('Y-m-d');
 
         $query = ExpenseTransaction::select(
                 'vendors.vendor_name as processor',
@@ -157,7 +161,8 @@ class MerchantFeeController extends Controller
                 DB::raw('COUNT(*) as transaction_count')
             )
             ->join('vendors', 'expense_transactions.vendor_id', '=', 'vendors.id')
-            ->whereIn('expense_transactions.coa_id', $coaIds);
+            ->whereIn('expense_transactions.coa_id', $coaIds)
+            ->whereNull('expense_transactions.third_party_statement_id');
 
         $query->whereIn('expense_transactions.store_id', $accessibleStoreIds);
 
@@ -165,19 +170,23 @@ class MerchantFeeController extends Controller
             $query->where('expense_transactions.store_id', $storeId);
         }
 
-        if ($startDate) {
-            $query->where('expense_transactions.transaction_date', '>=', $startDate);
-        }
-
-        if ($endDate) {
-            $query->where('expense_transactions.transaction_date', '<=', $endDate);
-        }
+        $query->whereBetween('expense_transactions.transaction_date', [$rangeStart, $rangeEnd]);
 
         $byProcessor = $query->groupBy('vendors.vendor_name')
             ->orderByDesc('total_fees')
             ->get();
 
-        return response()->json($byProcessor);
+        $ccRow = MerchantFeeOwnerCcProcessingFees::byProcessorRow(
+            $coaIds,
+            $storeId ? (int) $storeId : null,
+            $rangeStart,
+            $rangeEnd,
+            $accessibleStoreIds
+        );
+
+        $merged = MerchantFeeOwnerCcProcessingFees::mergeByProcessor($byProcessor, $ccRow);
+
+        return response()->json($merged->all());
     }
 
     /**
@@ -198,11 +207,12 @@ class MerchantFeeController extends Controller
         $coaIds = ChartOfAccount::merchantFeeAnalyticsCoaIds();
         if ($coaIds === []) {
             return response()->json([
-                'message' => 'No merchant fee COA accounts configured (processing or platform fees).',
+                'message' => 'No merchant processing fee (credit card) COA accounts configured.',
             ], 404);
         }
 
-        $query = ExpenseTransaction::whereIn('coa_id', $coaIds);
+        $query = ExpenseTransaction::whereIn('coa_id', $coaIds)
+            ->whereNull('third_party_statement_id');
 
         $query->whereIn('store_id', $accessibleStoreIds);
 
@@ -251,7 +261,18 @@ class MerchantFeeController extends Controller
                 break;
         }
 
-        $trends = $query->get();
+        $trends = collect($query->get());
+
+        $ccTrends = MerchantFeeOwnerCcProcessingFees::trends(
+            $coaIds,
+            $storeId ? (int) $storeId : null,
+            $startDate,
+            $endDate,
+            $groupBy,
+            $accessibleStoreIds
+        );
+
+        $trends = MerchantFeeOwnerCcProcessingFees::mergeTrends($trends, $ccTrends, $groupBy);
 
         return response()->json([
             'trends' => $trends,
