@@ -30,11 +30,22 @@ final class MerchantFeeRecentRows
 
         $expenseRows = collect();
         if ($coaIds !== []) {
+            // Include:
+            // - Expenses correctly coded to merchant processing fee COAs
+            // - Expenses that look like CC fee expenses but are missing a COA (needs review)
             $expenseQuery = ExpenseTransaction::with(['store', 'vendor', 'dailyReport'])
                 ->whereIn('store_id', $accessibleStoreIds)
                 ->whereBetween('transaction_date', [$startDate, $endDate])
-                ->whereIn('coa_id', $coaIds)
-                ->whereNull('third_party_statement_id');
+                ->whereNull('third_party_statement_id')
+                ->where(function ($q) use ($coaIds) {
+                    $q->whereIn('coa_id', $coaIds)
+                        ->orWhere(function ($q2) {
+                            $q2->whereNull('coa_id')
+                                ->where('needs_review', true)
+                                ->where('review_reason', 'COA not assigned')
+                                ->where('payment_method', 'credit_card');
+                        });
+                });
 
             if ($storeId) {
                 $expenseQuery->where('store_id', $storeId);
@@ -99,7 +110,8 @@ final class MerchantFeeRecentRows
             'sort_ts' => $sortTs,
             'transaction_date' => $e->transaction_date->format('Y-m-d'),
             'store_name' => $e->store->store_info ?? 'N/A',
-            'processor' => $e->vendor->vendor_name ?? 'Unknown',
+            'processor' => $e->vendor->vendor_name
+                ?? ($e->vendor_name_raw ?: 'Unknown'),
             'amount' => (float) $e->amount,
             'credit_cards' => $dr !== null ? (float) ($dr->credit_cards ?? 0) : null,
             'statement_gross_sales' => null,
