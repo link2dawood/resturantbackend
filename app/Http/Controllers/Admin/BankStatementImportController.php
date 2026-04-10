@@ -155,11 +155,26 @@ class BankStatementImportController extends Controller
 
         $importBatch->load(['store', 'importer']);
 
-        $transactions = $importBatch->bankTransactions()
+        $transactionTypeFilter = request()->query('transaction_type', 'debit');
+        if (! in_array($transactionTypeFilter, ['all', 'debit', 'credit'], true)) {
+            $transactionTypeFilter = 'debit';
+        }
+
+        $transactionsQuery = $importBatch->bankTransactions()
             ->with(['matchedExpense.coa', 'coa'])
             ->orderBy('transaction_date')
-            ->orderBy('id')
-            ->get();
+            ->orderBy('id');
+
+        if ($transactionTypeFilter !== 'all') {
+            $transactionsQuery->where('transaction_type', $transactionTypeFilter);
+        }
+
+        $transactions = $transactionsQuery->get();
+        $transactionCounts = [
+            'all' => (int) $importBatch->bankTransactions()->count(),
+            'debit' => (int) $importBatch->bankTransactions()->where('transaction_type', 'debit')->count(),
+            'credit' => (int) $importBatch->bankTransactions()->where('transaction_type', 'credit')->count(),
+        ];
 
         // Same COA picker list as Owner CC statements (Expense/COGS detail accounts in 5001–5999 / 6001–6999).
         $chartOfAccounts = ChartOfAccount::active()
@@ -189,6 +204,8 @@ class BankStatementImportController extends Controller
         return view('admin.bank-statement-imports.show', [
             'batch' => $importBatch,
             'transactions' => $transactions,
+            'transactionTypeFilter' => $transactionTypeFilter,
+            'transactionCounts' => $transactionCounts,
             'chartOfAccounts' => $chartOfAccounts,
             'learnedCoaByPattern' => $learnedCoaByPattern,
         ]);

@@ -40,10 +40,31 @@
 
     <div class="card">
         <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
-            <h3 class="card-title mb-0">Transactions ({{ number_format($transactions->count()) }})</h3>
-            <p class="text-muted small mb-0">
-                Pick a Chart of Account from the same list as <strong>Owner CC statements</strong> (Expense / COGS detail accounts) for <strong>debits</strong> with a linked expense and for <strong>credits</strong> (deposits). The dropdown pre-selects a COA when you already chose one for the same normalized description (including from Owner CC). <strong>Your choice saves as soon as you change it.</strong> Other debits (no expense row) have no COA field here.
-            </p>
+            <div>
+                <h3 class="card-title mb-1">
+                    Transactions ({{ number_format($transactions->count()) }})
+                    @if(($transactionCounts['all'] ?? 0) !== $transactions->count())
+                        <span class="text-muted">of {{ number_format($transactionCounts['all'] ?? 0) }}</span>
+                    @endif
+                </h3>
+                <p class="text-muted small mb-0">
+                    Pick a Chart of Account from the same list as <strong>Owner CC statements</strong> (Expense / COGS detail accounts) for <strong>debits</strong> with a linked expense and for <strong>credits</strong> (deposits). The dropdown pre-selects a COA when you already chose one for the same normalized description (including from Owner CC). <strong>Your choice saves as soon as you change it.</strong> Other debits (no expense row) have no COA field here.
+                </p>
+            </div>
+            <form method="GET" action="{{ route('admin.bank-statement-imports.show', $batch) }}" class="d-flex align-items-center gap-2">
+                <label for="transaction_type" class="form-label mb-0 small text-muted">Show</label>
+                <select name="transaction_type" id="transaction_type" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="debit" {{ $transactionTypeFilter === 'debit' ? 'selected' : '' }}>
+                        Debit only ({{ number_format($transactionCounts['debit'] ?? 0) }})
+                    </option>
+                    <option value="all" {{ $transactionTypeFilter === 'all' ? 'selected' : '' }}>
+                        All ({{ number_format($transactionCounts['all'] ?? 0) }})
+                    </option>
+                    <option value="credit" {{ $transactionTypeFilter === 'credit' ? 'selected' : '' }}>
+                        Credit only ({{ number_format($transactionCounts['credit'] ?? 0) }})
+                    </option>
+                </select>
+            </form>
         </div>
         <div class="table-responsive">
                 <table class="table table-vcenter card-table table-striped">
