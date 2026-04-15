@@ -30,6 +30,18 @@
                 </svg>
                 Export CSV
             </a>
+            <a id="exportPdfBtn"
+               href="{{ route('admin.reports.profit-loss.export.pdf', ['start_date' => $selectedYear.'-01-01', 'end_date' => $selectedYear.'-12-31', 'store_id' => $storeId]) }}"
+               class="btn btn-outline-primary btn-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-1">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                    <line x1="16" y1="13" x2="8" y2="13"/>
+                    <line x1="16" y1="17" x2="8" y2="17"/>
+                    <polyline points="10 9 9 9 8 9"/>
+                </svg>
+                Export PDF
+            </a>
             @endcan
             <button class="btn btn-outline-secondary btn-sm" onclick="window.print()">
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-1">
@@ -459,7 +471,8 @@
     const reportTypeSelect = document.getElementById('annualReportTypeSelect');
     const storeField  = document.getElementById('annualStoreSelect') || form?.querySelector('[name="store_id"]');
     const storeSelect = document.getElementById('annualStoreSelect');
-    const exportBtn   = document.getElementById('exportCsvBtn');
+    const exportCsvBtn = document.getElementById('exportCsvBtn');
+    const exportPdfBtn = document.getElementById('exportPdfBtn');
     const monthFilter = document.getElementById('annualMonthFilter');
 
     function syncFilterVisibility() {
@@ -662,13 +675,18 @@
                 expenseAmountTotal.textContent = renderActivityMoney(pl.coaActivitySummary?.expense?.total_amount || 0);
             }
 
-            // Update export CSV link
-            if (exportBtn) {
+            // Update export links
+            if (exportCsvBtn || exportPdfBtn) {
                 const yr = params.get('year') || '{{ $selectedYear }}';
                 const sid = params.get('store_id') || '';
-                const csvParams = new URLSearchParams({ start_date: yr+'-01-01', end_date: yr+'-12-31' });
-                if (sid) csvParams.set('store_id', sid);
-                exportBtn.href = `/reports/profit-loss/export/csv?${csvParams}`;
+                const exportParams = new URLSearchParams({ start_date: yr+'-01-01', end_date: yr+'-12-31' });
+                if (sid) exportParams.set('store_id', sid);
+                if (exportCsvBtn) {
+                    exportCsvBtn.href = `/reports/profit-loss/export/csv?${exportParams}`;
+                }
+                if (exportPdfBtn) {
+                    exportPdfBtn.href = `/reports/profit-loss/export/pdf?${exportParams}`;
+                }
             }
 
             // Update URL without reload

@@ -803,30 +803,6 @@
                         </li>
                         @endif
 
-                        <!-- P&L Reports (Admin, Owner, Manager) -->
-                        @if(Auth::user()->isAdmin() || Auth::user()->isOwner() || Auth::user()->isManager())
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle d-flex align-items-center {{ request()->routeIs('admin.reports.profit-loss.*') ? 'active' : '' }}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="padding: 8px 16px; border-radius: 20px; font-family: 'Google Sans', sans-serif; font-weight: 500; font-size: 14px; transition: all 0.2s ease; {{ request()->routeIs('admin.reports.profit-loss.*') ? 'background: #4285f4; color: white;' : 'color: #5f6368;' }}" onmouseover="if(!this.classList.contains('active')) { this.style.background='#f1f3f4'; this.style.color='#1a73e8'; }" onmouseout="if(!this.classList.contains('active')) { this.style.background='transparent'; this.style.color='#5f6368'; }">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
-                                    <line x1="18" y1="20" x2="18" y2="10"/>
-                                    <line x1="12" y1="20" x2="12" y2="4"/>
-                                    <line x1="6" y1="20" x2="6" y2="14"/>
-                                </svg>
-                                P&amp;L Reports
-                            </a>
-                            <ul class="dropdown-menu" style="border-radius: 12px; border: 1px solid #e0e0e0; box-shadow: 0 4px 12px rgba(0,0,0,0.15); padding: 8px 0;">
-                                <li><a class="dropdown-item d-flex align-items-center {{ request()->routeIs('admin.reports.profit-loss.index') || (request()->routeIs('admin.reports.profit-loss.*') && !request()->routeIs('admin.reports.profit-loss.annual')) ? 'active' : '' }}" href="{{ route('admin.reports.profit-loss.index') }}" style="padding: 8px 16px; font-family: 'Google Sans', sans-serif; font-size: 14px; border-radius: 8px; margin: 0 8px;">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-                                    Period P&amp;L
-                                </a></li>
-                                <li><a class="dropdown-item d-flex align-items-center {{ request()->routeIs('admin.reports.profit-loss.annual') ? 'active' : '' }}" href="{{ route('admin.reports.profit-loss.annual') }}" style="padding: 8px 16px; font-family: 'Google Sans', sans-serif; font-size: 14px; border-radius: 8px; margin: 0 8px;">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                                    Annual P&amp;L
-                                </a></li>
-                            </ul>
-                        </li>
-                        @endif
-
                         <!-- Transactions (Admin, Owner) - Owner CC Statements, Merchant Fee Analytics, Third-Party, etc. -->
                         @if(Auth::user()->isAdmin() || Auth::user()->isOwner())
                         <li class="nav-item dropdown">
@@ -887,6 +863,30 @@
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
                                 Admin Reports
                             </a>
+                        </li>
+                        @endif
+
+                        <!-- P&L Reports (Admin, Owner, Manager) -->
+                        @if(Auth::user()->isAdmin() || Auth::user()->isOwner() || Auth::user()->isManager())
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle d-flex align-items-center {{ request()->routeIs('admin.reports.profit-loss.*') ? 'active' : '' }}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="padding: 8px 16px; border-radius: 20px; font-family: 'Google Sans', sans-serif; font-weight: 500; font-size: 14px; transition: all 0.2s ease; {{ request()->routeIs('admin.reports.profit-loss.*') ? 'background: #4285f4; color: white;' : 'color: #5f6368;' }}" onmouseover="if(!this.classList.contains('active')) { this.style.background='#f1f3f4'; this.style.color='#1a73e8'; }" onmouseout="if(!this.classList.contains('active')) { this.style.background='transparent'; this.style.color='#5f6368'; }">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
+                                    <line x1="18" y1="20" x2="18" y2="10"/>
+                                    <line x1="12" y1="20" x2="12" y2="4"/>
+                                    <line x1="6" y1="20" x2="6" y2="14"/>
+                                </svg>
+                                P&amp;L Reports
+                            </a>
+                            <ul class="dropdown-menu" style="border-radius: 12px; border: 1px solid #e0e0e0; box-shadow: 0 4px 12px rgba(0,0,0,0.15); padding: 8px 0;">
+                                <li><a class="dropdown-item d-flex align-items-center {{ request()->routeIs('admin.reports.profit-loss.index') || (request()->routeIs('admin.reports.profit-loss.*') && !request()->routeIs('admin.reports.profit-loss.annual')) ? 'active' : '' }}" href="{{ route('admin.reports.profit-loss.index') }}" style="padding: 8px 16px; font-family: 'Google Sans', sans-serif; font-size: 14px; border-radius: 8px; margin: 0 8px;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                                    Period P&amp;L
+                                </a></li>
+                                <li><a class="dropdown-item d-flex align-items-center {{ request()->routeIs('admin.reports.profit-loss.annual') ? 'active' : '' }}" href="{{ route('admin.reports.profit-loss.annual') }}" style="padding: 8px 16px; font-family: 'Google Sans', sans-serif; font-size: 14px; border-radius: 8px; margin: 0 8px;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                                    Annual P&amp;L
+                                </a></li>
+                            </ul>
                         </li>
                         @endif
                     </ul>

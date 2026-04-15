@@ -388,28 +388,7 @@ class ProfitLossViewController extends Controller
             abort(403, 'Access denied to this store');
         }
 
-        // Calculate P&L
-        $request->merge([
-            'store_id' => $request->input('store_id'),
-            'start_date' => $request->input('start_date'),
-            'end_date' => $request->input('end_date'),
-        ]);
-
-        $response = $this->plController->index($request);
-        $data = json_decode($response->getContent(), true);
-        $pl = $data['pl'] ?? [];
-
-        $store = $request->store_id ? Store::find($request->store_id) : null;
-        $storeName = $store ? $store->store_info : 'All Stores';
-        $filename = "profit_loss_{$storeName}_" . str_replace([' ', '/'], '_', $request->start_date) . '_to_' . str_replace([' ', '/'], '_', $request->end_date) . '.csv';
-
-        $headers = [
-            'Content-Type' => 'text/csv',
-            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
-            'Pragma' => 'no-cache',
-            'Cache-Control' => 'must-revalidate, post-check=0, pre-check=0',
-            'Expires' => '0',
-        ];
+        ['pl' => $pl, 'storeName' => $storeName, 'filenameBase' => $filenameBase] = $this->buildExportPayload($request);
 
         $callback = function () use ($pl, $storeName, $request) {
             $file = fopen('php://output', 'w');
@@ -481,7 +460,12 @@ class ProfitLossViewController extends Controller
             fclose($file);
         };
 
-        return response()->stream($callback, 200, $headers);
+        return response()->streamDownload($callback, "{$filenameBase}.csv", [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Pragma' => 'no-cache',
+            'Cache-Control' => 'must-revalidate, post-check=0, pre-check=0',
+            'Expires' => '0',
+        ]);
     }
 
     /**
@@ -508,7 +492,36 @@ class ProfitLossViewController extends Controller
             abort(403, 'Access denied to this store');
         }
 
-        // Calculate P&L
+        ['pl' => $pl, 'storeName' => $storeName, 'filenameBase' => $filenameBase] = $this->buildExportPayload($request);
+
+        // Use Blade view for PDF generation
+        $html = view('admin.reports.profit-loss.pdf', [
+            'pl' => $pl,
+            'storeName' => $storeName,
+            'startDate' => $request->start_date,
+            'endDate' => $request->end_date,
+            'generatedAt' => now(),
+        ])->render();
+
+        abort_unless(class_exists(\Dompdf\Dompdf::class), 500, 'PDF export is not available.');
+
+        $dompdf = new \Dompdf\Dompdf();
+        $options = $dompdf->getOptions();
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('isRemoteEnabled', false);
+        $dompdf->setOptions($options);
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->render();
+
+        return response($dompdf->output(), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="' . $filenameBase . '.pdf"',
+        ]);
+    }
+
+    private function buildExportPayload(Request $request): array
+    {
         $request->merge([
             'store_id' => $request->input('store_id'),
             'start_date' => $request->input('start_date'),
@@ -521,35 +534,14 @@ class ProfitLossViewController extends Controller
 
         $store = $request->store_id ? Store::find($request->store_id) : null;
         $storeName = $store ? $store->store_info : 'All Stores';
+        $safeStoreName = preg_replace('/[^A-Za-z0-9_-]+/', '_', $storeName);
+        $safeStartDate = preg_replace('/[^0-9-]+/', '_', (string) $request->start_date);
+        $safeEndDate = preg_replace('/[^0-9-]+/', '_', (string) $request->end_date);
 
-        // Use Blade view for PDF generation
-        $html = view('admin.reports.profit-loss.pdf', [
+        return [
             'pl' => $pl,
             'storeName' => $storeName,
-            'startDate' => $request->start_date,
-            'endDate' => $request->end_date,
-            'generatedAt' => now(),
-        ])->render();
-
-        // Check if DOMPDF is available
-        if (class_exists(\DomPDF\DomPDF::class)) {
-            $dompdf = new \DomPDF\DomPDF();
-            $dompdf->loadHtml($html);
-            $dompdf->setPaper('A4', 'portrait');
-            $dompdf->render();
-
-            $filename = "profit_loss_{$storeName}_" . str_replace([' ', '/'], '_', $request->start_date) . '_to_' . str_replace([' ', '/'], '_', $request->end_date) . '.pdf';
-
-            return $dompdf->stream($filename);
-        } else {
-            // Fallback: return HTML view
-            return view('admin.reports.profit-loss.pdf', [
-                'pl' => $pl,
-                'storeName' => $storeName,
-                'startDate' => $request->start_date,
-                'endDate' => $request->end_date,
-                'generatedAt' => now(),
-            ]);
-        }
+            'filenameBase' => "profit_loss_{$safeStoreName}_{$safeStartDate}_to_{$safeEndDate}",
+        ];
     }
 }
