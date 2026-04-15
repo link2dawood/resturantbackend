@@ -5,6 +5,9 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Store;
 use App\Models\PlSnapshot;
+use App\Models\DailyReport;
+use App\Models\ExpenseTransaction;
+use App\Models\ThirdPartyStatement;
 use App\Http\Controllers\Api\ProfitLossController as PLController;
 use Illuminate\Http\Request;
 
@@ -60,6 +63,7 @@ class ProfitLossViewController extends Controller
         }
         
         $comparisonPeriod = $request->input('comparison_period');
+        [$allYearsStartDate, $allYearsEndDate] = $this->resolveAllYearsDateRange($storeId, $accessibleStoreIds);
         
         // Calculate P&L
         $request->merge([
@@ -78,6 +82,8 @@ class ProfitLossViewController extends Controller
             'endDate',
             'storeId',
             'comparisonPeriod',
+            'allYearsStartDate',
+            'allYearsEndDate',
             'data'
         ));
     }
@@ -87,14 +93,20 @@ class ProfitLossViewController extends Controller
      */
     public function drillDown(Request $request)
     {
+        $user = auth()->user();
+
         $request->validate([
             'store_id' => 'nullable|exists:stores,id',
             'coa_id' => 'required|exists:chart_of_accounts,id',
             'start_date' => 'required|date',
             'end_date' => 'required|date|after_or_equal:start_date',
         ]);
-        
-        $stores = Store::all();
+
+        if ($request->filled('store_id') && ! $user->hasStoreAccess((int) $request->input('store_id'))) {
+            abort(403, 'Access denied to this store');
+        }
+
+        $stores = Store::whereIn('id', $user->getAccessibleStoreIds())->get();
         
         $response = $this->plController->drillDown($request);
         $data = json_decode($response->getContent(), true);
@@ -110,7 +122,9 @@ class ProfitLossViewController extends Controller
      */
     public function comparison(Request $request)
     {
-        $stores = Store::all();
+        $user = auth()->user();
+        $accessibleStoreIds = $user->getAccessibleStoreIds();
+        $stores = Store::whereIn('id', $accessibleStoreIds)->get();
         
         $startDate = $request->input('start_date', now()->startOfMonth()->format('Y-m-d'));
         $endDate = $request->input('end_date', now()->endOfMonth()->format('Y-m-d'));
@@ -118,18 +132,30 @@ class ProfitLossViewController extends Controller
         $metric = $request->input('metric', 'profit');
         
         if (empty($storeIds)) {
-            $storeIds = Store::pluck('id')->toArray();
+            $storeIds = $stores->pluck('id')->toArray();
         }
-        
-        $request->merge([
-            'store_ids' => $storeIds,
-            'start_date' => $startDate,
-            'end_date' => $endDate,
-            'metric' => $metric,
-        ]);
-        
-        $response = $this->plController->storeComparison($request);
-        $comparisonData = json_decode($response->getContent(), true);
+
+        $storeIds = array_values(array_unique(array_map('intval', array_filter($storeIds, fn ($id) => filled($id)))));
+
+        foreach ($storeIds as $storeId) {
+            if (! in_array($storeId, $accessibleStoreIds, true)) {
+                abort(403, 'Access denied to one or more stores');
+            }
+        }
+
+        $comparisonData = null;
+
+        if (count($storeIds) >= 2) {
+            $request->merge([
+                'store_ids' => $storeIds,
+                'start_date' => $startDate,
+                'end_date' => $endDate,
+                'metric' => $metric,
+            ]);
+
+            $response = $this->plController->storeComparison($request);
+            $comparisonData = json_decode($response->getContent(), true);
+        }
         
         return view('admin.reports.profit-loss.comparison', compact(
             'stores',
@@ -142,17 +168,150 @@ class ProfitLossViewController extends Controller
     }
 
     /**
+     * Display Annual P&L with monthly columns for a selected year
+     */
+    public function annual(Request $request)
+    {
+        $user               = auth()->user();
+        $accessibleStoreIds = $user->getAccessibleStoreIds();
+        $stores             = Store::whereIn('id', $accessibleStoreIds)->get();
+
+        $selectedYear  = (int) $request->input('year', now()->year);
+        $selectedMonth = (int) $request->input('month', now()->month);
+        $reportType    = $request->input('report_type', 'annual');
+        $storeId       = $request->input('store_id');
+
+        if ($storeId && !$user->hasStoreAccess($storeId)) {
+            abort(403, 'Access denied to this store');
+        }
+
+        if (!$storeId && $user->isManager() && !empty($accessibleStoreIds)) {
+            $storeId = $accessibleStoreIds[0];
+        }
+
+        // Build available years from all financial data sources
+        $years = collect(array_unique(array_merge(
+            DailyReport::selectRaw('YEAR(report_date) as y')->distinct()->pluck('y')->toArray(),
+            ExpenseTransaction::selectRaw('YEAR(transaction_date) as y')->distinct()->pluck('y')->toArray(),
+            ThirdPartyStatement::selectRaw('YEAR(statement_date) as y')->distinct()->pluck('y')->toArray(),
+            [now()->year]
+        )))->sort()->values();
+
+        $months = collect(range(1, 12))->mapWithKeys(function ($monthNumber) {
+            return [$monthNumber => now()->setMonth($monthNumber)->format('F')];
+        });
+
+        if ($reportType === 'monthly') {
+            $month = max(1, min(12, $selectedMonth));
+            $startDate = now()->setYear($selectedYear)->setMonth($month)->startOfMonth()->format('Y-m-d');
+            $endDate = now()->setYear($selectedYear)->setMonth($month)->endOfMonth()->format('Y-m-d');
+
+            return redirect()->route('admin.reports.profit-loss.index', array_filter([
+                'store_id' => $storeId,
+                'start_date' => $startDate,
+                'end_date' => $endDate,
+            ], fn ($value) => filled($value)));
+        }
+
+        if ($reportType === 'all_years') {
+            [$startDate, $endDate] = $this->resolveAllYearsDateRange($storeId, $accessibleStoreIds);
+
+            return redirect()->route('admin.reports.profit-loss.index', array_filter([
+                'store_id' => $storeId,
+                'start_date' => $startDate,
+                'end_date' => $endDate,
+            ], fn ($value) => filled($value)));
+        }
+
+        $request->merge(['year' => $selectedYear, 'store_id' => $storeId]);
+        $response = $this->plController->annual($request);
+        $data     = json_decode($response->getContent(), true);
+
+        return view('admin.reports.profit-loss.annual', compact(
+            'stores', 'selectedYear', 'selectedMonth', 'reportType', 'storeId', 'years', 'months', 'data'
+        ));
+    }
+
+    protected function resolveAllYearsDateRange($storeId, array $accessibleStoreIds): array
+    {
+        $applyStoreScope = function ($query, string $column) use ($storeId, $accessibleStoreIds) {
+            if (filled($storeId)) {
+                $query->where($column, $storeId);
+                return;
+            }
+
+            if (empty($accessibleStoreIds)) {
+                $query->whereRaw('1 = 0');
+                return;
+            }
+
+            $query->whereIn($column, $accessibleStoreIds);
+        };
+
+        $ranges = [];
+
+        $dailyReportRange = DailyReport::query();
+        $applyStoreScope($dailyReportRange, 'store_id');
+        $ranges[] = [
+            'start' => $dailyReportRange->min('report_date'),
+            'end' => $dailyReportRange->max('report_date'),
+        ];
+
+        $expenseRange = ExpenseTransaction::query();
+        $applyStoreScope($expenseRange, 'store_id');
+        $ranges[] = [
+            'start' => $expenseRange->min('transaction_date'),
+            'end' => $expenseRange->max('transaction_date'),
+        ];
+
+        $thirdPartyRange = ThirdPartyStatement::query();
+        $applyStoreScope($thirdPartyRange, 'store_id');
+        $ranges[] = [
+            'start' => $thirdPartyRange->min('statement_date'),
+            'end' => $thirdPartyRange->max('statement_date'),
+        ];
+
+        $startDate = collect($ranges)->pluck('start')->filter()->min();
+        $endDate = collect($ranges)->pluck('end')->filter()->max();
+
+        if (!$startDate || !$endDate) {
+            return [
+                now()->startOfYear()->format('Y-m-d'),
+                now()->endOfYear()->format('Y-m-d'),
+            ];
+        }
+
+        return [$startDate, $endDate];
+    }
+
+    /**
      * Display P&L snapshots
      */
     public function snapshots(Request $request)
     {
-        $stores = Store::all();
+        $user = auth()->user();
+        $accessibleStoreIds = $user->getAccessibleStoreIds();
+        $stores = Store::whereIn('id', $accessibleStoreIds)->get();
         $storeId = $request->input('store_id');
         
         // Query snapshots directly to get a paginator object instead of JSON array
         $query = PlSnapshot::with(['store', 'creator']);
-        
+
+        if (! $user->isAdmin()) {
+            $query->where(function ($snapshotQuery) use ($accessibleStoreIds, $user) {
+                $snapshotQuery->whereIn('store_id', $accessibleStoreIds)
+                    ->orWhere(function ($nullStoreQuery) use ($user) {
+                        $nullStoreQuery->whereNull('store_id')
+                            ->where('created_by', $user->id);
+                    });
+            });
+        }
+
         if ($storeId) {
+            if (! $user->hasStoreAccess((int) $storeId)) {
+                abort(403, 'Access denied to this store');
+            }
+
             $query->where('store_id', $storeId);
         }
         
@@ -162,6 +321,46 @@ class ProfitLossViewController extends Controller
             'stores',
             'storeId',
             'snapshots'
+        ));
+    }
+
+    public function showSnapshot(PlSnapshot $snapshot)
+    {
+        $user = auth()->user();
+        $accessibleStoreIds = $user->getAccessibleStoreIds();
+
+        if ($snapshot->store_id) {
+            if (! $user->hasStoreAccess((int) $snapshot->store_id)) {
+                abort(403, 'Access denied to this store');
+            }
+        } elseif (! $user->isAdmin() && (int) $snapshot->created_by !== (int) $user->id) {
+            abort(403, 'Access denied to this snapshot');
+        }
+
+        $stores = Store::whereIn('id', $accessibleStoreIds)->get();
+        $startDate = optional($snapshot->start_date)->format('Y-m-d') ?? (string) $snapshot->start_date;
+        $endDate = optional($snapshot->end_date)->format('Y-m-d') ?? (string) $snapshot->end_date;
+        $storeId = $snapshot->store_id;
+        $comparisonPeriod = null;
+        $data = [
+            'period' => [
+                'start_date' => $startDate,
+                'end_date' => $endDate,
+            ],
+            'comparison_period' => null,
+            'pl' => $snapshot->pl_data,
+        ];
+        $snapshotMode = true;
+
+        return view('admin.reports.profit-loss.index', compact(
+            'stores',
+            'startDate',
+            'endDate',
+            'storeId',
+            'comparisonPeriod',
+            'data',
+            'snapshot',
+            'snapshotMode'
         ));
     }
 

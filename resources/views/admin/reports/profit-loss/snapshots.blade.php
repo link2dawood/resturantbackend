@@ -63,7 +63,7 @@
                             </td>
                             <td>{{ $snapshot->created_at->format(config('dates.display_datetime_24h')) }}</td>
                             <td>
-                                <button class="btn btn-sm btn-outline-primary" onclick="viewSnapshot({{ $snapshot->id }})">View</button>
+                                <a href="{{ route('admin.reports.profit-loss.snapshots.show', $snapshot) }}" class="btn btn-sm btn-outline-primary">View</a>
                             </td>
                         </tr>
                         @empty
@@ -79,7 +79,6 @@
     </div>
 </div>
 @endsection
-
 
 
 

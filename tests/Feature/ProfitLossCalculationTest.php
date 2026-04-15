@@ -6,11 +6,8 @@ use App\Models\User;
 use App\Models\Store;
 use App\Models\DailyReport;
 use App\Models\ExpenseTransaction;
-use App\Models\ThirdPartyStatement;
 use App\Models\ChartOfAccount;
-use App\Models\Vendor;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Foundation\Testing\WithFaker;
 use Tests\TestCase;
 
 class ProfitLossCalculationTest extends TestCase
@@ -164,5 +161,123 @@ class ProfitLossCalculationTest extends TestCase
                 'gross_margin',
                 'net_margin'
             ]);
+    }
+
+    /** @test */
+    public function owner_without_explicit_store_only_sees_accessible_store_data()
+    {
+        $owner = User::factory()->create(['role' => 'owner']);
+        $ownedStore = Store::factory()->create(['created_by' => $owner->id]);
+        $otherStore = Store::factory()->create();
+
+        DailyReport::factory()->create([
+            'store_id' => $ownedStore->id,
+            'report_date' => now()->format('Y-m-d'),
+            'gross_sales' => 1000.00,
+            'credit_cards' => 0,
+            'created_by' => $owner->id,
+        ]);
+
+        DailyReport::factory()->create([
+            'store_id' => $otherStore->id,
+            'report_date' => now()->format('Y-m-d'),
+            'gross_sales' => 5000.00,
+            'credit_cards' => 0,
+            'created_by' => $owner->id,
+        ]);
+
+        $response = $this->actingAs($owner)->getJson('/api/reports/pl?start_date=' . now()->subDay()->format('Y-m-d') . '&end_date=' . now()->addDay()->format('Y-m-d'));
+
+        $response->assertStatus(200);
+        $this->assertEqualsWithDelta(1000.00, $response->json('pl.revenue.total'), 0.01);
+    }
+
+    /** @test */
+    public function owner_cannot_request_profit_and_loss_for_unassigned_store()
+    {
+        $owner = User::factory()->create(['role' => 'owner']);
+        $ownedStore = Store::factory()->create(['created_by' => $owner->id]);
+        $otherStore = Store::factory()->create();
+
+        DailyReport::factory()->create([
+            'store_id' => $ownedStore->id,
+            'report_date' => now()->format('Y-m-d'),
+            'gross_sales' => 1200.00,
+            'credit_cards' => 0,
+            'created_by' => $owner->id,
+        ]);
+
+        DailyReport::factory()->create([
+            'store_id' => $otherStore->id,
+            'report_date' => now()->format('Y-m-d'),
+            'gross_sales' => 4200.00,
+            'credit_cards' => 0,
+            'created_by' => $owner->id,
+        ]);
+
+        $this->actingAs($owner)
+            ->getJson('/api/reports/pl?store_id=' . $otherStore->id . '&start_date=' . now()->subDay()->format('Y-m-d') . '&end_date=' . now()->addDay()->format('Y-m-d'))
+            ->assertStatus(403);
+    }
+
+    /** @test */
+    public function drill_down_returns_summary_total_amount()
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $store = Store::factory()->create(['created_by' => $admin->id]);
+        $rentCoa = ChartOfAccount::where('account_name', 'Rent')->firstOrFail();
+
+        ExpenseTransaction::factory()->create([
+            'store_id' => $store->id,
+            'coa_id' => $rentCoa->id,
+            'amount' => 2100.00,
+            'transaction_date' => now()->format('Y-m-d'),
+            'created_by' => $admin->id,
+        ]);
+
+        $response = $this->actingAs($admin)
+            ->getJson('/api/reports/pl/drill-down?store_id=' . $store->id . '&coa_id=' . $rentCoa->id . '&start_date=' . now()->subDay()->format('Y-m-d') . '&end_date=' . now()->addDay()->format('Y-m-d'));
+
+        $response->assertStatus(200);
+        $this->assertEqualsWithDelta(2100.00, $response->json('summary.total_amount'), 0.01);
+    }
+
+    /** @test */
+    public function manager_can_view_annual_profit_and_loss_for_assigned_store()
+    {
+        $managerStore = Store::factory()->create();
+        $manager = User::factory()->create([
+            'role' => 'manager',
+            'store_id' => $managerStore->id,
+        ]);
+
+        DailyReport::factory()->create([
+            'store_id' => $managerStore->id,
+            'report_date' => now()->startOfYear()->addMonth()->format('Y-m-d'),
+            'gross_sales' => 1800.00,
+            'credit_cards' => 0,
+            'created_by' => $manager->id,
+        ]);
+
+        $response = $this->actingAs($manager)
+            ->getJson('/api/reports/pl/annual?store_id=' . $managerStore->id . '&year=' . now()->year);
+
+        $response->assertStatus(200);
+        $this->assertEquals(now()->year, $response->json('year'));
+    }
+
+    /** @test */
+    public function manager_cannot_view_annual_profit_and_loss_for_unassigned_store()
+    {
+        $managerStore = Store::factory()->create();
+        $otherStore = Store::factory()->create();
+        $manager = User::factory()->create([
+            'role' => 'manager',
+            'store_id' => $managerStore->id,
+        ]);
+
+        $this->actingAs($manager)
+            ->getJson('/api/reports/pl/annual?store_id=' . $otherStore->id . '&year=' . now()->year)
+            ->assertStatus(403);
     }
 }

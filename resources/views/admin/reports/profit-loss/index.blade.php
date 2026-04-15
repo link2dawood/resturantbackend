@@ -3,7 +3,7 @@
 @section('title', 'Profit & Loss Statement')
 
 @section('content')
-<div class="container-xl mt-4">
+<div class="container mt-4">
     <!-- Page Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
@@ -16,7 +16,7 @@
         </div>
         <div class="btn-group">
             @can('reports', 'export')
-            <a href="{{ route('admin.reports.profit-loss.export.csv', request()->all()) }}" class="btn btn-outline-primary">
+            <a href="{{ route('admin.reports.profit-loss.export.csv', ['store_id' => $storeId, 'start_date' => $startDate, 'end_date' => $endDate]) }}" class="btn btn-outline-primary">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                     <polyline points="7 10 12 15 17 10"/>
@@ -24,7 +24,7 @@
                 </svg>
                 Export CSV
             </a>
-            <a href="{{ route('admin.reports.profit-loss.export.pdf', request()->all()) }}" class="btn btn-outline-primary" target="_blank">
+            <a href="{{ route('admin.reports.profit-loss.export.pdf', ['store_id' => $storeId, 'start_date' => $startDate, 'end_date' => $endDate]) }}" class="btn btn-outline-primary" target="_blank">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                     <polyline points="14 2 14 8 20 8"/>
@@ -53,6 +53,13 @@
             @endcan
         </div>
     </div>
+
+    @if(!empty($snapshotMode) && isset($snapshot))
+    <div class="alert alert-info mb-4">
+        Viewing saved snapshot <strong>{{ $snapshot->name }}</strong> from
+        {{ $snapshot->created_at->format(config('dates.display_datetime_24h')) }}.
+    </div>
+    @endif
 
     <!-- Filters -->
     <div class="card mb-4">
@@ -89,6 +96,7 @@
                         <option value="last_month">Last Month</option>
                         <option value="this_quarter">This Quarter</option>
                         <option value="this_year">This Year</option>
+                        <option value="all_years">All Years</option>
                     </select>
                 </div>
                 <div class="col-md-3">
@@ -106,15 +114,123 @@
                             <path d="m21 21-4.35-4.35"/>
                         </svg> Generate Report
                     </button>
+                    @can('reports', 'export')
+                    @if(empty($snapshotMode))
                     <button type="button" class="btn btn-primary" onclick="saveSnapshot()">
                         Save Snapshot
                     </button>
+                    @endif
+                    @endcan
                 </div>
             </form>
         </div>
     </div>
 
     @if(isset($data['pl']))
+    @php
+        $coaActivitySummary = $data['pl']['coa_activity_summary'] ?? [
+            'income' => ['rows' => [], 'entry_count' => 0, 'total_amount' => 0],
+            'expense' => ['rows' => [], 'entry_count' => 0, 'total_amount' => 0],
+        ];
+    @endphp
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <h3 class="card-title mb-0">COA Activity Summary</h3>
+        </div>
+        <div class="card-body">
+            <div class="text-muted small mb-3">
+                This report shows all reportable P&amp;L COAs, their parent COA, account numbers, entry counts, and totals for the selected date range.
+            </div>
+            <div class="row g-4">
+                <div class="col-12">
+                    <h4 class="h6 mb-2">Income by COA</h4>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover align-middle mb-0">
+                            <thead style="background-color: #f8f9fa;">
+                                <tr>
+                                    <th>COA No.</th>
+                                    <th>COA Name</th>
+                                    <th>Parent COA No.</th>
+                                    <th>Parent COA Name</th>
+                                    <th>COA Type</th>
+                                    <th class="text-end">No. of Entries</th>
+                                    <th class="text-end">Total Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse(($coaActivitySummary['income']['rows'] ?? []) as $row)
+                                <tr>
+                                    <td>{{ $row['account_code'] }}</td>
+                                    <td>{{ $row['account_name'] }}</td>
+                                    <td>{{ $row['parent_account_code'] ?: '-' }}</td>
+                                    <td>{{ $row['parent_account_name'] ?: '-' }}</td>
+                                    <td>{{ $row['account_type'] }}</td>
+                                    <td class="text-end">{{ number_format($row['entry_count'] ?? 0) }}</td>
+                                    <td class="text-end text-success">${{ number_format($row['total_amount'] ?? 0, 2) }}</td>
+                                </tr>
+                                @empty
+                                <tr>
+                                    <td colspan="7" class="text-center text-muted py-3">No income COA activity found.</td>
+                                </tr>
+                                @endforelse
+                            </tbody>
+                            <tfoot>
+                                <tr style="background-color: #f8f9fa; font-weight: 600;">
+                                    <td colspan="5">Total Income Activity</td>
+                                    <td class="text-end">{{ number_format($coaActivitySummary['income']['entry_count'] ?? 0) }}</td>
+                                    <td class="text-end text-success">${{ number_format($coaActivitySummary['income']['total_amount'] ?? 0, 2) }}</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <h4 class="h6 mb-2">Expense by COA</h4>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover align-middle mb-0">
+                            <thead style="background-color: #f8f9fa;">
+                                <tr>
+                                    <th>COA No.</th>
+                                    <th>COA Name</th>
+                                    <th>Parent COA No.</th>
+                                    <th>Parent COA Name</th>
+                                    <th>COA Type</th>
+                                    <th class="text-end">No. of Entries</th>
+                                    <th class="text-end">Total Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse(($coaActivitySummary['expense']['rows'] ?? []) as $row)
+                                <tr>
+                                    <td>{{ $row['account_code'] }}</td>
+                                    <td>{{ $row['account_name'] }}</td>
+                                    <td>{{ $row['parent_account_code'] ?: '-' }}</td>
+                                    <td>{{ $row['parent_account_name'] ?: '-' }}</td>
+                                    <td>{{ $row['account_type'] }}</td>
+                                    <td class="text-end">{{ number_format($row['entry_count'] ?? 0) }}</td>
+                                    <td class="text-end text-danger">${{ number_format($row['total_amount'] ?? 0, 2) }}</td>
+                                </tr>
+                                @empty
+                                <tr>
+                                    <td colspan="7" class="text-center text-muted py-3">No expense COA activity found.</td>
+                                </tr>
+                                @endforelse
+                            </tbody>
+                            <tfoot>
+                                <tr style="background-color: #f8f9fa; font-weight: 600;">
+                                    <td colspan="5">Total Expense Activity</td>
+                                    <td class="text-end">{{ number_format($coaActivitySummary['expense']['entry_count'] ?? 0) }}</td>
+                                    <td class="text-end text-danger">${{ number_format($coaActivitySummary['expense']['total_amount'] ?? 0, 2) }}</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- P&L Report -->
     <div class="card">
         <div class="card-body">
@@ -359,6 +475,8 @@
     @endif
 </div>
 
+@can('reports', 'export')
+@if(empty($snapshotMode))
 <!-- Save Snapshot Modal -->
 <div class="modal fade" id="snapshotModal" tabindex="-1" aria-labelledby="snapshotModalLabel" aria-hidden="true">
     <div class="modal-dialog">
@@ -383,6 +501,8 @@
         </div>
     </div>
 </div>
+@endif
+@endcan
 
 @endsection
 
@@ -417,6 +537,10 @@ function applyDatePreset(preset) {
             start = new Date(today.getFullYear(), 0, 1);
             end = new Date(today.getFullYear(), 11, 31);
             break;
+        case 'all_years':
+            start = new Date('{{ $allYearsStartDate }}T00:00:00');
+            end = new Date('{{ $allYearsEndDate }}T00:00:00');
+            break;
         default:
             return;
     }
@@ -433,7 +557,13 @@ function applyDatePreset(preset) {
         window.refreshUsDateVisible(endHidden);
     }
 }
+</script>
+@endpush
 
+@can('reports', 'export')
+@if(empty($snapshotMode))
+@push('scripts')
+<script>
 function saveSnapshot() {
     @if(isset($data['pl']))
     new bootstrap.Modal(document.getElementById('snapshotModal')).show();
@@ -479,4 +609,5 @@ document.getElementById('snapshotForm')?.addEventListener('submit', function(e) 
 });
 </script>
 @endpush
-
+@endif
+@endcan

@@ -228,6 +228,7 @@ Route::middleware('auth')->group(function () {
     Route::middleware(['role:admin,owner,manager', 'convert_date_format'])->group(function () {
         // Managers can view but not export
         Route::get('/reports/profit-loss', [ProfitLossViewController::class, 'index'])->name('admin.reports.profit-loss.index');
+        Route::get('/reports/profit-loss/annual', [ProfitLossViewController::class, 'annual'])->name('admin.reports.profit-loss.annual');
         Route::get('/reports/profit-loss/drill-down', [ProfitLossViewController::class, 'drillDown'])->name('admin.reports.profit-loss.drill-down');
     });
     
@@ -235,6 +236,7 @@ Route::middleware('auth')->group(function () {
     Route::middleware(['role:admin,owner', 'convert_date_format'])->group(function () {
         Route::get('/reports/profit-loss/comparison', [ProfitLossViewController::class, 'comparison'])->name('admin.reports.profit-loss.comparison');
         Route::get('/reports/profit-loss/snapshots', [ProfitLossViewController::class, 'snapshots'])->name('admin.reports.profit-loss.snapshots');
+        Route::get('/reports/profit-loss/snapshots/{snapshot}', [ProfitLossViewController::class, 'showSnapshot'])->name('admin.reports.profit-loss.snapshots.show');
         Route::get('/reports/profit-loss/export/csv', [ProfitLossViewController::class, 'exportCsv'])->name('admin.reports.profit-loss.export.csv');
         Route::get('/reports/profit-loss/export/pdf', [ProfitLossViewController::class, 'exportPdf'])->name('admin.reports.profit-loss.export.pdf');
     });
@@ -347,11 +349,14 @@ Route::middleware('auth')->group(function () {
         
         // P&L Report API
         Route::get('reports/pl/summary', [ProfitLossController::class, 'summary'])->middleware('auth');
-        Route::middleware('role:admin,owner')->group(function () {
+        Route::middleware('role:admin,owner,manager')->group(function () {
             Route::get('reports/pl', [ProfitLossController::class, 'index']);
+            Route::get('reports/pl/annual', [ProfitLossController::class, 'annual']);
+            Route::get('reports/pl/drill-down', [ProfitLossController::class, 'drillDown']);
+        });
+        Route::middleware('role:admin,owner')->group(function () {
             Route::post('reports/pl/snapshot', [ProfitLossController::class, 'snapshot']);
             Route::get('reports/pl/snapshots', [ProfitLossController::class, 'snapshots']);
-            Route::get('reports/pl/drill-down', [ProfitLossController::class, 'drillDown']);
             Route::get('reports/pl/consolidated', [ProfitLossController::class, 'consolidated']);
             Route::get('reports/pl/store-comparison', [ProfitLossController::class, 'storeComparison']);
         });

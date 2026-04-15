@@ -11,6 +11,7 @@ use App\Models\PlSnapshot;
 use App\Models\Store;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class ProfitLossController extends Controller
 {
@@ -19,7 +20,7 @@ class ProfitLossController extends Controller
      */
     public function index(Request $request)
     {
-        $storeId = $request->input('store_id');
+        $storeId = $this->resolveAuthorizedStoreFilter($request->input('store_id'));
         $startDate = $request->input('start_date');
         $endDate = $request->input('end_date');
         $comparisonPeriod = $request->input('comparison_period'); // 'previous_period', 'previous_year', null
@@ -52,7 +53,7 @@ class ProfitLossController extends Controller
      */
     public function summary(Request $request)
     {
-        $storeId = $request->input('store_id');
+        $storeId = $this->resolveAuthorizedStoreFilter($request->input('store_id'));
         $startDate = $request->input('start_date');
         $endDate = $request->input('end_date');
         
@@ -82,7 +83,7 @@ class ProfitLossController extends Controller
         ]);
         
         $pl = $this->calculatePL(
-            $request->input('store_id'),
+            $this->resolveAuthorizedStoreFilter($request->input('store_id')),
             $request->input('start_date'),
             $request->input('end_date')
         );
@@ -108,9 +109,23 @@ class ProfitLossController extends Controller
     public function snapshots(Request $request)
     {
         $query = PlSnapshot::with(['store', 'creator']);
-        
-        if ($request->has('store_id') && $request->store_id) {
-            $query->where('store_id', $request->store_id);
+        $user = auth()->user();
+        $accessibleStoreIds = $user?->getAccessibleStoreIds() ?? [];
+        $storeId = $request->input('store_id');
+
+        if (! $user?->isAdmin()) {
+            $query->where(function ($snapshotQuery) use ($accessibleStoreIds, $user) {
+                $snapshotQuery->whereIn('store_id', $accessibleStoreIds)
+                    ->orWhere(function ($nullStoreQuery) use ($user) {
+                        $nullStoreQuery->whereNull('store_id')
+                            ->where('created_by', $user->id);
+                    });
+            });
+        }
+
+        if ($storeId) {
+            $resolvedStoreId = $this->resolveAuthorizedStoreFilter($storeId);
+            $query->where('store_id', $resolvedStoreId);
         }
         
         $snapshots = $query->orderBy('created_at', 'desc')->paginate(25);
@@ -131,13 +146,13 @@ class ProfitLossController extends Controller
             'end_date' => 'required|date|after_or_equal:start_date',
         ]);
         
+        $storeId = $this->resolveAuthorizedStoreFilter($request->input('store_id'));
+
         $query = ExpenseTransaction::with(['store', 'vendor', 'coa', 'creator'])
             ->where('coa_id', $request->coa_id)
             ->whereBetween('transaction_date', [$request->start_date, $request->end_date]);
-        
-        if ($request->store_id) {
-            $query->where('store_id', $request->store_id);
-        }
+
+        $this->applyStoreFilter($query, 'store_id', $storeId);
         
         $transactions = $query->orderBy('transaction_date', 'desc')
             ->orderBy('created_at', 'desc')
@@ -161,7 +176,7 @@ class ProfitLossController extends Controller
                     'start_date' => $request->start_date,
                     'end_date' => $request->end_date,
                 ],
-                'store_id' => $request->store_id,
+                'store_id' => $storeId,
             ],
         ]);
     }
@@ -178,7 +193,7 @@ class ProfitLossController extends Controller
             'end_date' => 'required|date|after_or_equal:start_date',
         ]);
         
-        $storeIds = $request->input('store_ids');
+        $storeIds = $this->resolveAuthorizedStoreFilter($request->input('store_ids'));
         $startDate = $request->input('start_date');
         $endDate = $request->input('end_date');
         
@@ -201,6 +216,316 @@ class ProfitLossController extends Controller
     }
 
     /**
+     * Get annual P&L broken down by month (12 columns)
+     */
+    public function annual(Request $request)
+    {
+        $year    = (int) $request->input('year', now()->year);
+        $storeId = $this->resolveAuthorizedStoreFilter($request->input('store_id'));
+
+        $data = $this->calculateAnnualPL($storeId, $year);
+
+        return response()->json([
+            'year' => $year,
+            'pl'   => $data,
+        ]);
+    }
+
+    /**
+     * Calculate full-year P&L with monthly breakdown using GROUP BY MONTH queries
+     */
+    protected function calculateAnnualPL($storeId, $year)
+    {
+        $months = range(1, 12);
+        $coaTypeSummary = $this->calculateAnnualCoaTypeSummary($storeId, $year);
+        $coaActivitySummary = $this->calculateCoaActivitySummary($storeId, sprintf('%04d-01-01', $year), sprintf('%04d-12-31', $year));
+
+        // ── REVENUE ──────────────────────────────────────────────────────────
+
+        // In-Store Sales: daily_reports.gross_sales grouped by month
+        $drQuery = DailyReport::selectRaw('MONTH(report_date) as month, SUM(gross_sales) as total')
+            ->whereYear('report_date', $year)
+            ->groupBy(DB::raw('MONTH(report_date)'));
+        $this->applyStoreFilter($drQuery, 'store_id', $storeId);
+        $drRaw = $drQuery->pluck('total', 'month');
+
+        $inStoreMonthly    = [];
+        $inStoreAnnual     = 0;
+        foreach ($months as $m) {
+            $val               = (float) ($drRaw[$m] ?? 0);
+            $inStoreMonthly[$m] = $val;
+            $inStoreAnnual     += $val;
+        }
+
+        // Third-Party Sales: third_party_statements.gross_sales grouped by month
+        $tpQuery = ThirdPartyStatement::selectRaw('MONTH(statement_date) as month, SUM(gross_sales) as total')
+            ->whereYear('statement_date', $year)
+            ->groupBy(DB::raw('MONTH(statement_date)'));
+        $this->applyStoreFilter($tpQuery, 'store_id', $storeId);
+        $tpRaw = $tpQuery->pluck('total', 'month');
+
+        $tpMonthly  = [];
+        $tpAnnual   = 0;
+        foreach ($months as $m) {
+            $val          = (float) ($tpRaw[$m] ?? 0);
+            $tpMonthly[$m] = $val;
+            $tpAnnual     += $val;
+        }
+
+        // Revenue monthly totals
+        $revMonthlyTotals = [];
+        foreach ($months as $m) {
+            $revMonthlyTotals[$m] = $inStoreMonthly[$m] + $tpMonthly[$m];
+        }
+        $revAnnual = $inStoreAnnual + $tpAnnual;
+
+        $revenue = [
+            'items' => [
+                [
+                    'name'         => 'In-Store Sales',
+                    'coa_id'       => null,
+                    'monthly'      => $inStoreMonthly,
+                    'annual_total' => $inStoreAnnual,
+                ],
+                [
+                    'name'         => 'Third-Party Sales',
+                    'coa_id'       => null,
+                    'monthly'      => $tpMonthly,
+                    'annual_total' => $tpAnnual,
+                ],
+            ],
+            'monthly_totals' => $revMonthlyTotals,
+            'annual_total'   => $revAnnual,
+        ];
+
+        // ── COGS ─────────────────────────────────────────────────────────────
+
+        $cogsQuery = ExpenseTransaction::selectRaw(
+                'chart_of_accounts.id as coa_id,
+                 chart_of_accounts.account_name,
+                 chart_of_accounts.account_code,
+                 MONTH(expense_transactions.transaction_date) as month,
+                 SUM(expense_transactions.amount) as total'
+            )
+            ->join('chart_of_accounts', 'expense_transactions.coa_id', '=', 'chart_of_accounts.id')
+            ->where('chart_of_accounts.account_type', 'COGS')
+            ->whereYear('expense_transactions.transaction_date', $year)
+            ->groupBy(
+                'chart_of_accounts.id',
+                'chart_of_accounts.account_name',
+                'chart_of_accounts.account_code',
+                DB::raw('MONTH(expense_transactions.transaction_date)')
+            )
+            ->orderBy('chart_of_accounts.account_code');
+        $this->applyStoreFilter($cogsQuery, 'expense_transactions.store_id', $storeId);
+        $cogsRaw = $cogsQuery->get();
+
+        // Pivot into per-COA monthly arrays
+        $cogsAccounts = [];
+        foreach ($cogsRaw as $row) {
+            $key = $row->coa_id;
+            if (!isset($cogsAccounts[$key])) {
+                $cogsAccounts[$key] = [
+                    'name'         => $row->account_name,
+                    'coa_id'       => $row->coa_id,
+                    'monthly'      => array_fill_keys($months, 0),
+                    'annual_total' => 0,
+                ];
+            }
+            $cogsAccounts[$key]['monthly'][$row->month]  += (float) $row->total;
+            $cogsAccounts[$key]['annual_total']           += (float) $row->total;
+        }
+
+        $cogsMonthlyTotals = array_fill_keys($months, 0);
+        $cogsAnnual        = 0;
+        foreach ($cogsAccounts as $acct) {
+            foreach ($months as $m) {
+                $cogsMonthlyTotals[$m] += $acct['monthly'][$m];
+            }
+            $cogsAnnual += $acct['annual_total'];
+        }
+
+        $cogs = [
+            'items'          => array_values($cogsAccounts),
+            'monthly_totals' => $cogsMonthlyTotals,
+            'annual_total'   => $cogsAnnual,
+        ];
+
+        // ── GROSS PROFIT ─────────────────────────────────────────────────────
+
+        $gpMonthly = [];
+        $gpMargins = [];
+        foreach ($months as $m) {
+            $gp                = $revMonthlyTotals[$m] - $cogsMonthlyTotals[$m];
+            $gpMonthly[$m]     = $gp;
+            $gpMargins[$m]     = $revMonthlyTotals[$m] > 0 ? round(($gp / $revMonthlyTotals[$m]) * 100, 2) : 0;
+        }
+        $gpAnnual    = $revAnnual - $cogsAnnual;
+        $gpAvgMargin = $revAnnual > 0 ? round(($gpAnnual / $revAnnual) * 100, 2) : 0;
+
+        $grossProfit = [
+            'monthly'         => $gpMonthly,
+            'annual_total'    => $gpAnnual,
+            'monthly_margins' => $gpMargins,
+            'avg_margin'      => $gpAvgMargin,
+        ];
+
+        // ── OPERATING EXPENSES ───────────────────────────────────────────────
+
+        $expQuery = ExpenseTransaction::selectRaw(
+                'chart_of_accounts.id as coa_id,
+                 chart_of_accounts.account_name,
+                 chart_of_accounts.account_code,
+                 chart_of_accounts.parent_account_id,
+                 MONTH(expense_transactions.transaction_date) as month,
+                 SUM(expense_transactions.amount) as total'
+            )
+            ->join('chart_of_accounts', 'expense_transactions.coa_id', '=', 'chart_of_accounts.id')
+            ->where('chart_of_accounts.account_type', 'Expense')
+            ->whereYear('expense_transactions.transaction_date', $year)
+            ->groupBy(
+                'chart_of_accounts.id',
+                'chart_of_accounts.account_name',
+                'chart_of_accounts.account_code',
+                'chart_of_accounts.parent_account_id',
+                DB::raw('MONTH(expense_transactions.transaction_date)')
+            )
+            ->orderBy('chart_of_accounts.account_code');
+        $this->applyStoreFilter($expQuery, 'expense_transactions.store_id', $storeId);
+        $expRaw = $expQuery->get();
+
+        // Pivot into per-COA monthly arrays
+        $expAccounts = [];
+        foreach ($expRaw as $row) {
+            $key = $row->coa_id;
+            if (!isset($expAccounts[$key])) {
+                $expAccounts[$key] = [
+                    'name'              => $row->account_name,
+                    'coa_id'            => $row->coa_id,
+                    'parent_account_id' => $row->parent_account_id,
+                    'monthly'           => array_fill_keys($months, 0),
+                    'annual_total'      => 0,
+                ];
+            }
+            $expAccounts[$key]['monthly'][$row->month]  += (float) $row->total;
+            $expAccounts[$key]['annual_total']           += (float) $row->total;
+        }
+
+        // Group by parent account
+        $expOrganized = [];
+        $expTopLevel  = [];
+        foreach ($expAccounts as $acct) {
+            if ($acct['parent_account_id']) {
+                $parent = ChartOfAccount::find($acct['parent_account_id']);
+                if ($parent) {
+                    $pk = $parent->account_name;
+                    if (!isset($expOrganized[$pk])) {
+                        $expOrganized[$pk] = [
+                            'name'         => $parent->account_name,
+                            'coa_id'       => null,
+                            'monthly'      => array_fill_keys($months, 0),
+                            'annual_total' => 0,
+                            'items'        => [],
+                        ];
+                    }
+                    $expOrganized[$pk]['items'][] = $acct;
+                    foreach ($months as $m) {
+                        $expOrganized[$pk]['monthly'][$m] += $acct['monthly'][$m];
+                    }
+                    $expOrganized[$pk]['annual_total'] += $acct['annual_total'];
+                    continue;
+                }
+            }
+            $expTopLevel[] = $acct;
+        }
+
+        $expItems          = array_merge($expTopLevel, array_values($expOrganized));
+        $expMonthlyTotals  = array_fill_keys($months, 0);
+        $expAnnual         = 0;
+        foreach ($expAccounts as $acct) {
+            foreach ($months as $m) {
+                $expMonthlyTotals[$m] += $acct['monthly'][$m];
+            }
+            $expAnnual += $acct['annual_total'];
+        }
+
+        $operatingExpenses = [
+            'items'          => $expItems,
+            'monthly_totals' => $expMonthlyTotals,
+            'annual_total'   => $expAnnual,
+        ];
+
+        // ── NET PROFIT ───────────────────────────────────────────────────────
+
+        $npMonthly = [];
+        $npMargins = [];
+        foreach ($months as $m) {
+            $np                = $gpMonthly[$m] - $expMonthlyTotals[$m];
+            $npMonthly[$m]     = $np;
+            $npMargins[$m]     = $revMonthlyTotals[$m] > 0 ? round(($np / $revMonthlyTotals[$m]) * 100, 2) : 0;
+        }
+        $npAnnual    = $gpAnnual - $expAnnual;
+        $npAvgMargin = $revAnnual > 0 ? round(($npAnnual / $revAnnual) * 100, 2) : 0;
+
+        $netProfit = [
+            'monthly'         => $npMonthly,
+            'annual_total'    => $npAnnual,
+            'monthly_margins' => $npMargins,
+            'avg_margin'      => $npAvgMargin,
+        ];
+
+        return compact('revenue', 'cogs', 'grossProfit', 'operatingExpenses', 'netProfit', 'coaTypeSummary', 'coaActivitySummary');
+    }
+
+    protected function calculateAnnualCoaTypeSummary($storeId, int $year): array
+    {
+        $orderedTypes = [
+            'Assets',
+            'Liability',
+            'Taxes',
+            'Revenue',
+            'COGS',
+            'Expense',
+            'Adjustments',
+            'Equity',
+        ];
+
+        $allTypes = ChartOfAccount::query()
+            ->select('account_type')
+            ->distinct()
+            ->pluck('account_type')
+            ->filter()
+            ->map(fn ($type) => (string) $type)
+            ->values()
+            ->all();
+
+        $types = array_values(array_unique(array_merge($orderedTypes, $allTypes)));
+
+        $coaCounts = ChartOfAccount::query()
+            ->select('account_type', DB::raw('COUNT(*) as account_count'))
+            ->groupBy('account_type')
+            ->pluck('account_count', 'account_type');
+
+        $expenseCountsQuery = ExpenseTransaction::query()
+            ->select('chart_of_accounts.account_type', DB::raw('COUNT(expense_transactions.id) as expense_count'))
+            ->join('chart_of_accounts', 'expense_transactions.coa_id', '=', 'chart_of_accounts.id')
+            ->whereYear('expense_transactions.transaction_date', $year)
+            ->groupBy('chart_of_accounts.account_type');
+
+        $this->applyStoreFilter($expenseCountsQuery, 'expense_transactions.store_id', $storeId);
+
+        $expenseCounts = $expenseCountsQuery->pluck('expense_count', 'chart_of_accounts.account_type');
+
+        return array_map(function (string $type) use ($coaCounts, $expenseCounts) {
+            return [
+                'account_type' => $type,
+                'account_count' => (int) ($coaCounts[$type] ?? 0),
+                'expense_count' => (int) ($expenseCounts[$type] ?? 0),
+            ];
+        }, $types);
+    }
+
+    /**
      * Get store comparison
      */
     public function storeComparison(Request $request)
@@ -213,7 +538,7 @@ class ProfitLossController extends Controller
             'end_date' => 'required|date|after_or_equal:start_date',
         ]);
         
-        $storeIds = $request->input('store_ids');
+        $storeIds = $this->resolveAuthorizedStoreFilter($request->input('store_ids'));
         $metric = $request->input('metric');
         $startDate = $request->input('start_date');
         $endDate = $request->input('end_date');
@@ -229,7 +554,9 @@ class ProfitLossController extends Controller
                 'revenue' => $pl['revenue']['total'],
                 'profit' => $pl['net_profit'],
                 'margin' => $pl['net_margin'],
-                'metric_value' => $pl[$metric === 'margin' ? 'net_margin' : ($metric === 'profit' ? 'net_profit' : 'revenue')][$metric === 'revenue' ? 'total' : ''] ?? $pl[$metric === 'margin' ? 'net_margin' : 'net_profit'],
+                'metric_value' => $metric === 'revenue'
+                    ? $pl['revenue']['total']
+                    : ($metric === 'profit' ? $pl['net_profit'] : $pl['net_margin']),
             ];
         }
         
@@ -267,6 +594,7 @@ class ProfitLossController extends Controller
         // Net Profit
         $netProfit = $grossProfit - $operatingExpenses['total'];
         $netMargin = $revenue['total'] > 0 ? ($netProfit / $revenue['total']) * 100 : 0;
+        $coaActivitySummary = $this->calculateCoaActivitySummary($storeId, $startDate, $endDate);
         
         return [
             'revenue' => $revenue,
@@ -276,7 +604,359 @@ class ProfitLossController extends Controller
             'operating_expenses' => $operatingExpenses,
             'net_profit' => $netProfit,
             'net_margin' => round($netMargin, 2),
+            'coa_activity_summary' => $coaActivitySummary,
         ];
+    }
+
+    protected function calculateCoaActivitySummary($storeId, $startDate, $endDate): array
+    {
+        $revenueCoaLookup = $this->getRevenueCoaLookup();
+        $revenueDirectoryRows = $this->buildCoaDirectoryRows(['Revenue']);
+        $expenseDirectoryRows = $this->buildCoaDirectoryRows(['COGS', 'Expense']);
+
+        $dailyRevenueQuery = DB::table('daily_report_revenues')
+            ->join('daily_reports', 'daily_report_revenues.daily_report_id', '=', 'daily_reports.id')
+            ->join('revenue_income_types', 'daily_report_revenues.revenue_income_type_id', '=', 'revenue_income_types.id')
+            ->whereBetween('daily_reports.report_date', [$startDate, $endDate])
+            ->selectRaw(
+                'revenue_income_types.id as revenue_income_type_id,
+                 revenue_income_types.name as revenue_income_type_name,
+                 revenue_income_types.category,
+                 revenue_income_types.default_coa_id,
+                 COUNT(daily_report_revenues.id) as entry_count,
+                 SUM(daily_report_revenues.amount) as total_amount'
+            )
+            ->groupBy(
+                'revenue_income_types.id',
+                'revenue_income_types.name',
+                'revenue_income_types.category',
+                'revenue_income_types.default_coa_id'
+            );
+        $this->applyStoreFilter($dailyRevenueQuery, 'daily_reports.store_id', $storeId);
+
+        $incomeActivityRows = collect()
+            ->merge($this->mapRevenueActivityRowsToCoas($dailyRevenueQuery->get(), $revenueCoaLookup))
+            ->merge($this->calculateThirdPartyIncomeActivityRows($storeId, $startDate, $endDate, $revenueCoaLookup))
+            ->groupBy(fn ($row) => $row['coa_id'] ?? $row['account_code'])
+            ->map(function ($rows) {
+                $first = $rows->first();
+
+                return [
+                    'coa_id' => $first['coa_id'],
+                    'account_code' => $first['account_code'],
+                    'account_name' => $first['account_name'],
+                    'parent_account_code' => $first['parent_account_code'] ?? '',
+                    'parent_account_name' => $first['parent_account_name'] ?? '',
+                    'account_type' => $first['account_type'],
+                    'entry_count' => $rows->sum('entry_count'),
+                    'total_amount' => $rows->sum('total_amount'),
+                    'is_unmapped' => false,
+                ];
+            });
+
+        $incomeRows = $this->mergeCoaDirectoryWithActivity(
+            $revenueDirectoryRows,
+            $incomeActivityRows
+        );
+
+        $expenseQuery = ExpenseTransaction::query()
+            ->selectRaw(
+                'chart_of_accounts.id as coa_id,
+                 chart_of_accounts.account_code,
+                 chart_of_accounts.account_name,
+                 chart_of_accounts.account_type,
+                 COUNT(expense_transactions.id) as entry_count,
+                 SUM(expense_transactions.amount) as total_amount,
+                 0 as is_unmapped'
+            )
+            ->join('chart_of_accounts', 'expense_transactions.coa_id', '=', 'chart_of_accounts.id')
+            ->whereIn('chart_of_accounts.account_type', ['COGS', 'Expense'])
+            ->whereBetween('expense_transactions.transaction_date', [$startDate, $endDate])
+            ->groupBy(
+                'chart_of_accounts.id',
+                'chart_of_accounts.account_code',
+                'chart_of_accounts.account_name',
+                'chart_of_accounts.account_type'
+            )
+            ->orderBy('chart_of_accounts.account_type')
+            ->orderBy('chart_of_accounts.account_code');
+        $this->applyStoreFilter($expenseQuery, 'expense_transactions.store_id', $storeId);
+
+        $expenseActivityRows = $expenseQuery->get()
+            ->map(fn ($row) => $this->formatCoaActivityRow($row))
+            ->values();
+
+        $expenseRows = $this->mergeCoaDirectoryWithActivity(
+            $expenseDirectoryRows,
+            $expenseActivityRows
+        );
+
+        return [
+            'income' => [
+                'rows' => $incomeRows,
+                'entry_count' => array_sum(array_column($incomeRows, 'entry_count')),
+                'total_amount' => array_sum(array_column($incomeRows, 'total_amount')),
+            ],
+            'expense' => [
+                'rows' => $expenseRows,
+                'entry_count' => array_sum(array_column($expenseRows, 'entry_count')),
+                'total_amount' => array_sum(array_column($expenseRows, 'total_amount')),
+            ],
+        ];
+    }
+
+    protected function calculateThirdPartyIncomeActivityRows($storeId, $startDate, $endDate, array $revenueCoaLookup)
+    {
+        $query = ThirdPartyStatement::query()
+            ->selectRaw(
+                'platform,
+                 COUNT(id) as entry_count,
+                 SUM(gross_sales) as total_amount'
+            )
+            ->whereBetween('statement_date', [$startDate, $endDate])
+            ->groupBy('platform');
+        $this->applyStoreFilter($query, 'store_id', $storeId);
+
+        return $query->get()->map(function ($row) use ($revenueCoaLookup) {
+            $coa = $this->resolveRevenueCoaReference(
+                $revenueCoaLookup,
+                'Third-Party ' . Str::title((string) $row->platform),
+                'online',
+                null
+            );
+
+            return [
+                'coa_id' => $coa['id'] ?? null,
+                'account_code' => $coa['account_code'] ?? '',
+                'account_name' => $coa['account_name'] ?? 'Revenue',
+                'parent_account_code' => $coa['parent_account_code'] ?? '',
+                'parent_account_name' => $coa['parent_account_name'] ?? '',
+                'account_type' => $coa['account_type'] ?? 'Revenue',
+                'entry_count' => (int) $row->entry_count,
+                'total_amount' => (float) $row->total_amount,
+                'is_unmapped' => false,
+            ];
+        });
+    }
+
+    protected function mapRevenueActivityRowsToCoas($rows, array $revenueCoaLookup)
+    {
+        return collect($rows)->map(function ($row) use ($revenueCoaLookup) {
+            $coa = $this->resolveRevenueCoaReference(
+                $revenueCoaLookup,
+                $row->revenue_income_type_name ?? null,
+                $row->category ?? null,
+                $row->default_coa_id ?? null
+            );
+
+            return [
+                'coa_id' => $coa['id'] ?? null,
+                'account_code' => $coa['account_code'] ?? '',
+                'account_name' => $coa['account_name'] ?? 'Revenue',
+                'parent_account_code' => $coa['parent_account_code'] ?? '',
+                'parent_account_name' => $coa['parent_account_name'] ?? '',
+                'account_type' => $coa['account_type'] ?? 'Revenue',
+                'entry_count' => (int) ($row->entry_count ?? 0),
+                'total_amount' => (float) ($row->total_amount ?? 0),
+                'is_unmapped' => false,
+            ];
+        });
+    }
+
+    protected function getRevenueCoaLookup(): array
+    {
+        $revenueCoas = ChartOfAccount::query()
+            ->with('parent:id,account_code,account_name')
+            ->where('account_type', 'Revenue')
+            ->orderByRaw('CAST(account_code AS UNSIGNED) ASC')
+            ->get(['id', 'account_code', 'account_name', 'account_type', 'parent_account_id']);
+
+        $formatted = $revenueCoas->map(function ($coa) {
+            return [
+                'id' => (int) $coa->id,
+                'account_code' => (string) $coa->account_code,
+                'account_name' => (string) $coa->account_name,
+                'account_type' => (string) $coa->account_type,
+                'parent_account_code' => (string) ($coa->parent?->account_code ?? ''),
+                'parent_account_name' => (string) ($coa->parent?->account_name ?? ''),
+            ];
+        });
+
+        return [
+            'by_id' => $formatted->keyBy('id')->all(),
+            'by_code' => $formatted->keyBy('account_code')->all(),
+            'fallback' => $formatted->first(),
+        ];
+    }
+
+    protected function resolveRevenueCoaReference(array $lookup, ?string $name, ?string $category, $defaultCoaId = null): ?array
+    {
+        if ($defaultCoaId && isset($lookup['by_id'][(int) $defaultCoaId])) {
+            return $lookup['by_id'][(int) $defaultCoaId];
+        }
+
+        $name = Str::lower(trim((string) $name));
+        $category = Str::lower(trim((string) $category));
+
+        $targetCode = match (true) {
+            $category === 'cash' || str_contains($name, 'cash') => '4010',
+            $category === 'card' || str_contains($name, 'card') || str_contains($name, 'credit') => '4020',
+            $category === 'check' || str_contains($name, 'check') => '4030',
+            str_contains($name, 'crypto') => '4050',
+            str_contains($name, 'food') => '4100',
+            str_contains($name, 'beverage') => '4200',
+            $category === 'online'
+                || str_contains($name, 'doordash')
+                || str_contains($name, 'uber')
+                || str_contains($name, 'grubhub')
+                || str_contains($name, 'relish')
+                || str_contains($name, 'ez catering')
+                || str_contains($name, 'third-party')
+                || str_contains($name, 'third party') => '4300',
+            default => '4400',
+        };
+
+        return $lookup['by_code'][$targetCode]
+            ?? $lookup['fallback']
+            ?? null;
+    }
+
+    protected function formatCoaActivityRow($row): array
+    {
+        return [
+            'coa_id' => $row->coa_id ? (int) $row->coa_id : null,
+            'account_code' => (string) ($row->account_code ?? ''),
+            'account_name' => (string) ($row->account_name ?? ''),
+            'parent_account_code' => (string) ($row->parent_account_code ?? ''),
+            'parent_account_name' => (string) ($row->parent_account_name ?? ''),
+            'account_type' => (string) ($row->account_type ?? ''),
+            'entry_count' => (int) ($row->entry_count ?? 0),
+            'total_amount' => (float) ($row->total_amount ?? 0),
+            'is_unmapped' => (bool) ($row->is_unmapped ?? false),
+        ];
+    }
+
+    protected function buildCoaDirectoryRows(array $types): array
+    {
+        $coas = ChartOfAccount::query()
+            ->with('parent:id,account_code,account_name')
+            ->whereIn('account_type', $types)
+            ->orderByRaw('CAST(account_code AS UNSIGNED) ASC')
+            ->get(['id', 'account_code', 'account_name', 'account_type', 'parent_account_id']);
+
+        $coasByCode = $coas->keyBy('account_code');
+
+        $rows = $coas->map(function ($coa) use ($coasByCode) {
+            $resolvedParent = $coa->parent;
+
+            if (! $resolvedParent) {
+                $inferredParentCode = $this->inferParentAccountCode((string) $coa->account_code, (string) $coa->account_type);
+                $resolvedParent = $inferredParentCode ? $coasByCode->get($inferredParentCode) : null;
+            }
+
+            return [
+                'coa_id' => (int) $coa->id,
+                'account_code' => (string) $coa->account_code,
+                'account_name' => (string) $coa->account_name,
+                'parent_account_id' => $resolvedParent?->id ? (int) $resolvedParent->id : null,
+                'parent_account_code' => (string) ($resolvedParent?->account_code ?? ''),
+                'parent_account_name' => (string) ($resolvedParent?->account_name ?? ''),
+                'account_type' => (string) $coa->account_type,
+                'entry_count' => 0,
+                'total_amount' => 0.0,
+                'is_unmapped' => false,
+                'is_rollup' => false,
+            ];
+        });
+
+        $childrenByParentId = $rows
+            ->filter(fn ($row) => ! empty($row['parent_account_id']))
+            ->groupBy('parent_account_id');
+
+        return $rows->map(function ($row) use ($childrenByParentId) {
+            $row['is_rollup'] = $childrenByParentId->has($row['coa_id']);
+            return $row;
+        })->all();
+    }
+
+    protected function mergeCoaDirectoryWithActivity(array $directoryRows, $activityRows): array
+    {
+        $activityByCoaId = collect($activityRows)
+            ->keyBy('coa_id');
+        $directoryById = collect($directoryRows)->keyBy('coa_id');
+        $childrenByParentId = collect($directoryRows)
+            ->filter(fn ($row) => ! empty($row['parent_account_id']))
+            ->groupBy('parent_account_id');
+        $computed = [];
+
+        $computeTotals = function (int $coaId) use (&$computeTotals, &$computed, $directoryById, $activityByCoaId, $childrenByParentId) {
+            if (isset($computed[$coaId])) {
+                return $computed[$coaId];
+            }
+
+            $directoryRow = $directoryById->get($coaId);
+            if (! $directoryRow) {
+                return ['entry_count' => 0, 'total_amount' => 0.0];
+            }
+
+            $children = $childrenByParentId->get($coaId, collect());
+            if ($children->isEmpty()) {
+                $activityRow = $activityByCoaId->get($coaId);
+                return $computed[$coaId] = [
+                    'entry_count' => (int) ($activityRow['entry_count'] ?? 0),
+                    'total_amount' => (float) ($activityRow['total_amount'] ?? 0),
+                ];
+            }
+
+            $entryCount = 0;
+            $totalAmount = 0.0;
+
+            foreach ($children as $childRow) {
+                $childTotals = $computeTotals((int) $childRow['coa_id']);
+                $entryCount += (int) ($childTotals['entry_count'] ?? 0);
+                $totalAmount += (float) ($childTotals['total_amount'] ?? 0);
+            }
+
+            return $computed[$coaId] = [
+                'entry_count' => $entryCount,
+                'total_amount' => $totalAmount,
+            ];
+        };
+
+        return collect($directoryRows)
+            ->map(function ($directoryRow) use ($computeTotals) {
+                $totals = $computeTotals((int) $directoryRow['coa_id']);
+                $directoryRow['entry_count'] = (int) ($totals['entry_count'] ?? 0);
+                $directoryRow['total_amount'] = (float) ($totals['total_amount'] ?? 0);
+                return $directoryRow;
+            })
+            ->sortBy(fn ($row) => sprintf('%s|%s', $row['account_type'], str_pad($row['account_code'], 10, '0', STR_PAD_LEFT)))
+            ->values()
+            ->all();
+    }
+
+    protected function inferParentAccountCode(string $accountCode, string $accountType): ?string
+    {
+        if (! ctype_digit($accountCode) || strlen($accountCode) !== 4) {
+            return null;
+        }
+
+        if (substr($accountCode, -3) === '000') {
+            return null;
+        }
+
+        if (substr($accountCode, -2) === '00') {
+            $parentCode = substr($accountCode, 0, 1) . '000';
+            return $parentCode !== $accountCode ? $parentCode : null;
+        }
+
+        $parentCode = substr($accountCode, 0, 2) . '00';
+        return $parentCode !== $accountCode ? $parentCode : null;
+    }
+
+    protected function isRollupCoaCode(string $accountCode): bool
+    {
+        return ctype_digit($accountCode) && substr($accountCode, -3) === '000';
     }
 
     /**
@@ -288,14 +968,7 @@ class ProfitLossController extends Controller
         
         // Food Sales and Beverage Sales from daily_reports
         $dailyReportsQuery = DailyReport::whereBetween('report_date', [$startDate, $endDate]);
-        
-        if ($storeId) {
-            if (is_array($storeId)) {
-                $dailyReportsQuery->whereIn('store_id', $storeId);
-            } else {
-                $dailyReportsQuery->where('store_id', $storeId);
-            }
-        }
+        $this->applyStoreFilter($dailyReportsQuery, 'store_id', $storeId);
         
         // Get gross sales (this is food + beverage combined)
         $grossSales = $dailyReportsQuery->sum('gross_sales');
@@ -310,13 +983,7 @@ class ProfitLossController extends Controller
                 $q->where('name', 'like', '%Food%');
             });
         
-        if ($storeId) {
-            if (is_array($storeId)) {
-                $foodRevenue->whereIn('store_id', $storeId);
-            } else {
-                $foodRevenue->where('store_id', $storeId);
-            }
-        }
+        $this->applyStoreFilter($foodRevenue, 'store_id', $storeId);
         
         $foodSales = $foodRevenue->join('daily_report_revenues', 'daily_reports.id', '=', 'daily_report_revenues.daily_report_id')
             ->join('revenue_income_types', 'daily_report_revenues.revenue_income_type_id', '=', 'revenue_income_types.id')
@@ -329,13 +996,7 @@ class ProfitLossController extends Controller
                 $q->where('name', 'like', '%Beverage%');
             });
         
-        if ($storeId) {
-            if (is_array($storeId)) {
-                $beverageSales->whereIn('store_id', $storeId);
-            } else {
-                $beverageSales->where('store_id', $storeId);
-            }
-        }
+        $this->applyStoreFilter($beverageSales, 'store_id', $storeId);
         
         $beverageSales = $beverageSales->join('daily_report_revenues', 'daily_reports.id', '=', 'daily_report_revenues.daily_report_id')
             ->join('revenue_income_types', 'daily_report_revenues.revenue_income_type_id', '=', 'revenue_income_types.id')
@@ -363,13 +1024,7 @@ class ProfitLossController extends Controller
         // Third-Party Sales (from third_party_statements)
         $thirdPartyQuery = ThirdPartyStatement::whereBetween('statement_date', [$startDate, $endDate]);
         
-        if ($storeId) {
-            if (is_array($storeId)) {
-                $thirdPartyQuery->whereIn('store_id', $storeId);
-            } else {
-                $thirdPartyQuery->where('store_id', $storeId);
-            }
-        }
+        $this->applyStoreFilter($thirdPartyQuery, 'store_id', $storeId);
         
         $thirdPartySales = $thirdPartyQuery->sum('gross_sales');
         
@@ -384,13 +1039,7 @@ class ProfitLossController extends Controller
             ->whereBetween('report_date', [$startDate, $endDate])
             ->with('revenues.revenueIncomeType');
         
-        if ($storeId) {
-            if (is_array($storeId)) {
-                $otherIncome->whereIn('store_id', $storeId);
-            } else {
-                $otherIncome->where('store_id', $storeId);
-            }
-        }
+        $this->applyStoreFilter($otherIncome, 'store_id', $storeId);
         
         $otherIncome = $otherIncome->get()->sum(function($report) {
             return $report->revenues->filter(function($rev) {
@@ -431,13 +1080,7 @@ class ProfitLossController extends Controller
             ->where('chart_of_accounts.account_type', 'COGS')
             ->whereBetween('expense_transactions.transaction_date', [$startDate, $endDate]);
         
-        if ($storeId) {
-            if (is_array($storeId)) {
-                $query->whereIn('expense_transactions.store_id', $storeId);
-            } else {
-                $query->where('expense_transactions.store_id', $storeId);
-            }
-        }
+        $this->applyStoreFilter($query, 'expense_transactions.store_id', $storeId);
         
         $cogsItems = $query->groupBy('chart_of_accounts.id', 'chart_of_accounts.account_name')
             ->orderBy('chart_of_accounts.account_code')
@@ -475,13 +1118,7 @@ class ProfitLossController extends Controller
             ->where('chart_of_accounts.account_type', 'Expense')
             ->whereBetween('expense_transactions.transaction_date', [$startDate, $endDate]);
         
-        if ($storeId) {
-            if (is_array($storeId)) {
-                $query->whereIn('expense_transactions.store_id', $storeId);
-            } else {
-                $query->where('expense_transactions.store_id', $storeId);
-            }
-        }
+        $this->applyStoreFilter($query, 'expense_transactions.store_id', $storeId);
         
         $expenseItems = $query->groupBy(
                 'chart_of_accounts.id',
@@ -545,14 +1182,10 @@ class ProfitLossController extends Controller
     protected function addVariance($current, $comparison)
     {
         // Calculate variance for revenue
-        foreach ($current['revenue']['items'] as $index => &$item) {
-            $comparisonItem = $comparison['revenue']['items'][$index] ?? null;
-            $item['comparison_amount'] = $comparisonItem['amount'] ?? 0;
-            $item['variance'] = $item['amount'] - ($comparisonItem['amount'] ?? 0);
-            $item['variance_percent'] = ($comparisonItem['amount'] ?? 0) > 0 
-                ? (($item['variance'] / $comparisonItem['amount']) * 100) 
-                : 0;
-        }
+        $current['revenue']['items'] = $this->attachComparisonMetrics(
+            $current['revenue']['items'],
+            $comparison['revenue']['items'] ?? []
+        );
         
         $current['revenue']['comparison_total'] = $comparison['revenue']['total'];
         $current['revenue']['variance'] = $current['revenue']['total'] - $comparison['revenue']['total'];
@@ -561,14 +1194,10 @@ class ProfitLossController extends Controller
             : 0;
         
         // Calculate variance for COGS
-        foreach ($current['cogs']['items'] as $index => &$item) {
-            $comparisonItem = $comparison['cogs']['items'][$index] ?? null;
-            $item['comparison_amount'] = $comparisonItem['amount'] ?? 0;
-            $item['variance'] = $item['amount'] - ($comparisonItem['amount'] ?? 0);
-            $item['variance_percent'] = ($comparisonItem['amount'] ?? 0) > 0 
-                ? (($item['variance'] / $comparisonItem['amount']) * 100) 
-                : 0;
-        }
+        $current['cogs']['items'] = $this->attachComparisonMetrics(
+            $current['cogs']['items'],
+            $comparison['cogs']['items'] ?? []
+        );
         
         $current['cogs']['comparison_total'] = $comparison['cogs']['total'];
         $current['cogs']['variance'] = $current['cogs']['total'] - $comparison['cogs']['total'];
@@ -585,7 +1214,10 @@ class ProfitLossController extends Controller
         $current['comparison_gross_margin'] = $comparison['gross_margin'];
         
         // Calculate variance for operating expenses
-        // Note: This is simplified - would need to match items by name/coa_id for accuracy
+        $current['operating_expenses']['items'] = $this->attachOperatingExpenseComparisonMetrics(
+            $current['operating_expenses']['items'],
+            $comparison['operating_expenses']['items'] ?? []
+        );
         $current['operating_expenses']['comparison_total'] = $comparison['operating_expenses']['total'];
         $current['operating_expenses']['variance'] = $current['operating_expenses']['total'] - $comparison['operating_expenses']['total'];
         $current['operating_expenses']['variance_percent'] = $comparison['operating_expenses']['total'] > 0 
@@ -631,5 +1263,129 @@ class ProfitLossController extends Controller
                     'end' => $endDate,
                 ];
         }
+    }
+
+    protected function resolveAuthorizedStoreFilter($storeFilter)
+    {
+        $user = auth()->user();
+
+        if (! $user || $user->isAdmin()) {
+            return $storeFilter;
+        }
+
+        $accessibleStoreIds = $user->getAccessibleStoreIds();
+
+        if (is_array($storeFilter)) {
+            $normalized = array_values(array_unique(array_map('intval', array_filter($storeFilter, fn ($id) => filled($id)))));
+            if (empty($normalized)) {
+                return $accessibleStoreIds;
+            }
+
+            foreach ($normalized as $storeId) {
+                if (! in_array($storeId, $accessibleStoreIds, true)) {
+                    abort(403, 'Access denied to one or more stores');
+                }
+            }
+
+            return $normalized;
+        }
+
+        if (filled($storeFilter)) {
+            $storeId = (int) $storeFilter;
+            if (! in_array($storeId, $accessibleStoreIds, true)) {
+                abort(403, 'Access denied to this store');
+            }
+
+            return $storeId;
+        }
+
+        return $accessibleStoreIds;
+    }
+
+    protected function applyStoreFilter($query, string $column, $storeFilter): void
+    {
+        if (is_array($storeFilter)) {
+            if (empty($storeFilter)) {
+                $query->whereRaw('1 = 0');
+                return;
+            }
+
+            $query->whereIn($column, $storeFilter);
+            return;
+        }
+
+        if (filled($storeFilter)) {
+            $query->where($column, $storeFilter);
+        }
+    }
+
+    protected function attachComparisonMetrics(array $currentItems, array $comparisonItems, string $amountField = 'amount'): array
+    {
+        $comparisonLookup = [];
+        foreach ($comparisonItems as $comparisonItem) {
+            $comparisonLookup[$this->itemComparisonKey($comparisonItem)] = $comparisonItem;
+        }
+
+        foreach ($currentItems as &$item) {
+            $comparisonItem = $comparisonLookup[$this->itemComparisonKey($item)] ?? null;
+            $comparisonAmount = (float) ($comparisonItem[$amountField] ?? 0);
+            $amount = (float) ($item[$amountField] ?? 0);
+
+            $item['comparison_amount'] = $comparisonAmount;
+            $item['variance'] = $amount - $comparisonAmount;
+            $item['variance_percent'] = $comparisonAmount > 0
+                ? (($item['variance'] / $comparisonAmount) * 100)
+                : 0;
+        }
+        unset($item);
+
+        return $currentItems;
+    }
+
+    protected function attachOperatingExpenseComparisonMetrics(array $currentItems, array $comparisonItems): array
+    {
+        $comparisonLookup = [];
+        foreach ($comparisonItems as $comparisonItem) {
+            $comparisonLookup[$this->itemComparisonKey($comparisonItem)] = $comparisonItem;
+        }
+
+        foreach ($currentItems as &$item) {
+            $comparisonItem = $comparisonLookup[$this->itemComparisonKey($item)] ?? null;
+
+            if (isset($item['items'])) {
+                $comparisonAmount = (float) ($comparisonItem['total'] ?? 0);
+                $amount = (float) ($item['total'] ?? 0);
+                $item['comparison_amount'] = $comparisonAmount;
+                $item['variance'] = $amount - $comparisonAmount;
+                $item['variance_percent'] = $comparisonAmount > 0
+                    ? (($item['variance'] / $comparisonAmount) * 100)
+                    : 0;
+                $item['items'] = $this->attachComparisonMetrics(
+                    $item['items'],
+                    $comparisonItem['items'] ?? []
+                );
+                continue;
+            }
+
+            $comparisonAmount = (float) ($comparisonItem['amount'] ?? 0);
+            $amount = (float) ($item['amount'] ?? 0);
+            $item['comparison_amount'] = $comparisonAmount;
+            $item['variance'] = $amount - $comparisonAmount;
+            $item['variance_percent'] = $comparisonAmount > 0
+                ? (($item['variance'] / $comparisonAmount) * 100)
+                : 0;
+        }
+        unset($item);
+
+        return $currentItems;
+    }
+
+    protected function itemComparisonKey(array $item): string
+    {
+        if (! empty($item['coa_id'])) {
+            return 'coa:' . (int) $item['coa_id'];
+        }
+
+        return 'name:' . Str::lower(trim((string) ($item['name'] ?? '')));
     }
 }

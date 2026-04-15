@@ -46,7 +46,7 @@
                     <tfoot>
                         <tr style="background-color: #f8f9fa; font-weight: 600;">
                             <td colspan="4" class="text-end">Total:</td>
-                            <td class="text-end">${{ number_format($data['total'] ?? 0, 2) }}</td>
+                            <td class="text-end">${{ number_format($data['summary']['total_amount'] ?? 0, 2) }}</td>
                         </tr>
                     </tfoot>
                 </table>
@@ -60,4 +60,3 @@
     </div>
 </div>
 @endsection
-
