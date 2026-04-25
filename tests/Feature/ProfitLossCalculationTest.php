@@ -243,6 +243,103 @@ class ProfitLossCalculationTest extends TestCase
     }
 
     /** @test */
+    public function franchisor_can_view_profit_and_loss_for_all_restaurants_by_default()
+    {
+        $franchisor = User::factory()->create([
+            'role' => 'owner',
+            'name' => 'Franchisor',
+            'email' => 'franchisor@example.com',
+        ]);
+        $owner = User::factory()->create(['role' => 'owner']);
+
+        $restaurantOne = Store::factory()->create(['created_by' => $owner->id]);
+        $restaurantTwo = Store::factory()->create(['created_by' => $owner->id]);
+
+        DailyReport::factory()->create([
+            'store_id' => $restaurantOne->id,
+            'report_date' => now()->format('Y-m-d'),
+            'gross_sales' => 1800.00,
+            'credit_cards' => 0,
+            'created_by' => $owner->id,
+        ]);
+
+        DailyReport::factory()->create([
+            'store_id' => $restaurantTwo->id,
+            'report_date' => now()->format('Y-m-d'),
+            'gross_sales' => 3200.00,
+            'credit_cards' => 0,
+            'created_by' => $owner->id,
+        ]);
+
+        $response = $this->actingAs($franchisor)
+            ->getJson('/api/reports/pl?start_date=' . now()->subDay()->format('Y-m-d') . '&end_date=' . now()->addDay()->format('Y-m-d'));
+
+        $response->assertStatus(200);
+        $this->assertEqualsWithDelta(5000.00, $response->json('pl.revenue.total'), 0.01);
+    }
+
+    /** @test */
+    public function franchisor_can_view_profit_and_loss_for_a_specific_restaurant_they_do_not_create()
+    {
+        $franchisor = User::factory()->create([
+            'role' => 'owner',
+            'name' => 'Franchisor',
+            'email' => 'franchisor-specific@example.com',
+        ]);
+        $owner = User::factory()->create(['role' => 'owner']);
+
+        $restaurant = Store::factory()->create([
+            'created_by' => $owner->id,
+            'store_info' => 'Round Rock Restaurant',
+        ]);
+
+        DailyReport::factory()->create([
+            'store_id' => $restaurant->id,
+            'report_date' => now()->format('Y-m-d'),
+            'gross_sales' => 2750.00,
+            'credit_cards' => 0,
+            'created_by' => $owner->id,
+        ]);
+
+        $response = $this->actingAs($franchisor)
+            ->getJson('/api/reports/pl?store_id=' . $restaurant->id . '&start_date=' . now()->subDay()->format('Y-m-d') . '&end_date=' . now()->addDay()->format('Y-m-d'));
+
+        $response->assertStatus(200);
+        $this->assertEqualsWithDelta(2750.00, $response->json('pl.revenue.total'), 0.01);
+    }
+
+    /** @test */
+    public function franchisor_profit_and_loss_page_uses_store_tracking_copy()
+    {
+        $franchisor = User::factory()->create([
+            'role' => 'owner',
+            'name' => 'Franchisor',
+            'email' => 'franchisor-view@example.com',
+        ]);
+        $owner = User::factory()->create(['role' => 'owner']);
+        $restaurant = Store::factory()->create([
+            'created_by' => $owner->id,
+            'store_info' => 'Cedar Park Restaurant',
+        ]);
+
+        DailyReport::factory()->create([
+            'store_id' => $restaurant->id,
+            'report_date' => now()->format('Y-m-d'),
+            'gross_sales' => 1500.00,
+            'credit_cards' => 0,
+            'created_by' => $owner->id,
+        ]);
+
+        $response = $this->actingAs($franchisor)
+            ->get('/reports/profit-loss?start_date=' . now()->subDay()->format('Y-m-d') . '&end_date=' . now()->addDay()->format('Y-m-d'));
+
+        $response->assertStatus(200);
+        $response->assertSee('Franchisor Tracking');
+        $response->assertSee('All Stores');
+        $response->assertSee('Track profit and loss across every store in the franchise portfolio.');
+    }
+
+    /** @test */
     public function manager_can_view_annual_profit_and_loss_for_assigned_store()
     {
         $managerStore = Store::factory()->create();

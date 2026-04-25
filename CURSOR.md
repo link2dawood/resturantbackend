@@ -120,6 +120,7 @@ Record **core changes** here (new routes, nav changes, renames, new modules, maj
 
 | Date | Change |
 |------|--------|
+| 2026-04-25 | **Franchisor P&L tracking:** Profit & Loss page now presents explicit franchisor tracking context for brand-wide vs single-store views, keeps **Store / All Stores** wording in the filter for franchisor users, and has regression tests covering franchisor access to other owners’ store P&L statements. |
 | 2026-04-02 | **Import filename uniqueness:** `App\Support\ImportUniqueFileName` blocks a second upload with the same original file name (trimmed, case-insensitive) per channel: Owner CC (`owner_cc_statement_imports`), bank statements (`import_batches` where `import_type = bank_statement`), online/third-party (`third_party_statements`). CC imports no longer dedupe by `file_hash` per store; they use this global-per-channel name rule. Bank API still also rejects duplicate `file_hash`. |
 | 2026-04-02 | **Navbar (admin):** User profile dropdown includes **Bank accounts** → `admin.bank.accounts.index` after Profile Settings (`isAdmin()` only). **Bank accounts UI:** Store column renders “Corporate” as muted text (fixed escaped HTML in `admin/bank/accounts/index` and `show`). |
 | 2026-04-02 | **Bank statement import create:** Lists active accounts where `store_id` is in accessible stores **or** `store_id` is null (corporate); import allows corporate + selected store. Page includes **Bank accounts** table + modal (POST/PUT `/api/bank-accounts`) for add/edit without leaving the page. |

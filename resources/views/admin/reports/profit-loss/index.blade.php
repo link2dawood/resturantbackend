@@ -11,7 +11,7 @@
                 Profit & Loss Statement
             </h1>
             <p class="text-muted mb-0" style="font-family: 'Google Sans', sans-serif; margin-top: 0.25rem;">
-                Comprehensive financial report
+                {{ $trackingContext['header_subtitle'] ?? 'Comprehensive financial report' }}
             </p>
         </div>
         <div class="btn-group">
@@ -61,15 +61,22 @@
     </div>
     @endif
 
+    @if(!empty($trackingContext['summary']))
+    <div class="alert alert-primary mb-4" role="status">
+        <div class="fw-semibold mb-1">{{ $trackingContext['scope_heading'] ?? 'P&L Tracking' }}</div>
+        <div>{{ $trackingContext['summary'] }}</div>
+    </div>
+    @endif
+
     <!-- Filters -->
     <div class="card mb-4">
         <div class="card-body">
             <form id="profitLossFilterForm" action="{{ route('admin.reports.profit-loss.index') }}" method="GET" class="row g-3">
                 @canViewAllStores
                 <div class="col-md-3">
-                    <label class="form-label">Store</label>
+                    <label class="form-label">{{ $trackingContext['filter_label'] ?? 'Store' }}</label>
                     <select class="form-select" name="store_id">
-                        <option value="">All Stores</option>
+                        <option value="">{{ $trackingContext['all_option_label'] ?? 'All Stores' }}</option>
                         @foreach($stores as $store)
                             <option value="{{ $store->id }}" {{ $storeId == $store->id ? 'selected' : '' }}>
                                 {{ $store->store_info }}

@@ -40,7 +40,9 @@ class ProfitLossViewController extends Controller
         
         // Get accessible stores based on user role
         $accessibleStoreIds = $user->getAccessibleStoreIds();
-        $stores = Store::whereIn('id', $accessibleStoreIds)->get();
+        $stores = Store::whereIn('id', $accessibleStoreIds)
+            ->orderBy('store_info')
+            ->get();
         
         // Set default date range to current month
         $startDate = $request->input('start_date', now()->startOfMonth()->format('Y-m-d'));
@@ -61,6 +63,11 @@ class ProfitLossViewController extends Controller
         if ($user->isManager() && $storeId && !$user->hasStoreAccess($storeId)) {
             abort(403, 'Access denied to this store');
         }
+
+        $selectedStore = filled($storeId)
+            ? $stores->firstWhere('id', (int) $storeId)
+            : null;
+        $trackingContext = $this->buildTrackingContext($user, $stores, $selectedStore);
         
         $comparisonPeriod = $request->input('comparison_period');
         [$allYearsStartDate, $allYearsEndDate] = $this->resolveAllYearsDateRange($storeId, $accessibleStoreIds);
@@ -84,8 +91,67 @@ class ProfitLossViewController extends Controller
             'comparisonPeriod',
             'allYearsStartDate',
             'allYearsEndDate',
-            'data'
+            'data',
+            'trackingContext'
         ));
+    }
+
+    protected function buildTrackingContext($user, $stores, ?Store $selectedStore): array
+    {
+        $restaurantCount = $stores->count();
+        $pluralSuffix = $restaurantCount === 1 ? '' : 's';
+
+        if ($selectedStore) {
+            return [
+                'filter_label' => 'Store',
+                'all_option_label' => 'All Stores',
+                'header_subtitle' => 'Track profit and loss for a selected store or across your full scope.',
+                'scope_heading' => $user->isFranchisor() ? 'Franchisor Tracking' : 'Store Tracking',
+                'summary' => $user->isFranchisor()
+                    ? "Viewing the full P&L statement for {$selectedStore->store_info}. Switch to All Stores to monitor the brand at a higher level."
+                    : "Viewing the full P&L statement for {$selectedStore->store_info}.",
+            ];
+        }
+
+        if ($user->isFranchisor()) {
+            return [
+                'filter_label' => 'Store',
+                'all_option_label' => 'All Stores',
+                'header_subtitle' => 'Track profit and loss across every store in the franchise portfolio.',
+                'scope_heading' => 'Franchisor Tracking',
+                'summary' => "Viewing a combined P&L across {$restaurantCount} store{$pluralSuffix}. Choose a store to drill into an individual statement.",
+            ];
+        }
+
+        if ($user->isAdmin()) {
+            return [
+                'filter_label' => 'Store',
+                'all_option_label' => 'All Stores',
+                'header_subtitle' => 'Track profit and loss across every store in the system.',
+                'scope_heading' => 'Portfolio Tracking',
+                'summary' => "Viewing a combined P&L across {$restaurantCount} store{$pluralSuffix}. Select a store to inspect an individual statement.",
+            ];
+        }
+
+        if ($user->isOwner() && $restaurantCount > 1) {
+            return [
+                'filter_label' => 'Store',
+                'all_option_label' => 'All Stores',
+                'header_subtitle' => 'Track profit and loss across your accessible stores.',
+                'scope_heading' => 'Owner Tracking',
+                'summary' => "Viewing a combined P&L across {$restaurantCount} store{$pluralSuffix} you can access. Select a store for a single-location statement.",
+            ];
+        }
+
+        return [
+            'filter_label' => 'Store',
+            'all_option_label' => 'All Stores',
+            'header_subtitle' => 'Track profit and loss for your assigned restaurant.',
+            'scope_heading' => 'Store Tracking',
+            'summary' => $restaurantCount > 0
+                ? "Viewing the P&L scope for {$restaurantCount} accessible store{$pluralSuffix}."
+                : 'Viewing the P&L scope for your accessible stores.',
+        ];
     }
 
     /**
@@ -351,6 +417,8 @@ class ProfitLossViewController extends Controller
             'pl' => $snapshot->pl_data,
         ];
         $snapshotMode = true;
+        $selectedStore = $storeId ? $stores->firstWhere('id', (int) $storeId) : null;
+        $trackingContext = $this->buildTrackingContext($user, $stores, $selectedStore);
 
         return view('admin.reports.profit-loss.index', compact(
             'stores',
@@ -360,7 +428,8 @@ class ProfitLossViewController extends Controller
             'comparisonPeriod',
             'data',
             'snapshot',
-            'snapshotMode'
+            'snapshotMode',
+            'trackingContext'
         ));
     }
 
