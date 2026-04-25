@@ -536,18 +536,26 @@ class ProfitLossController extends Controller
             $activityRows
         );
 
+        // Sum totals from leaf rows only — rollup rows (is_rollup=true) are parent
+        // aggregates whose children are already counted as individual leaf rows.
+        // Using raw query rows instead caused footer totals to diverge from the table.
         $monthlyTotals = array_fill_keys($months, 0.0);
-        foreach ($rawExpenseActivity as $activityRow) {
-            $month = (int) ($activityRow->month ?? 0);
-            if ($month >= 1 && $month <= 12) {
-                $monthlyTotals[$month] += (float) ($activityRow->total_amount ?? 0);
+        $totalAmount   = 0.0;
+        $entryCount    = 0;
+        foreach ($rows as $row) {
+            if (! ($row['is_rollup'] ?? false)) {
+                foreach ($months as $month) {
+                    $monthlyTotals[$month] += (float) ($row['monthly_amounts'][$month] ?? 0);
+                }
+                $totalAmount += (float) ($row['total_amount'] ?? 0);
+                $entryCount  += (int)   ($row['entry_count']  ?? 0);
             }
         }
 
         return [
-            'rows' => $rows,
-            'entry_count' => (int) $rawExpenseActivity->sum('entry_count'),
-            'total_amount' => (float) $rawExpenseActivity->sum('total_amount'),
+            'rows'           => $rows,
+            'entry_count'    => $entryCount,
+            'total_amount'   => $totalAmount,
             'monthly_totals' => $monthlyTotals,
         ];
     }
@@ -621,17 +629,26 @@ class ProfitLossController extends Controller
             $activityRows
         );
 
+        // Sum totals from leaf rows only — rollup rows (is_rollup=true) are parent
+        // aggregates whose children are already counted as individual leaf rows.
+        // Using raw activityRows instead caused footer totals to diverge from the table.
         $monthlyTotals = array_fill_keys($months, 0.0);
-        foreach ($activityRows as $activityRow) {
-            foreach ($months as $month) {
-                $monthlyTotals[$month] += (float) ($activityRow['monthly_amounts'][$month] ?? 0);
+        $totalAmount   = 0.0;
+        $entryCount    = 0;
+        foreach ($rows as $row) {
+            if (! ($row['is_rollup'] ?? false)) {
+                foreach ($months as $month) {
+                    $monthlyTotals[$month] += (float) ($row['monthly_amounts'][$month] ?? 0);
+                }
+                $totalAmount += (float) ($row['total_amount'] ?? 0);
+                $entryCount  += (int)   ($row['entry_count']  ?? 0);
             }
         }
 
         return [
-            'rows' => $rows,
-            'entry_count' => array_sum(array_column($activityRows, 'entry_count')),
-            'total_amount' => array_sum(array_column($activityRows, 'total_amount')),
+            'rows'           => $rows,
+            'entry_count'    => $entryCount,
+            'total_amount'   => $totalAmount,
             'monthly_totals' => $monthlyTotals,
         ];
     }
