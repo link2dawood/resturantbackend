@@ -239,6 +239,7 @@ class ProfitLossController extends Controller
         $months = range(1, 12);
         $coaTypeSummary = $this->calculateAnnualCoaTypeSummary($storeId, $year);
         $coaActivitySummary = $this->calculateCoaActivitySummary($storeId, sprintf('%04d-01-01', $year), sprintf('%04d-12-31', $year));
+        $coaActivitySummary['income'] = $this->calculateAnnualIncomeCoaActivitySummary($storeId, $year);
         $coaActivitySummary['expense'] = $this->calculateAnnualExpenseCoaActivitySummary($storeId, $year);
 
         // ── REVENUE ──────────────────────────────────────────────────────────
@@ -530,7 +531,7 @@ class ProfitLossController extends Controller
             ->values()
             ->all();
 
-        $rows = $this->mergeAnnualExpenseDirectoryWithActivity(
+        $rows = $this->mergeAnnualCoaDirectoryWithActivity(
             $expenseDirectoryRows,
             $activityRows
         );
@@ -551,7 +552,91 @@ class ProfitLossController extends Controller
         ];
     }
 
-    protected function mergeAnnualExpenseDirectoryWithActivity(array $directoryRows, array $activityRows): array
+    protected function calculateAnnualIncomeCoaActivitySummary($storeId, int $year): array
+    {
+        $months = range(1, 12);
+        $revenueCoaLookup = $this->getRevenueCoaLookup();
+        $revenueDirectoryRows = $this->buildCoaDirectoryRows(['Revenue']);
+
+        $dailyRevenueQuery = DB::table('daily_report_revenues')
+            ->join('daily_reports', 'daily_report_revenues.daily_report_id', '=', 'daily_reports.id')
+            ->join('revenue_income_types', 'daily_report_revenues.revenue_income_type_id', '=', 'revenue_income_types.id')
+            ->whereYear('daily_reports.report_date', $year)
+            ->selectRaw(
+                'revenue_income_types.id as revenue_income_type_id,
+                 revenue_income_types.name as revenue_income_type_name,
+                 revenue_income_types.category,
+                 revenue_income_types.default_coa_id,
+                 MONTH(daily_reports.report_date) as month,
+                 COUNT(daily_report_revenues.id) as entry_count,
+                 SUM(daily_report_revenues.amount) as total_amount'
+            )
+            ->groupBy(
+                'revenue_income_types.id',
+                'revenue_income_types.name',
+                'revenue_income_types.category',
+                'revenue_income_types.default_coa_id',
+                DB::raw('MONTH(daily_reports.report_date)')
+            );
+        $this->applyStoreFilter($dailyRevenueQuery, 'daily_reports.store_id', $storeId);
+
+        $activityRows = collect()
+            ->merge($this->mapRevenueActivityRowsToCoas($dailyRevenueQuery->get(), $revenueCoaLookup))
+            ->merge($this->calculateAnnualThirdPartyIncomeActivityRows($storeId, $year, $revenueCoaLookup))
+            ->groupBy(fn ($row) => $row['coa_id'] ?? $row['account_code'])
+            ->map(function ($rows) use ($months) {
+                $first = $rows->first();
+                $monthlyAmounts = array_fill_keys($months, 0.0);
+                $entryCount = 0;
+                $totalAmount = 0.0;
+
+                foreach ($rows as $row) {
+                    $month = (int) ($row['month'] ?? 0);
+                    if ($month >= 1 && $month <= 12) {
+                        $monthlyAmounts[$month] += (float) ($row['total_amount'] ?? 0);
+                    }
+
+                    $entryCount += (int) ($row['entry_count'] ?? 0);
+                    $totalAmount += (float) ($row['total_amount'] ?? 0);
+                }
+
+                return [
+                    'coa_id' => $first['coa_id'],
+                    'account_code' => $first['account_code'],
+                    'account_name' => $first['account_name'],
+                    'parent_account_code' => $first['parent_account_code'] ?? '',
+                    'parent_account_name' => $first['parent_account_name'] ?? '',
+                    'account_type' => $first['account_type'],
+                    'entry_count' => $entryCount,
+                    'total_amount' => $totalAmount,
+                    'monthly_amounts' => $monthlyAmounts,
+                    'is_unmapped' => false,
+                ];
+            })
+            ->values()
+            ->all();
+
+        $rows = $this->mergeAnnualCoaDirectoryWithActivity(
+            $revenueDirectoryRows,
+            $activityRows
+        );
+
+        $monthlyTotals = array_fill_keys($months, 0.0);
+        foreach ($activityRows as $activityRow) {
+            foreach ($months as $month) {
+                $monthlyTotals[$month] += (float) ($activityRow['monthly_amounts'][$month] ?? 0);
+            }
+        }
+
+        return [
+            'rows' => $rows,
+            'entry_count' => array_sum(array_column($activityRows, 'entry_count')),
+            'total_amount' => array_sum(array_column($activityRows, 'total_amount')),
+            'monthly_totals' => $monthlyTotals,
+        ];
+    }
+
+    protected function mergeAnnualCoaDirectoryWithActivity(array $directoryRows, array $activityRows): array
     {
         $months = range(1, 12);
         $activityByCoaId = collect($activityRows)->keyBy('coa_id');
@@ -752,6 +837,42 @@ class ProfitLossController extends Controller
         ];
     }
 
+    protected function calculateAnnualThirdPartyIncomeActivityRows($storeId, int $year, array $revenueCoaLookup)
+    {
+        $query = ThirdPartyStatement::query()
+            ->selectRaw(
+                'platform,
+                 MONTH(statement_date) as month,
+                 COUNT(id) as entry_count,
+                 SUM(gross_sales) as total_amount'
+            )
+            ->whereYear('statement_date', $year)
+            ->groupBy('platform', DB::raw('MONTH(statement_date)'));
+        $this->applyStoreFilter($query, 'store_id', $storeId);
+
+        return $query->get()->map(function ($row) use ($revenueCoaLookup) {
+            $coa = $this->resolveRevenueCoaReference(
+                $revenueCoaLookup,
+                'Third-Party ' . Str::title((string) $row->platform),
+                'online',
+                null
+            );
+
+            return [
+                'coa_id' => $coa['id'] ?? null,
+                'account_code' => $coa['account_code'] ?? '',
+                'account_name' => $coa['account_name'] ?? 'Revenue',
+                'parent_account_code' => $coa['parent_account_code'] ?? '',
+                'parent_account_name' => $coa['parent_account_name'] ?? '',
+                'account_type' => $coa['account_type'] ?? 'Revenue',
+                'month' => (int) ($row->month ?? 0),
+                'entry_count' => (int) $row->entry_count,
+                'total_amount' => (float) $row->total_amount,
+                'is_unmapped' => false,
+            ];
+        });
+    }
+
     protected function calculateCoaActivitySummary($storeId, $startDate, $endDate): array
     {
         $revenueCoaLookup = $this->getRevenueCoaLookup();
@@ -900,6 +1021,7 @@ class ProfitLossController extends Controller
                 'parent_account_code' => $coa['parent_account_code'] ?? '',
                 'parent_account_name' => $coa['parent_account_name'] ?? '',
                 'account_type' => $coa['account_type'] ?? 'Revenue',
+                'month' => isset($row->month) ? (int) $row->month : null,
                 'entry_count' => (int) ($row->entry_count ?? 0),
                 'total_amount' => (float) ($row->total_amount ?? 0),
                 'is_unmapped' => false,

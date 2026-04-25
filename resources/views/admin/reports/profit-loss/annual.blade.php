@@ -185,7 +185,7 @@
         </div>
         <div class="card-body">
             <div class="text-muted small mb-3">
-                This report shows all reportable P&amp;L COAs, their parent COA, account numbers, entry counts, and totals for the selected year.
+                This report shows all reportable P&amp;L COAs with month-by-month activity and annual totals for the selected year.
             </div>
             <div class="row g-4">
                 <div class="col-12">
@@ -196,10 +196,9 @@
                                 <tr>
                                     <th>COA No.</th>
                                     <th>COA Name</th>
-                                    <th>Parent COA No.</th>
-                                    <th>Parent COA Name</th>
-                                    <th>COA Type</th>
-                                    <th class="text-end">No. of Entries</th>
+                                    @foreach($coaActivityMonths as $monthLabel)
+                                    <th class="text-end">{{ $monthLabel }}</th>
+                                    @endforeach
                                     <th class="text-end">Total Amount</th>
                                 </tr>
                             </thead>
@@ -208,22 +207,23 @@
                                 <tr>
                                     <td>{{ $row['account_code'] }}</td>
                                     <td>{{ $row['account_name'] }}</td>
-                                    <td>{{ $row['parent_account_code'] ?: '-' }}</td>
-                                    <td>{{ $row['parent_account_name'] ?: '-' }}</td>
-                                    <td>{{ $row['account_type'] }}</td>
-                                    <td class="text-end">{{ number_format($row['entry_count'] ?? 0) }}</td>
+                                    @foreach(array_keys($coaActivityMonths) as $monthNumber)
+                                    <td class="text-end text-success">${{ number_format($row['monthly_amounts'][$monthNumber] ?? 0, 2) }}</td>
+                                    @endforeach
                                     <td class="text-end text-success">${{ number_format($row['total_amount'] ?? 0, 2) }}</td>
                                 </tr>
                                 @empty
                                 <tr>
-                                    <td colspan="7" class="text-center text-muted py-3">No income COA activity found.</td>
+                                    <td colspan="15" class="text-center text-muted py-3">No income COA activity found.</td>
                                 </tr>
                                 @endforelse
                             </tbody>
                             <tfoot>
                                 <tr style="background-color: #f8f9fa; font-weight: 600;">
-                                    <td colspan="5">Total Income Activity</td>
-                                    <td class="text-end" id="incomeCoaActivityEntryTotal">{{ number_format($coaActivitySummary['income']['entry_count'] ?? 0) }}</td>
+                                    <td colspan="2">Total Income Activity</td>
+                                    @foreach(array_keys($coaActivityMonths) as $monthNumber)
+                                    <td class="text-end text-success" id="incomeCoaActivityMonthTotal{{ $monthNumber }}">${{ number_format($coaActivitySummary['income']['monthly_totals'][$monthNumber] ?? 0, 2) }}</td>
+                                    @endforeach
                                     <td class="text-end text-success" id="incomeCoaActivityAmountTotal">${{ number_format($coaActivitySummary['income']['total_amount'] ?? 0, 2) }}</td>
                                 </tr>
                             </tfoot>
@@ -523,32 +523,12 @@
         return '$' + Number(value || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
 
-    function buildCoaActivityRows(section, amountClass) {
-        const rows = section?.rows || [];
-
-        if (!rows.length) {
-            return `<tr><td colspan="7" class="text-center text-muted py-3">No COA activity found.</td></tr>`;
-        }
-
-        return rows.map(row => `
-            <tr>
-                <td>${row.account_code || ''}</td>
-                <td>${row.account_name || ''}</td>
-                <td>${row.parent_account_code || '-'}</td>
-                <td>${row.parent_account_name || '-'}</td>
-                <td>${row.account_type || ''}</td>
-                <td class="text-end">${Number(row.entry_count || 0).toLocaleString('en-US')}</td>
-                <td class="text-end ${amountClass}">${renderActivityMoney(row.total_amount || 0)}</td>
-            </tr>
-        `).join('');
-    }
-
-    function buildExpenseCoaActivityRows(section, amountClass) {
+    function buildMonthlyCoaActivityRows(section, amountClass, emptyMessage) {
         const rows = section?.rows || [];
         const months = [1,2,3,4,5,6,7,8,9,10,11,12];
 
         if (!rows.length) {
-            return `<tr><td colspan="15" class="text-center text-muted py-3">No expense COA activity found.</td></tr>`;
+            return `<tr><td colspan="15" class="text-center text-muted py-3">${emptyMessage}</td></tr>`;
         }
 
         return rows.map(row => `
@@ -559,6 +539,10 @@
                 <td class="text-end ${amountClass}">${renderActivityMoney(row.total_amount || 0)}</td>
             </tr>
         `).join('');
+    }
+
+    function buildExpenseCoaActivityRows(section, amountClass) {
+        return buildMonthlyCoaActivityRows(section, amountClass, 'No expense COA activity found.');
     }
 
     function buildTable(pl) {
@@ -676,18 +660,20 @@
             tbody.innerHTML = buildTable(pl);
             updateKpis(pl);
             if (incomeCoaActivityBody) {
-                incomeCoaActivityBody.innerHTML = buildCoaActivityRows(pl.coaActivitySummary?.income, 'text-success');
+                incomeCoaActivityBody.innerHTML = buildMonthlyCoaActivityRows(pl.coaActivitySummary?.income, 'text-success', 'No income COA activity found.');
             }
             if (expenseCoaActivityBody) {
                 expenseCoaActivityBody.innerHTML = buildExpenseCoaActivityRows(pl.coaActivitySummary?.expense, 'text-danger');
             }
-            const incomeEntryTotal = document.getElementById('incomeCoaActivityEntryTotal');
             const incomeAmountTotal = document.getElementById('incomeCoaActivityAmountTotal');
+            const incomeMonthTotalEls = Array.from({ length: 12 }, (_, index) => document.getElementById(`incomeCoaActivityMonthTotal${index + 1}`));
             const expenseAmountTotal = document.getElementById('expenseCoaActivityAmountTotal');
             const expenseMonthTotalEls = Array.from({ length: 12 }, (_, index) => document.getElementById(`expenseCoaActivityMonthTotal${index + 1}`));
-            if (incomeEntryTotal) {
-                incomeEntryTotal.textContent = Number(pl.coaActivitySummary?.income?.entry_count || 0).toLocaleString('en-US');
-            }
+            incomeMonthTotalEls.forEach((el, index) => {
+                if (el) {
+                    el.textContent = renderActivityMoney(pl.coaActivitySummary?.income?.monthly_totals?.[index + 1] || 0);
+                }
+            });
             if (incomeAmountTotal) {
                 incomeAmountTotal.textContent = renderActivityMoney(pl.coaActivitySummary?.income?.total_amount || 0);
             }

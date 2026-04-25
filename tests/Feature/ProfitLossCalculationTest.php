@@ -5,8 +5,10 @@ namespace Tests\Feature;
 use App\Models\User;
 use App\Models\Store;
 use App\Models\DailyReport;
+use App\Models\DailyReportRevenue;
 use App\Models\ExpenseTransaction;
 use App\Models\ChartOfAccount;
+use App\Models\RevenueIncomeType;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -20,6 +22,7 @@ class ProfitLossCalculationTest extends TestCase
         
         // Create test data
         $this->seed(\Database\Seeders\ChartOfAccountsSeeder::class);
+        $this->seed(\Database\Seeders\RevenueIncomeTypeSeeder::class);
     }
 
     /** @test */
@@ -398,6 +401,56 @@ class ProfitLossCalculationTest extends TestCase
         $this->assertEqualsWithDelta(1200.00, $rentRow['monthly_amounts'][2] ?? 0, 0.01);
         $this->assertEqualsWithDelta(1800.00, $rentRow['monthly_amounts'][3] ?? 0, 0.01);
         $this->assertEqualsWithDelta(3000.00, $response->json('pl.coaActivitySummary.expense.total_amount'), 0.01);
+    }
+
+    /** @test */
+    public function annual_profit_and_loss_includes_monthly_income_coa_activity_breakdown()
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $store = Store::factory()->create(['created_by' => $admin->id]);
+        $cashType = RevenueIncomeType::where('name', 'Cash')->firstOrFail();
+        $cashRevenueCoa = ChartOfAccount::where('account_code', '4010')->firstOrFail();
+
+        $februaryReport = DailyReport::factory()->create([
+            'store_id' => $store->id,
+            'report_date' => now()->startOfYear()->addMonth()->format('Y-m-d'),
+            'gross_sales' => 900.00,
+            'credit_cards' => 0,
+            'created_by' => $admin->id,
+        ]);
+
+        DailyReportRevenue::create([
+            'daily_report_id' => $februaryReport->id,
+            'revenue_income_type_id' => $cashType->id,
+            'amount' => 900.00,
+        ]);
+
+        $marchReport = DailyReport::factory()->create([
+            'store_id' => $store->id,
+            'report_date' => now()->startOfYear()->addMonths(2)->format('Y-m-d'),
+            'gross_sales' => 1100.00,
+            'credit_cards' => 0,
+            'created_by' => $admin->id,
+        ]);
+
+        DailyReportRevenue::create([
+            'daily_report_id' => $marchReport->id,
+            'revenue_income_type_id' => $cashType->id,
+            'amount' => 1100.00,
+        ]);
+
+        $response = $this->actingAs($admin)
+            ->getJson('/api/reports/pl/annual?store_id=' . $store->id . '&year=' . now()->year);
+
+        $response->assertStatus(200);
+
+        $incomeRows = collect($response->json('pl.coaActivitySummary.income.rows'));
+        $cashRow = $incomeRows->firstWhere('coa_id', $cashRevenueCoa->id);
+
+        $this->assertNotNull($cashRow);
+        $this->assertEqualsWithDelta(900.00, $cashRow['monthly_amounts'][2] ?? 0, 0.01);
+        $this->assertEqualsWithDelta(1100.00, $cashRow['monthly_amounts'][3] ?? 0, 0.01);
+        $this->assertEqualsWithDelta(2000.00, $response->json('pl.coaActivitySummary.income.total_amount'), 0.01);
     }
 
     /** @test */
