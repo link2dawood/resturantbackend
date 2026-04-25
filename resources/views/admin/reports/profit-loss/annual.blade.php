@@ -170,7 +170,12 @@
     @php
         $coaActivitySummary = $pl['coaActivitySummary'] ?? [
             'income' => ['rows' => [], 'entry_count' => 0, 'total_amount' => 0],
-            'expense' => ['rows' => [], 'entry_count' => 0, 'total_amount' => 0],
+            'expense' => ['rows' => [], 'entry_count' => 0, 'total_amount' => 0, 'monthly_totals' => array_fill_keys(range(1, 12), 0)],
+        ];
+        $coaActivityMonths = [
+            1 => 'Jan', 2 => 'Feb', 3 => 'Mar', 4 => 'Apr',
+            5 => 'May', 6 => 'Jun', 7 => 'Jul', 8 => 'Aug',
+            9 => 'Sep', 10 => 'Oct', 11 => 'Nov', 12 => 'Dec',
         ];
     @endphp
 
@@ -233,10 +238,9 @@
                                 <tr>
                                     <th>COA No.</th>
                                     <th>COA Name</th>
-                                    <th>Parent COA No.</th>
-                                    <th>Parent COA Name</th>
-                                    <th>COA Type</th>
-                                    <th class="text-end">No. of Entries</th>
+                                    @foreach($coaActivityMonths as $monthLabel)
+                                    <th class="text-end">{{ $monthLabel }}</th>
+                                    @endforeach
                                     <th class="text-end">Total Amount</th>
                                 </tr>
                             </thead>
@@ -245,22 +249,23 @@
                                 <tr>
                                     <td>{{ $row['account_code'] }}</td>
                                     <td>{{ $row['account_name'] }}</td>
-                                    <td>{{ $row['parent_account_code'] ?: '-' }}</td>
-                                    <td>{{ $row['parent_account_name'] ?: '-' }}</td>
-                                    <td>{{ $row['account_type'] }}</td>
-                                    <td class="text-end">{{ number_format($row['entry_count'] ?? 0) }}</td>
+                                    @foreach(array_keys($coaActivityMonths) as $monthNumber)
+                                    <td class="text-end text-danger">${{ number_format($row['monthly_amounts'][$monthNumber] ?? 0, 2) }}</td>
+                                    @endforeach
                                     <td class="text-end text-danger">${{ number_format($row['total_amount'] ?? 0, 2) }}</td>
                                 </tr>
                                 @empty
                                 <tr>
-                                    <td colspan="7" class="text-center text-muted py-3">No expense COA activity found.</td>
+                                    <td colspan="15" class="text-center text-muted py-3">No expense COA activity found.</td>
                                 </tr>
                                 @endforelse
                             </tbody>
                             <tfoot>
                                 <tr style="background-color: #f8f9fa; font-weight: 600;">
-                                    <td colspan="5">Total Expense Activity</td>
-                                    <td class="text-end" id="expenseCoaActivityEntryTotal">{{ number_format($coaActivitySummary['expense']['entry_count'] ?? 0) }}</td>
+                                    <td colspan="2">Total Expense Activity</td>
+                                    @foreach(array_keys($coaActivityMonths) as $monthNumber)
+                                    <td class="text-end text-danger" id="expenseCoaActivityMonthTotal{{ $monthNumber }}">${{ number_format($coaActivitySummary['expense']['monthly_totals'][$monthNumber] ?? 0, 2) }}</td>
+                                    @endforeach
                                     <td class="text-end text-danger" id="expenseCoaActivityAmountTotal">${{ number_format($coaActivitySummary['expense']['total_amount'] ?? 0, 2) }}</td>
                                 </tr>
                             </tfoot>
@@ -538,6 +543,24 @@
         `).join('');
     }
 
+    function buildExpenseCoaActivityRows(section, amountClass) {
+        const rows = section?.rows || [];
+        const months = [1,2,3,4,5,6,7,8,9,10,11,12];
+
+        if (!rows.length) {
+            return `<tr><td colspan="15" class="text-center text-muted py-3">No expense COA activity found.</td></tr>`;
+        }
+
+        return rows.map(row => `
+            <tr>
+                <td>${row.account_code || ''}</td>
+                <td>${row.account_name || ''}</td>
+                ${months.map(month => `<td class="text-end ${amountClass}">${renderActivityMoney(row.monthly_amounts?.[month] || 0)}</td>`).join('')}
+                <td class="text-end ${amountClass}">${renderActivityMoney(row.total_amount || 0)}</td>
+            </tr>
+        `).join('');
+    }
+
     function buildTable(pl) {
         const months = [1,2,3,4,5,6,7,8,9,10,11,12];
         let html = '';
@@ -656,21 +679,23 @@
                 incomeCoaActivityBody.innerHTML = buildCoaActivityRows(pl.coaActivitySummary?.income, 'text-success');
             }
             if (expenseCoaActivityBody) {
-                expenseCoaActivityBody.innerHTML = buildCoaActivityRows(pl.coaActivitySummary?.expense, 'text-danger');
+                expenseCoaActivityBody.innerHTML = buildExpenseCoaActivityRows(pl.coaActivitySummary?.expense, 'text-danger');
             }
             const incomeEntryTotal = document.getElementById('incomeCoaActivityEntryTotal');
             const incomeAmountTotal = document.getElementById('incomeCoaActivityAmountTotal');
-            const expenseEntryTotal = document.getElementById('expenseCoaActivityEntryTotal');
             const expenseAmountTotal = document.getElementById('expenseCoaActivityAmountTotal');
+            const expenseMonthTotalEls = Array.from({ length: 12 }, (_, index) => document.getElementById(`expenseCoaActivityMonthTotal${index + 1}`));
             if (incomeEntryTotal) {
                 incomeEntryTotal.textContent = Number(pl.coaActivitySummary?.income?.entry_count || 0).toLocaleString('en-US');
             }
             if (incomeAmountTotal) {
                 incomeAmountTotal.textContent = renderActivityMoney(pl.coaActivitySummary?.income?.total_amount || 0);
             }
-            if (expenseEntryTotal) {
-                expenseEntryTotal.textContent = Number(pl.coaActivitySummary?.expense?.entry_count || 0).toLocaleString('en-US');
-            }
+            expenseMonthTotalEls.forEach((el, index) => {
+                if (el) {
+                    el.textContent = renderActivityMoney(pl.coaActivitySummary?.expense?.monthly_totals?.[index + 1] || 0);
+                }
+            });
             if (expenseAmountTotal) {
                 expenseAmountTotal.textContent = renderActivityMoney(pl.coaActivitySummary?.expense?.total_amount || 0);
             }

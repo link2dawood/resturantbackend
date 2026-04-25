@@ -364,6 +364,43 @@ class ProfitLossCalculationTest extends TestCase
     }
 
     /** @test */
+    public function annual_profit_and_loss_includes_monthly_expense_coa_activity_breakdown()
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $store = Store::factory()->create(['created_by' => $admin->id]);
+        $rentCoa = ChartOfAccount::where('account_name', 'Rent')->firstOrFail();
+
+        ExpenseTransaction::factory()->create([
+            'store_id' => $store->id,
+            'coa_id' => $rentCoa->id,
+            'amount' => 1200.00,
+            'transaction_date' => now()->startOfYear()->addMonth()->format('Y-m-d'),
+            'created_by' => $admin->id,
+        ]);
+
+        ExpenseTransaction::factory()->create([
+            'store_id' => $store->id,
+            'coa_id' => $rentCoa->id,
+            'amount' => 1800.00,
+            'transaction_date' => now()->startOfYear()->addMonths(2)->format('Y-m-d'),
+            'created_by' => $admin->id,
+        ]);
+
+        $response = $this->actingAs($admin)
+            ->getJson('/api/reports/pl/annual?store_id=' . $store->id . '&year=' . now()->year);
+
+        $response->assertStatus(200);
+
+        $expenseRows = collect($response->json('pl.coaActivitySummary.expense.rows'));
+        $rentRow = $expenseRows->firstWhere('coa_id', $rentCoa->id);
+
+        $this->assertNotNull($rentRow);
+        $this->assertEqualsWithDelta(1200.00, $rentRow['monthly_amounts'][2] ?? 0, 0.01);
+        $this->assertEqualsWithDelta(1800.00, $rentRow['monthly_amounts'][3] ?? 0, 0.01);
+        $this->assertEqualsWithDelta(3000.00, $response->json('pl.coaActivitySummary.expense.total_amount'), 0.01);
+    }
+
+    /** @test */
     public function manager_cannot_view_annual_profit_and_loss_for_unassigned_store()
     {
         $managerStore = Store::factory()->create();
