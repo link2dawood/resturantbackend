@@ -892,6 +892,14 @@ class ProfitLossController extends Controller
 
     protected function calculateCoaActivitySummary($storeId, $startDate, $endDate): array
     {
+        $yearMonths = [];
+        $cursor = \Carbon\Carbon::parse($startDate)->startOfMonth();
+        $endMonth = \Carbon\Carbon::parse($endDate)->startOfMonth();
+        while ($cursor->lte($endMonth)) {
+            $yearMonths[] = $cursor->format('Y-m');
+            $cursor->addMonth();
+        }
+
         $revenueCoaLookup = $this->getRevenueCoaLookup();
         $revenueDirectoryRows = $this->buildCoaDirectoryRows(['Revenue']);
         $expenseDirectoryRows = $this->buildCoaDirectoryRows(['COGS', 'Expense']);
@@ -905,6 +913,8 @@ class ProfitLossController extends Controller
                  revenue_income_types.name as revenue_income_type_name,
                  revenue_income_types.category,
                  revenue_income_types.default_coa_id,
+                 YEAR(daily_reports.report_date) as year,
+                 MONTH(daily_reports.report_date) as month,
                  COUNT(daily_report_revenues.id) as entry_count,
                  SUM(daily_report_revenues.amount) as total_amount'
             )
@@ -912,17 +922,29 @@ class ProfitLossController extends Controller
                 'revenue_income_types.id',
                 'revenue_income_types.name',
                 'revenue_income_types.category',
-                'revenue_income_types.default_coa_id'
+                'revenue_income_types.default_coa_id',
+                DB::raw('YEAR(daily_reports.report_date)'),
+                DB::raw('MONTH(daily_reports.report_date)')
             );
         $this->applyStoreFilter($dailyRevenueQuery, 'daily_reports.store_id', $storeId);
 
-        $incomeActivityRows = collect()
+        $rawIncomeRows = collect()
             ->merge($this->mapRevenueActivityRowsToCoas($dailyRevenueQuery->get(), $revenueCoaLookup))
-            ->merge($this->calculateThirdPartyIncomeActivityRows($storeId, $startDate, $endDate, $revenueCoaLookup))
-            ->groupBy(fn ($row) => $row['coa_id'] ?? $row['account_code'])
-            ->map(function ($rows) {
-                $first = $rows->first();
+            ->merge($this->calculateThirdPartyIncomeActivityRows($storeId, $startDate, $endDate, $revenueCoaLookup));
 
+        $incomeActivityRows = $rawIncomeRows
+            ->groupBy(fn ($row) => $row['coa_id'] ?? $row['account_code'])
+            ->map(function ($rows) use ($yearMonths) {
+                $first = $rows->first();
+                $monthlyAmounts = array_fill_keys($yearMonths, 0.0);
+                foreach ($rows as $row) {
+                    if (!empty($row['year']) && !empty($row['month'])) {
+                        $ym = sprintf('%04d-%02d', $row['year'], $row['month']);
+                        if (isset($monthlyAmounts[$ym])) {
+                            $monthlyAmounts[$ym] += (float) ($row['total_amount'] ?? 0);
+                        }
+                    }
+                }
                 return [
                     'coa_id' => $first['coa_id'],
                     'account_code' => $first['account_code'],
@@ -932,13 +954,15 @@ class ProfitLossController extends Controller
                     'account_type' => $first['account_type'],
                     'entry_count' => $rows->sum('entry_count'),
                     'total_amount' => $rows->sum('total_amount'),
+                    'monthly_amounts' => $monthlyAmounts,
                     'is_unmapped' => false,
                 ];
             });
 
         $incomeRows = $this->mergeCoaDirectoryWithActivity(
             $revenueDirectoryRows,
-            $incomeActivityRows
+            $incomeActivityRows,
+            $yearMonths
         );
 
         $expenseQuery = ExpenseTransaction::query()
@@ -947,6 +971,8 @@ class ProfitLossController extends Controller
                  chart_of_accounts.account_code,
                  chart_of_accounts.account_name,
                  chart_of_accounts.account_type,
+                 YEAR(expense_transactions.transaction_date) as year,
+                 MONTH(expense_transactions.transaction_date) as month,
                  COUNT(expense_transactions.id) as entry_count,
                  SUM(expense_transactions.amount) as total_amount,
                  0 as is_unmapped'
@@ -958,31 +984,77 @@ class ProfitLossController extends Controller
                 'chart_of_accounts.id',
                 'chart_of_accounts.account_code',
                 'chart_of_accounts.account_name',
-                'chart_of_accounts.account_type'
+                'chart_of_accounts.account_type',
+                DB::raw('YEAR(expense_transactions.transaction_date)'),
+                DB::raw('MONTH(expense_transactions.transaction_date)')
             )
             ->orderBy('chart_of_accounts.account_type')
             ->orderBy('chart_of_accounts.account_code');
         $this->applyStoreFilter($expenseQuery, 'expense_transactions.store_id', $storeId);
 
-        $expenseActivityRows = $expenseQuery->get()
-            ->map(fn ($row) => $this->formatCoaActivityRow($row))
-            ->values();
+        $rawExpenseRows = $expenseQuery->get()->map(fn ($row) => [
+            'coa_id'             => $row->coa_id ? (int) $row->coa_id : null,
+            'account_code'       => (string) ($row->account_code ?? ''),
+            'account_name'       => (string) ($row->account_name ?? ''),
+            'parent_account_code'=> '',
+            'parent_account_name'=> '',
+            'account_type'       => (string) ($row->account_type ?? ''),
+            'year'               => isset($row->year)  ? (int) $row->year  : null,
+            'month'              => isset($row->month) ? (int) $row->month : null,
+            'entry_count'        => (int) ($row->entry_count ?? 0),
+            'total_amount'       => (float) ($row->total_amount ?? 0),
+            'is_unmapped'        => false,
+        ]);
+
+        $expenseActivityRows = collect($rawExpenseRows)
+            ->groupBy(fn ($row) => $row['coa_id'] ?? $row['account_code'])
+            ->map(function ($rows) use ($yearMonths) {
+                $first = $rows->first();
+                $monthlyAmounts = array_fill_keys($yearMonths, 0.0);
+                foreach ($rows as $row) {
+                    if (!empty($row['year']) && !empty($row['month'])) {
+                        $ym = sprintf('%04d-%02d', $row['year'], $row['month']);
+                        if (isset($monthlyAmounts[$ym])) {
+                            $monthlyAmounts[$ym] += (float) ($row['total_amount'] ?? 0);
+                        }
+                    }
+                }
+                return [
+                    'coa_id'             => $first['coa_id'],
+                    'account_code'       => $first['account_code'],
+                    'account_name'       => $first['account_name'],
+                    'parent_account_code'=> $first['parent_account_code'] ?? '',
+                    'parent_account_name'=> $first['parent_account_name'] ?? '',
+                    'account_type'       => $first['account_type'],
+                    'entry_count'        => $rows->sum('entry_count'),
+                    'total_amount'       => $rows->sum('total_amount'),
+                    'monthly_amounts'    => $monthlyAmounts,
+                    'is_unmapped'        => false,
+                ];
+            });
 
         $expenseRows = $this->mergeCoaDirectoryWithActivity(
             $expenseDirectoryRows,
-            $expenseActivityRows
+            $expenseActivityRows,
+            $yearMonths
         );
 
+        $incomeTotals  = $this->buildSectionTotals($incomeRows, $yearMonths);
+        $expenseTotals = $this->buildSectionTotals($expenseRows, $yearMonths);
+
         return [
+            'year_months' => $yearMonths,
             'income' => [
-                'rows' => $incomeRows,
-                'entry_count' => array_sum(array_column($incomeRows, 'entry_count')),
-                'total_amount' => array_sum(array_column($incomeRows, 'total_amount')),
+                'rows'          => $incomeRows,
+                'entry_count'   => $incomeTotals['entry_count'],
+                'total_amount'  => $incomeTotals['total_amount'],
+                'monthly_totals'=> $incomeTotals['monthly_totals'],
             ],
             'expense' => [
-                'rows' => $expenseRows,
-                'entry_count' => array_sum(array_column($expenseRows, 'entry_count')),
-                'total_amount' => array_sum(array_column($expenseRows, 'total_amount')),
+                'rows'          => $expenseRows,
+                'entry_count'   => $expenseTotals['entry_count'],
+                'total_amount'  => $expenseTotals['total_amount'],
+                'monthly_totals'=> $expenseTotals['monthly_totals'],
             ],
         ];
     }
@@ -992,11 +1064,13 @@ class ProfitLossController extends Controller
         $query = ThirdPartyStatement::query()
             ->selectRaw(
                 'platform,
+                 YEAR(statement_date) as year,
+                 MONTH(statement_date) as month,
                  COUNT(id) as entry_count,
                  SUM(gross_sales) as total_amount'
             )
             ->whereBetween('statement_date', [$startDate, $endDate])
-            ->groupBy('platform');
+            ->groupBy('platform', DB::raw('YEAR(statement_date)'), DB::raw('MONTH(statement_date)'));
         $this->applyStoreFilter($query, 'store_id', $storeId);
 
         return $query->get()->map(function ($row) use ($revenueCoaLookup) {
@@ -1014,6 +1088,8 @@ class ProfitLossController extends Controller
                 'parent_account_code' => $coa['parent_account_code'] ?? '',
                 'parent_account_name' => $coa['parent_account_name'] ?? '',
                 'account_type' => $coa['account_type'] ?? 'Revenue',
+                'year' => (int) ($row->year ?? 0),
+                'month' => (int) ($row->month ?? 0),
                 'entry_count' => (int) $row->entry_count,
                 'total_amount' => (float) $row->total_amount,
                 'is_unmapped' => false,
@@ -1032,16 +1108,17 @@ class ProfitLossController extends Controller
             );
 
             return [
-                'coa_id' => $coa['id'] ?? null,
-                'account_code' => $coa['account_code'] ?? '',
-                'account_name' => $coa['account_name'] ?? 'Revenue',
+                'coa_id'              => $coa['id'] ?? null,
+                'account_code'        => $coa['account_code'] ?? '',
+                'account_name'        => $coa['account_name'] ?? 'Revenue',
                 'parent_account_code' => $coa['parent_account_code'] ?? '',
                 'parent_account_name' => $coa['parent_account_name'] ?? '',
-                'account_type' => $coa['account_type'] ?? 'Revenue',
-                'month' => isset($row->month) ? (int) $row->month : null,
-                'entry_count' => (int) ($row->entry_count ?? 0),
-                'total_amount' => (float) ($row->total_amount ?? 0),
-                'is_unmapped' => false,
+                'account_type'        => $coa['account_type'] ?? 'Revenue',
+                'year'                => isset($row->year)  ? (int) $row->year  : null,
+                'month'               => isset($row->month) ? (int) $row->month : null,
+                'entry_count'         => (int)   ($row->entry_count  ?? 0),
+                'total_amount'        => (float)  ($row->total_amount ?? 0),
+                'is_unmapped'         => false,
             ];
         });
     }
@@ -1162,55 +1239,78 @@ class ProfitLossController extends Controller
         })->all();
     }
 
-    protected function mergeCoaDirectoryWithActivity(array $directoryRows, $activityRows): array
+    protected function buildSectionTotals(array $rows, array $yearMonths): array
     {
-        $activityByCoaId = collect($activityRows)
-            ->keyBy('coa_id');
+        $monthlyTotals = array_fill_keys($yearMonths, 0.0);
+        $totalAmount   = 0.0;
+        $entryCount    = 0;
+        foreach ($rows as $row) {
+            if (! ($row['is_rollup'] ?? false)) {
+                foreach ($yearMonths as $ym) {
+                    $monthlyTotals[$ym] += (float) ($row['monthly_amounts'][$ym] ?? 0);
+                }
+                $totalAmount += (float) ($row['total_amount'] ?? 0);
+                $entryCount  += (int)   ($row['entry_count']  ?? 0);
+            }
+        }
+        return ['monthly_totals' => $monthlyTotals, 'total_amount' => $totalAmount, 'entry_count' => $entryCount];
+    }
+
+    protected function mergeCoaDirectoryWithActivity(array $directoryRows, $activityRows, array $yearMonths = []): array
+    {
+        $activityByCoaId = collect($activityRows)->keyBy('coa_id');
         $directoryById = collect($directoryRows)->keyBy('coa_id');
         $childrenByParentId = collect($directoryRows)
             ->filter(fn ($row) => ! empty($row['parent_account_id']))
             ->groupBy('parent_account_id');
         $computed = [];
 
-        $computeTotals = function (int $coaId) use (&$computeTotals, &$computed, $directoryById, $activityByCoaId, $childrenByParentId) {
+        $computeTotals = function (int $coaId) use (&$computeTotals, &$computed, $directoryById, $activityByCoaId, $childrenByParentId, $yearMonths) {
             if (isset($computed[$coaId])) {
                 return $computed[$coaId];
             }
 
             $directoryRow = $directoryById->get($coaId);
             if (! $directoryRow) {
-                return ['entry_count' => 0, 'total_amount' => 0.0];
+                return ['entry_count' => 0, 'total_amount' => 0.0, 'monthly_amounts' => array_fill_keys($yearMonths, 0.0)];
             }
 
             $children = $childrenByParentId->get($coaId, collect());
             if ($children->isEmpty()) {
                 $activityRow = $activityByCoaId->get($coaId);
                 return $computed[$coaId] = [
-                    'entry_count' => (int) ($activityRow['entry_count'] ?? 0),
-                    'total_amount' => (float) ($activityRow['total_amount'] ?? 0),
+                    'entry_count'    => (int) ($activityRow['entry_count'] ?? 0),
+                    'total_amount'   => (float) ($activityRow['total_amount'] ?? 0),
+                    'monthly_amounts'=> $activityRow['monthly_amounts'] ?? array_fill_keys($yearMonths, 0.0),
                 ];
             }
 
-            $entryCount = 0;
-            $totalAmount = 0.0;
+            $entryCount     = 0;
+            $totalAmount    = 0.0;
+            $monthlyAmounts = array_fill_keys($yearMonths, 0.0);
 
             foreach ($children as $childRow) {
-                $childTotals = $computeTotals((int) $childRow['coa_id']);
-                $entryCount += (int) ($childTotals['entry_count'] ?? 0);
+                $childTotals  = $computeTotals((int) $childRow['coa_id']);
+                $entryCount  += (int) ($childTotals['entry_count'] ?? 0);
                 $totalAmount += (float) ($childTotals['total_amount'] ?? 0);
+                foreach ($yearMonths as $ym) {
+                    $monthlyAmounts[$ym] += (float) ($childTotals['monthly_amounts'][$ym] ?? 0);
+                }
             }
 
             return $computed[$coaId] = [
-                'entry_count' => $entryCount,
-                'total_amount' => $totalAmount,
+                'entry_count'    => $entryCount,
+                'total_amount'   => $totalAmount,
+                'monthly_amounts'=> $monthlyAmounts,
             ];
         };
 
         return collect($directoryRows)
             ->map(function ($directoryRow) use ($computeTotals) {
                 $totals = $computeTotals((int) $directoryRow['coa_id']);
-                $directoryRow['entry_count'] = (int) ($totals['entry_count'] ?? 0);
-                $directoryRow['total_amount'] = (float) ($totals['total_amount'] ?? 0);
+                $directoryRow['entry_count']     = (int) ($totals['entry_count'] ?? 0);
+                $directoryRow['total_amount']    = (float) ($totals['total_amount'] ?? 0);
+                $directoryRow['monthly_amounts'] = $totals['monthly_amounts'] ?? [];
                 return $directoryRow;
             })
             ->sortBy(fn ($row) => sprintf('%s|%s', $row['account_type'], str_pad($row['account_code'], 10, '0', STR_PAD_LEFT)))

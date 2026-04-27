@@ -136,9 +136,11 @@
     @if(isset($data['pl']))
     @php
         $coaActivitySummary = $data['pl']['coa_activity_summary'] ?? [
-            'income' => ['rows' => [], 'entry_count' => 0, 'total_amount' => 0],
-            'expense' => ['rows' => [], 'entry_count' => 0, 'total_amount' => 0],
+            'year_months' => [],
+            'income' => ['rows' => [], 'entry_count' => 0, 'total_amount' => 0, 'monthly_totals' => []],
+            'expense' => ['rows' => [], 'entry_count' => 0, 'total_amount' => 0, 'monthly_totals' => []],
         ];
+        $yearMonths = $coaActivitySummary['year_months'] ?? [];
     @endphp
 
     <div class="card mb-4">
@@ -147,87 +149,99 @@
         </div>
         <div class="card-body">
             <div class="text-muted small mb-3">
-                This report shows all reportable P&amp;L COAs, their parent COA, account numbers, entry counts, and totals for the selected date range.
+                Monthly breakdown of all reportable P&amp;L COAs for the selected date range.
             </div>
             <div class="row g-4">
+                {{-- Income Table --}}
                 <div class="col-12">
                     <h4 class="h6 mb-2">Income by COA</h4>
                     <div class="table-responsive">
-                        <table class="table table-sm table-hover align-middle mb-0">
+                        <table class="table table-sm table-hover align-middle mb-0" style="font-size:0.8rem;">
                             <thead style="background-color: #f8f9fa;">
                                 <tr>
-                                    <th>COA No.</th>
-                                    <th>COA Name</th>
-                                    <th>Parent COA No.</th>
-                                    <th>Parent COA Name</th>
-                                    <th>COA Type</th>
-                                    <th class="text-end">No. of Entries</th>
-                                    <th class="text-end">Total Amount</th>
+                                    <th style="min-width:70px;">COA No.</th>
+                                    <th style="min-width:160px;">COA Name</th>
+                                    @foreach($yearMonths as $ym)
+                                    <th class="text-end" style="min-width:90px;">{{ \Carbon\Carbon::createFromFormat('Y-m', $ym)->format('M Y') }}</th>
+                                    @endforeach
+                                    <th class="text-end" style="min-width:100px;">Total</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @forelse(($coaActivitySummary['income']['rows'] ?? []) as $row)
-                                <tr>
+                                @php $isRollup = $row['is_rollup'] ?? false; @endphp
+                                <tr style="{{ $isRollup ? 'background-color:#f0f4ff;font-weight:600;' : '' }}">
                                     <td>{{ $row['account_code'] }}</td>
-                                    <td>{{ $row['account_name'] }}</td>
-                                    <td>{{ $row['parent_account_code'] ?: '-' }}</td>
-                                    <td>{{ $row['parent_account_name'] ?: '-' }}</td>
-                                    <td>{{ $row['account_type'] }}</td>
-                                    <td class="text-end">{{ number_format($row['entry_count'] ?? 0) }}</td>
+                                    <td style="{{ $isRollup ? '' : 'padding-left:1.25rem;' }}">{{ $row['account_name'] }}</td>
+                                    @foreach($yearMonths as $ym)
+                                    @php $amt = $row['monthly_amounts'][$ym] ?? 0; @endphp
+                                    <td class="text-end {{ $amt != 0 ? 'text-success' : 'text-muted' }}">
+                                        {{ $amt != 0 ? '$'.number_format($amt, 2) : '-' }}
+                                    </td>
+                                    @endforeach
                                     <td class="text-end text-success">${{ number_format($row['total_amount'] ?? 0, 2) }}</td>
                                 </tr>
                                 @empty
                                 <tr>
-                                    <td colspan="7" class="text-center text-muted py-3">No income COA activity found.</td>
+                                    <td colspan="{{ 2 + count($yearMonths) + 1 }}" class="text-center text-muted py-3">No income COA activity found.</td>
                                 </tr>
                                 @endforelse
                             </tbody>
                             <tfoot>
-                                <tr style="background-color: #f8f9fa; font-weight: 600;">
-                                    <td colspan="5">Total Income Activity</td>
-                                    <td class="text-end">{{ number_format($coaActivitySummary['income']['entry_count'] ?? 0) }}</td>
+                                <tr style="background-color: #e8f5e9; font-weight: 600;">
+                                    <td colspan="2">Total Income</td>
+                                    @foreach($yearMonths as $ym)
+                                    @php $tot = $coaActivitySummary['income']['monthly_totals'][$ym] ?? 0; @endphp
+                                    <td class="text-end text-success">${{ number_format($tot, 2) }}</td>
+                                    @endforeach
                                     <td class="text-end text-success">${{ number_format($coaActivitySummary['income']['total_amount'] ?? 0, 2) }}</td>
                                 </tr>
                             </tfoot>
                         </table>
                     </div>
                 </div>
+                {{-- Expense Table --}}
                 <div class="col-12">
                     <h4 class="h6 mb-2">Expense by COA</h4>
                     <div class="table-responsive">
-                        <table class="table table-sm table-hover align-middle mb-0">
+                        <table class="table table-sm table-hover align-middle mb-0" style="font-size:0.8rem;">
                             <thead style="background-color: #f8f9fa;">
                                 <tr>
-                                    <th>COA No.</th>
-                                    <th>COA Name</th>
-                                    <th>Parent COA No.</th>
-                                    <th>Parent COA Name</th>
-                                    <th>COA Type</th>
-                                    <th class="text-end">No. of Entries</th>
-                                    <th class="text-end">Total Amount</th>
+                                    <th style="min-width:70px;">COA No.</th>
+                                    <th style="min-width:160px;">COA Name</th>
+                                    @foreach($yearMonths as $ym)
+                                    <th class="text-end" style="min-width:90px;">{{ \Carbon\Carbon::createFromFormat('Y-m', $ym)->format('M Y') }}</th>
+                                    @endforeach
+                                    <th class="text-end" style="min-width:100px;">Total</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @forelse(($coaActivitySummary['expense']['rows'] ?? []) as $row)
-                                <tr>
+                                @php $isRollup = $row['is_rollup'] ?? false; @endphp
+                                <tr style="{{ $isRollup ? 'background-color:#fff8f0;font-weight:600;' : '' }}">
                                     <td>{{ $row['account_code'] }}</td>
-                                    <td>{{ $row['account_name'] }}</td>
-                                    <td>{{ $row['parent_account_code'] ?: '-' }}</td>
-                                    <td>{{ $row['parent_account_name'] ?: '-' }}</td>
-                                    <td>{{ $row['account_type'] }}</td>
-                                    <td class="text-end">{{ number_format($row['entry_count'] ?? 0) }}</td>
+                                    <td style="{{ $isRollup ? '' : 'padding-left:1.25rem;' }}">{{ $row['account_name'] }}</td>
+                                    @foreach($yearMonths as $ym)
+                                    @php $amt = $row['monthly_amounts'][$ym] ?? 0; @endphp
+                                    <td class="text-end {{ $amt != 0 ? 'text-danger' : 'text-muted' }}">
+                                        {{ $amt != 0 ? '$'.number_format($amt, 2) : '-' }}
+                                    </td>
+                                    @endforeach
                                     <td class="text-end text-danger">${{ number_format($row['total_amount'] ?? 0, 2) }}</td>
                                 </tr>
                                 @empty
                                 <tr>
-                                    <td colspan="7" class="text-center text-muted py-3">No expense COA activity found.</td>
+                                    <td colspan="{{ 2 + count($yearMonths) + 1 }}" class="text-center text-muted py-3">No expense COA activity found.</td>
                                 </tr>
                                 @endforelse
                             </tbody>
                             <tfoot>
-                                <tr style="background-color: #f8f9fa; font-weight: 600;">
-                                    <td colspan="5">Total Expense Activity</td>
-                                    <td class="text-end">{{ number_format($coaActivitySummary['expense']['entry_count'] ?? 0) }}</td>
+                                <tr style="background-color: #fce4ec; font-weight: 600;">
+                                    <td colspan="2">Total Expenses</td>
+                                    @foreach($yearMonths as $ym)
+                                    @php $tot = $coaActivitySummary['expense']['monthly_totals'][$ym] ?? 0; @endphp
+                                    <td class="text-end text-danger">${{ number_format($tot, 2) }}</td>
+                                    @endforeach
                                     <td class="text-end text-danger">${{ number_format($coaActivitySummary['expense']['total_amount'] ?? 0, 2) }}</td>
                                 </tr>
                             </tfoot>
