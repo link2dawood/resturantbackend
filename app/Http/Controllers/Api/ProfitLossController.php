@@ -240,7 +240,8 @@ class ProfitLossController extends Controller
         $coaTypeSummary = $this->calculateAnnualCoaTypeSummary($storeId, $year);
         $coaActivitySummary = [
             'income'  => $this->calculateAnnualIncomeCoaActivitySummary($storeId, $year),
-            'expense' => $this->calculateAnnualExpenseCoaActivitySummary($storeId, $year),
+            'cogs'    => $this->calculateAnnualExpenseCoaActivitySummary($storeId, $year, 'COGS'),
+            'expense' => $this->calculateAnnualExpenseCoaActivitySummary($storeId, $year, 'Expense'),
         ];
 
         // ── REVENUE ──────────────────────────────────────────────────────────
@@ -495,10 +496,10 @@ class ProfitLossController extends Controller
         return compact('revenue', 'cogs', 'grossProfit', 'operatingExpenses', 'netProfit', 'coaTypeSummary', 'coaActivitySummary');
     }
 
-    protected function calculateAnnualExpenseCoaActivitySummary($storeId, int $year): array
+    protected function calculateAnnualExpenseCoaActivitySummary($storeId, int $year, string $accountType = 'Expense'): array
     {
         $months = range(1, 12);
-        $expenseDirectoryRows = $this->buildCoaDirectoryRows(['Expense']);
+        $expenseDirectoryRows = $this->buildCoaDirectoryRows([$accountType]);
 
         $expenseQuery = ExpenseTransaction::query()
             ->selectRaw(
@@ -508,7 +509,7 @@ class ProfitLossController extends Controller
                  SUM(expense_transactions.amount) as total_amount'
             )
             ->join('chart_of_accounts', 'expense_transactions.coa_id', '=', 'chart_of_accounts.id')
-            ->where('chart_of_accounts.account_type', 'Expense')
+            ->where('chart_of_accounts.account_type', $accountType)
             ->whereYear('expense_transactions.transaction_date', $year)
             ->groupBy(
                 'chart_of_accounts.id',
@@ -981,7 +982,6 @@ class ProfitLossController extends Controller
 
         $revenueCoaLookup = $this->getRevenueCoaLookup();
         $revenueDirectoryRows = $this->buildCoaDirectoryRows(['Revenue']);
-        $expenseDirectoryRows = $this->buildCoaDirectoryRows(['Expense']);
 
         $dailyRevenueQuery = DB::table('daily_report_revenues')
             ->join('daily_reports', 'daily_report_revenues.daily_report_id', '=', 'daily_reports.id')
@@ -1044,7 +1044,34 @@ class ProfitLossController extends Controller
             $yearMonths
         );
 
-        $expenseQuery = ExpenseTransaction::query()
+        $cogs    = $this->buildExpenseLikeActivitySection($storeId, $startDate, $endDate, $yearMonths, 'COGS');
+        $expense = $this->buildExpenseLikeActivitySection($storeId, $startDate, $endDate, $yearMonths, 'Expense');
+
+        $incomeTotals = $this->buildSectionTotals($incomeRows, $yearMonths);
+
+        return [
+            'year_months' => $yearMonths,
+            'income' => [
+                'rows'          => $incomeRows,
+                'entry_count'   => $incomeTotals['entry_count'],
+                'total_amount'  => $incomeTotals['total_amount'],
+                'monthly_totals'=> $incomeTotals['monthly_totals'],
+            ],
+            'cogs'    => $cogs,
+            'expense' => $expense,
+        ];
+    }
+
+    /**
+     * Build the per-COA activity section for an expense-like account type
+     * (Expense or COGS). Shared by the index page's COA Activity Summary so
+     * both blocks read from the same pipeline.
+     */
+    protected function buildExpenseLikeActivitySection($storeId, $startDate, $endDate, array $yearMonths, string $accountType): array
+    {
+        $directoryRows = $this->buildCoaDirectoryRows([$accountType]);
+
+        $query = ExpenseTransaction::query()
             ->selectRaw(
                 'chart_of_accounts.id as coa_id,
                  chart_of_accounts.account_code,
@@ -1057,7 +1084,7 @@ class ProfitLossController extends Controller
                  0 as is_unmapped'
             )
             ->join('chart_of_accounts', 'expense_transactions.coa_id', '=', 'chart_of_accounts.id')
-            ->where('chart_of_accounts.account_type', 'Expense')
+            ->where('chart_of_accounts.account_type', $accountType)
             ->whereBetween('expense_transactions.transaction_date', [$startDate, $endDate])
             ->groupBy(
                 'chart_of_accounts.id',
@@ -1069,9 +1096,9 @@ class ProfitLossController extends Controller
             )
             ->orderBy('chart_of_accounts.account_type')
             ->orderBy('chart_of_accounts.account_code');
-        $this->applyStoreFilter($expenseQuery, 'expense_transactions.store_id', $storeId);
+        $this->applyStoreFilter($query, 'expense_transactions.store_id', $storeId);
 
-        $rawExpenseRows = $expenseQuery->get()->map(fn ($row) => [
+        $rawRows = $query->get()->map(fn ($row) => [
             'coa_id'             => $row->coa_id ? (int) $row->coa_id : null,
             'account_code'       => (string) ($row->account_code ?? ''),
             'account_name'       => (string) ($row->account_name ?? ''),
@@ -1085,7 +1112,7 @@ class ProfitLossController extends Controller
             'is_unmapped'        => false,
         ]);
 
-        $expenseActivityRows = collect($rawExpenseRows)
+        $activityRows = collect($rawRows)
             ->groupBy(fn ($row) => $row['coa_id'] ?? $row['account_code'])
             ->map(function ($rows) use ($yearMonths) {
                 $first = $rows->first();
@@ -1112,29 +1139,14 @@ class ProfitLossController extends Controller
                 ];
             });
 
-        $expenseRows = $this->mergeCoaDirectoryWithActivity(
-            $expenseDirectoryRows,
-            $expenseActivityRows,
-            $yearMonths
-        );
-
-        $incomeTotals  = $this->buildSectionTotals($incomeRows, $yearMonths);
-        $expenseTotals = $this->buildSectionTotals($expenseRows, $yearMonths);
+        $rows = $this->mergeCoaDirectoryWithActivity($directoryRows, $activityRows, $yearMonths);
+        $totals = $this->buildSectionTotals($rows, $yearMonths);
 
         return [
-            'year_months' => $yearMonths,
-            'income' => [
-                'rows'          => $incomeRows,
-                'entry_count'   => $incomeTotals['entry_count'],
-                'total_amount'  => $incomeTotals['total_amount'],
-                'monthly_totals'=> $incomeTotals['monthly_totals'],
-            ],
-            'expense' => [
-                'rows'          => $expenseRows,
-                'entry_count'   => $expenseTotals['entry_count'],
-                'total_amount'  => $expenseTotals['total_amount'],
-                'monthly_totals'=> $expenseTotals['monthly_totals'],
-            ],
+            'rows'          => $rows,
+            'entry_count'   => $totals['entry_count'],
+            'total_amount'  => $totals['total_amount'],
+            'monthly_totals'=> $totals['monthly_totals'],
         ];
     }
 

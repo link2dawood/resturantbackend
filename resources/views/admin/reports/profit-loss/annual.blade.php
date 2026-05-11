@@ -169,7 +169,8 @@
 
     @php
         $coaActivitySummary = $pl['coaActivitySummary'] ?? [
-            'income' => ['rows' => [], 'entry_count' => 0, 'total_amount' => 0],
+            'income' => ['rows' => [], 'entry_count' => 0, 'total_amount' => 0, 'monthly_totals' => array_fill_keys(range(1, 12), 0)],
+            'cogs' => ['rows' => [], 'entry_count' => 0, 'total_amount' => 0, 'monthly_totals' => array_fill_keys(range(1, 12), 0)],
             'expense' => ['rows' => [], 'entry_count' => 0, 'total_amount' => 0, 'monthly_totals' => array_fill_keys(range(1, 12), 0)],
         ];
         $coaActivityMonths = [
@@ -226,6 +227,49 @@
                                     <td class="text-end text-success" id="incomeCoaActivityMonthTotal{{ $monthNumber }}">${{ number_format($coaActivitySummary['income']['monthly_totals'][$monthNumber] ?? 0, 2) }}</td>
                                     @endforeach
                                     <td class="text-end text-success" id="incomeCoaActivityAmountTotal">${{ number_format($coaActivitySummary['income']['total_amount'] ?? 0, 2) }}</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <h4 class="h6 mb-2">COGS by COA</h4>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover align-middle mb-0" id="cogsCoaActivityTable">
+                            <thead style="background-color: #f8f9fa;">
+                                <tr>
+                                    <th>COA No.</th>
+                                    <th>COA Name</th>
+                                    @foreach($coaActivityMonths as $monthLabel)
+                                    <th class="text-end">{{ $monthLabel }}</th>
+                                    @endforeach
+                                    <th class="text-end">Total Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse(($coaActivitySummary['cogs']['rows'] ?? []) as $row)
+                                @php $isMain = ($row['is_rollup'] ?? false) || empty($row['parent_account_id']); @endphp
+                                <tr style="{{ $isMain ? 'background-color:#fff3e0;font-weight:600;' : '' }}">
+                                    <td>{{ $row['account_code'] }}</td>
+                                    <td style="{{ $isMain ? '' : 'padding-left:1.25rem;' }}">{{ $row['account_name'] }}</td>
+                                    @foreach(array_keys($coaActivityMonths) as $monthNumber)
+                                    <td class="text-end text-warning">${{ number_format($row['monthly_amounts'][$monthNumber] ?? 0, 2) }}</td>
+                                    @endforeach
+                                    <td class="text-end text-warning">${{ number_format($row['total_amount'] ?? 0, 2) }}</td>
+                                </tr>
+                                @empty
+                                <tr>
+                                    <td colspan="15" class="text-center text-muted py-3">No COGS activity found.</td>
+                                </tr>
+                                @endforelse
+                            </tbody>
+                            <tfoot>
+                                <tr style="background-color: #ffe0b2; font-weight: 600;">
+                                    <td colspan="2">Total COGS Activity</td>
+                                    @foreach(array_keys($coaActivityMonths) as $monthNumber)
+                                    <td class="text-end text-warning" id="cogsCoaActivityMonthTotal{{ $monthNumber }}">${{ number_format($coaActivitySummary['cogs']['monthly_totals'][$monthNumber] ?? 0, 2) }}</td>
+                                    @endforeach
+                                    <td class="text-end text-warning" id="cogsCoaActivityAmountTotal">${{ number_format($coaActivitySummary['cogs']['total_amount'] ?? 0, 2) }}</td>
                                 </tr>
                             </tfoot>
                         </table>
@@ -533,7 +577,9 @@
             return `<tr><td colspan="15" class="text-center text-muted py-3">${emptyMessage}</td></tr>`;
         }
 
-        const mainBg = amountClass === 'text-danger' ? '#fff8f0' : '#f0f4ff';
+        const mainBg = amountClass === 'text-danger' ? '#fff8f0'
+                     : amountClass === 'text-warning' ? '#fff3e0'
+                     : '#f0f4ff';
         return rows.map(row => {
             const isMain = !!row.is_rollup || !row.parent_account_id;
             const trStyle = isMain ? `background-color:${mainBg};font-weight:600;` : '';
@@ -651,11 +697,13 @@
         const params = buildParams();
         const tbody  = document.querySelector('#annualPlTable tbody');
         const incomeCoaActivityBody = document.querySelector('#incomeCoaActivityTable tbody');
+        const cogsCoaActivityBody = document.querySelector('#cogsCoaActivityTable tbody');
         const expenseCoaActivityBody = document.querySelector('#expenseCoaActivityTable tbody');
         if (!tbody) return;
 
         tbody.style.opacity = '0.4';
         if (incomeCoaActivityBody) incomeCoaActivityBody.style.opacity = '0.4';
+        if (cogsCoaActivityBody) cogsCoaActivityBody.style.opacity = '0.4';
         if (expenseCoaActivityBody) expenseCoaActivityBody.style.opacity = '0.4';
 
         try {
@@ -669,11 +717,16 @@
             if (incomeCoaActivityBody) {
                 incomeCoaActivityBody.innerHTML = buildMonthlyCoaActivityRows(pl.coaActivitySummary?.income, 'text-success', 'No income COA activity found.');
             }
+            if (cogsCoaActivityBody) {
+                cogsCoaActivityBody.innerHTML = buildMonthlyCoaActivityRows(pl.coaActivitySummary?.cogs, 'text-warning', 'No COGS activity found.');
+            }
             if (expenseCoaActivityBody) {
                 expenseCoaActivityBody.innerHTML = buildExpenseCoaActivityRows(pl.coaActivitySummary?.expense, 'text-danger');
             }
             const incomeAmountTotal = document.getElementById('incomeCoaActivityAmountTotal');
             const incomeMonthTotalEls = Array.from({ length: 12 }, (_, index) => document.getElementById(`incomeCoaActivityMonthTotal${index + 1}`));
+            const cogsAmountTotal = document.getElementById('cogsCoaActivityAmountTotal');
+            const cogsMonthTotalEls = Array.from({ length: 12 }, (_, index) => document.getElementById(`cogsCoaActivityMonthTotal${index + 1}`));
             const expenseAmountTotal = document.getElementById('expenseCoaActivityAmountTotal');
             const expenseMonthTotalEls = Array.from({ length: 12 }, (_, index) => document.getElementById(`expenseCoaActivityMonthTotal${index + 1}`));
             incomeMonthTotalEls.forEach((el, index) => {
@@ -683,6 +736,14 @@
             });
             if (incomeAmountTotal) {
                 incomeAmountTotal.textContent = renderActivityMoney(pl.coaActivitySummary?.income?.total_amount || 0);
+            }
+            cogsMonthTotalEls.forEach((el, index) => {
+                if (el) {
+                    el.textContent = renderActivityMoney(pl.coaActivitySummary?.cogs?.monthly_totals?.[index + 1] || 0);
+                }
+            });
+            if (cogsAmountTotal) {
+                cogsAmountTotal.textContent = renderActivityMoney(pl.coaActivitySummary?.cogs?.total_amount || 0);
             }
             expenseMonthTotalEls.forEach((el, index) => {
                 if (el) {
@@ -714,6 +775,7 @@
         } finally {
             tbody.style.opacity = '1';
             if (incomeCoaActivityBody) incomeCoaActivityBody.style.opacity = '1';
+            if (cogsCoaActivityBody) cogsCoaActivityBody.style.opacity = '1';
             if (expenseCoaActivityBody) expenseCoaActivityBody.style.opacity = '1';
         }
     }
