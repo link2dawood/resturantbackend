@@ -418,30 +418,41 @@ class ProfitLossController extends Controller
             $expAccounts[$key]['annual_total']           += (float) $row->total;
         }
 
-        // Group by parent account
+        // Group by parent account — use both literal parent_account_id AND
+        // code-pattern inference, matching how buildCoaDirectoryRows resolves
+        // hierarchy. Otherwise rows like Gas (6520, parent_account_id NULL)
+        // never roll into Utilities Total (6500).
+        $expenseCoas    = ChartOfAccount::where('account_type', 'Expense')
+            ->get(['id', 'account_code', 'account_name', 'account_type', 'parent_account_id']);
+        $expCoasById    = $expenseCoas->keyBy('id');
+        $expCoasByCode  = $expenseCoas->keyBy('account_code');
+
         $expOrganized = [];
         $expTopLevel  = [];
         foreach ($expAccounts as $acct) {
-            if ($acct['parent_account_id']) {
-                $parent = ChartOfAccount::find($acct['parent_account_id']);
-                if ($parent) {
-                    $pk = $parent->account_name;
-                    if (!isset($expOrganized[$pk])) {
-                        $expOrganized[$pk] = [
-                            'name'         => $parent->account_name,
-                            'coa_id'       => null,
-                            'monthly'      => array_fill_keys($months, 0),
-                            'annual_total' => 0,
-                            'items'        => [],
-                        ];
-                    }
-                    $expOrganized[$pk]['items'][] = $acct;
-                    foreach ($months as $m) {
-                        $expOrganized[$pk]['monthly'][$m] += $acct['monthly'][$m];
-                    }
-                    $expOrganized[$pk]['annual_total'] += $acct['annual_total'];
-                    continue;
+            $parent = $this->resolveEffectiveExpenseParent(
+                $acct['parent_account_id'] ? (int) $acct['parent_account_id'] : null,
+                (string) ($expCoasById->get($acct['coa_id'])?->account_code ?? ''),
+                $expCoasById,
+                $expCoasByCode
+            );
+            if ($parent) {
+                $pk = $parent->account_name;
+                if (!isset($expOrganized[$pk])) {
+                    $expOrganized[$pk] = [
+                        'name'         => $parent->account_name,
+                        'coa_id'       => (int) $parent->id,
+                        'monthly'      => array_fill_keys($months, 0),
+                        'annual_total' => 0,
+                        'items'        => [],
+                    ];
                 }
+                $expOrganized[$pk]['items'][] = $acct;
+                foreach ($months as $m) {
+                    $expOrganized[$pk]['monthly'][$m] += $acct['monthly'][$m];
+                }
+                $expOrganized[$pk]['annual_total'] += $acct['annual_total'];
+                continue;
             }
             $expTopLevel[] = $acct;
         }
@@ -1389,6 +1400,26 @@ class ProfitLossController extends Controller
     }
 
     /**
+     * Resolve the effective parent COA for an expense row, using the literal
+     * parent_account_id when present and falling back to the code-pattern
+     * inference (e.g. 6520 -> 6500). Keeps the main P&L grouping consistent
+     * with the COA Activity Summary, which already does this via
+     * buildCoaDirectoryRows.
+     */
+    protected function resolveEffectiveExpenseParent(
+        ?int $literalParentId,
+        ?string $accountCode,
+        \Illuminate\Support\Collection $coasById,
+        \Illuminate\Support\Collection $coasByCode
+    ): ?ChartOfAccount {
+        if ($literalParentId && $coasById->has($literalParentId)) {
+            return $coasById->get($literalParentId);
+        }
+        $inferred = $this->inferParentAccountCode((string) ($accountCode ?? ''), 'Expense');
+        return $inferred ? $coasByCode->get($inferred) : null;
+    }
+
+    /**
      * Calculate revenue from daily reports and third-party statements
      */
     protected function calculateRevenue($storeId, $startDate, $endDate)
@@ -1558,35 +1589,46 @@ class ProfitLossController extends Controller
             ->orderBy('chart_of_accounts.account_code')
             ->get();
         
-        // Organize by parent categories
+        // Organize by parent categories — resolve effective parent using both
+        // literal parent_account_id and code-pattern inference, matching the
+        // COA Activity Summary's hierarchy.
+        $expenseCoas   = ChartOfAccount::where('account_type', 'Expense')
+            ->get(['id', 'account_code', 'account_name', 'account_type', 'parent_account_id']);
+        $expCoasById   = $expenseCoas->keyBy('id');
+        $expCoasByCode = $expenseCoas->keyBy('account_code');
+
         $organized = [];
         $topLevel = [];
-        
+
         foreach ($expenseItems as $item) {
-            if ($item->parent_account_id) {
-                $parent = ChartOfAccount::find($item->parent_account_id);
-                if ($parent) {
-                    if (!isset($organized[$parent->account_name])) {
-                        $organized[$parent->account_name] = [
-                            'name' => $parent->account_name,
-                            'items' => [],
-                            'total' => 0,
-                        ];
-                    }
-                    $organized[$parent->account_name]['items'][] = [
-                        'name' => $item->account_name,
-                        'amount' => $item->total,
-                        'coa_id' => $item->coa_id,
+            $parent = $this->resolveEffectiveExpenseParent(
+                $item->parent_account_id ? (int) $item->parent_account_id : null,
+                (string) ($item->account_code ?? ''),
+                $expCoasById,
+                $expCoasByCode
+            );
+            if ($parent) {
+                if (!isset($organized[$parent->account_name])) {
+                    $organized[$parent->account_name] = [
+                        'name'   => $parent->account_name,
+                        'coa_id' => (int) $parent->id,
+                        'items'  => [],
+                        'total'  => 0,
                     ];
-                    $organized[$parent->account_name]['total'] += $item->total;
                 }
-            } else {
-                $topLevel[] = [
+                $organized[$parent->account_name]['items'][] = [
                     'name' => $item->account_name,
                     'amount' => $item->total,
                     'coa_id' => $item->coa_id,
                 ];
+                $organized[$parent->account_name]['total'] += $item->total;
+                continue;
             }
+            $topLevel[] = [
+                'name' => $item->account_name,
+                'amount' => $item->total,
+                'coa_id' => $item->coa_id,
+            ];
         }
         
         // Combine top-level and organized items
