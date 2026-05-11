@@ -372,14 +372,7 @@
                     </tr>
                     @forelse(($pl['operatingExpenses']['items'] ?? []) as $item)
                         @if(isset($item['items']))
-                        {{-- Parent category with sub-items --}}
-                        <tr style="background-color: #fff8f9;">
-                            <td style="padding-left: 1rem; font-weight: 600; position: sticky; left: 0; background: #fff8f9;">{{ $item['name'] }}</td>
-                            @foreach($months as $m)
-                            <td class="text-end text-danger fw-semibold">({{ $fmt($item['monthly'][$m] ?? 0) }})</td>
-                            @endforeach
-                            <td class="text-end text-danger fw-semibold" style="background: #f1f3f4;">({{ $fmt($item['annual_total'] ?? 0) }})</td>
-                        </tr>
+                        {{-- Parent category: render children first, then subtotal row --}}
                         @foreach($item['items'] as $sub)
                         <tr>
                             <td style="padding-left: 2.5rem; color: #555; position: sticky; left: 0; background: #fff;">
@@ -400,6 +393,13 @@
                             <td class="text-end text-danger" style="background: #f1f3f4;">({{ $fmt($sub['annual_total'] ?? 0) }})</td>
                         </tr>
                         @endforeach
+                        <tr style="background-color: #fff8f9;">
+                            <td style="padding-left: 1rem; font-weight: 600; position: sticky; left: 0; background: #fff8f9;">{{ $item['name'] }} Total</td>
+                            @foreach($months as $m)
+                            <td class="text-end text-danger fw-semibold">({{ $fmt($item['monthly'][$m] ?? 0) }})</td>
+                            @endforeach
+                            <td class="text-end text-danger fw-semibold" style="background: #f1f3f4;">({{ $fmt($item['annual_total'] ?? 0) }})</td>
+                        </tr>
                         @else
                         {{-- Standalone expense line --}}
                         <tr>
@@ -589,14 +589,14 @@
         html += `<tr style="background-color:#fce4ec;"><td colspan="14" style="font-weight:700;font-size:0.875rem;padding:10px 12px;letter-spacing:0.05em;position:sticky;left:0;background:#fce4ec;">OPERATING EXPENSES</td></tr>`;
         (pl.operatingExpenses.items || []).forEach(item => {
             if (item.items) {
-                html += `<tr style="background-color:#fff8f9;"><td style="padding-left:1rem;font-weight:600;position:sticky;left:0;background:#fff8f9;">${item.name}</td>`;
-                months.forEach(m => { html += `<td class="text-end text-danger fw-semibold">(${money(item.monthly[m] || 0)})</td>`; });
-                html += `<td class="text-end text-danger fw-semibold" style="background:#f1f3f4;">(${money(item.annual_total || 0)})</td></tr>`;
                 item.items.forEach(sub => {
                     html += `<tr><td style="padding-left:2.5rem;color:#555;position:sticky;left:0;background:#fff;">${sub.name}</td>`;
                     months.forEach(m => { html += `<td class="text-end text-danger">(${money(sub.monthly[m] || 0)})</td>`; });
                     html += `<td class="text-end text-danger" style="background:#f1f3f4;">(${money(sub.annual_total || 0)})</td></tr>`;
                 });
+                html += `<tr style="background-color:#fff8f9;"><td style="padding-left:1rem;font-weight:600;position:sticky;left:0;background:#fff8f9;">${item.name} Total</td>`;
+                months.forEach(m => { html += `<td class="text-end text-danger fw-semibold">(${money(item.monthly[m] || 0)})</td>`; });
+                html += `<td class="text-end text-danger fw-semibold" style="background:#f1f3f4;">(${money(item.annual_total || 0)})</td></tr>`;
             } else {
                 html += `<tr><td style="padding-left:1.5rem;position:sticky;left:0;background:#fff;">${item.name}</td>`;
                 months.forEach(m => { html += `<td class="text-end text-danger">(${money(item.monthly[m] || 0)})</td>`; });

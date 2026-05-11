@@ -377,15 +377,14 @@
                             <td colspan="{{ $comparisonPeriod ? 5 : 2 }}" style="font-weight: 600; font-size: 1rem;">OPERATING EXPENSES</td>
                         </tr>
                         @foreach($data['pl']['operating_expenses']['items'] as $item)
-                        <tr>
-                            <td style="padding-left: {{ isset($item['items']) ? '1rem' : '2rem' }};">
-                                @if(isset($item['items']))
-                                    <strong>{{ $item['name'] }}</strong>
-                                    @foreach($item['items'] as $subItem)
-                                    <div style="padding-left: 1rem; margin-top: 0.25rem;">
+                            @if(isset($item['items']))
+                                {{-- Parent category: render children first, then subtotal row --}}
+                                @foreach($item['items'] as $subItem)
+                                <tr>
+                                    <td style="padding-left: 2rem;">
                                         {{ $subItem['name'] }}
                                         @if($subItem['coa_id'])
-                                        <a href="{{ route('admin.reports.profit-loss.drill-down', ['coa_id' => $subItem['coa_id'], 'start_date' => $startDate, 'end_date' => $endDate, 'store_id' => $storeId]) }}" 
+                                        <a href="{{ route('admin.reports.profit-loss.drill-down', ['coa_id' => $subItem['coa_id'], 'start_date' => $startDate, 'end_date' => $endDate, 'store_id' => $storeId]) }}"
                                            class="text-decoration-none" title="View transactions">
                                             <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
@@ -393,46 +392,65 @@
                                             </svg>
                                         </a>
                                         @endif
-                                    </div>
-                                    @endforeach
-                                @else
-                                    {{ $item['name'] }}
-                                    @if($item['coa_id'])
-                                    <a href="{{ route('admin.reports.profit-loss.drill-down', ['coa_id' => $item['coa_id'], 'start_date' => $startDate, 'end_date' => $endDate, 'store_id' => $storeId]) }}" 
-                                       class="text-decoration-none" title="View transactions">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                                            <circle cx="12" cy="12" r="3"/>
-                                        </svg>
-                                    </a>
+                                    </td>
+                                    @if($comparisonPeriod)
+                                    <td class="text-end text-danger">(${{ number_format($subItem['amount'] ?? 0, 2) }})</td>
+                                    <td class="text-end text-danger">(${{ number_format($subItem['comparison_amount'] ?? 0, 2) }})</td>
+                                    <td class="text-end {{ ($subItem['variance'] ?? 0) <= 0 ? 'text-success' : 'text-danger' }}">
+                                        ${{ number_format($subItem['variance'] ?? 0, 2) }}
+                                    </td>
+                                    <td class="text-end {{ ($subItem['variance_percent'] ?? 0) <= 0 ? 'text-success' : 'text-danger' }}">
+                                        {{ number_format($subItem['variance_percent'] ?? 0, 2) }}%
+                                    </td>
+                                    @else
+                                    <td class="text-end text-danger">(${{ number_format($subItem['amount'] ?? 0, 2) }})</td>
                                     @endif
-                                @endif
-                            </td>
-                            @if($comparisonPeriod)
-                            <td class="text-end text-danger">
-                                @if(isset($item['items']))
-                                    (${{ number_format($item['total'], 2) }})
-                                @else
-                                    (${{ number_format($item['amount'] ?? 0, 2) }})
-                                @endif
-                            </td>
-                            <td class="text-end text-danger">(${{ number_format($item['comparison_amount'] ?? 0, 2) }})</td>
-                            <td class="text-end {{ ($item['variance'] ?? 0) <= 0 ? 'text-success' : 'text-danger' }}">
-                                ${{ number_format($item['variance'] ?? 0, 2) }}
-                            </td>
-                            <td class="text-end {{ ($item['variance_percent'] ?? 0) <= 0 ? 'text-success' : 'text-danger' }}">
-                                {{ number_format($item['variance_percent'] ?? 0, 2) }}%
-                            </td>
+                                </tr>
+                                @endforeach
+                                <tr style="background-color: #fff8f9;">
+                                    <td style="padding-left: 1rem; font-weight: 600;">{{ $item['name'] }} Total</td>
+                                    @if($comparisonPeriod)
+                                    <td class="text-end text-danger fw-semibold">(${{ number_format($item['total'] ?? 0, 2) }})</td>
+                                    <td class="text-end text-danger fw-semibold">(${{ number_format($item['comparison_amount'] ?? 0, 2) }})</td>
+                                    <td class="text-end fw-semibold {{ ($item['variance'] ?? 0) <= 0 ? 'text-success' : 'text-danger' }}">
+                                        ${{ number_format($item['variance'] ?? 0, 2) }}
+                                    </td>
+                                    <td class="text-end fw-semibold {{ ($item['variance_percent'] ?? 0) <= 0 ? 'text-success' : 'text-danger' }}">
+                                        {{ number_format($item['variance_percent'] ?? 0, 2) }}%
+                                    </td>
+                                    @else
+                                    <td class="text-end text-danger fw-semibold">(${{ number_format($item['total'] ?? 0, 2) }})</td>
+                                    @endif
+                                </tr>
                             @else
-                            <td class="text-end text-danger">
-                                @if(isset($item['items']))
-                                    (${{ number_format($item['total'], 2) }})
-                                @else
-                                    (${{ number_format($item['amount'] ?? 0, 2) }})
-                                @endif
-                            </td>
+                                {{-- Standalone expense line --}}
+                                <tr>
+                                    <td style="padding-left: 2rem;">
+                                        {{ $item['name'] }}
+                                        @if($item['coa_id'])
+                                        <a href="{{ route('admin.reports.profit-loss.drill-down', ['coa_id' => $item['coa_id'], 'start_date' => $startDate, 'end_date' => $endDate, 'store_id' => $storeId]) }}"
+                                           class="text-decoration-none" title="View transactions">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                                <circle cx="12" cy="12" r="3"/>
+                                            </svg>
+                                        </a>
+                                        @endif
+                                    </td>
+                                    @if($comparisonPeriod)
+                                    <td class="text-end text-danger">(${{ number_format($item['amount'] ?? 0, 2) }})</td>
+                                    <td class="text-end text-danger">(${{ number_format($item['comparison_amount'] ?? 0, 2) }})</td>
+                                    <td class="text-end {{ ($item['variance'] ?? 0) <= 0 ? 'text-success' : 'text-danger' }}">
+                                        ${{ number_format($item['variance'] ?? 0, 2) }}
+                                    </td>
+                                    <td class="text-end {{ ($item['variance_percent'] ?? 0) <= 0 ? 'text-success' : 'text-danger' }}">
+                                        {{ number_format($item['variance_percent'] ?? 0, 2) }}%
+                                    </td>
+                                    @else
+                                    <td class="text-end text-danger">(${{ number_format($item['amount'] ?? 0, 2) }})</td>
+                                    @endif
+                                </tr>
                             @endif
-                        </tr>
                         @endforeach
                         <tr style="background-color: #f8bbd0; font-weight: 600;">
                             <td>TOTAL OPERATING EXPENSES</td>

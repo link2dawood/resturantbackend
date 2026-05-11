@@ -238,17 +238,22 @@ class ProfitLossController extends Controller
     {
         $months = range(1, 12);
         $coaTypeSummary = $this->calculateAnnualCoaTypeSummary($storeId, $year);
-        $coaActivitySummary = $this->calculateCoaActivitySummary($storeId, sprintf('%04d-01-01', $year), sprintf('%04d-12-31', $year));
-        $coaActivitySummary['income'] = $this->calculateAnnualIncomeCoaActivitySummary($storeId, $year);
-        $coaActivitySummary['expense'] = $this->calculateAnnualExpenseCoaActivitySummary($storeId, $year);
+        $coaActivitySummary = [
+            'income'  => $this->calculateAnnualIncomeCoaActivitySummary($storeId, $year),
+            'expense' => $this->calculateAnnualExpenseCoaActivitySummary($storeId, $year),
+        ];
 
         // ── REVENUE ──────────────────────────────────────────────────────────
 
-        // In-Store Sales: daily_reports.gross_sales grouped by month
-        $drQuery = DailyReport::selectRaw('MONTH(report_date) as month, SUM(gross_sales) as total')
-            ->whereYear('report_date', $year)
-            ->groupBy(DB::raw('MONTH(report_date)'));
-        $this->applyStoreFilter($drQuery, 'store_id', $storeId);
+        // In-Store Sales: SUM of daily_report_revenues line items, grouped by month.
+        // Sourced from line items (not daily_reports.gross_sales) so the headline
+        // TOTAL REVENUE reconciles with the COA Activity Summary's Income by COA total.
+        $drQuery = DB::table('daily_report_revenues')
+            ->join('daily_reports', 'daily_report_revenues.daily_report_id', '=', 'daily_reports.id')
+            ->whereYear('daily_reports.report_date', $year)
+            ->selectRaw('MONTH(daily_reports.report_date) as month, SUM(daily_report_revenues.amount) as total')
+            ->groupBy(DB::raw('MONTH(daily_reports.report_date)'));
+        $this->applyStoreFilter($drQuery, 'daily_reports.store_id', $storeId);
         $drRaw = $drQuery->pluck('total', 'month');
 
         $inStoreMonthly    = [];
@@ -482,7 +487,7 @@ class ProfitLossController extends Controller
     protected function calculateAnnualExpenseCoaActivitySummary($storeId, int $year): array
     {
         $months = range(1, 12);
-        $expenseDirectoryRows = $this->buildCoaDirectoryRows(['COGS', 'Expense']);
+        $expenseDirectoryRows = $this->buildCoaDirectoryRows(['Expense']);
 
         $expenseQuery = ExpenseTransaction::query()
             ->selectRaw(
@@ -492,7 +497,7 @@ class ProfitLossController extends Controller
                  SUM(expense_transactions.amount) as total_amount'
             )
             ->join('chart_of_accounts', 'expense_transactions.coa_id', '=', 'chart_of_accounts.id')
-            ->whereIn('chart_of_accounts.account_type', ['COGS', 'Expense'])
+            ->where('chart_of_accounts.account_type', 'Expense')
             ->whereYear('expense_transactions.transaction_date', $year)
             ->groupBy(
                 'chart_of_accounts.id',
@@ -514,7 +519,7 @@ class ProfitLossController extends Controller
                 foreach ($coaRows as $coaRow) {
                     $month = (int) ($coaRow->month ?? 0);
                     if ($month >= 1 && $month <= 12) {
-                        $monthlyAmounts[$month] = (float) ($coaRow->total_amount ?? 0);
+                        $monthlyAmounts[$month] += (float) ($coaRow->total_amount ?? 0);
                     }
 
                     $entryCount += (int) ($coaRow->entry_count ?? 0);
@@ -902,7 +907,7 @@ class ProfitLossController extends Controller
 
         $revenueCoaLookup = $this->getRevenueCoaLookup();
         $revenueDirectoryRows = $this->buildCoaDirectoryRows(['Revenue']);
-        $expenseDirectoryRows = $this->buildCoaDirectoryRows(['COGS', 'Expense']);
+        $expenseDirectoryRows = $this->buildCoaDirectoryRows(['Expense']);
 
         $dailyRevenueQuery = DB::table('daily_report_revenues')
             ->join('daily_reports', 'daily_report_revenues.daily_report_id', '=', 'daily_reports.id')
@@ -978,7 +983,7 @@ class ProfitLossController extends Controller
                  0 as is_unmapped'
             )
             ->join('chart_of_accounts', 'expense_transactions.coa_id', '=', 'chart_of_accounts.id')
-            ->whereIn('chart_of_accounts.account_type', ['COGS', 'Expense'])
+            ->where('chart_of_accounts.account_type', 'Expense')
             ->whereBetween('expense_transactions.transaction_date', [$startDate, $endDate])
             ->groupBy(
                 'chart_of_accounts.id',
