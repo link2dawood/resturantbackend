@@ -169,10 +169,10 @@
                             </thead>
                             <tbody>
                                 @forelse(($coaActivitySummary['income']['rows'] ?? []) as $row)
-                                @php $isRollup = $row['is_rollup'] ?? false; @endphp
-                                <tr style="{{ $isRollup ? 'background-color:#f0f4ff;font-weight:600;' : '' }}">
+                                @php $isMain = ($row['is_rollup'] ?? false) || empty($row['parent_account_id']); @endphp
+                                <tr style="{{ $isMain ? 'background-color:#f0f4ff;font-weight:600;' : '' }}">
                                     <td>{{ $row['account_code'] }}</td>
-                                    <td style="{{ $isRollup ? '' : 'padding-left:1.25rem;' }}">{{ $row['account_name'] }}</td>
+                                    <td style="{{ $isMain ? '' : 'padding-left:1.25rem;' }}">{{ $row['account_name'] }}</td>
                                     @foreach($yearMonths as $ym)
                                     @php $amt = $row['monthly_amounts'][$ym] ?? 0; @endphp
                                     <td class="text-end {{ $amt != 0 ? 'text-success' : 'text-muted' }}">
@@ -217,10 +217,10 @@
                             </thead>
                             <tbody>
                                 @forelse(($coaActivitySummary['expense']['rows'] ?? []) as $row)
-                                @php $isRollup = $row['is_rollup'] ?? false; @endphp
-                                <tr style="{{ $isRollup ? 'background-color:#fff8f0;font-weight:600;' : '' }}">
+                                @php $isMain = ($row['is_rollup'] ?? false) || empty($row['parent_account_id']); @endphp
+                                <tr style="{{ $isMain ? 'background-color:#fff8f0;font-weight:600;' : '' }}">
                                     <td>{{ $row['account_code'] }}</td>
-                                    <td style="{{ $isRollup ? '' : 'padding-left:1.25rem;' }}">{{ $row['account_name'] }}</td>
+                                    <td style="{{ $isMain ? '' : 'padding-left:1.25rem;' }}">{{ $row['account_name'] }}</td>
                                     @foreach($yearMonths as $ym)
                                     @php $amt = $row['monthly_amounts'][$ym] ?? 0; @endphp
                                     <td class="text-end {{ $amt != 0 ? 'text-danger' : 'text-muted' }}">
@@ -423,9 +423,9 @@
                                     @endif
                                 </tr>
                             @else
-                                {{-- Standalone expense line --}}
-                                <tr>
-                                    <td style="padding-left: 2rem;">
+                                {{-- Standalone top-level expense (no sub-items) — treated as a main category --}}
+                                <tr style="background-color: #fff8f9;">
+                                    <td style="padding-left: 1rem; font-weight: 600;">
                                         {{ $item['name'] }}
                                         @if($item['coa_id'])
                                         <a href="{{ route('admin.reports.profit-loss.drill-down', ['coa_id' => $item['coa_id'], 'start_date' => $startDate, 'end_date' => $endDate, 'store_id' => $storeId]) }}"
@@ -438,16 +438,16 @@
                                         @endif
                                     </td>
                                     @if($comparisonPeriod)
-                                    <td class="text-end text-danger">(${{ number_format($item['amount'] ?? 0, 2) }})</td>
-                                    <td class="text-end text-danger">(${{ number_format($item['comparison_amount'] ?? 0, 2) }})</td>
-                                    <td class="text-end {{ ($item['variance'] ?? 0) <= 0 ? 'text-success' : 'text-danger' }}">
+                                    <td class="text-end text-danger fw-semibold">(${{ number_format($item['amount'] ?? 0, 2) }})</td>
+                                    <td class="text-end text-danger fw-semibold">(${{ number_format($item['comparison_amount'] ?? 0, 2) }})</td>
+                                    <td class="text-end fw-semibold {{ ($item['variance'] ?? 0) <= 0 ? 'text-success' : 'text-danger' }}">
                                         ${{ number_format($item['variance'] ?? 0, 2) }}
                                     </td>
-                                    <td class="text-end {{ ($item['variance_percent'] ?? 0) <= 0 ? 'text-success' : 'text-danger' }}">
+                                    <td class="text-end fw-semibold {{ ($item['variance_percent'] ?? 0) <= 0 ? 'text-success' : 'text-danger' }}">
                                         {{ number_format($item['variance_percent'] ?? 0, 2) }}%
                                     </td>
                                     @else
-                                    <td class="text-end text-danger">(${{ number_format($item['amount'] ?? 0, 2) }})</td>
+                                    <td class="text-end text-danger fw-semibold">(${{ number_format($item['amount'] ?? 0, 2) }})</td>
                                     @endif
                                 </tr>
                             @endif

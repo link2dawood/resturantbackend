@@ -204,10 +204,10 @@
                             </thead>
                             <tbody>
                                 @forelse(($coaActivitySummary['income']['rows'] ?? []) as $row)
-                                @php $isRollup = $row['is_rollup'] ?? false; @endphp
-                                <tr style="{{ $isRollup ? 'background-color:#f0f4ff;font-weight:600;' : '' }}">
+                                @php $isMain = ($row['is_rollup'] ?? false) || empty($row['parent_account_id']); @endphp
+                                <tr style="{{ $isMain ? 'background-color:#f0f4ff;font-weight:600;' : '' }}">
                                     <td>{{ $row['account_code'] }}</td>
-                                    <td style="{{ $isRollup ? '' : 'padding-left:1.25rem;' }}">{{ $row['account_name'] }}</td>
+                                    <td style="{{ $isMain ? '' : 'padding-left:1.25rem;' }}">{{ $row['account_name'] }}</td>
                                     @foreach(array_keys($coaActivityMonths) as $monthNumber)
                                     <td class="text-end text-success">${{ number_format($row['monthly_amounts'][$monthNumber] ?? 0, 2) }}</td>
                                     @endforeach
@@ -247,10 +247,10 @@
                             </thead>
                             <tbody>
                                 @forelse(($coaActivitySummary['expense']['rows'] ?? []) as $row)
-                                @php $isRollup = $row['is_rollup'] ?? false; @endphp
-                                <tr style="{{ $isRollup ? 'background-color:#fff8f0;font-weight:600;' : '' }}">
+                                @php $isMain = ($row['is_rollup'] ?? false) || empty($row['parent_account_id']); @endphp
+                                <tr style="{{ $isMain ? 'background-color:#fff8f0;font-weight:600;' : '' }}">
                                     <td>{{ $row['account_code'] }}</td>
-                                    <td style="{{ $isRollup ? '' : 'padding-left:1.25rem;' }}">{{ $row['account_name'] }}</td>
+                                    <td style="{{ $isMain ? '' : 'padding-left:1.25rem;' }}">{{ $row['account_name'] }}</td>
                                     @foreach(array_keys($coaActivityMonths) as $monthNumber)
                                     <td class="text-end text-danger">${{ number_format($row['monthly_amounts'][$monthNumber] ?? 0, 2) }}</td>
                                     @endforeach
@@ -403,9 +403,9 @@
                             <td class="text-end text-danger fw-semibold" style="background: #f1f3f4;">({{ $fmt($item['annual_total'] ?? 0) }})</td>
                         </tr>
                         @else
-                        {{-- Standalone expense line --}}
-                        <tr>
-                            <td style="padding-left: 1.5rem; position: sticky; left: 0; background: #fff;">
+                        {{-- Standalone top-level expense (no sub-items) — treated as a main category --}}
+                        <tr style="background-color: #fff8f9;">
+                            <td style="padding-left: 1rem; font-weight: 600; position: sticky; left: 0; background: #fff8f9;">
                                 {{ $item['name'] }}
                                 @if($item['coa_id'])
                                 <a href="{{ route('admin.reports.profit-loss.drill-down', ['coa_id' => $item['coa_id'], 'start_date' => $selectedYear.'-01-01', 'end_date' => $selectedYear.'-12-31', 'store_id' => $storeId]) }}"
@@ -418,9 +418,9 @@
                                 @endif
                             </td>
                             @foreach($months as $m)
-                            <td class="text-end text-danger">({{ $fmt($item['monthly'][$m] ?? 0) }})</td>
+                            <td class="text-end text-danger fw-semibold">({{ $fmt($item['monthly'][$m] ?? 0) }})</td>
                             @endforeach
-                            <td class="text-end text-danger" style="background: #f1f3f4;">({{ $fmt($item['annual_total'] ?? 0) }})</td>
+                            <td class="text-end text-danger fw-semibold" style="background: #f1f3f4;">({{ $fmt($item['annual_total'] ?? 0) }})</td>
                         </tr>
                         @endif
                     @empty
@@ -533,11 +533,11 @@
             return `<tr><td colspan="15" class="text-center text-muted py-3">${emptyMessage}</td></tr>`;
         }
 
-        const rollupBg = amountClass === 'text-danger' ? '#fff8f0' : '#f0f4ff';
+        const mainBg = amountClass === 'text-danger' ? '#fff8f0' : '#f0f4ff';
         return rows.map(row => {
-            const isRollup = !!row.is_rollup;
-            const trStyle = isRollup ? `background-color:${rollupBg};font-weight:600;` : '';
-            const nameStyle = isRollup ? '' : 'padding-left:1.25rem;';
+            const isMain = !!row.is_rollup || !row.parent_account_id;
+            const trStyle = isMain ? `background-color:${mainBg};font-weight:600;` : '';
+            const nameStyle = isMain ? '' : 'padding-left:1.25rem;';
             return `
             <tr style="${trStyle}">
                 <td>${row.account_code || ''}</td>
@@ -605,9 +605,9 @@
                 months.forEach(m => { html += `<td class="text-end text-danger fw-semibold">(${money(item.monthly[m] || 0)})</td>`; });
                 html += `<td class="text-end text-danger fw-semibold" style="background:#f1f3f4;">(${money(item.annual_total || 0)})</td></tr>`;
             } else {
-                html += `<tr><td style="padding-left:1.5rem;position:sticky;left:0;background:#fff;">${item.name}</td>`;
-                months.forEach(m => { html += `<td class="text-end text-danger">(${money(item.monthly[m] || 0)})</td>`; });
-                html += `<td class="text-end text-danger" style="background:#f1f3f4;">(${money(item.annual_total || 0)})</td></tr>`;
+                html += `<tr style="background-color:#fff8f9;"><td style="padding-left:1rem;font-weight:600;position:sticky;left:0;background:#fff8f9;">${item.name}</td>`;
+                months.forEach(m => { html += `<td class="text-end text-danger fw-semibold">(${money(item.monthly[m] || 0)})</td>`; });
+                html += `<td class="text-end text-danger fw-semibold" style="background:#f1f3f4;">(${money(item.annual_total || 0)})</td></tr>`;
             }
         });
         html += `<tr style="background-color:#f8bbd0;font-weight:700;"><td style="position:sticky;left:0;background:#f8bbd0;">TOTAL OPERATING EXPENSES</td>`;
