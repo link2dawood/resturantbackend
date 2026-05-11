@@ -204,9 +204,10 @@
                             </thead>
                             <tbody>
                                 @forelse(($coaActivitySummary['income']['rows'] ?? []) as $row)
-                                <tr>
+                                @php $isRollup = $row['is_rollup'] ?? false; @endphp
+                                <tr style="{{ $isRollup ? 'background-color:#f0f4ff;font-weight:600;' : '' }}">
                                     <td>{{ $row['account_code'] }}</td>
-                                    <td>{{ $row['account_name'] }}</td>
+                                    <td style="{{ $isRollup ? '' : 'padding-left:1.25rem;' }}">{{ $row['account_name'] }}</td>
                                     @foreach(array_keys($coaActivityMonths) as $monthNumber)
                                     <td class="text-end text-success">${{ number_format($row['monthly_amounts'][$monthNumber] ?? 0, 2) }}</td>
                                     @endforeach
@@ -246,9 +247,10 @@
                             </thead>
                             <tbody>
                                 @forelse(($coaActivitySummary['expense']['rows'] ?? []) as $row)
-                                <tr>
+                                @php $isRollup = $row['is_rollup'] ?? false; @endphp
+                                <tr style="{{ $isRollup ? 'background-color:#fff8f0;font-weight:600;' : '' }}">
                                     <td>{{ $row['account_code'] }}</td>
-                                    <td>{{ $row['account_name'] }}</td>
+                                    <td style="{{ $isRollup ? '' : 'padding-left:1.25rem;' }}">{{ $row['account_name'] }}</td>
                                     @foreach(array_keys($coaActivityMonths) as $monthNumber)
                                     <td class="text-end text-danger">${{ number_format($row['monthly_amounts'][$monthNumber] ?? 0, 2) }}</td>
                                     @endforeach
@@ -531,14 +533,19 @@
             return `<tr><td colspan="15" class="text-center text-muted py-3">${emptyMessage}</td></tr>`;
         }
 
-        return rows.map(row => `
-            <tr>
+        const rollupBg = amountClass === 'text-danger' ? '#fff8f0' : '#f0f4ff';
+        return rows.map(row => {
+            const isRollup = !!row.is_rollup;
+            const trStyle = isRollup ? `background-color:${rollupBg};font-weight:600;` : '';
+            const nameStyle = isRollup ? '' : 'padding-left:1.25rem;';
+            return `
+            <tr style="${trStyle}">
                 <td>${row.account_code || ''}</td>
-                <td>${row.account_name || ''}</td>
+                <td style="${nameStyle}">${row.account_name || ''}</td>
                 ${months.map(month => `<td class="text-end ${amountClass}">${renderActivityMoney(row.monthly_amounts?.[month] || 0)}</td>`).join('')}
                 <td class="text-end ${amountClass}">${renderActivityMoney(row.total_amount || 0)}</td>
-            </tr>
-        `).join('');
+            </tr>`;
+        }).join('');
     }
 
     function buildExpenseCoaActivityRows(section, amountClass) {

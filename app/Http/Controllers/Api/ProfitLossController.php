@@ -714,7 +714,7 @@ class ProfitLossController extends Controller
             ];
         };
 
-        return collect($directoryRows)
+        $rowsWithTotals = collect($directoryRows)
             ->map(function ($directoryRow) use ($computeTotals) {
                 $totals = $computeTotals((int) $directoryRow['coa_id']);
                 $directoryRow['entry_count'] = (int) ($totals['entry_count'] ?? 0);
@@ -723,9 +723,50 @@ class ProfitLossController extends Controller
 
                 return $directoryRow;
             })
-            ->sortBy(fn ($row) => sprintf('%s|%s', $row['account_type'], str_pad($row['account_code'], 10, '0', STR_PAD_LEFT)))
-            ->values()
             ->all();
+
+        return $this->orderRowsLeavesBeforeRollups($rowsWithTotals);
+    }
+
+    /**
+     * Order flat COA rows so each rollup row appears after its descendants.
+     * Children within a parent are sorted by account_code; roots are grouped
+     * by account_type then sorted by account_code.
+     */
+    protected function orderRowsLeavesBeforeRollups(array $rows): array
+    {
+        if (empty($rows)) {
+            return $rows;
+        }
+
+        $rowsById = collect($rows)->keyBy('coa_id');
+        $childrenByParentId = collect($rows)
+            ->filter(fn ($r) => ! empty($r['parent_account_id']) && $rowsById->has($r['parent_account_id']))
+            ->sortBy(fn ($r) => str_pad((string) ($r['account_code'] ?? ''), 10, '0', STR_PAD_LEFT))
+            ->groupBy('parent_account_id');
+
+        $ordered = [];
+        $visit = function ($row) use (&$visit, &$ordered, $childrenByParentId) {
+            foreach (($childrenByParentId->get($row['coa_id']) ?? collect()) as $child) {
+                $visit($child);
+            }
+            $ordered[] = $row;
+        };
+
+        $roots = collect($rows)
+            ->filter(fn ($r) => empty($r['parent_account_id']) || ! $rowsById->has($r['parent_account_id']))
+            ->sortBy(fn ($r) => sprintf(
+                '%s|%s',
+                (string) ($r['account_type'] ?? ''),
+                str_pad((string) ($r['account_code'] ?? ''), 10, '0', STR_PAD_LEFT)
+            ))
+            ->values();
+
+        foreach ($roots as $root) {
+            $visit($root);
+        }
+
+        return $ordered;
     }
 
     protected function calculateAnnualCoaTypeSummary($storeId, int $year): array
@@ -1310,7 +1351,7 @@ class ProfitLossController extends Controller
             ];
         };
 
-        return collect($directoryRows)
+        $rowsWithTotals = collect($directoryRows)
             ->map(function ($directoryRow) use ($computeTotals) {
                 $totals = $computeTotals((int) $directoryRow['coa_id']);
                 $directoryRow['entry_count']     = (int) ($totals['entry_count'] ?? 0);
@@ -1318,9 +1359,9 @@ class ProfitLossController extends Controller
                 $directoryRow['monthly_amounts'] = $totals['monthly_amounts'] ?? [];
                 return $directoryRow;
             })
-            ->sortBy(fn ($row) => sprintf('%s|%s', $row['account_type'], str_pad($row['account_code'], 10, '0', STR_PAD_LEFT)))
-            ->values()
             ->all();
+
+        return $this->orderRowsLeavesBeforeRollups($rowsWithTotals);
     }
 
     protected function inferParentAccountCode(string $accountCode, string $accountType): ?string
