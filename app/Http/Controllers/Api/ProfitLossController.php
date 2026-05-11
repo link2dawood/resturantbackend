@@ -881,24 +881,23 @@ class ProfitLossController extends Controller
      */
     protected function calculatePL($storeId, $startDate, $endDate)
     {
-        // Revenue
-        $revenue = $this->calculateRevenue($storeId, $startDate, $endDate);
-        
-        // COGS
+        // Compute the COA Activity Summary first; both the top Income/Expense
+        // by COA tables AND the bottom Revenue rows derive from it so every
+        // block on the page shows the same totals.
+        $coaActivitySummary = $this->calculateCoaActivitySummary($storeId, $startDate, $endDate);
+
+        $revenue = $this->buildRevenueFromCoaSummary($coaActivitySummary['income'] ?? []);
+
         $cogs = $this->calculateCOGS($storeId, $startDate, $endDate);
-        
-        // Gross Profit
+
         $grossProfit = $revenue['total'] - $cogs['total'];
         $grossMargin = $revenue['total'] > 0 ? ($grossProfit / $revenue['total']) * 100 : 0;
-        
-        // Operating Expenses
+
         $operatingExpenses = $this->calculateOperatingExpenses($storeId, $startDate, $endDate);
-        
-        // Net Profit
+
         $netProfit = $grossProfit - $operatingExpenses['total'];
         $netMargin = $revenue['total'] > 0 ? ($netProfit / $revenue['total']) * 100 : 0;
-        $coaActivitySummary = $this->calculateCoaActivitySummary($storeId, $startDate, $endDate);
-        
+
         return [
             'revenue' => $revenue,
             'cogs' => $cogs,
@@ -908,6 +907,29 @@ class ProfitLossController extends Controller
             'net_profit' => $netProfit,
             'net_margin' => round($netMargin, 2),
             'coa_activity_summary' => $coaActivitySummary,
+        ];
+    }
+
+    /**
+     * Build the main P&L Revenue block from the COA Activity Summary's income
+     * section. One source of truth: the bottom Revenue total now equals the
+     * top Income by COA footer exactly, and per-row amounts match per-COA.
+     */
+    protected function buildRevenueFromCoaSummary(array $income): array
+    {
+        $items = collect($income['rows'] ?? [])
+            ->filter(fn ($row) => ! ($row['is_rollup'] ?? false))
+            ->map(fn ($row) => [
+                'name'   => (string) ($row['account_name'] ?? ''),
+                'amount' => (float) ($row['total_amount'] ?? 0),
+                'coa_id' => $row['coa_id'] ?? null,
+            ])
+            ->values()
+            ->all();
+
+        return [
+            'items' => $items,
+            'total' => (float) ($income['total_amount'] ?? 0),
         ];
     }
 
@@ -1417,113 +1439,6 @@ class ProfitLossController extends Controller
         }
         $inferred = $this->inferParentAccountCode((string) ($accountCode ?? ''), 'Expense');
         return $inferred ? $coasByCode->get($inferred) : null;
-    }
-
-    /**
-     * Calculate revenue from daily reports and third-party statements
-     */
-    protected function calculateRevenue($storeId, $startDate, $endDate)
-    {
-        $items = [];
-        
-        // Food Sales and Beverage Sales from daily_reports
-        $dailyReportsQuery = DailyReport::whereBetween('report_date', [$startDate, $endDate]);
-        $this->applyStoreFilter($dailyReportsQuery, 'store_id', $storeId);
-        
-        // Get gross sales (this is food + beverage combined)
-        $grossSales = $dailyReportsQuery->sum('gross_sales');
-        
-        // Get credit card sales (part of gross sales)
-        $creditCardSales = $dailyReportsQuery->sum('credit_cards');
-        
-        // Try to get food/beverage breakdown from revenue income types
-        $foodRevenue = DailyReport::query()
-            ->whereBetween('report_date', [$startDate, $endDate])
-            ->whereHas('revenues.revenueIncomeType', function($q) {
-                $q->where('name', 'like', '%Food%');
-            });
-        
-        $this->applyStoreFilter($foodRevenue, 'store_id', $storeId);
-        
-        $foodSales = $foodRevenue->join('daily_report_revenues', 'daily_reports.id', '=', 'daily_report_revenues.daily_report_id')
-            ->join('revenue_income_types', 'daily_report_revenues.revenue_income_type_id', '=', 'revenue_income_types.id')
-            ->where('revenue_income_types.name', 'like', '%Food%')
-            ->sum('daily_report_revenues.amount');
-        
-        $beverageSales = DailyReport::query()
-            ->whereBetween('report_date', [$startDate, $endDate])
-            ->whereHas('revenues.revenueIncomeType', function($q) {
-                $q->where('name', 'like', '%Beverage%');
-            });
-        
-        $this->applyStoreFilter($beverageSales, 'store_id', $storeId);
-        
-        $beverageSales = $beverageSales->join('daily_report_revenues', 'daily_reports.id', '=', 'daily_report_revenues.daily_report_id')
-            ->join('revenue_income_types', 'daily_report_revenues.revenue_income_type_id', '=', 'revenue_income_types.id')
-            ->where('revenue_income_types.name', 'like', '%Beverage%')
-            ->sum('daily_report_revenues.amount');
-        
-        // If no breakdown, estimate 80% food, 20% beverage
-        if ($foodSales == 0 && $beverageSales == 0) {
-            $foodSales = $grossSales * 0.8;
-            $beverageSales = $grossSales * 0.2;
-        }
-        
-        $items[] = [
-            'name' => 'Food Sales',
-            'amount' => $foodSales,
-            'coa_id' => null,
-        ];
-        
-        $items[] = [
-            'name' => 'Beverage Sales',
-            'amount' => $beverageSales,
-            'coa_id' => null,
-        ];
-        
-        // Third-Party Sales (from third_party_statements)
-        $thirdPartyQuery = ThirdPartyStatement::whereBetween('statement_date', [$startDate, $endDate]);
-        
-        $this->applyStoreFilter($thirdPartyQuery, 'store_id', $storeId);
-        
-        $thirdPartySales = $thirdPartyQuery->sum('gross_sales');
-        
-        $items[] = [
-            'name' => 'Third-Party Sales',
-            'amount' => $thirdPartySales,
-            'coa_id' => null,
-        ];
-        
-        // Other Income (from revenue entries that don't fit above)
-        $otherIncome = DailyReport::query()
-            ->whereBetween('report_date', [$startDate, $endDate])
-            ->with('revenues.revenueIncomeType');
-        
-        $this->applyStoreFilter($otherIncome, 'store_id', $storeId);
-        
-        $otherIncome = $otherIncome->get()->sum(function($report) {
-            return $report->revenues->filter(function($rev) {
-                $type = strtolower($rev->revenueIncomeType->name ?? '');
-                return !str_contains($type, 'food') && 
-                       !str_contains($type, 'beverage') && 
-                       !str_contains($type, 'grubhub') && 
-                       !str_contains($type, 'ubereats') && 
-                       !str_contains($type, 'doordash');
-            })->sum('amount');
-        });
-        
-        $items[] = [
-            'name' => 'Other Income',
-            'amount' => $otherIncome,
-            'coa_id' => null,
-        ];
-        
-        $total = array_sum(array_column($items, 'amount'));
-        
-        return [
-            'items' => $items,
-            'total' => $total,
-        ];
     }
 
     /**
