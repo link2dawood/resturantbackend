@@ -956,6 +956,8 @@
 @endphp
 
 <div class="home-dashboard">
+    @includeWhen(isset($circularMetrics), 'dashboard.partials.circular-metrics')
+
     <section class="home-hero">
         <div class="home-hero__content">
             <span class="home-eyebrow">

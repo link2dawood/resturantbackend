@@ -11,12 +11,18 @@ use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
-    public function index()
+    public function index(\App\Services\DashboardMetricsService $metrics)
     {
         $user = auth()->user();
 
         // Get analytics data based on user role
         $analytics = $this->getAnalyticsData($user);
+
+        // Four headline ring metrics (Sales / Food / Payroll / Rent) for this month.
+        $circularMetrics = $metrics->forUser(
+            Carbon::now()->startOfMonth(),
+            Carbon::now()->endOfMonth()
+        );
 
         // Prepare data for impersonation modal (admin only)
         $modalOwnersData = [];
@@ -46,7 +52,7 @@ class DashboardController extends Controller
             })->toArray();
         }
 
-        return view('dashboard.index', compact('analytics', 'modalOwnersData', 'modalManagersData'));
+        return view('dashboard.index', compact('analytics', 'modalOwnersData', 'modalManagersData', 'circularMetrics'));
     }
 
     public function getAnalyticsData($user)
