@@ -20,28 +20,47 @@ use App\Http\Controllers\Api\MerchantFeeController;
 use App\Http\Controllers\Api\ProfitLossController;
 use App\Http\Controllers\Api\ThirdPartyImportController;
 use App\Http\Controllers\Api\VendorController;
+use App\Http\Controllers\Admin\SubscriptionAdminController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\Auth\GoogleController;
+use App\Http\Controllers\BillingController;
 use App\Http\Controllers\DailyReportController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ImpersonationController;
+use App\Http\Controllers\KpiController;
 use App\Http\Controllers\ManagerController;
 use App\Http\Controllers\OwnerController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReportsController;
 use App\Http\Controllers\RevenueIncomeTypeController;
+use App\Http\Controllers\SalesProjectionController;
 use App\Http\Controllers\StoreController;
 use App\Http\Controllers\TransactionTypeController;
+use App\Http\Controllers\TrialController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [App\Http\Controllers\WelcomeController::class, 'index'])->name('index');
 
-Auth::routes();
+Auth::routes(['verify' => true]);
 
 // Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
 
+// Trial lifecycle routes — auth + verified, but intentionally NOT behind the
+// 'trial' gate so an expired user can still reach the "Trial Expired" screen
+// and submit a request to continue.
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/trial/expired', [TrialController::class, 'expired'])->name('trial.expired');
+    Route::post('/trial/request-continue', [TrialController::class, 'requestContinue'])->name('trial.request-continue');
+
+    // Billing — reachable during the trial AND after expiry (so an expired owner
+    // can pay to unlock), hence NOT behind the 'trial' gate.
+    Route::get('/billing', [BillingController::class, 'show'])->name('billing.show');
+    Route::post('/billing/subscribe', [BillingController::class, 'subscribe'])->name('billing.subscribe');
+    Route::get('/billing/portal', [BillingController::class, 'portal'])->name('billing.portal');
+});
+
 // Dashboard Analytics Routes
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'verified', 'trial'])->group(function () {
     Route::get('/home', [DashboardController::class, 'index'])->name('home');
     Route::get('/dashboard/chart-data', [DashboardController::class, 'getChartData'])->name('dashboard.chart-data');
     Route::get('/dashboard/export', [DashboardController::class, 'exportData'])->name('dashboard.export');
@@ -52,7 +71,11 @@ Route::get('google-signin', [GoogleController::class, 'redirectToGoogle'])->name
 Route::get('auth/google/callback', [GoogleController::class, 'handleGoogleCallback']);
 
 // Profile Routes
-Route::middleware('auth')->group(function () {
+// NOTE: 'verified' is enforced app-wide here — unverified users are bounced to the
+// email-verification notice. The verification routes themselves come from
+// Auth::routes(['verify' => true]) above and are intentionally NOT inside this group.
+// 'trial' locks out expired-trial workspaces (redirects to the Trial Expired screen).
+Route::middleware(['auth', 'verified', 'trial'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
     Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
@@ -148,9 +171,12 @@ Route::middleware('auth')->group(function () {
     });
 
     // Chart of Accounts - Admin and Owners/Franchisor (business configuration)
+    // Owners may VIEW and ADD accounts but may NOT modify existing ones;
+    // edit/update/destroy are admin-only (registered separately below).
     Route::middleware('role:admin,owner')->group(function () {
         Route::resource('chart-of-accounts', ChartOfAccountController::class)
             ->parameters(['chart-of-accounts' => 'chartOfAccount'])
+            ->only(['index', 'create', 'store', 'show'])
             ->names('coa');
         // API endpoint for stores (for COA form and other admin tools)
         Route::get('/api/stores', function () {
@@ -180,6 +206,14 @@ Route::middleware('auth')->group(function () {
             
             return response()->json($coas);
         })->name('api.coa.list');
+    });
+
+    // Chart of Accounts — modifying EXISTING accounts is Admin only (owners can add, not modify)
+    Route::middleware('role:admin')->group(function () {
+        Route::resource('chart-of-accounts', ChartOfAccountController::class)
+            ->parameters(['chart-of-accounts' => 'chartOfAccount'])
+            ->only(['edit', 'update', 'destroy'])
+            ->names('coa');
     });
 
     // Vendors - Admin and Owner can manage
@@ -272,6 +306,23 @@ Route::middleware('auth')->group(function () {
     Route::middleware(['admin_or_owner', 'convert_date_format'])->group(function () {
         Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
         Route::get('/audit-logs/{auditLog}', [AuditLogController::class, 'show'])->name('audit-logs.show');
+    });
+
+    // Subscriptions dashboard (active subs, MRR, churn) - Admin only (Phase 4)
+    Route::middleware('role:admin')->group(function () {
+        Route::get('/admin/subscriptions', [SubscriptionAdminController::class, 'index'])->name('admin.subscriptions.index');
+    });
+
+    // KPI configuration (per-store dashboard targets) - Admin and Owner (Phase 4)
+    Route::middleware('role:admin,owner')->group(function () {
+        Route::get('/kpi-settings', [KpiController::class, 'edit'])->name('kpi.edit');
+        Route::put('/kpi-settings', [KpiController::class, 'update'])->name('kpi.update');
+    });
+
+    // Sales Projection Calendar (per-store daily projections vs actuals) - Phase 4
+    Route::middleware('role:admin,owner,manager')->group(function () {
+        Route::get('/sales-projections', [SalesProjectionController::class, 'index'])->name('sales-projections.index');
+        Route::post('/sales-projections', [SalesProjectionController::class, 'store'])->name('sales-projections.store');
     });
 
     // Reports Routes

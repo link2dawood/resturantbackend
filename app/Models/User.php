@@ -9,11 +9,12 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Log;
+use Laravel\Cashier\Billable;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, SoftDeletes;
+    use Billable, HasFactory, Notifiable, SoftDeletes;
 
     /**
      * Default relationships to eager load to prevent N+1 queries
@@ -84,6 +85,11 @@ class User extends Authenticatable implements MustVerifyEmail
             'corporate_creation_date' => 'date',
             'last_online' => 'datetime',
             'role' => UserRole::class,
+            'trial_started_at' => 'datetime',
+            'trial_ends_at' => 'datetime',
+            'trial_extension_requested_at' => 'datetime',
+            'trial_expiring_notified_at' => 'datetime',
+            'trial_expired_notified_at' => 'datetime',
         ];
     }
 
@@ -165,6 +171,132 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->role === UserRole::MANAGER;
     }
 
+    // -----------------------------------------------------------------------
+    // Trial / subscription (Phase 4 — SaaS)
+    //
+    // Trial state lives on the OWNER, who is the workspace/billing entity.
+    // Managers inherit access from their owner via billingOwner(); admins and
+    // the franchisor are always exempt.
+    // -----------------------------------------------------------------------
+
+    public const SUBSCRIPTION_TRIALING = 'trialing';
+    public const SUBSCRIPTION_ACTIVE = 'active';
+    public const SUBSCRIPTION_EXPIRED = 'expired';
+
+    /**
+     * Begin a fresh free trial for this owner.
+     */
+    public function startTrial(?int $days = null): void
+    {
+        $days = $days ?? (int) config('trial.days', 30);
+
+        $this->subscription_status = self::SUBSCRIPTION_TRIALING;
+        $this->trial_started_at = now();
+        $this->trial_ends_at = now()->addDays($days);
+        $this->trial_extension_requested_at = null;
+        $this->trial_expiring_notified_at = null;
+        $this->trial_expired_notified_at = null;
+        $this->save();
+    }
+
+    /**
+     * Currently inside a (not-yet-expired) free trial window.
+     *
+     * NB: named onFreeTrial() (not onTrial()) to avoid clashing with Cashier's
+     * Billable::onTrial(), which refers to a Stripe subscription trial.
+     */
+    public function onFreeTrial(): bool
+    {
+        return $this->subscription_status === self::SUBSCRIPTION_TRIALING
+            && $this->trial_ends_at !== null
+            && now()->lessThan($this->trial_ends_at);
+    }
+
+    /**
+     * Trial has lapsed (was trialing, end date has passed) or was marked expired.
+     */
+    public function trialExpired(): bool
+    {
+        if ($this->subscription_status === self::SUBSCRIPTION_EXPIRED) {
+            return true;
+        }
+
+        return $this->subscription_status === self::SUBSCRIPTION_TRIALING
+            && $this->trial_ends_at !== null
+            && now()->greaterThanOrEqualTo($this->trial_ends_at);
+    }
+
+    /**
+     * Whole days remaining in the trial (0 once expired). Rounds up so a user
+     * with 2.5 days left sees "3 days".
+     */
+    public function trialDaysLeft(): int
+    {
+        if ($this->trial_ends_at === null || $this->trialExpired()) {
+            return 0;
+        }
+
+        return (int) ceil(now()->floatDiffInDays($this->trial_ends_at, false));
+    }
+
+    /**
+     * Does this billing entity currently have access? True when on a paid/active
+     * plan or still inside the trial window.
+     */
+    public function hasActiveAccess(): bool
+    {
+        if ($this->subscription_status === self::SUBSCRIPTION_ACTIVE) {
+            return true;
+        }
+
+        // A live Stripe subscription (active, trialing, or within its grace
+        // period after cancellation) keeps access regardless of the local flag.
+        if ($this->subscribed()) {
+            return true;
+        }
+
+        return $this->onFreeTrial();
+    }
+
+    /**
+     * The user who created this account (e.g. the owner who created a manager).
+     */
+    public function creator()
+    {
+        return $this->belongsTo(self::class, 'created_by');
+    }
+
+    /**
+     * Resolve the owner whose subscription/trial governs this user's access.
+     * - Owner            → themselves
+     * - Manager          → the owner who created them, else the controlling
+     *                       owner of their first accessible store
+     * - Admin/Franchisor → null (exempt; never trial-gated)
+     */
+    public function billingOwner(): ?self
+    {
+        if ($this->isAdmin() || $this->isFranchisor()) {
+            return null;
+        }
+
+        if ($this->isOwner()) {
+            return $this;
+        }
+
+        if ($this->isManager()) {
+            $creator = $this->creator;
+            if ($creator && $creator->isOwner()) {
+                return $creator;
+            }
+
+            $store = $this->accessibleStores()->first();
+
+            return $store?->controllingOwner();
+        }
+
+        return null;
+    }
+
     /**
      * Check if user is the Franchisor owner
      * Franchisor controls the entire business brand (Fann's Philly Grill)
@@ -244,6 +376,15 @@ class User extends Authenticatable implements MustVerifyEmail
                     throw $e; // Re-throw other exceptions
                 }
             }
+        }
+
+        // `role` is guarded against mass assignment, so the create()/update()
+        // calls above silently drop it — set it directly to guarantee the
+        // franchisor is actually an OWNER (otherwise isFranchisor()/owners()
+        // role checks would fail).
+        if ($franchisor && $franchisor->role !== UserRole::OWNER) {
+            $franchisor->role = UserRole::OWNER;
+            $franchisor->save();
         }
 
         return $franchisor;

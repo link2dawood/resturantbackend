@@ -3,10 +3,14 @@
 namespace App\Providers;
 
 use App\Events\ManagerAssignedToStores;
+use App\Listeners\HandleStripeWebhook;
 use App\Listeners\SendManagerAssignmentEmail;
+use Illuminate\Auth\Events\Registered;
+use Illuminate\Auth\Listeners\SendEmailVerificationNotification;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
+use Laravel\Cashier\Events\WebhookHandled;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -15,7 +19,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Shared per-request tenant context (used by the TenantScoped global scope).
+        $this->app->singleton(\App\Tenancy\TenantManager::class);
     }
 
     /**
@@ -27,6 +32,19 @@ class AppServiceProvider extends ServiceProvider
         \App\Models\DailyReport::observe(\App\Observers\DailyReportObserver::class);
 
         // Register event listeners
+        // Send the email-verification link whenever a user registers (self-serve signup).
+        Event::listen(
+            Registered::class,
+            SendEmailVerificationNotification::class,
+        );
+
+        // Stripe webhooks: Cashier syncs the DB, then we send receipts/dunning
+        // emails and mirror subscription state onto the owner's access flag.
+        Event::listen(
+            WebhookHandled::class,
+            HandleStripeWebhook::class,
+        );
+
         Event::listen(
             ManagerAssignedToStores::class,
             SendManagerAssignmentEmail::class,
@@ -67,7 +85,8 @@ class AppServiceProvider extends ServiceProvider
                     'review' => [],
                 ],
                 'owner' => [
-                    'coa' => ['view'],
+                    // Owners can view and ADD chart-of-accounts, but not modify existing ones.
+                    'coa' => ['view', 'create'],
                     'vendors' => ['view', 'create', 'update'],
                     'expenses' => ['view', 'create', 'update'],
                     'reports' => ['view', 'export'],

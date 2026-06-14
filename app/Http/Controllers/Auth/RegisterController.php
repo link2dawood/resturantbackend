@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Support\TrialMailer;
 use Illuminate\Foundation\Auth\RegistersUsers;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
@@ -61,10 +63,27 @@ class RegisterController extends Controller
      */
     protected function create(array $data)
     {
-        return User::create([
+        $user = User::create([
             'name' => $data['name'],
             'email' => $data['email'],
             'password' => Hash::make($data['password']),
         ]);
+
+        // Self-serve SaaS signup: a public registrant is the owner of their own
+        // workspace. `role` is guarded against mass assignment, so set it directly.
+        // Email stays unverified — the Registered event sends the verification link
+        // and the 'verified' middleware gates app access until they confirm.
+        $user->role = UserRole::OWNER;
+        $user->save();
+
+        // Activate the 30-day free trial and notify the client + sales team.
+        $user->startTrial();
+        TrialMailer::signup($user);
+
+        // New tenant: ensure the standard chart of accounts exists (idempotent;
+        // a no-op once the global chart has been seeded).
+        app(\App\Services\CoaTemplateService::class)->ensureSeededForNewTenant();
+
+        return $user;
     }
 }

@@ -15,6 +15,12 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web([
             \App\Http\Middleware\SecurityHeaders::class,
             \App\Http\Middleware\UpdateLastOnline::class,
+            // Tie each session to the user's current password hash so that changing
+            // the password (or "log out other devices") invalidates other sessions.
+            // Required for Auth::logoutOtherDevices() to actually take effect.
+            \Illuminate\Session\Middleware\AuthenticateSession::class,
+            // Establish the per-request tenant context (multi-tenant isolation).
+            \App\Http\Middleware\InitializeTenant::class,
         ]);
 
         // Add rate limiting to API routes if they exist
@@ -33,6 +39,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'convert_date_format' => \App\Http\Middleware\ConvertDateFormat::class,
             'rate_limit' => \App\Http\Middleware\RateLimitMiddleware::class,
             'login_rate_limit' => \App\Http\Middleware\LoginRateLimitMiddleware::class,
+            'trial' => \App\Http\Middleware\EnsureTrialActive::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

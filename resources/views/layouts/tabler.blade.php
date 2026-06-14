@@ -916,6 +916,44 @@
                                     </svg>
                                     Profile Settings
                                 </a></li>
+                                @if(Route::has('sales-projections.index'))
+                                <li><a class="dropdown-item d-flex align-items-center" href="{{ route('sales-projections.index') }}" style="padding: 10px 16px; font-family: 'Google Sans', sans-serif; font-size: 14px; border-radius: 8px; margin: 0 8px;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-3">
+                                        <rect x="3" y="4" width="18" height="18" rx="2"/>
+                                        <line x1="3" y1="10" x2="21" y2="10"/>
+                                        <line x1="8" y1="2" x2="8" y2="6"/>
+                                        <line x1="16" y1="2" x2="16" y2="6"/>
+                                    </svg>
+                                    Sales Projections
+                                </a></li>
+                                @endif
+                                @if((Auth::user()->isOwner() || Auth::user()->isAdmin()) && Route::has('kpi.edit'))
+                                <li><a class="dropdown-item d-flex align-items-center" href="{{ route('kpi.edit') }}" style="padding: 10px 16px; font-family: 'Google Sans', sans-serif; font-size: 14px; border-radius: 8px; margin: 0 8px;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-3">
+                                        <circle cx="12" cy="12" r="9"/>
+                                        <path d="M12 7v5l3 2"/>
+                                    </svg>
+                                    KPI Targets
+                                </a></li>
+                                @endif
+                                @if(Auth::user()->isOwner() && Route::has('billing.show'))
+                                <li><a class="dropdown-item d-flex align-items-center" href="{{ route('billing.show') }}" style="padding: 10px 16px; font-family: 'Google Sans', sans-serif; font-size: 14px; border-radius: 8px; margin: 0 8px;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-3">
+                                        <rect x="3" y="5" width="18" height="14" rx="2"/>
+                                        <line x1="3" y1="10" x2="21" y2="10"/>
+                                    </svg>
+                                    Billing &amp; Subscription
+                                </a></li>
+                                @endif
+                                @if(Auth::user()->isAdmin() && Route::has('admin.subscriptions.index'))
+                                <li><a class="dropdown-item d-flex align-items-center" href="{{ route('admin.subscriptions.index') }}" style="padding: 10px 16px; font-family: 'Google Sans', sans-serif; font-size: 14px; border-radius: 8px; margin: 0 8px;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-3">
+                                        <path d="M3 3v18h18"/>
+                                        <path d="M7 14l4-4 3 3 5-6"/>
+                                    </svg>
+                                    Subscriptions
+                                </a></li>
+                                @endif
                                 @if(Auth::user()->isAdmin() && Route::has('admin.bank.accounts.index'))
                                 <li><a class="dropdown-item d-flex align-items-center" href="{{ route('admin.bank.accounts.index') }}" style="padding: 10px 16px; font-family: 'Google Sans', sans-serif; font-size: 14px; border-radius: 8px; margin: 0 8px;">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-3">
@@ -1019,6 +1057,18 @@
             </script>
         </div>
         @endif
+
+        <!-- Trial countdown banner (Phase 4) -->
+        @auth
+            @php($trialOwner = auth()->user()->billingOwner())
+            @if ($trialOwner && $trialOwner->onFreeTrial())
+                @php($trialDaysLeft = $trialOwner->trialDaysLeft())
+                <div style="background: {{ $trialDaysLeft <= 5 ? '#fff4e5' : '#eef3fb' }}; border-bottom: 1px solid {{ $trialDaysLeft <= 5 ? '#ffd8a8' : '#d0def5' }}; color: {{ $trialDaysLeft <= 5 ? '#b56a00' : '#1a59a3' }}; padding: .55rem 1rem; text-align: center; font-size: .9rem;">
+                    <strong>{{ $trialDaysLeft }}</strong> day{{ $trialDaysLeft === 1 ? '' : 's' }} left in your free trial.
+                    <a href="{{ route('trial.expired') }}" style="color: inherit; font-weight: 600; text-decoration: underline;">Continue your subscription</a>
+                </div>
+            @endif
+        @endauth
 
         <!-- Main Content Area -->
         <div class="main-content" style="min-height: calc(100vh - 80px); background: #f8f9fa; padding-top: 1rem;">
