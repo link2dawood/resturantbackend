@@ -1,0 +1,175 @@
+<?php
+
+namespace App\Services;
+
+use App\Models\ChartOfAccount;
+
+/**
+ * Phase 4 — Tenant migration: Chart-of-Accounts template.
+ *
+ * Captures Fann's Philly's standard chart of accounts as the starting template
+ * for new sign-ups. CoA is global/shared in this app (not per-tenant), so
+ * "applying" the template idempotently ensures the standard chart exists; a
+ * fresh install / first sign-up gets the full chart, later ones are no-ops.
+ *
+ *  - defaultAccounts(): the canonical built-in chart (also used by the seeder).
+ *  - templateAccounts(): the live snapshot (database/data/coa-template.json) if
+ *    present — captures any customizations Fann's Philly made — else the default.
+ *  - apply(): idempotently create the template accounts.
+ *  - export(): snapshot the live chart to JSON (the migration "copy" step).
+ */
+class CoaTemplateService
+{
+    /** The canonical Fann's Philly chart of accounts. */
+    public function defaultAccounts(): array
+    {
+        return [
+            // Assets (1000-1999)
+            ['account_code' => '1000', 'account_name' => 'Assets All', 'account_type' => 'Assets'],
+            ['account_code' => '1010', 'account_name' => 'Cash - Operating Account', 'account_type' => 'Assets'],
+            ['account_code' => '1100', 'account_name' => 'Petty Cash', 'account_type' => 'Assets'],
+            ['account_code' => '1200', 'account_name' => 'Accounts Receivable', 'account_type' => 'Assets'],
+            ['account_code' => '1300', 'account_name' => 'Inventory - Food', 'account_type' => 'Assets'],
+            ['account_code' => '1310', 'account_name' => 'Inventory - Beverages', 'account_type' => 'Assets'],
+            ['account_code' => '1400', 'account_name' => 'Prepaid Expenses', 'account_type' => 'Assets'],
+            ['account_code' => '1500', 'account_name' => 'Equipment', 'account_type' => 'Assets'],
+            ['account_code' => '1510', 'account_name' => 'Accumulated Depreciation - Equipment', 'account_type' => 'Assets'],
+            ['account_code' => '1600', 'account_name' => 'Furniture & Fixtures', 'account_type' => 'Assets'],
+            ['account_code' => '1610', 'account_name' => 'Accumulated Depreciation - Furniture', 'account_type' => 'Assets'],
+            // Liabilities (2000-2999)
+            ['account_code' => '2000', 'account_name' => 'Liabilities All', 'account_type' => 'Liability'],
+            ['account_code' => '2010', 'account_name' => 'Accounts Payable', 'account_type' => 'Liability'],
+            ['account_code' => '2100', 'account_name' => 'Accrued Expenses', 'account_type' => 'Liability'],
+            ['account_code' => '2400', 'account_name' => 'Short-term Loans', 'account_type' => 'Liability'],
+            ['account_code' => '2500', 'account_name' => 'Credit Card Payable', 'account_type' => 'Liability'],
+            // Taxes (3000-3999)
+            ['account_code' => '3000', 'account_name' => 'Taxes All', 'account_type' => 'Taxes'],
+            ['account_code' => '3100', 'account_name' => 'Sales Tax Payable', 'account_type' => 'Taxes'],
+            ['account_code' => '3200', 'account_name' => 'Payroll Taxes Payable', 'account_type' => 'Taxes'],
+            // Revenue (4000-4999)
+            ['account_code' => '4000', 'account_name' => 'Revenues All', 'account_type' => 'Revenue'],
+            ['account_code' => '4010', 'account_name' => 'Cash', 'account_type' => 'Revenue'],
+            ['account_code' => '4020', 'account_name' => 'Card', 'account_type' => 'Revenue'],
+            ['account_code' => '4030', 'account_name' => 'Check', 'account_type' => 'Revenue'],
+            ['account_code' => '4040', 'account_name' => 'Online', 'account_type' => 'Revenue'],
+            ['account_code' => '4050', 'account_name' => 'Crypto', 'account_type' => 'Revenue'],
+            ['account_code' => '4100', 'account_name' => 'Revenue - Food Sales', 'account_type' => 'Revenue'],
+            ['account_code' => '4200', 'account_name' => 'Revenue - Beverage Sales', 'account_type' => 'Revenue'],
+            ['account_code' => '4300', 'account_name' => 'Revenue - Third Party (Grubhub/Uber)', 'account_type' => 'Revenue'],
+            ['account_code' => '4400', 'account_name' => 'Other Income', 'account_type' => 'Revenue'],
+            // COGS (5000-5999)
+            ['account_code' => '5000', 'account_name' => 'COGS All', 'account_type' => 'COGS'],
+            ['account_code' => '5100', 'account_name' => 'COGS - Food Purchases', 'account_type' => 'COGS'],
+            ['account_code' => '5200', 'account_name' => 'COGS - Beverage Purchases', 'account_type' => 'COGS'],
+            ['account_code' => '5300', 'account_name' => 'COGS - Packaging Supplies', 'account_type' => 'COGS'],
+            // Operating Expenses (6000-6999)
+            ['account_code' => '6000', 'account_name' => 'Expenses All', 'account_type' => 'Expense'],
+            ['account_code' => '6100', 'account_name' => 'Merchant Processing Fees', 'account_type' => 'Expense'],
+            ['account_code' => '6200', 'account_name' => 'Marketing Fees (Grubhub)', 'account_type' => 'Expense'],
+            ['account_code' => '6300', 'account_name' => 'Delivery Service Fees', 'account_type' => 'Expense'],
+            ['account_code' => '6400', 'account_name' => 'Utilities - Electric', 'account_type' => 'Expense'],
+            ['account_code' => '6410', 'account_name' => 'Utilities - Water', 'account_type' => 'Expense'],
+            ['account_code' => '6420', 'account_name' => 'Utilities - Gas', 'account_type' => 'Expense'],
+            ['account_code' => '6430', 'account_name' => 'Utilities - Internet', 'account_type' => 'Expense'],
+            ['account_code' => '6500', 'account_name' => 'Rent', 'account_type' => 'Expense'],
+            ['account_code' => '6600', 'account_name' => 'Payroll', 'account_type' => 'Expense'],
+            ['account_code' => '6610', 'account_name' => 'Payroll Taxes', 'account_type' => 'Expense'],
+            ['account_code' => '6700', 'account_name' => 'Supplies - Paper Goods', 'account_type' => 'Expense'],
+            ['account_code' => '6710', 'account_name' => 'Supplies - Cleaning', 'account_type' => 'Expense'],
+            ['account_code' => '6800', 'account_name' => 'Maintenance & Repairs', 'account_type' => 'Expense'],
+            ['account_code' => '6900', 'account_name' => 'Insurance', 'account_type' => 'Expense'],
+            ['account_code' => '6950', 'account_name' => 'Professional Services', 'account_type' => 'Expense'],
+            ['account_code' => '6960', 'account_name' => 'Legal & Accounting', 'account_type' => 'Expense'],
+            ['account_code' => '6970', 'account_name' => 'Marketing & Advertising', 'account_type' => 'Expense'],
+            // Adjustments (7000-7999)
+            ['account_code' => '7000', 'account_name' => 'Adjustments All', 'account_type' => 'Adjustments'],
+            ['account_code' => '7100', 'account_name' => 'Adjustments - Overrings/Returns', 'account_type' => 'Adjustments'],
+            // Equity (8000-8999)
+            ['account_code' => '8000', 'account_name' => 'Equity All', 'account_type' => 'Equity'],
+            ['account_code' => '8100', 'account_name' => "Owner's Equity", 'account_type' => 'Equity'],
+            ['account_code' => '8200', 'account_name' => 'Retained Earnings', 'account_type' => 'Equity'],
+            ['account_code' => '8300', 'account_name' => 'Current Year Earnings', 'account_type' => 'Equity'],
+        ];
+    }
+
+    public static function templatePath(): string
+    {
+        return database_path('data/coa-template.json');
+    }
+
+    /**
+     * The template to seed new sign-ups from: the live snapshot if it exists,
+     * otherwise the built-in default chart.
+     */
+    public function templateAccounts(): array
+    {
+        $path = self::templatePath();
+
+        if (is_file($path)) {
+            $data = json_decode((string) file_get_contents($path), true);
+            if (is_array($data) && ! empty($data)) {
+                return $data;
+            }
+        }
+
+        return $this->defaultAccounts();
+    }
+
+    /**
+     * Idempotently ensure the template accounts exist in the (global) chart.
+     *
+     * @return array{created:int, existing:int}
+     */
+    public function apply(): array
+    {
+        $created = 0;
+        $existing = 0;
+
+        foreach ($this->templateAccounts() as $account) {
+            $model = ChartOfAccount::firstOrCreate(
+                ['account_code' => $account['account_code']],
+                [
+                    'account_name' => $account['account_name'],
+                    'account_type' => $account['account_type'],
+                    'is_system_account' => $account['is_system_account'] ?? true,
+                    'is_active' => $account['is_active'] ?? true,
+                ]
+            );
+
+            $model->wasRecentlyCreated ? $created++ : $existing++;
+        }
+
+        return ['created' => $created, 'existing' => $existing];
+    }
+
+    /**
+     * Ensure the global chart exists for a new tenant. Cheap no-op once seeded.
+     */
+    public function ensureSeededForNewTenant(): void
+    {
+        if (ChartOfAccount::count() === 0) {
+            $this->apply();
+        }
+    }
+
+    /**
+     * Snapshot the live chart of accounts to the template JSON file.
+     */
+    public function export(?string $path = null): int
+    {
+        $path ??= self::templatePath();
+
+        $accounts = ChartOfAccount::orderBy('account_code')
+            ->get(['account_code', 'account_name', 'account_type', 'is_system_account', 'is_active'])
+            ->map(fn ($a) => $a->only(['account_code', 'account_name', 'account_type', 'is_system_account', 'is_active']))
+            ->all();
+
+        if (! is_dir(dirname($path))) {
+            mkdir(dirname($path), 0755, true);
+        }
+
+        file_put_contents($path, json_encode($accounts, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+
+        return count($accounts);
+    }
+}
