@@ -29,6 +29,9 @@ class UserFactory extends Factory
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('12345678'),
             'remember_token' => Str::random(10),
+            // Mirror the users table default so factory users aren't trial-locked
+            // (the in-memory model otherwise wouldn't reflect the DB column default).
+            'subscription_status' => 'active',
         ];
     }
 

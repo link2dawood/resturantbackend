@@ -4,10 +4,16 @@ use App\Enums\UserRole;
 use App\Models\User;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Schedule;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
+
+// Phase 4 — SaaS trial: send expiring-soon reminders and expiry notifications.
+// Lockout itself is enforced in real time by the 'trial' middleware; this only
+// handles the emails + status bookkeeping. Runs once a day.
+Schedule::command('trials:check')->dailyAt('08:00');
 
 Artisan::command('create:test-users', function () {
     $this->info('Creating test users...');
