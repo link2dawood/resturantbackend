@@ -120,10 +120,12 @@ class OwnerCcStatementImportController extends Controller
                 'rows_skipped' => 0,
             ]);
 
-            // Store original file on disk and save path
+            // Store original file on disk (tenant-scoped path) and save path
             $safeName = preg_replace('/[^a-zA-Z0-9._-]/', '_', $file->getClientOriginalName());
-            $storedPath = $file->storeAs(
+            $storedPath = \App\Support\TenantStorage::storeUpload(
+                $file,
                 'owner_cc_statements',
+                $import->store_id,
                 $import->id . '_' . $safeName,
                 'local'
             );

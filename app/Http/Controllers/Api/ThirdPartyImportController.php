@@ -122,10 +122,12 @@ class ThirdPartyImportController extends Controller
                 'imported_by' => auth()->id(),
             ]);
 
-            // Store the uploaded file on disk and save path in table
+            // Store the uploaded file on disk (tenant-scoped path) and save path in table
             $safeName = preg_replace('/[^a-zA-Z0-9._-]/', '_', $file->getClientOriginalName());
-            $storedPath = $file->storeAs(
+            $storedPath = \App\Support\TenantStorage::storeUpload(
+                $file,
                 'third_party_statements',
+                $statement->store_id,
                 $statement->id . '_' . $safeName,
                 'local'
             );
