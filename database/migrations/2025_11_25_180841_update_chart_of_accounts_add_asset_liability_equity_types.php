@@ -12,9 +12,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Update account_type enum to include Asset, Liability, and Equity
-        // MySQL/MariaDB requires dropping and recreating the enum
-        DB::statement("ALTER TABLE chart_of_accounts MODIFY COLUMN account_type ENUM('Asset', 'Liability', 'Equity', 'Revenue', 'COGS', 'Expense', 'Other Income') NOT NULL");
+        // Update account_type enum to include Asset, Liability, and Equity.
+        // MySQL/MariaDB requires recreating the enum via raw DDL. SQLite (the test
+        // suite) has no native ENUM and stores the column as TEXT, so skip there.
+        if (in_array(DB::getDriverName(), ['mysql', 'mariadb'])) {
+            DB::statement("ALTER TABLE chart_of_accounts MODIFY COLUMN account_type ENUM('Asset', 'Liability', 'Equity', 'Revenue', 'COGS', 'Expense', 'Other Income') NOT NULL");
+        }
     }
 
     /**
@@ -23,6 +26,8 @@ return new class extends Migration
     public function down(): void
     {
         // Revert to original enum values
-        DB::statement("ALTER TABLE chart_of_accounts MODIFY COLUMN account_type ENUM('Revenue', 'COGS', 'Expense', 'Other Income') NOT NULL");
+        if (in_array(DB::getDriverName(), ['mysql', 'mariadb'])) {
+            DB::statement("ALTER TABLE chart_of_accounts MODIFY COLUMN account_type ENUM('Revenue', 'COGS', 'Expense', 'Other Income') NOT NULL");
+        }
     }
 };

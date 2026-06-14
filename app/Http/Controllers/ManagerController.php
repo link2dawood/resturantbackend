@@ -88,6 +88,12 @@ class ManagerController extends Controller
         $temporaryPassword = $validatedData['password'];
         $validatedData['password'] = bcrypt($validatedData['password']);
 
+        // Admin-provisioned accounts are trusted (the admin vouches for the address),
+        // so mark them verified up front. Otherwise the app-wide 'verified' middleware
+        // would lock the new manager out until they clicked an email link. Mirrors
+        // OwnerController behaviour.
+        $validatedData['email_verified_at'] = now();
+
         \Log::info('Creating manager user', [
             'user_data' => array_keys($validatedData),
             'store_id' => $validatedData['store_id'] ?? null,

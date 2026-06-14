@@ -74,7 +74,13 @@ class ProfileController extends Controller
             'password' => Hash::make($request->password),
         ]);
 
-        return redirect()->route('profile.show')->with('success', 'Password updated successfully.');
+        // Security: invalidate every other session for this account and keep the
+        // current one alive (re-stamps this session with the new password hash so
+        // AuthenticateSession doesn't log the user out of the device they're on).
+        Auth::logoutOtherDevices($request->password);
+
+        return redirect()->route('profile.show')
+            ->with('success', 'Password updated successfully. You have been signed out on all other devices.');
     }
 
     /**
