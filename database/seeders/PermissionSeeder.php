@@ -49,6 +49,7 @@ class PermissionSeeder extends Seeder
 
             // Chart of Accounts (COA)
             ['name' => 'manage_coa', 'description' => 'Create, update, and delete chart of accounts', 'category' => 'configuration'],
+            ['name' => 'create_coa', 'description' => 'Add new chart of accounts (but not modify existing)', 'category' => 'configuration'],
             ['name' => 'view_coa', 'description' => 'View chart of accounts', 'category' => 'configuration'],
 
             // Vendor Management
@@ -92,7 +93,7 @@ class PermissionSeeder extends Seeder
                 'manage_stores', 'view_stores',
                 'manage_managers', 'view_users',
                 'create_reports', 'view_reports', 'edit_reports', 'approve_reports', 'export_reports',
-                'view_coa', // Can view COA but not manage
+                'create_coa', 'view_coa', // Can view + ADD COA, but not modify existing
                 'view_vendors', 'edit_vendors', // Can edit vendors
                 'upload_files', // Can upload files
                 'generate_pl', 'view_pl', 'export_pl', // Can generate P&L for their stores

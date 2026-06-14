@@ -54,8 +54,9 @@ class ChartOfAccountController extends Controller
      */
     public function store(Request $request)
     {
-        // Authorization check
-        if (!auth()->user()->isAdmin()) {
+        // Authorization: admins and owners may ADD chart-of-accounts.
+        // (Modifying existing accounts remains admin-only — see update()/destroy().)
+        if (!auth()->user()->isAdmin() && !auth()->user()->isOwner()) {
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 
