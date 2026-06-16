@@ -71,8 +71,8 @@ class RegisterController extends Controller
 
         // Self-serve SaaS signup: a public registrant is the owner of their own
         // workspace. `role` is guarded against mass assignment, so set it directly.
-        // Email stays unverified — the Registered event sends the verification link
-        // and the 'verified' middleware gates app access until they confirm.
+        // Email stays unverified — the verification link is sent below and the
+        // 'verified' middleware gates app access until they confirm.
         $user->role = UserRole::OWNER;
         $user->save();
 
@@ -83,6 +83,15 @@ class RegisterController extends Controller
         // New tenant: ensure the standard chart of accounts exists (idempotent;
         // a no-op once the global chart has been seeded).
         app(\App\Services\CoaTemplateService::class)->ensureSeededForNewTenant();
+
+        // Send the email-verification link, but never let an SMTP/mail failure
+        // break signup — the account is already created and the link can be
+        // re-sent from the "verify your email" screen once mail is working.
+        try {
+            $user->sendEmailVerificationNotification();
+        } catch (\Throwable $e) {
+            report($e);
+        }
 
         return $user;
     }

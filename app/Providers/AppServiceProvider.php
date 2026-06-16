@@ -5,8 +5,6 @@ namespace App\Providers;
 use App\Events\ManagerAssignedToStores;
 use App\Listeners\HandleStripeWebhook;
 use App\Listeners\SendManagerAssignmentEmail;
-use Illuminate\Auth\Events\Registered;
-use Illuminate\Auth\Listeners\SendEmailVerificationNotification;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
@@ -32,11 +30,8 @@ class AppServiceProvider extends ServiceProvider
         \App\Models\DailyReport::observe(\App\Observers\DailyReportObserver::class);
 
         // Register event listeners
-        // Send the email-verification link whenever a user registers (self-serve signup).
-        Event::listen(
-            Registered::class,
-            SendEmailVerificationNotification::class,
-        );
+        // (Email verification is sent directly from RegisterController, wrapped in a
+        // try/catch, so an SMTP failure can't 500 the signup request.)
 
         // Stripe webhooks: Cashier syncs the DB, then we send receipts/dunning
         // emails and mirror subscription state onto the owner's access flag.
