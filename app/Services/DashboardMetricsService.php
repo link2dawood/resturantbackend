@@ -5,7 +5,9 @@ namespace App\Services;
 use App\Models\DailyReport;
 use App\Models\ExpenseTransaction;
 use App\Models\KpiTarget;
-use Illuminate\Support\Carbon;
+// Base Carbon so callers can pass either Carbon\Carbon or Illuminate\Support\Carbon
+// (the latter extends the former); DashboardController passes Carbon\Carbon.
+use Carbon\Carbon;
 
 /**
  * Phase 4 — Dashboard circular metrics.
