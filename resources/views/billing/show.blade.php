@@ -50,6 +50,16 @@
 
     {{-- Card capture (Stripe Elements) — only when not subscribed --}}
     @unless ($subscribed)
+    @if (! $stripeConfigured)
+    <div class="card">
+        <div class="card-body">
+            <div class="alert alert-info mb-0">
+                Online payments aren't available just yet — we're finishing payment setup.
+                Please check back shortly, or contact us to arrange your subscription.
+            </div>
+        </div>
+    </div>
+    @else
     <div class="card">
         <div class="card-body">
             <h3 class="card-title">{{ $onFreeTrial ? 'Add a payment method' : 'Subscribe' }}</h3>
@@ -120,6 +130,7 @@
             });
         })();
     </script>
+    @endif
     @endunless
 </div>
 @endsection

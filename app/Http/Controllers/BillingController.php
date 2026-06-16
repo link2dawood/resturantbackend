@@ -40,11 +40,26 @@ class BillingController extends Controller
         }
 
         $subscription = $owner->subscription(config('subscription.type'));
+        $subscribed = $owner->subscribed(config('subscription.type'));
+
+        // Only talk to Stripe if it's actually configured and we need a card form.
+        // Missing/invalid keys must NOT 500 the page — show a friendly notice instead.
+        $stripeConfigured = filled(config('cashier.secret')) && filled(config('cashier.key'));
+        $intent = null;
+
+        if ($stripeConfigured && ! $subscribed) {
+            try {
+                $intent = $owner->createSetupIntent();
+            } catch (\Throwable $e) {
+                report($e);
+                $stripeConfigured = false;
+            }
+        }
 
         return view('billing.show', [
             'owner' => $owner,
             'subscription' => $subscription,
-            'subscribed' => $owner->subscribed(config('subscription.type')),
+            'subscribed' => $subscribed,
             'onFreeTrial' => $owner->onFreeTrial(),
             'trialDaysLeft' => $owner->trialDaysLeft(),
             'planName' => config('subscription.plan_name'),
@@ -53,7 +68,8 @@ class BillingController extends Controller
             'paymentMethod' => $owner->hasDefaultPaymentMethod() ? $owner->defaultPaymentMethod() : null,
             // SetupIntent client secret — Stripe.js confirms the card against this
             // so raw card data never touches our server.
-            'intent' => $owner->createSetupIntent(),
+            'intent' => $intent,
+            'stripeConfigured' => $stripeConfigured,
             'stripeKey' => config('cashier.key'),
         ]);
     }
