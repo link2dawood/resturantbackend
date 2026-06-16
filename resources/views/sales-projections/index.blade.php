@@ -4,95 +4,116 @@
 
 @section('content')
 <div class="container-xl py-4">
-    <h2 class="mb-1">Sales Projection Calendar</h2>
-    <p class="text-muted">Enter a daily sales projection for each store and compare it against actual net sales.</p>
+    <div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-3">
+        <div>
+            <h2 class="mb-1" style="font-weight:700;">Sales Projection Calendar</h2>
+            <p class="text-muted mb-0">Type a projection on any day — it saves instantly and compares against actual net sales.</p>
+        </div>
 
-    @if ($stores->isEmpty())
-        <div class="alert alert-info">You don't have any stores yet. Create a store to start projecting sales.</div>
-    @else
-        {{-- Store + month controls --}}
-        <form method="GET" action="{{ route('sales-projections.index') }}" class="row g-2 align-items-end mb-3">
-            <div class="col-auto">
-                <label class="form-label mb-1">Store</label>
-                <select name="store_id" class="form-select" onchange="this.form.submit()">
+        @unless ($stores->isEmpty())
+            <form method="GET" action="{{ route('sales-projections.index') }}" class="d-flex align-items-center gap-2">
+                <select name="store_id" class="form-select" style="border-radius:10px; min-width:200px;" onchange="this.form.submit()">
                     @foreach ($stores as $s)
                         <option value="{{ $s->id }}" @selected($s->id === $storeId)>{{ $s->store_info }}</option>
                     @endforeach
                 </select>
-            </div>
-            <div class="col-auto">
-                <label class="form-label mb-1">Month</label>
-                <div class="btn-group">
-                    <a href="{{ route('sales-projections.index', ['store_id' => $storeId, 'month' => $prevMonth]) }}" class="btn btn-outline-secondary">‹</a>
-                    <span class="btn btn-outline-secondary disabled" style="min-width: 160px;">{{ $month->format('F Y') }}</span>
-                    <a href="{{ route('sales-projections.index', ['store_id' => $storeId, 'month' => $nextMonth]) }}" class="btn btn-outline-secondary">›</a>
+                <div class="spc-monthnav">
+                    <a href="{{ route('sales-projections.index', ['store_id' => $storeId, 'month' => $prevMonth]) }}" aria-label="Previous month">‹</a>
+                    <span>{{ $month->format('F Y') }}</span>
+                    <a href="{{ route('sales-projections.index', ['store_id' => $storeId, 'month' => $nextMonth]) }}" aria-label="Next month">›</a>
                 </div>
-            </div>
-        </form>
+            </form>
+        @endunless
+    </div>
+
+    @if ($stores->isEmpty())
+        <div class="alert alert-info">You don't have any stores yet. Create a store to start projecting sales.</div>
+    @else
+        <style>
+            .spc-monthnav { display:flex; align-items:center; gap:.25rem; background:#fff; border:1px solid #e6eaf0; border-radius:999px; padding:.2rem; }
+            .spc-monthnav a { width:34px; height:34px; display:inline-flex; align-items:center; justify-content:center; border-radius:999px; color:#43536b; text-decoration:none; font-size:1.1rem; line-height:1; transition:background .12s; }
+            .spc-monthnav a:hover { background:#eef3fb; color:#206bc4; }
+            .spc-monthnav span { min-width:140px; text-align:center; font-weight:600; color:#1d2b3a; }
+
+            .spc-summary { display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; margin-bottom:1.25rem; }
+            @media (max-width:640px){ .spc-summary{ grid-template-columns:1fr; } }
+            .spc-stat { background:#fff; border:1px solid #e9edf3; border-radius:14px; padding:1rem 1.15rem; }
+            .spc-stat .lbl { font-size:.78rem; text-transform:uppercase; letter-spacing:.04em; color:#8a98a8; margin-bottom:.25rem; }
+            .spc-stat .val { font-size:1.6rem; font-weight:700; color:#1d2b3a; line-height:1.1; }
+            .spc-stat .val.up { color:#1f8a4c; } .spc-stat .val.down { color:#d63939; }
+
+            .spc-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:1px; background:#e9edf3; border:1px solid #e9edf3; border-radius:14px; overflow:hidden; }
+            .spc-dow { background:#f7f9fc; text-align:center; padding:.55rem; font-size:.72rem; font-weight:600; letter-spacing:.05em; text-transform:uppercase; color:#9aa7b6; }
+            .spc-cell { background:#fff; min-height:112px; padding:.5rem .55rem; display:flex; flex-direction:column; gap:.4rem; }
+            .spc-cell.out { background:#fbfcfe; }
+            .spc-cell.today { box-shadow: inset 0 0 0 2px #206bc4; }
+            .spc-cell:hover { background:#fbfdff; }
+            .spc-daynum { font-size:.85rem; font-weight:600; color:#5b6b7c; }
+            .spc-cell.today .spc-daynum { color:#206bc4; }
+            .spc-var { font-size:.72rem; font-weight:600; padding:.05rem .4rem; border-radius:999px; }
+            .spc-var.up { background:#e9f7ef; color:#1f8a4c; } .spc-var.down { background:#fdecec; color:#d63939; }
+            .spc-inputwrap { position:relative; }
+            .spc-inputwrap .cur { position:absolute; left:9px; top:50%; transform:translateY(-50%); color:#aab4c0; font-size:.85rem; pointer-events:none; }
+            .proj-input { width:100%; padding:.34rem .45rem .34rem 1.15rem; border:1px solid #dde3ec; border-radius:9px; font-size:.9rem; color:#1d2b3a; transition:border-color .12s, box-shadow .12s; -moz-appearance:textfield; }
+            .proj-input::-webkit-outer-spin-button, .proj-input::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
+            .proj-input:focus { outline:none; border-color:#206bc4; box-shadow:0 0 0 3px rgba(32,107,196,.14); }
+            .proj-input.is-valid { border-color:#2fb344; box-shadow:0 0 0 3px rgba(47,179,68,.14); }
+            .proj-input.is-invalid { border-color:#d63939; box-shadow:0 0 0 3px rgba(214,57,57,.14); }
+            .spc-actual { font-size:.76rem; color:#aab4c0; margin-top:auto; }
+            .spc-actual strong { color:#1f8a4c; font-weight:600; }
+        </style>
 
         {{-- Month summary --}}
-        <div class="row row-cards mb-3">
-            <div class="col-sm-4"><div class="card"><div class="card-body py-2">
-                <div class="text-muted small">Projected (month)</div>
-                <div class="h3 mb-0">${{ number_format($totals['projected'], 2) }}</div>
-            </div></div></div>
-            <div class="col-sm-4"><div class="card"><div class="card-body py-2">
-                <div class="text-muted small">Actual (month)</div>
-                <div class="h3 mb-0">${{ number_format($totals['actual'], 2) }}</div>
-            </div></div></div>
-            <div class="col-sm-4"><div class="card"><div class="card-body py-2">
-                <div class="text-muted small">Variance</div>
-                <div class="h3 mb-0 {{ $totals['variance'] >= 0 ? 'text-green' : 'text-red' }}">
+        <div class="spc-summary">
+            <div class="spc-stat"><div class="lbl">Projected · month</div><div class="val">${{ number_format($totals['projected'], 2) }}</div></div>
+            <div class="spc-stat"><div class="lbl">Actual · month</div><div class="val">${{ number_format($totals['actual'], 2) }}</div></div>
+            <div class="spc-stat">
+                <div class="lbl">Variance</div>
+                <div class="val {{ $totals['variance'] >= 0 ? 'up' : 'down' }}">
                     {{ $totals['variance'] >= 0 ? '+' : '−' }}${{ number_format(abs($totals['variance']), 2) }}
                 </div>
-            </div></div></div>
+            </div>
         </div>
 
         {{-- Calendar grid --}}
-        <div class="card">
-            <div class="table-responsive">
-                <table class="table table-bordered mb-0 sales-cal">
-                    <thead>
-                        <tr class="text-center text-muted">
-                            <th>Sun</th><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach ($weeks as $week)
-                            <tr>
-                                @foreach ($week as $cell)
-                                    <td class="sales-cal__cell {{ $cell['in_month'] ? '' : 'is-muted' }}" style="vertical-align: top; height: 96px;">
-                                        @if ($cell['in_month'])
-                                            <div class="d-flex justify-content-between align-items-start">
-                                                <span class="fw-bold">{{ $cell['day'] }}</span>
-                                                @if ($cell['variance'] !== null)
-                                                    <span class="badge bg-{{ $cell['variance'] >= 0 ? 'green' : 'red' }}-lt" title="Actual − Projected">
-                                                        {{ $cell['variance'] >= 0 ? '+' : '−' }}${{ number_format(abs($cell['variance']), 0) }}
-                                                    </span>
-                                                @endif
-                                            </div>
-                                            <div class="input-group input-group-sm mt-1">
-                                                <span class="input-group-text">$</span>
-                                                <input type="number" step="0.01" min="0" class="form-control proj-input"
-                                                       data-date="{{ $cell['key'] }}"
-                                                       value="{{ $cell['projection'] !== null ? number_format($cell['projection'], 2, '.', '') : '' }}"
-                                                       placeholder="proj.">
-                                            </div>
-                                            <div class="small text-muted mt-1">
-                                                @if ($cell['actual'] !== null)
-                                                    Actual ${{ number_format($cell['actual'], 2) }}
-                                                @else
-                                                    <span class="text-muted-light">no report</span>
-                                                @endif
-                                            </div>
-                                        @endif
-                                    </td>
-                                @endforeach
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
+        <div class="spc-grid">
+            @foreach (['Sun','Mon','Tue','Wed','Thu','Fri','Sat'] as $dow)
+                <div class="spc-dow">{{ $dow }}</div>
+            @endforeach
+
+            @foreach ($weeks as $week)
+                @foreach ($week as $cell)
+                    @php($isToday = $cell['date']->isToday())
+                    <div class="spc-cell {{ $cell['in_month'] ? '' : 'out' }} {{ $isToday ? 'today' : '' }}">
+                        @if ($cell['in_month'])
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="spc-daynum">{{ $cell['day'] }}</span>
+                                @if ($cell['variance'] !== null)
+                                    <span class="spc-var {{ $cell['variance'] >= 0 ? 'up' : 'down' }}" title="Actual − Projected">
+                                        {{ $cell['variance'] >= 0 ? '+' : '−' }}${{ number_format(abs($cell['variance']), 0) }}
+                                    </span>
+                                @endif
+                            </div>
+
+                            <div class="spc-inputwrap">
+                                <span class="cur">$</span>
+                                <input type="number" step="0.01" min="0" class="proj-input" inputmode="decimal"
+                                       data-date="{{ $cell['key'] }}"
+                                       value="{{ $cell['projection'] !== null ? number_format($cell['projection'], 2, '.', '') : '' }}"
+                                       placeholder="0.00">
+                            </div>
+
+                            <div class="spc-actual">
+                                @if ($cell['actual'] !== null)
+                                    Actual <strong>${{ number_format($cell['actual'], 2) }}</strong>
+                                @else
+                                    &mdash;
+                                @endif
+                            </div>
+                        @endif
+                    </div>
+                @endforeach
+            @endforeach
         </div>
 
         <script>
