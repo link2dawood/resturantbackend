@@ -68,19 +68,6 @@
             </div>
         </form>
     </div>
-    
-    <div class="hr-text">or</div>
-    
-    <div class="card-body">
-        <div class="row">
-            <div class="col">
-                <a href="{{ route('google.signin') }}" class="btn btn-white w-100">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon text-google" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="m0 0h24v24H0z" fill="none"/><path d="M17.788 5.108A9 9 0 1 0 21 12h-8"/></svg>
-                    Sign up with Google
-                </a>
-            </div>
-        </div>
-    </div>
 </div>
 
 <div class="text-center text-white-50 mt-3">

@@ -65,6 +65,9 @@
             
             <div class="form-footer">
                 <button type="submit" class="btn btn-primary w-100">Sign in</button>
+                @if (Route::has('register'))
+                    <a href="{{ route('register') }}" class="btn btn-white w-100 mt-2">Create new account</a>
+                @endif
             </div>
         </form>
     </div>
