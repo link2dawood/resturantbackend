@@ -68,6 +68,7 @@ class BillingController extends Controller
             'monthlyAmount' => config('subscription.monthly_amount') / 100,
             'paymentMethod' => $paymentMethod,
             'stripeConfigured' => $stripeConfigured,
+            'billingEnabled' => (bool) config('subscription.enabled'),
         ]);
     }
 
@@ -82,6 +83,11 @@ class BillingController extends Controller
         if (! $owner) {
             return redirect()->route('home')
                 ->with('error', 'Only the account owner can manage billing.');
+        }
+
+        if (! config('subscription.enabled')) {
+            return redirect()->route('billing.show')
+                ->with('error', 'Subscriptions aren’t available yet — you’re on a free trial.');
         }
 
         if ($owner->subscribed(config('subscription.type'))) {

@@ -55,7 +55,17 @@
 
     {{-- Subscribe via Stripe's hosted Checkout — only when not subscribed --}}
     @unless ($subscribed)
-    @if (! $stripeConfigured)
+    @if (! $billingEnabled)
+    <div class="card">
+        <div class="card-body">
+            <h3 class="card-title">Subscription</h3>
+            <p class="text-muted mb-3">
+                Online subscriptions are coming soon — you're on a free trial, so there's nothing to pay right now.
+            </p>
+            <button type="button" class="btn btn-success" disabled>Subscribe (coming soon)</button>
+        </div>
+    </div>
+    @elseif (! $stripeConfigured)
     <div class="card">
         <div class="card-body">
             <div class="alert alert-info mb-0">

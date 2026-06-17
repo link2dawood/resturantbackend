@@ -94,11 +94,15 @@
                 </div>
             @endif
 
-            <p>Subscribe to instantly restore access, or request a call and our team will help you continue.</p>
+            @if (config('subscription.enabled'))
+                <p>Subscribe to instantly restore access, or request a call and our team will help you continue.</p>
 
-            <a href="{{ route('billing.show') }}" class="btn-primary-lg" style="margin-bottom: .85rem;">
-                Subscribe to continue
-            </a>
+                <a href="{{ route('billing.show') }}" class="btn-primary-lg" style="margin-bottom: .85rem;">
+                    Subscribe to continue
+                </a>
+            @else
+                <p>Your free trial has ended. Request a call and our team will help you continue.</p>
+            @endif
 
             <form method="POST" action="{{ route('trial.request-continue') }}">
                 @csrf
