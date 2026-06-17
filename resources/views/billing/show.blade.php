@@ -12,6 +12,11 @@
     @if (session('error'))
         <div class="alert alert-danger">{{ session('error') }}</div>
     @endif
+    @if (request('checkout') === 'success')
+        <div class="alert alert-success">Payment received! Your subscription is being activated — this can take a few seconds to appear.</div>
+    @elseif (request('checkout') === 'cancelled')
+        <div class="alert alert-warning">Checkout was cancelled. You can subscribe whenever you're ready.</div>
+    @endif
 
     {{-- Current status --}}
     <div class="card mb-4">
@@ -48,7 +53,7 @@
         </div>
     </div>
 
-    {{-- Card capture (Stripe Elements) — only when not subscribed --}}
+    {{-- Subscribe via Stripe's hosted Checkout — only when not subscribed --}}
     @unless ($subscribed)
     @if (! $stripeConfigured)
     <div class="card">
@@ -63,73 +68,21 @@
     <div class="card">
         <div class="card-body">
             <h3 class="card-title">{{ $onFreeTrial ? 'Add a payment method' : 'Subscribe' }}</h3>
-
-            <form id="payment-form">
-                <div class="mb-3">
-                    <label class="form-label">Card details</label>
-                    <div id="card-element" style="padding: .6rem .75rem; border: 1px solid #d6dce6; border-radius: 8px; background: #fff;"></div>
-                    <div id="card-errors" class="text-danger mt-2" role="alert" style="font-size:.9rem;"></div>
-                </div>
-                <button id="card-submit" type="submit" class="btn btn-success">
-                    <span id="card-submit-text">Start subscription</span>
-                    <span id="card-submit-spinner" class="spinner-border spinner-border-sm ms-2 d-none" role="status"></span>
+            <p class="text-muted">
+                You'll be taken to Stripe's secure checkout page to enter your card and confirm —
+                then you're brought right back here.
+            </p>
+            <form method="POST" action="{{ route('billing.subscribe') }}">
+                @csrf
+                <button type="submit" class="btn btn-success btn-lg">
+                    Continue to secure checkout &rarr;
                 </button>
-                <p class="text-muted mt-2" style="font-size:.82rem;">
-                    Payments are processed securely by Stripe. Your card details never touch our servers.
-                </p>
             </form>
+            <p class="text-muted mt-3" style="font-size:.82rem;">
+                Payments are processed securely on Stripe. Your card details never touch our servers.
+            </p>
         </div>
     </div>
-
-    <form id="subscribe-form" method="POST" action="{{ route('billing.subscribe') }}" class="d-none">
-        @csrf
-        <input type="hidden" name="payment_method" id="payment_method">
-    </form>
-
-    <script src="https://js.stripe.com/v3/"></script>
-    <script>
-        (function () {
-            const stripe = Stripe(@json($stripeKey));
-            const elements = stripe.elements();
-            const card = elements.create('card', { hidePostalCode: false });
-            card.mount('#card-element');
-
-            const clientSecret = @json($intent->client_secret);
-            const ownerName = @json($owner->name);
-            const ownerEmail = @json($owner->email);
-
-            const form = document.getElementById('payment-form');
-            const errorEl = document.getElementById('card-errors');
-            const submitBtn = document.getElementById('card-submit');
-            const spinner = document.getElementById('card-submit-spinner');
-
-            card.on('change', (e) => { errorEl.textContent = e.error ? e.error.message : ''; });
-
-            form.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                submitBtn.disabled = true;
-                spinner.classList.remove('d-none');
-                errorEl.textContent = '';
-
-                const { setupIntent, error } = await stripe.confirmCardSetup(clientSecret, {
-                    payment_method: {
-                        card: card,
-                        billing_details: { name: ownerName, email: ownerEmail },
-                    },
-                });
-
-                if (error) {
-                    errorEl.textContent = error.message;
-                    submitBtn.disabled = false;
-                    spinner.classList.add('d-none');
-                    return;
-                }
-
-                document.getElementById('payment_method').value = setupIntent.payment_method;
-                document.getElementById('subscribe-form').submit();
-            });
-        })();
-    </script>
     @endif
     @endunless
 </div>

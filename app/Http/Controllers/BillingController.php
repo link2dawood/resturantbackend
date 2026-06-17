@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Services\SubscriptionService;
 use Illuminate\Http\Request;
-use Laravel\Cashier\Exceptions\IncompletePayment;
 
 class BillingController extends Controller
 {
@@ -42,17 +41,20 @@ class BillingController extends Controller
         $subscription = $owner->subscription(config('subscription.type'));
         $subscribed = $owner->subscribed(config('subscription.type'));
 
-        // Only talk to Stripe if it's actually configured and we need a card form.
-        // Missing/invalid keys must NOT 500 the page — show a friendly notice instead.
-        $stripeConfigured = filled(config('cashier.secret')) && filled(config('cashier.key'));
-        $intent = null;
+        // Hosted Stripe Checkout: the card form lives on Stripe, so we just need
+        // keys + a price configured. Missing config shows a friendly notice (no 500).
+        $stripeConfigured = filled(config('cashier.secret'))
+            && filled(config('cashier.key'))
+            && filled(config('subscription.price_id'));
 
-        if ($stripeConfigured && ! $subscribed) {
+        // Card on file (only for subscribed owners) — guarded so a Stripe hiccup
+        // can't 500 the page.
+        $paymentMethod = null;
+        if ($subscribed) {
             try {
-                $intent = $owner->createSetupIntent();
+                $paymentMethod = $owner->hasDefaultPaymentMethod() ? $owner->defaultPaymentMethod() : null;
             } catch (\Throwable $e) {
                 report($e);
-                $stripeConfigured = false;
             }
         }
 
@@ -64,13 +66,8 @@ class BillingController extends Controller
             'trialDaysLeft' => $owner->trialDaysLeft(),
             'planName' => config('subscription.plan_name'),
             'monthlyAmount' => config('subscription.monthly_amount') / 100,
-            'nextBillingAnchor' => $this->subscriptions->nextBillingAnchor(),
-            'paymentMethod' => $owner->hasDefaultPaymentMethod() ? $owner->defaultPaymentMethod() : null,
-            // SetupIntent client secret — Stripe.js confirms the card against this
-            // so raw card data never touches our server.
-            'intent' => $intent,
+            'paymentMethod' => $paymentMethod,
             'stripeConfigured' => $stripeConfigured,
-            'stripeKey' => config('cashier.key'),
         ]);
     }
 
@@ -87,33 +84,35 @@ class BillingController extends Controller
                 ->with('error', 'Only the account owner can manage billing.');
         }
 
-        $validated = $request->validate([
-            'payment_method' => ['required', 'string'],
-        ]);
+        if ($owner->subscribed(config('subscription.type'))) {
+            return redirect()->route('billing.show')
+                ->with('success', 'You already have an active subscription.');
+        }
+
+        if (! filled(config('cashier.secret')) || ! filled(config('subscription.price_id'))) {
+            return redirect()->route('billing.show')
+                ->with('error', 'Billing isn’t fully configured yet — please try again later.');
+        }
 
         try {
-            // The owner must exist as a Stripe customer before a card can be
-            // attached. createSetupIntent() (on page load) does NOT create the
-            // customer, so do it here, then attach the card and subscribe.
-            $owner->createOrGetStripeCustomer();
-            $owner->updateDefaultPaymentMethod($validated['payment_method']);
-            $this->subscriptions->convert($owner, $validated['payment_method']);
-        } catch (IncompletePayment $exception) {
-            // Card needs extra authentication (SCA/3DS) — hand off to Cashier's
-            // payment confirmation page, then return here.
-            return redirect()->route('cashier.payment', [
-                $exception->payment->id,
-                'redirect' => route('billing.show'),
-            ]);
+            // Hand off to Stripe's hosted Checkout. The card form, PCI handling and
+            // SCA all live on Stripe. Billing is anchored to the 1st of next month;
+            // Stripe prorates the first partial period automatically. The
+            // subscription is created back in our DB via the Stripe webhook.
+            return $owner->newSubscription(config('subscription.type'), config('subscription.price_id'))
+                ->checkout([
+                    'success_url' => route('billing.show').'?checkout=success',
+                    'cancel_url' => route('billing.show').'?checkout=cancelled',
+                    'subscription_data' => [
+                        'billing_cycle_anchor' => $this->subscriptions->nextBillingAnchor()->getTimestamp(),
+                    ],
+                ]);
         } catch (\Throwable $e) {
             report($e);
 
             return redirect()->route('billing.show')
-                ->with('error', 'We could not start your subscription: '.$e->getMessage());
+                ->with('error', 'We could not start checkout: '.$e->getMessage());
         }
-
-        return redirect()->route('billing.show')
-            ->with('success', 'You are subscribed! Your first (prorated) charge is on its way and billing renews on the 1st.');
     }
 
     /**
