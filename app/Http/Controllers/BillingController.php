@@ -92,6 +92,10 @@ class BillingController extends Controller
         ]);
 
         try {
+            // The owner must exist as a Stripe customer before a card can be
+            // attached. createSetupIntent() (on page load) does NOT create the
+            // customer, so do it here, then attach the card and subscribe.
+            $owner->createOrGetStripeCustomer();
             $owner->updateDefaultPaymentMethod($validated['payment_method']);
             $this->subscriptions->convert($owner, $validated['payment_method']);
         } catch (IncompletePayment $exception) {
