@@ -98,9 +98,39 @@ class ChartOfAccountController extends Controller
 
         $this->syncStoreAssignments($chartOfAccount, $data);
 
-        return redirect()
-            ->route('coa.index')
-            ->with('success', 'Chart of Account created successfully.');
+        return $this->withRollupWarning(
+            redirect()->route('coa.index')->with('success', 'Chart of Account created successfully.'),
+            $chartOfAccount
+        );
+    }
+
+    /**
+     * Attach a non-blocking rollup-total warning to a redirect, if applicable.
+     */
+    private function withRollupWarning(RedirectResponse $redirect, ChartOfAccount $account): RedirectResponse
+    {
+        $parentCode = $account->parent_account_id
+            ? optional(ChartOfAccount::find($account->parent_account_id))->account_code
+            : null;
+
+        $warning = ChartOfAccount::rollupWarningFor((string) $account->account_code, $parentCode);
+
+        return $warning ? $redirect->with('warning', $warning) : $redirect;
+    }
+
+    /**
+     * JSON: the child accounts that roll up under a parent (e.g. Online
+     * Merchant 6450 -> DoorDash, GrubHub, Uber Eats, EasyCatering), plus the
+     * allowed sub-code range. Powers the create/edit form's live hierarchy hints.
+     */
+    public function children(ChartOfAccount $chartOfAccount)
+    {
+        return response()->json([
+            'parent' => $chartOfAccount->only(['id', 'account_code', 'account_name', 'account_type']),
+            'child_range' => ChartOfAccount::childCodeRangeForParent((string) $chartOfAccount->account_code),
+            'is_rollup_total' => $chartOfAccount->isRollupTotal(),
+            'children' => $chartOfAccount->blockChildren()->get(['id', 'account_code', 'account_name', 'account_type']),
+        ]);
     }
 
     /**
@@ -158,9 +188,10 @@ class ChartOfAccountController extends Controller
 
         $this->syncStoreAssignments($chartOfAccount, $data);
 
-        return redirect()
-            ->route('coa.edit', $chartOfAccount)
-            ->with('success', 'Chart of Account updated successfully.');
+        return $this->withRollupWarning(
+            redirect()->route('coa.edit', $chartOfAccount)->with('success', 'Chart of Account updated successfully.'),
+            $chartOfAccount
+        );
     }
 
     /**

@@ -70,6 +70,8 @@ class ChartOfAccountController extends Controller
             'is_global' => 'nullable|boolean',
         ]);
 
+        $validator->after(fn ($v) => \App\Support\CoaHierarchy::applyTo($v, $request->all()));
+
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
@@ -135,6 +137,8 @@ class ChartOfAccountController extends Controller
             'store_ids.*' => 'exists:stores,id',
             'is_active' => 'nullable|boolean',
         ]);
+
+        $validator->after(fn ($v) => \App\Support\CoaHierarchy::applyTo($v, $request->all()));
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);

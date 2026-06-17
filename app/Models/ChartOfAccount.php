@@ -15,6 +15,127 @@ class ChartOfAccount extends Model
     public const MERCHANT_PROCESSING_FEE_CODES = ['6100', '6000'];
 
     /**
+     * Allowed 4-digit code range per account type. New accounts must use a code
+     * inside their type's range (Expense -> 6000-6999, COGS -> 5000-5999, ...).
+     */
+    public const TYPE_CODE_RANGES = [
+        'Assets' => [1000, 1999],
+        'Liability' => [2000, 2999],
+        'Taxes' => [3000, 3999],
+        'Revenue' => [4000, 4999],
+        'COGS' => [5000, 5999],
+        'Expense' => [6000, 6999],
+        'Adjustments' => [7000, 7999],
+        'Equity' => [8000, 8999],
+    ];
+
+    /** @return array{0:int,1:int}|null [min, max] code for an account type. */
+    public static function codeRangeForType(?string $type): ?array
+    {
+        return self::TYPE_CODE_RANGES[$type] ?? null;
+    }
+
+    /**
+     * The allowed numeric child-code range under a parent, derived from the
+     * parent's trailing-zero "block":
+     *   6000 (X000 root) -> 6001-6999
+     *   6400 (XY00)      -> 6401-6499
+     *   6450 (XYZ0)      -> 6451-6459   (e.g. Online Merchant -> DoorDash/Uber/…)
+     *   6451 (leaf)      -> null (a detail account cannot be a parent)
+     *
+     * @return array{0:int,1:int}|null
+     */
+    public static function childCodeRangeForParent(string $parentCode): ?array
+    {
+        if (! ctype_digit($parentCode) || strlen($parentCode) !== 4) {
+            return null;
+        }
+
+        $code = (int) $parentCode;
+
+        if ($code % 1000 === 0) {
+            return [$code + 1, $code + 999];
+        }
+        if ($code % 100 === 0) {
+            return [$code + 1, $code + 99];
+        }
+        if ($code % 10 === 0) {
+            return [$code + 1, $code + 9];
+        }
+
+        return null;
+    }
+
+    /**
+     * Infer the parent code of a 4-digit account by the code pattern:
+     *   X000 -> null (type root)   XY00 -> X000   XYZW -> XY00
+     */
+    public static function inferParentCode(string $accountCode): ?string
+    {
+        if (! ctype_digit($accountCode) || strlen($accountCode) !== 4) {
+            return null;
+        }
+        if (substr($accountCode, -3) === '000') {
+            return null;
+        }
+        if (substr($accountCode, -2) === '00') {
+            $parent = substr($accountCode, 0, 1).'000';
+
+            return $parent !== $accountCode ? $parent : null;
+        }
+        $parent = substr($accountCode, 0, 2).'00';
+
+        return $parent !== $accountCode ? $parent : null;
+    }
+
+    /** True if this account is itself a rollup "total" row. */
+    public function isRollupTotal(): bool
+    {
+        return in_array((string) $this->account_code, self::totalRollupAccountCodes(), true);
+    }
+
+    /**
+     * Accounts that roll up under this account (by code containment), e.g.
+     * 6450 -> 6451 DoorDash, 6452 GrubHub, 6453 Uber Eats, 6454 EasyCatering.
+     */
+    public function blockChildren()
+    {
+        $range = self::childCodeRangeForParent((string) $this->account_code);
+
+        if (! $range) {
+            return static::query()->whereRaw('1 = 0');
+        }
+
+        // Codes are 4-digit, so a lexical BETWEEN equals a numeric one (portable).
+        return static::query()
+            ->active()
+            ->whereBetween('account_code', [(string) $range[0], (string) $range[1]])
+            ->where('id', '!=', $this->id)
+            ->orderBy('account_code');
+    }
+
+    /**
+     * Non-blocking warning shown when an account is a rollup total, or rolls up
+     * into one (so the user doesn't double-count). Returns null if neither.
+     */
+    public static function rollupWarningFor(string $code, ?string $parentCode = null): ?string
+    {
+        $rollups = self::totalRollupAccountCodes();
+
+        if (in_array($code, $rollups, true)) {
+            return "Account {$code} is a rollup total that sums its sub-accounts. Post day-to-day transactions to its child accounts, not to this total directly.";
+        }
+
+        $effectiveParent = $parentCode ?: self::inferParentCode($code);
+
+        if ($effectiveParent && in_array($effectiveParent, $rollups, true)) {
+            return "This account rolls up into the {$effectiveParent} total — avoid also posting the same amounts to {$effectiveParent} directly (it would double-count).";
+        }
+
+        return null;
+    }
+
+    /**
      * Account codes that are rollup "totals" (sum of rows below). Hidden from
      * transaction-type/COA dropdowns on daily reports and owner CC statements.
      */

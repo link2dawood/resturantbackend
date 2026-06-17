@@ -29,6 +29,7 @@
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                                 <small class="text-muted">Example: 4000, 5100, 6300</small>
+                                <div class="form-text text-primary" id="code-range-hint"></div>
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label for="account_type" class="form-label">Account Type <span class="text-danger">*</span></label>
@@ -65,7 +66,13 @@
                             @error('parent_account_id')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
+                            <div id="parent-children" class="mt-2 d-none">
+                                <div class="small text-muted mb-1">Accounts already under this parent:</div>
+                                <div id="parent-children-list" class="d-flex flex-wrap gap-1"></div>
+                            </div>
                         </div>
+
+                        <div id="rollup-warning" class="alert alert-warning py-2 d-none"></div>
 
                         <div class="mb-3">
                             <label class="form-label">Store Assignment</label>
@@ -167,6 +174,78 @@
             }
             accountTypeSelect.addEventListener('change', syncParentFromType);
             syncParentFromType();
+
+            // --- Hierarchy hints: code range, rollup warnings, parent children ---
+            const codeInput = document.getElementById('account_code');
+            const codeHint = document.getElementById('code-range-hint');
+            const rollupWarn = document.getElementById('rollup-warning');
+            const childrenWrap = document.getElementById('parent-children');
+            const childrenList = document.getElementById('parent-children-list');
+            const rollupCodes = @json(\App\Models\ChartOfAccount::totalRollupAccountCodes());
+            const childrenBase = @json(url('/api/coa'));
+
+            function showCodeRange() {
+                const r = accountTypeRange[accountTypeSelect.value];
+                codeHint.textContent = r ? (accountTypeSelect.value + ' accounts use codes ' + r.min + '–' + r.max + '.') : '';
+            }
+            function inferParent(code) {
+                if (!/^\d{4}$/.test(code)) return null;
+                if (code.endsWith('000')) return null;
+                if (code.endsWith('00')) return code[0] + '000';
+                return code.slice(0, 2) + '00';
+            }
+            function updateRollupWarning() {
+                const code = (codeInput.value || '').trim();
+                const sel = parentSelect.options[parentSelect.selectedIndex];
+                const parentCode = sel ? (sel.dataset.accountCode || '') : '';
+                let msg = '';
+                if (rollupCodes.includes(code)) {
+                    msg = 'Account ' + code + ' is a rollup total — post transactions to its sub-accounts, not directly to it.';
+                } else {
+                    const eff = parentCode || inferParent(code);
+                    if (eff && rollupCodes.includes(eff)) {
+                        msg = 'This account rolls up into the ' + eff + ' total — avoid posting the same amounts to ' + eff + ' directly.';
+                    }
+                }
+                rollupWarn.textContent = msg;
+                rollupWarn.classList.toggle('d-none', !msg);
+            }
+            async function loadParentChildren() {
+                const id = parentSelect.value;
+                if (!id) { childrenWrap.classList.add('d-none'); childrenList.innerHTML = ''; updateRollupWarning(); return; }
+                try {
+                    const res = await fetch(childrenBase + '/' + id + '/children', { headers: { 'Accept': 'application/json' } });
+                    if (!res.ok) throw new Error('failed');
+                    const data = await res.json();
+                    childrenList.innerHTML = '';
+                    (data.children || []).forEach(function (c) {
+                        const b = document.createElement('span');
+                        b.className = 'badge bg-blue-lt';
+                        b.textContent = c.account_code + ' ' + c.account_name;
+                        childrenList.appendChild(b);
+                    });
+                    if (data.child_range) {
+                        const hint = document.createElement('span');
+                        hint.className = 'small text-primary ms-1';
+                        hint.textContent = 'Sub-codes ' + data.child_range[0] + '–' + data.child_range[1];
+                        childrenList.appendChild(hint);
+                    }
+                    if (!(data.children || []).length && !data.child_range) {
+                        childrenList.innerHTML = '<span class="small text-muted">No sub-accounts yet.</span>';
+                    }
+                    childrenWrap.classList.remove('d-none');
+                } catch (e) {
+                    childrenWrap.classList.add('d-none');
+                }
+                updateRollupWarning();
+            }
+
+            accountTypeSelect.addEventListener('change', showCodeRange);
+            accountTypeSelect.addEventListener('change', loadParentChildren);
+            codeInput.addEventListener('input', updateRollupWarning);
+            parentSelect.addEventListener('change', loadParentChildren);
+            showCodeRange();
+            loadParentChildren();
         }
     });
 </script>

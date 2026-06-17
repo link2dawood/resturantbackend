@@ -62,6 +62,7 @@ class CoaTemplateService
             ['account_code' => '5100', 'account_name' => 'COGS - Food Purchases', 'account_type' => 'COGS'],
             ['account_code' => '5200', 'account_name' => 'COGS - Beverage Purchases', 'account_type' => 'COGS'],
             ['account_code' => '5300', 'account_name' => 'COGS - Packaging Supplies', 'account_type' => 'COGS'],
+            ['account_code' => '5400', 'account_name' => 'Alcohol', 'account_type' => 'COGS'],
             // Operating Expenses (6000-6999)
             ['account_code' => '6000', 'account_name' => 'Expenses All', 'account_type' => 'Expense'],
             ['account_code' => '6100', 'account_name' => 'Merchant Processing Fees', 'account_type' => 'Expense'],
@@ -71,6 +72,12 @@ class CoaTemplateService
             ['account_code' => '6410', 'account_name' => 'Utilities - Water', 'account_type' => 'Expense'],
             ['account_code' => '6420', 'account_name' => 'Utilities - Gas', 'account_type' => 'Expense'],
             ['account_code' => '6430', 'account_name' => 'Utilities - Internet', 'account_type' => 'Expense'],
+            // Online Merchant Expenses (6450 rollup total -> platform sub-accounts)
+            ['account_code' => '6450', 'account_name' => 'Online Merchant Expenses', 'account_type' => 'Expense'],
+            ['account_code' => '6451', 'account_name' => 'DoorDash', 'account_type' => 'Expense'],
+            ['account_code' => '6452', 'account_name' => 'GrubHub', 'account_type' => 'Expense'],
+            ['account_code' => '6453', 'account_name' => 'Uber Eats', 'account_type' => 'Expense'],
+            ['account_code' => '6454', 'account_name' => 'EasyCatering', 'account_type' => 'Expense'],
             ['account_code' => '6500', 'account_name' => 'Rent', 'account_type' => 'Expense'],
             ['account_code' => '6600', 'account_name' => 'Payroll', 'account_type' => 'Expense'],
             ['account_code' => '6610', 'account_name' => 'Payroll Taxes', 'account_type' => 'Expense'],

@@ -72,6 +72,8 @@ class UpdateChartOfAccountRequest extends FormRequest
             if ($parentAccountId && (int) $parentAccountId === (int) $chartOfAccountId) {
                 $validator->errors()->add('parent_account_id', 'An account cannot be its own parent.');
             }
+
+            \App\Support\CoaHierarchy::applyTo($validator, $this->all());
         });
     }
 }

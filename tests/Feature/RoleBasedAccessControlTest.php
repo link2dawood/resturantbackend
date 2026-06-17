@@ -18,7 +18,7 @@ class RoleBasedAccessControlTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function coa(string $code = '9001'): ChartOfAccount
+    private function coa(string $code = '6155'): ChartOfAccount
     {
         return ChartOfAccount::create([
             'account_code' => $code,
@@ -36,12 +36,12 @@ class RoleBasedAccessControlTest extends TestCase
         $owner = User::factory()->create(['role' => 'owner']);
 
         $this->actingAs($owner)->postJson('/api/coa', [
-            'account_code' => '9100',
+            'account_code' => '6160',
             'account_name' => 'New Account',
             'account_type' => 'Expense',
         ])->assertSuccessful();
 
-        $this->assertDatabaseHas('chart_of_accounts', ['account_code' => '9100']);
+        $this->assertDatabaseHas('chart_of_accounts', ['account_code' => '6160']);
     }
 
     // --- Owner: cannot MODIFY existing -----------------------------------
@@ -53,7 +53,7 @@ class RoleBasedAccessControlTest extends TestCase
         $coa = $this->coa();
 
         $this->actingAs($owner)->putJson("/api/coa/{$coa->id}", [
-            'account_code' => '9001',
+            'account_code' => '6155',
             'account_name' => 'Hacked',
             'account_type' => 'Expense',
         ])->assertForbidden();
@@ -81,7 +81,7 @@ class RoleBasedAccessControlTest extends TestCase
         $coa = $this->coa();
 
         $this->actingAs($admin)->putJson("/api/coa/{$coa->id}", [
-            'account_code' => '9001',
+            'account_code' => '6155',
             'account_name' => 'Renamed',
             'account_type' => 'Expense',
         ])->assertSuccessful();
@@ -97,7 +97,7 @@ class RoleBasedAccessControlTest extends TestCase
         $manager = User::factory()->create(['role' => 'manager']);
 
         $this->actingAs($manager)->postJson('/api/coa', [
-            'account_code' => '9200',
+            'account_code' => '6170',
             'account_name' => 'Nope',
             'account_type' => 'Expense',
         ])->assertForbidden();

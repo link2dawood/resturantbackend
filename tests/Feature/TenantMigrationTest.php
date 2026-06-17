@@ -53,11 +53,12 @@ class TenantMigrationTest extends TestCase
     public function migrate_existing_dry_run_makes_no_changes(): void
     {
         $orphan = Store::factory()->create();
+        $coaBefore = ChartOfAccount::count(); // system accounts seeded by migrations
 
         $this->artisan('tenant:migrate-existing', ['--dry-run' => true])->assertSuccessful();
 
         $this->assertFalse($orphan->fresh()->owners()->exists());
-        $this->assertSame(0, ChartOfAccount::count());
+        $this->assertSame($coaBefore, ChartOfAccount::count()); // dry-run seeded nothing
     }
 
     /** @test */

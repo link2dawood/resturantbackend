@@ -206,6 +206,10 @@ Route::middleware(['auth', 'verified', 'trial'])->group(function () {
             
             return response()->json($coas);
         })->name('api.coa.list');
+
+        // Child accounts that roll up under a parent (+ allowed sub-code range)
+        Route::get('/api/coa/{chartOfAccount}/children', [ChartOfAccountController::class, 'children'])
+            ->name('api.coa.children');
     });
 
     // Chart of Accounts — modifying EXISTING accounts is Admin only (owners can add, not modify)

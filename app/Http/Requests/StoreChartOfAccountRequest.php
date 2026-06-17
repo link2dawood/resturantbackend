@@ -63,6 +63,8 @@ class StoreChartOfAccountRequest extends FormRequest
             if (! $isGlobal && empty($storeIds)) {
                 $validator->errors()->add('store_ids', 'Select at least one store or mark the account as global.');
             }
+
+            \App\Support\CoaHierarchy::applyTo($validator, $this->all());
         });
     }
 }
