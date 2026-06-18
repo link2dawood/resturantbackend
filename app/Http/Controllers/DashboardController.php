@@ -18,11 +18,16 @@ class DashboardController extends Controller
         // Get analytics data based on user role
         $analytics = $this->getAnalyticsData($user);
 
-        // Four headline ring metrics (Sales / Food / Payroll / Rent) for this month.
-        $circularMetrics = $metrics->forUser(
-            Carbon::now()->startOfMonth(),
-            Carbon::now()->endOfMonth()
-        );
+        // Four headline ring metrics (Sales / Food / Payroll / Rent). Anchor to the
+        // most recent month that actually has reports (data may be historical),
+        // falling back to the current month when there's nothing yet. DailyReport is
+        // tenant-scoped, so this respects what the current user is allowed to see.
+        $latestReportDate = DailyReport::max('report_date');
+        $metricsAnchor = $latestReportDate ? Carbon::parse($latestReportDate) : Carbon::now();
+        $metricsStart = $metricsAnchor->copy()->startOfMonth();
+        $metricsEnd = $metricsAnchor->copy()->endOfMonth();
+        $circularMetrics = $metrics->forUser($metricsStart, $metricsEnd);
+        $circularMetricsPeriod = $metricsStart->format('F Y');
 
         // Prepare data for impersonation modal (admin only)
         $modalOwnersData = [];
@@ -52,7 +57,7 @@ class DashboardController extends Controller
             })->toArray();
         }
 
-        return view('dashboard.index', compact('analytics', 'modalOwnersData', 'modalManagersData', 'circularMetrics'));
+        return view('dashboard.index', compact('analytics', 'modalOwnersData', 'modalManagersData', 'circularMetrics', 'circularMetricsPeriod'));
     }
 
     public function getAnalyticsData($user)

@@ -23,7 +23,12 @@
     .metric-ring__variance.ahead { background: #e9f7ee; color: #1f8a4c; }
     .metric-ring__variance.behind { background: #fdecec; color: #d63939; }
     .metric-ring__variance.none { background: #eef1f5; color: #9aa7b6; }
+    .metric-rings__period { font-size: .85rem; color: #8a98a8; margin: 0 0 .6rem; font-weight: 600; letter-spacing: .02em; }
 </style>
+
+@isset($circularMetricsPeriod)
+    <p class="metric-rings__period">Showing {{ $circularMetricsPeriod }}</p>
+@endisset
 
 <div class="metric-rings">
     @foreach (['sales', 'food', 'payroll', 'rent'] as $k)
