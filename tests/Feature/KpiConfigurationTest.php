@@ -87,7 +87,10 @@ class KpiConfigurationTest extends TestCase
         $store = Store::factory()->create(['created_by' => $owner->id]);
         $when = Carbon::now()->startOfMonth()->addDay();
 
-        DailyReport::factory()->create(['store_id' => $store->id, 'report_date' => $when, 'net_sales' => 10000, 'projected_sales' => 9000]);
+        // net_sales is computed from revenue line items (not the cached column).
+        $type = \App\Models\RevenueIncomeType::firstOrCreate(['name' => 'Test Revenue'], ['is_active' => true]);
+        DailyReport::factory()->create(['store_id' => $store->id, 'report_date' => $when, 'projected_sales' => 9000, 'coupons_received' => 0, 'adjustments_overrings' => 0])
+            ->revenues()->create(['revenue_income_type_id' => $type->id, 'amount' => 10000]);
         $food = ChartOfAccount::create(['account_code' => '5100', 'account_name' => 'Food', 'account_type' => 'COGS', 'is_active' => true]);
         ExpenseTransaction::factory()->create(['store_id' => $store->id, 'coa_id' => $food->id, 'amount' => 3000, 'transaction_date' => $when]); // 30%
 

@@ -53,11 +53,11 @@
                 </div>
             </div>
             <div class="metric-ring__sub">{{ $m['has_data'] ? $m['sub'] : 'No data yet' }}</div>
-            @if ($m['has_data'])
+            @if ($m['has_data'] && ! empty($m['variance_label']))
                 <span class="metric-ring__variance {{ $m['ahead'] ? 'ahead' : 'behind' }}">
                     {{ $m['variance_label'] }}
                 </span>
-            @else
+            @elseif (! $m['has_data'])
                 <span class="metric-ring__variance none">Awaiting reports</span>
             @endif
         </div>

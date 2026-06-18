@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\ChartOfAccount;
 use App\Models\DailyReport;
 use App\Models\ExpenseTransaction;
+use App\Models\RevenueIncomeType;
 use App\Models\Store;
 use App\Models\User;
 use App\Services\DashboardMetricsService;
@@ -29,6 +30,23 @@ class DashboardMetricsTest extends TestCase
         ]);
     }
 
+    /**
+     * Create a report whose net sales come from a real revenue line item
+     * (net_sales is computed from revenues, not the cached column).
+     */
+    private function reportWithSales(int $storeId, $date, float $netSales, float $projected): void
+    {
+        $type = RevenueIncomeType::firstOrCreate(['name' => 'Test Revenue'], ['is_active' => true]);
+
+        DailyReport::factory()->create([
+            'store_id' => $storeId,
+            'report_date' => $date,
+            'projected_sales' => $projected,
+            'coupons_received' => 0,
+            'adjustments_overrings' => 0,
+        ])->revenues()->create(['revenue_income_type_id' => $type->id, 'amount' => $netSales]);
+    }
+
     private function metrics(User $user): array
     {
         $this->actingAs($user);
@@ -47,8 +65,8 @@ class DashboardMetricsTest extends TestCase
         $when = Carbon::now()->startOfMonth()->addDay();
 
         // Net sales 10,000 vs projected 8,000 → $2,000 ahead.
-        DailyReport::factory()->create(['store_id' => $store->id, 'report_date' => $when, 'net_sales' => 6000, 'projected_sales' => 5000]);
-        DailyReport::factory()->create(['store_id' => $store->id, 'report_date' => $when->copy()->addDay(), 'net_sales' => 4000, 'projected_sales' => 3000]);
+        $this->reportWithSales($store->id, $when, 6000, 5000);
+        $this->reportWithSales($store->id, $when->copy()->addDay(), 4000, 3000);
 
         $food = $this->coa('5100', 'COGS');
         $payroll = $this->coa('6600', 'Expense');
@@ -104,8 +122,8 @@ class DashboardMetricsTest extends TestCase
         $storeB = Store::factory()->create(['created_by' => $ownerB->id]);
         $when = Carbon::now()->startOfMonth()->addDay();
 
-        DailyReport::factory()->create(['store_id' => $storeA->id, 'report_date' => $when, 'net_sales' => 5000, 'projected_sales' => 4000]);
-        DailyReport::factory()->create(['store_id' => $storeB->id, 'report_date' => $when, 'net_sales' => 9999, 'projected_sales' => 9999]);
+        $this->reportWithSales($storeA->id, $when, 5000, 4000);
+        $this->reportWithSales($storeB->id, $when, 9999, 9999);
 
         // Owner A only sees store A's $5,000 — not B's data.
         $this->assertSame(5000.0, $this->metrics($ownerA)['sales']['actual']);

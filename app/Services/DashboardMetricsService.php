@@ -27,9 +27,16 @@ class DashboardMetricsService
 {
     public function forUser(Carbon $start, Carbon $end): array
     {
-        $netSales = (float) DailyReport::whereBetween('report_date', [$start, $end])->sum('net_sales');
-        $projectedSales = (float) DailyReport::whereBetween('report_date', [$start, $end])->sum('projected_sales');
-        $hasReports = DailyReport::whereBetween('report_date', [$start, $end])->exists();
+        // net_sales / gross_sales are COMPUTED from the revenue line items (the
+        // cached columns are often 0 for imported data), so sum the accessor.
+        // withSum preloads the revenue total so the accessor needs no extra query.
+        $reports = DailyReport::withSum('revenues', 'amount')
+            ->whereBetween('report_date', [$start, $end])
+            ->get();
+
+        $netSales = round((float) $reports->sum(fn ($r) => (float) $r->net_sales), 2);
+        $projectedSales = round((float) $reports->sum(fn ($r) => (float) $r->projected_sales), 2);
+        $hasReports = $reports->isNotEmpty();
 
         return [
             'sales' => $this->salesMetric($netSales, $projectedSales, $hasReports),
@@ -41,7 +48,10 @@ class DashboardMetricsService
 
     private function salesMetric(float $actual, float $projected, bool $hasReports): array
     {
-        $hasData = $hasReports && $projected > 0;
+        // Show actual sales whenever there are reports with sales — a projection is
+        // optional (imported reports often have none).
+        $hasData = $hasReports && ($actual > 0 || $projected > 0);
+        $hasProjection = $projected > 0;
         $variance = $actual - $projected;
 
         return [
@@ -51,12 +61,15 @@ class DashboardMetricsService
             'has_data' => $hasData,
             'actual' => $actual,
             'projected' => $projected,
-            // Ring fill = how much of the projection was achieved (capped at 100%).
-            'percent' => $hasData ? min(100, round(($actual / $projected) * 100, 1)) : 0.0,
+            // Ring fill = % of projection achieved (capped); full ring when there's
+            // no projection to measure against.
+            'percent' => $hasProjection ? min(100, round(($actual / $projected) * 100, 1)) : ($hasData ? 100.0 : 0.0),
             'display' => $this->money($actual),
-            'sub' => $hasData ? 'of '.$this->money($projected).' projected' : null,
+            'sub' => $hasData
+                ? ($hasProjection ? 'of '.$this->money($projected).' projected' : 'actual sales')
+                : null,
             'variance' => round($variance, 2),
-            'variance_label' => $hasData
+            'variance_label' => $hasProjection
                 ? $this->money(abs($variance)).' '.($variance >= 0 ? 'ahead' : 'behind')
                 : null,
             'ahead' => $variance >= 0,
