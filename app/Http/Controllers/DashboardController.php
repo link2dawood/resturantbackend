@@ -18,27 +18,7 @@ class DashboardController extends Controller
         // Get analytics data based on user role
         $analytics = $this->getAnalyticsData($user);
 
-        // Headline ring metrics (Sales / Food / Payroll / Rent). Month + Year
-        // selectors let the user pick ANY month of ANY year; default to the most
-        // recent month that has reports (tenant-scoped).
         $now = Carbon::now();
-        $latest = DailyReport::max('report_date');
-        $default = $latest ? Carbon::parse($latest) : $now;
-        $earliest = DailyReport::min('report_date');
-        $minYear = min(
-            $earliest ? (int) Carbon::parse($earliest)->year : $now->year,
-            $now->year - 4
-        );
-        $yearOptions = range($now->year + 1, $minYear); // newest first
-
-        $selectedMonthNum = (int) $request->query('m', $default->month);
-        $selectedYear = (int) $request->query('y', $default->year);
-        if ($selectedMonthNum < 1 || $selectedMonthNum > 12) {
-            $selectedMonthNum = $default->month;
-        }
-        if (! in_array($selectedYear, $yearOptions, true)) {
-            $selectedYear = $default->year;
-        }
 
         // Store selector — Admin: all stores; Owner/Manager: only accessible ones.
         // accessibleStores() is already role/tenant aware, so the list is correct.
@@ -51,29 +31,44 @@ class DashboardController extends Controller
             $selectedStore = 'all';
         }
 
-        $metricsAnchor = Carbon::create($selectedYear, $selectedMonthNum, 1)->startOfMonth();
-        $circularMetrics = $metrics->forUser(
-            $metricsAnchor->copy()->startOfMonth(),
-            $metricsAnchor->copy()->endOfMonth(),
-            $selectedStoreId
-        );
-        $circularMetricsPeriod = $metricsAnchor->format('F Y');
-
-        // Performance summary with a period preset (top of dashboard): net sales for
-        // the chosen window plus period-over-period (MoM) and year-over-year deltas.
+        // Unified time filter — drives BOTH the rings and the performance summary.
+        // Either a preset, or "month" mode using the Month + Year pickers.
         $periodLabels = [
-            'last_month' => 'Last month',
+            'month' => 'Specific month',
             'current_month' => 'Current month',
+            'last_month' => 'Last month',
             'last_3_months' => 'Last 3 months',
-            'last_year' => 'Last year',
             'current_year' => 'Current year',
+            'last_year' => 'Last year',
             'all_time' => 'All time',
         ];
-        $periodPreset = (string) $request->query('period', 'current_month');
+        $periodPreset = (string) $request->query('period', 'month');
         if (! array_key_exists($periodPreset, $periodLabels)) {
-            $periodPreset = 'current_month';
+            $periodPreset = 'month';
         }
-        $pw = $this->resolvePeriod($periodPreset);
+
+        // Month + Year pickers (used in "month" mode); default to the latest month
+        // that has reports (tenant-scoped).
+        $latest = DailyReport::max('report_date');
+        $earliest = DailyReport::min('report_date');
+        $default = $latest ? Carbon::parse($latest) : $now;
+        $minYear = min($earliest ? (int) Carbon::parse($earliest)->year : $now->year, $now->year - 4);
+        $yearOptions = range($now->year + 1, $minYear); // newest first
+        $selectedMonthNum = (int) $request->query('m', $default->month);
+        $selectedYear = (int) $request->query('y', $default->year);
+        if ($selectedMonthNum < 1 || $selectedMonthNum > 12) {
+            $selectedMonthNum = $default->month;
+        }
+        if (! in_array($selectedYear, $yearOptions, true)) {
+            $selectedYear = $default->year;
+        }
+
+        // One window (+ comparison windows) used across the whole page.
+        $pw = $this->resolveWindow($periodPreset, $selectedYear, $selectedMonthNum);
+
+        $circularMetrics = $metrics->forUser($pw['start'], $pw['end'], $selectedStoreId);
+        $circularMetricsPeriod = $pw['label'];
+
         $perfNet = $metrics->netSales($pw['start'], $pw['end'], $selectedStoreId);
         $performance = [
             'preset' => $periodPreset,
@@ -123,9 +118,20 @@ class DashboardController extends Controller
      *
      * @return array{start:Carbon, end:Carbon, label:string, pop_label:string, prev:?array, yoy:?array}
      */
-    private function resolvePeriod(string $preset): array
+    private function resolveWindow(string $preset, int $year, int $month): array
     {
         $now = Carbon::now();
+
+        if ($preset === 'month') {
+            $a = Carbon::create($year, $month, 1)->startOfMonth();
+
+            return [
+                'start' => $a->copy()->startOfMonth(), 'end' => $a->copy()->endOfMonth(),
+                'label' => $a->format('F Y'), 'pop_label' => 'vs previous month',
+                'prev' => [$a->copy()->subMonthNoOverflow()->startOfMonth(), $a->copy()->subMonthNoOverflow()->endOfMonth()],
+                'yoy' => [$a->copy()->subYear()->startOfMonth(), $a->copy()->subYear()->endOfMonth()],
+            ];
+        }
 
         return match ($preset) {
             'last_month' => (function () use ($now) {
