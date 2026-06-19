@@ -495,6 +495,37 @@ class DashboardController extends Controller
             }
         }
 
+        // Monthly statement uploads — after the 10th, last month's statement should
+        // be in. For each statement type the tenant actually uses, warn when nothing
+        // has been uploaded yet this month. Models are tenant-scoped automatically.
+        if (Carbon::now()->day > 10) {
+            $lastMonth = Carbon::now()->subMonthNoOverflow();
+            $monthStart = Carbon::now()->startOfMonth();
+
+            $statementSources = [
+                ['Bank', \App\Models\ImportBatch::where('import_type', 'bank_statement')],
+                ['Owner credit card', \App\Models\OwnerCcStatementImport::query()],
+                ['Third-party delivery', \App\Models\ThirdPartyStatement::query()],
+            ];
+
+            foreach ($statementSources as [$name, $base]) {
+                // Only remind about statement types this tenant has used before.
+                if (! (clone $base)->exists()) {
+                    continue;
+                }
+
+                if (! (clone $base)->where('created_at', '>=', $monthStart)->exists()) {
+                    $insights[] = [
+                        'type' => 'warning',
+                        'icon' => '📄',
+                        'title' => 'Statement upload due',
+                        'message' => "Last month's {$name} statement ({$lastMonth->format('F Y')}) hasn't been uploaded yet.",
+                        'date' => Carbon::now(),
+                    ];
+                }
+            }
+        }
+
         // Get recent reports for analysis
         $recentReports = $query->where('report_date', '>=', Carbon::now()->subDays(7))
             ->orderBy('report_date', 'desc')
