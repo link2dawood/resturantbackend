@@ -128,4 +128,27 @@ class DashboardMetricsTest extends TestCase
         // Owner A only sees store A's $5,000 — not B's data.
         $this->assertSame(5000.0, $this->metrics($ownerA)['sales']['actual']);
     }
+
+    /** @test */
+    public function metrics_can_be_filtered_to_a_single_store(): void
+    {
+        $owner = User::factory()->create(['role' => 'owner']);
+        $storeA = Store::factory()->create(['created_by' => $owner->id]);
+        $storeB = Store::factory()->create(['created_by' => $owner->id]);
+        $when = Carbon::now()->startOfMonth()->addDay();
+
+        $this->reportWithSales($storeA->id, $when, 5000, 0);
+        $this->reportWithSales($storeB->id, $when, 3000, 0);
+
+        $this->actingAs($owner);
+        $start = $when->copy()->startOfMonth();
+        $end = $when->copy()->endOfMonth();
+        $service = app(DashboardMetricsService::class);
+
+        // All accessible stores → combined.
+        $this->assertSame(8000.0, $service->forUser($start, $end)['sales']['actual']);
+        // Filtered to a single store.
+        $this->assertSame(5000.0, $service->forUser($start, $end, $storeA->id)['sales']['actual']);
+        $this->assertSame(3000.0, $service->forUser($start, $end, $storeB->id)['sales']['actual']);
+    }
 }

@@ -25,13 +25,15 @@ use Carbon\Carbon;
  */
 class DashboardMetricsService
 {
-    public function forUser(Carbon $start, Carbon $end): array
+    public function forUser(Carbon $start, Carbon $end, ?int $storeId = null): array
     {
         // net_sales / gross_sales are COMPUTED from the revenue line items (the
         // cached columns are often 0 for imported data), so sum the accessor.
         // withSum preloads the revenue total so the accessor needs no extra query.
+        // $storeId optionally narrows to one store (still tenant-scoped underneath).
         $reports = DailyReport::withSum('revenues', 'amount')
             ->whereBetween('report_date', [$start, $end])
+            ->when($storeId, fn ($q) => $q->where('store_id', $storeId))
             ->get();
 
         $netSales = round((float) $reports->sum(fn ($r) => $this->reportNetSales($r)), 2);
@@ -40,9 +42,9 @@ class DashboardMetricsService
 
         return [
             'sales' => $this->salesMetric($netSales, $projectedSales, $hasReports),
-            'food' => $this->costMetric('Food Cost', 'food', $netSales, $hasReports, $start, $end),
-            'payroll' => $this->costMetric('Payroll Cost', 'payroll', $netSales, $hasReports, $start, $end),
-            'rent' => $this->costMetric('Rental Cost', 'rent', $netSales, $hasReports, $start, $end),
+            'food' => $this->costMetric('Food Cost', 'food', $netSales, $hasReports, $start, $end, $storeId),
+            'payroll' => $this->costMetric('Payroll Cost', 'payroll', $netSales, $hasReports, $start, $end, $storeId),
+            'rent' => $this->costMetric('Rental Cost', 'rent', $netSales, $hasReports, $start, $end, $storeId),
         ];
     }
 
@@ -76,12 +78,13 @@ class DashboardMetricsService
         ];
     }
 
-    private function costMetric(string $label, string $key, float $netSales, bool $hasReports, Carbon $start, Carbon $end): array
+    private function costMetric(string $label, string $key, float $netSales, bool $hasReports, Carbon $start, Carbon $end, ?int $storeId = null): array
     {
         $codes = config("dashboard.coa.{$key}", []);
-        $target = $this->resolveTarget($key);
+        $target = $this->resolveTarget($key, $storeId);
 
         $spend = (float) ExpenseTransaction::whereBetween('transaction_date', [$start, $end])
+            ->when($storeId, fn ($q) => $q->where('store_id', $storeId))
             ->whereHas('coa', fn ($q) => $q->whereIn('account_code', $codes))
             ->sum('amount');
 
@@ -113,13 +116,16 @@ class DashboardMetricsService
      * (averaged across the user's accessible stores via the tenant-scoped
      * KpiTarget model), falling back to the config default when none is set.
      */
-    private function resolveTarget(string $key): float
+    private function resolveTarget(string $key, ?int $storeId = null): float
     {
         $column = KpiTarget::COLUMN_FOR[$key] ?? null;
 
         if ($column) {
-            // AVG ignores NULLs; returns null when the user has no targets at all.
-            $avg = KpiTarget::avg($column);
+            // For a single store use its target; otherwise average across the
+            // user's stores. AVG ignores NULLs and returns null when none are set.
+            $avg = KpiTarget::query()
+                ->when($storeId, fn ($q) => $q->where('store_id', $storeId))
+                ->avg($column);
 
             if ($avg !== null) {
                 return round((float) $avg, 2);

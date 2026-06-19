@@ -40,8 +40,23 @@ class DashboardController extends Controller
             $selectedYear = $default->year;
         }
 
+        // Store selector — Admin: all stores; Owner/Manager: only accessible ones.
+        // accessibleStores() is already role/tenant aware, so the list is correct.
+        $storeOptions = $user->accessibleStores()->orderBy('store_info')->get();
+        $selectedStore = (string) $request->query('store', 'all');
+        $selectedStoreId = null;
+        if ($selectedStore !== 'all' && ctype_digit($selectedStore) && $storeOptions->contains('id', (int) $selectedStore)) {
+            $selectedStoreId = (int) $selectedStore;
+        } else {
+            $selectedStore = 'all';
+        }
+
         $metricsAnchor = Carbon::create($selectedYear, $selectedMonthNum, 1)->startOfMonth();
-        $circularMetrics = $metrics->forUser($metricsAnchor->copy()->startOfMonth(), $metricsAnchor->copy()->endOfMonth());
+        $circularMetrics = $metrics->forUser(
+            $metricsAnchor->copy()->startOfMonth(),
+            $metricsAnchor->copy()->endOfMonth(),
+            $selectedStoreId
+        );
         $circularMetricsPeriod = $metricsAnchor->format('F Y');
 
         // Prepare data for impersonation modal (admin only)
@@ -72,7 +87,7 @@ class DashboardController extends Controller
             })->toArray();
         }
 
-        return view('dashboard.index', compact('analytics', 'modalOwnersData', 'modalManagersData', 'circularMetrics', 'circularMetricsPeriod', 'yearOptions', 'selectedYear', 'selectedMonthNum'));
+        return view('dashboard.index', compact('analytics', 'modalOwnersData', 'modalManagersData', 'circularMetrics', 'circularMetricsPeriod', 'yearOptions', 'selectedYear', 'selectedMonthNum', 'storeOptions', 'selectedStore'));
     }
 
     public function getAnalyticsData($user)

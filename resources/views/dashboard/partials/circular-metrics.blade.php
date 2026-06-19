@@ -27,6 +27,8 @@
     .metric-rings__bar label { font-size: .85rem; color: #8a98a8; font-weight: 600; }
     .metric-rings__select { border: 1px solid #dde3ec; border-radius: 10px; padding: .35rem .6rem; font-size: .9rem; font-weight: 600; color: #1d2b3a; background: #fff; cursor: pointer; }
     .metric-rings__select:focus { outline: none; border-color: #206bc4; box-shadow: 0 0 0 3px rgba(32,107,196,.14); }
+    .metric-rings__bar { flex-wrap: wrap; }
+    .metric-rings__sep { color: #c5cdd8; }
 </style>
 
 @isset($yearOptions)
@@ -42,6 +44,17 @@
                 <option value="{{ $yr }}" @selected($yr === ($selectedYear ?? 0))>{{ $yr }}</option>
             @endforeach
         </select>
+        @isset($storeOptions)
+            @if ($storeOptions->isNotEmpty())
+                <span class="metric-rings__sep">·</span>
+                <select name="store" class="metric-rings__select" onchange="this.form.submit()">
+                    <option value="all" @selected(($selectedStore ?? 'all') === 'all')>All stores</option>
+                    @foreach ($storeOptions as $s)
+                        <option value="{{ $s->id }}" @selected((string) ($selectedStore ?? '') === (string) $s->id)>{{ $s->store_info }}</option>
+                    @endforeach
+                </select>
+            @endif
+        @endisset
     </form>
 @endisset
 
