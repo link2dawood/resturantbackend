@@ -34,7 +34,7 @@ class DashboardMetricsService
             ->whereBetween('report_date', [$start, $end])
             ->get();
 
-        $netSales = round((float) $reports->sum(fn ($r) => (float) $r->net_sales), 2);
+        $netSales = round((float) $reports->sum(fn ($r) => $this->reportNetSales($r)), 2);
         $projectedSales = round((float) $reports->sum(fn ($r) => (float) $r->projected_sales), 2);
         $hasReports = $reports->isNotEmpty();
 
@@ -127,6 +127,26 @@ class DashboardMetricsService
         }
 
         return (float) config("dashboard.targets.{$key}", 0);
+    }
+
+    /**
+     * Net sales for a single report. Prefers the value computed from revenue
+     * line items; falls back to the stored net_sales / gross_sales columns for
+     * imported or legacy reports that recorded totals on the row instead.
+     */
+    private function reportNetSales(DailyReport $report): float
+    {
+        $fromRevenues = (float) $report->net_sales; // accessor (uses revenues)
+        if (abs($fromRevenues) > 0.001) {
+            return $fromRevenues;
+        }
+
+        $netColumn = (float) $report->getRawOriginal('net_sales');
+        if (abs($netColumn) > 0.001) {
+            return $netColumn;
+        }
+
+        return (float) $report->getRawOriginal('gross_sales');
     }
 
     private function money(float $value): string

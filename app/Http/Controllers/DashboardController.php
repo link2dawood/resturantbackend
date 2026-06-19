@@ -11,23 +11,33 @@ use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
-    public function index(\App\Services\DashboardMetricsService $metrics)
+    public function index(Request $request, \App\Services\DashboardMetricsService $metrics)
     {
         $user = auth()->user();
 
         // Get analytics data based on user role
         $analytics = $this->getAnalyticsData($user);
 
-        // Four headline ring metrics (Sales / Food / Payroll / Rent). Anchor to the
-        // most recent month that actually has reports (data may be historical),
-        // falling back to the current month when there's nothing yet. DailyReport is
-        // tenant-scoped, so this respects what the current user is allowed to see.
-        $latestReportDate = DailyReport::max('report_date');
-        $metricsAnchor = $latestReportDate ? Carbon::parse($latestReportDate) : Carbon::now();
-        $metricsStart = $metricsAnchor->copy()->startOfMonth();
-        $metricsEnd = $metricsAnchor->copy()->endOfMonth();
-        $circularMetrics = $metrics->forUser($metricsStart, $metricsEnd);
-        $circularMetricsPeriod = $metricsStart->format('F Y');
+        // Headline ring metrics (Sales / Food / Payroll / Rent) for a chosen month.
+        // Months that actually have reports (tenant-scoped) feed the selector; the
+        // current month is always available too. Default to the latest month with data.
+        $availableMonths = DailyReport::orderByDesc('report_date')->pluck('report_date')
+            ->map(fn ($d) => Carbon::parse($d)->format('Y-m'))
+            ->push(Carbon::now()->format('Y-m'))
+            ->unique()->sortDesc()->values();
+
+        $selectedMonth = (string) $request->query('month', '');
+        if (! preg_match('/^\d{4}-\d{2}$/', $selectedMonth) || ! $availableMonths->contains($selectedMonth)) {
+            $selectedMonth = $availableMonths->first() ?? Carbon::now()->format('Y-m');
+        }
+
+        $metricsAnchor = Carbon::createFromFormat('Y-m', $selectedMonth)->startOfMonth();
+        $circularMetrics = $metrics->forUser($metricsAnchor->copy()->startOfMonth(), $metricsAnchor->copy()->endOfMonth());
+        $circularMetricsPeriod = $metricsAnchor->format('F Y');
+        $monthOptions = $availableMonths->map(fn ($ym) => [
+            'value' => $ym,
+            'label' => Carbon::createFromFormat('Y-m', $ym)->format('F Y'),
+        ]);
 
         // Prepare data for impersonation modal (admin only)
         $modalOwnersData = [];
@@ -57,7 +67,7 @@ class DashboardController extends Controller
             })->toArray();
         }
 
-        return view('dashboard.index', compact('analytics', 'modalOwnersData', 'modalManagersData', 'circularMetrics', 'circularMetricsPeriod'));
+        return view('dashboard.index', compact('analytics', 'modalOwnersData', 'modalManagersData', 'circularMetrics', 'circularMetricsPeriod', 'monthOptions', 'selectedMonth'));
     }
 
     public function getAnalyticsData($user)

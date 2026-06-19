@@ -23,11 +23,21 @@
     .metric-ring__variance.ahead { background: #e9f7ee; color: #1f8a4c; }
     .metric-ring__variance.behind { background: #fdecec; color: #d63939; }
     .metric-ring__variance.none { background: #eef1f5; color: #9aa7b6; }
-    .metric-rings__period { font-size: .85rem; color: #8a98a8; margin: 0 0 .6rem; font-weight: 600; letter-spacing: .02em; }
+    .metric-rings__bar { display: flex; align-items: center; gap: .5rem; margin: 0 0 .7rem; }
+    .metric-rings__bar label { font-size: .85rem; color: #8a98a8; font-weight: 600; }
+    .metric-rings__select { border: 1px solid #dde3ec; border-radius: 10px; padding: .35rem .6rem; font-size: .9rem; font-weight: 600; color: #1d2b3a; background: #fff; cursor: pointer; }
+    .metric-rings__select:focus { outline: none; border-color: #206bc4; box-shadow: 0 0 0 3px rgba(32,107,196,.14); }
 </style>
 
-@isset($circularMetricsPeriod)
-    <p class="metric-rings__period">Showing {{ $circularMetricsPeriod }}</p>
+@isset($monthOptions)
+    <form method="GET" action="{{ url()->current() }}" class="metric-rings__bar">
+        <label for="ring-month">Showing</label>
+        <select id="ring-month" name="month" class="metric-rings__select" onchange="this.form.submit()">
+            @foreach ($monthOptions as $opt)
+                <option value="{{ $opt['value'] }}" @selected($opt['value'] === ($selectedMonth ?? ''))>{{ $opt['label'] }}</option>
+            @endforeach
+        </select>
+    </form>
 @endisset
 
 <div class="metric-rings">
