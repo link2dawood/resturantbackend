@@ -971,11 +971,13 @@
                 </div>
                 <div class="home-panel__body">
                     @if(! empty($storeTrends['labels']))
+                        @php
+                            $trendSummary = $storeTrends['summary'] ?? ['avg_daily' => 0, 'best_date' => null, 'best_amount' => 0, 'days' => 0];
+                        @endphp
                         <div class="home-analytics">
                             <div class="home-chart">
                                 <canvas id="dailyTrendsChart"></canvas>
                             </div>
-                            @php($trendSummary = $storeTrends['summary'] ?? ['avg_daily' => 0, 'best_date' => null, 'best_amount' => 0, 'days' => 0])
                             <div class="home-aside-card">
                                 <div class="home-metric-stack">
                                     <p class="home-metric-stack__label">Average daily sales</p>
