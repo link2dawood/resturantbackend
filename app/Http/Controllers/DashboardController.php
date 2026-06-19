@@ -334,11 +334,10 @@ class DashboardController extends Controller
             return ['labels' => [], 'datasets' => []];
         }
 
-        $dates = [];
+        $dayTotals = [];
         $byStore = [];
         foreach ($reports as $r) {
             $date = Carbon::parse($r->report_date)->format('Y-m-d');
-            $dates[$date] = true;
 
             $sid = (int) ($r->store_id ?? 0);
             $byStore[$sid]['name'] ??= ($r->store?->store_info ?? 'Unknown store');
@@ -350,9 +349,10 @@ class DashboardController extends Controller
                 $net = (float) ($r->getRawOriginal('net_sales') ?: $r->getRawOriginal('gross_sales') ?: 0);
             }
             $byStore[$sid]['points'][$date] = ($byStore[$sid]['points'][$date] ?? 0) + $net;
+            $dayTotals[$date] = ($dayTotals[$date] ?? 0) + $net;
         }
 
-        $labels = array_keys($dates);
+        $labels = array_keys($dayTotals);
         sort($labels);
 
         $datasets = [];
@@ -364,7 +364,18 @@ class DashboardController extends Controller
             $datasets[] = ['store' => $info['name'], 'data' => $data];
         }
 
-        return ['labels' => $labels, 'datasets' => $datasets];
+        // Sales-linked summary for the side panel (computed from the same net sales,
+        // not the dead gross/net columns).
+        $total = array_sum($dayTotals);
+        $bestDate = $dayTotals ? array_search(max($dayTotals), $dayTotals, true) : null;
+        $summary = [
+            'avg_daily' => count($dayTotals) ? round($total / count($dayTotals), 2) : 0.0,
+            'best_date' => $bestDate,
+            'best_amount' => $bestDate ? round($dayTotals[$bestDate], 2) : 0.0,
+            'days' => count($dayTotals),
+        ];
+
+        return ['labels' => $labels, 'datasets' => $datasets, 'summary' => $summary];
     }
 
     private function getWeeklyTrends($query, $thisWeek)

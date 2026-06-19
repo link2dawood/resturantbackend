@@ -975,29 +975,30 @@
                             <div class="home-chart">
                                 <canvas id="dailyTrendsChart"></canvas>
                             </div>
+                            @php($trendSummary = $storeTrends['summary'] ?? ['avg_daily' => 0, 'best_date' => null, 'best_amount' => 0, 'days' => 0])
                             <div class="home-aside-card">
                                 <div class="home-metric-stack">
                                     <p class="home-metric-stack__label">Average daily sales</p>
-                                    <p class="home-metric-stack__value">${{ !empty($analytics['financialAnalysis']) ? number_format($analytics['financialAnalysis']['avgDailySales'], 0) : '0' }}</p>
-                                    <p class="home-metric-stack__meta">Based on the current reporting window.</p>
+                                    <p class="home-metric-stack__value">${{ number_format($trendSummary['avg_daily'], 0) }}</p>
+                                    <p class="home-metric-stack__meta">Net sales across the charted window.</p>
                                 </div>
                                 <div class="home-metric-stack">
-                                    <p class="home-metric-stack__label">Current month reports</p>
-                                    <p class="home-metric-stack__value">{{ $analytics['monthlyComparison']['current']->reports ?? 0 }}</p>
-                                    <p class="home-metric-stack__meta">Compared against {{ $analytics['monthlyComparison']['previous']->reports ?? 0 }} last month.</p>
+                                    <p class="home-metric-stack__label">Reporting days</p>
+                                    <p class="home-metric-stack__value">{{ $trendSummary['days'] }}</p>
+                                    <p class="home-metric-stack__meta">Days with sales in the last 90 days of reporting.</p>
                                 </div>
                                 <div class="home-metric-stack">
                                     <p class="home-metric-stack__label">Recent best day</p>
                                     <p class="home-metric-stack__value">
-                                        @if($bestDay)
-                                            ${{ number_format($bestDay->gross_sales, 0) }}
+                                        @if($trendSummary['best_date'])
+                                            ${{ number_format($trendSummary['best_amount'], 0) }}
                                         @else
                                             --
                                         @endif
                                     </p>
                                     <p class="home-metric-stack__meta">
-                                        @if($bestDay)
-                                            {{ $bestDay->report_date->format(config('dates.display')) }}
+                                        @if($trendSummary['best_date'])
+                                            {{ \Carbon\Carbon::parse($trendSummary['best_date'])->format(config('dates.display')) }}
                                         @else
                                             Add more reports to unlock rankings.
                                         @endif
@@ -1309,10 +1310,9 @@
         !empty($analytics['financialAnalysis']) ||
         !empty($analytics['customerAnalytics'])
     );
-
-    if (hasData) {
-        loadChartJS();
-    }
+    // NOTE: the actual loadChartJS() call lives at the end of the next script
+    // block, after initializeCharts is defined — otherwise script.onload would
+    // be assigned an undefined initializeCharts and no chart would ever render.
 </script>
 
 <script>
@@ -1625,6 +1625,11 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+
+// Kick off chart rendering now that initializeCharts is defined.
+if (typeof hasData !== 'undefined' && hasData) {
+    loadChartJS();
+}
 </script>
 
 @if($user->isAdmin())
