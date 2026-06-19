@@ -278,6 +278,46 @@ class DashboardController extends Controller
     {
         $insights = [];
 
+        // Missing daily reports — flag accessible stores that haven't reported
+        // recently (or ever). accessibleStores() is role/tenant aware.
+        $stores = $user->accessibleStores()->get();
+        if ($stores->isNotEmpty()) {
+            $lastByStore = DailyReport::whereIn('store_id', $stores->pluck('id'))
+                ->selectRaw('store_id, MAX(report_date) as last_date')
+                ->groupBy('store_id')
+                ->pluck('last_date', 'store_id');
+
+            $today = Carbon::today();
+            foreach ($stores as $store) {
+                $last = $lastByStore->get($store->id);
+
+                if (! $last) {
+                    $insights[] = [
+                        'type' => 'warning',
+                        'icon' => '📋',
+                        'title' => 'Missing daily reports',
+                        'message' => "'{$store->store_info}' has no daily reports yet.",
+                        'date' => Carbon::now(),
+                    ];
+
+                    continue;
+                }
+
+                $lastDate = Carbon::parse($last)->startOfDay();
+                $daysBehind = (int) $lastDate->diffInDays($today);
+
+                if ($daysBehind >= 2) {
+                    $insights[] = [
+                        'type' => 'warning',
+                        'icon' => '📋',
+                        'title' => 'Missing daily reports',
+                        'message' => "'{$store->store_info}' — no report since {$lastDate->format(config('dates.display'))} ({$daysBehind} days behind).",
+                        'date' => Carbon::now(),
+                    ];
+                }
+            }
+        }
+
         // Get recent reports for analysis
         $recentReports = $query->where('report_date', '>=', Carbon::now()->subDays(7))
             ->orderBy('report_date', 'desc')
