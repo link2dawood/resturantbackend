@@ -29,12 +29,17 @@
     .metric-rings__select:focus { outline: none; border-color: #206bc4; box-shadow: 0 0 0 3px rgba(32,107,196,.14); }
 </style>
 
-@isset($monthOptions)
+@isset($yearOptions)
     <form method="GET" action="{{ url()->current() }}" class="metric-rings__bar">
         <label for="ring-month">Showing</label>
-        <select id="ring-month" name="month" class="metric-rings__select" onchange="this.form.submit()">
-            @foreach ($monthOptions as $opt)
-                <option value="{{ $opt['value'] }}" @selected($opt['value'] === ($selectedMonth ?? ''))>{{ $opt['label'] }}</option>
+        <select id="ring-month" name="m" class="metric-rings__select" onchange="this.form.submit()">
+            @for ($mn = 1; $mn <= 12; $mn++)
+                <option value="{{ $mn }}" @selected($mn === ($selectedMonthNum ?? 0))>{{ \Carbon\Carbon::create(null, $mn, 1)->format('F') }}</option>
+            @endfor
+        </select>
+        <select name="y" class="metric-rings__select" onchange="this.form.submit()">
+            @foreach ($yearOptions as $yr)
+                <option value="{{ $yr }}" @selected($yr === ($selectedYear ?? 0))>{{ $yr }}</option>
             @endforeach
         </select>
     </form>
