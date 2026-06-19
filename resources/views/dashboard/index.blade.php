@@ -966,11 +966,11 @@
                     <div>
                         <p class="home-section__eyebrow">Primary View</p>
                         <h2 class="home-panel__title">Daily sales flow</h2>
-                        <p class="home-panel__subtitle">Ninety days of gross and net sales with supporting context in a single read.</p>
+                        <p class="home-panel__subtitle">Net sales by store across the last 90 days of reporting.</p>
                     </div>
                 </div>
                 <div class="home-panel__body">
-                    @if($analytics['dailyTrends']->count() > 0)
+                    @if(! empty($storeTrends['labels']))
                         <div class="home-analytics">
                             <div class="home-chart">
                                 <canvas id="dailyTrendsChart"></canvas>
@@ -1303,6 +1303,7 @@
     }
 
     const hasData = @json(
+        ! empty($storeTrends['labels']) ||
         $analytics['dailyTrends']->count() > 0 ||
         $analytics['storePerformance']->count() > 0 ||
         !empty($analytics['financialAnalysis']) ||
@@ -1317,6 +1318,7 @@
 <script>
 function initializeCharts() {
     const dailyTrends = @json($analytics['dailyTrends']);
+    const storeTrends = @json($storeTrends ?? ['labels' => [], 'datasets' => []]);
     const storePerformance = @json($analytics['storePerformance']);
     const financialAnalysis = @json($analytics['financialAnalysis'] ?? []);
     const customerAnalytics = @json($analytics['customerAnalytics'] ?? []);
@@ -1347,36 +1349,35 @@ function initializeCharts() {
         }
     };
 
-    if (document.getElementById('dailyTrendsChart') && dailyTrends.length > 0) {
+    if (document.getElementById('dailyTrendsChart') && storeTrends.labels && storeTrends.labels.length > 0) {
         const context = document.getElementById('dailyTrendsChart').getContext('2d');
+
+        const storePalette = ['#4285f4', '#34a853', '#fbbc04', '#ea4335', '#a142f4', '#00acc1', '#ff7043', '#9e9d24', '#5c6bc0', '#26a69a'];
+        const trendLabels = storeTrends.labels.map((d) => {
+            const date = new Date(d);
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        });
+        const trendDatasets = storeTrends.datasets.map((ds, i) => {
+            const color = storePalette[i % storePalette.length];
+            return {
+                label: ds.store,
+                data: ds.data,
+                borderColor: color,
+                backgroundColor: color + '22',
+                fill: storeTrends.datasets.length === 1,
+                tension: 0.35,
+                borderWidth: 2,
+                spanGaps: true,
+                pointRadius: 2,
+                pointHoverRadius: 4
+            };
+        });
 
         new Chart(context, {
             type: 'line',
             data: {
-                labels: dailyTrends.map((item) => {
-                    const date = new Date(item.date);
-                    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                }),
-                datasets: [
-                    {
-                        label: 'Gross Sales',
-                        data: dailyTrends.map((item) => parseFloat(item.total_gross || 0)),
-                        borderColor: colors.primary,
-                        backgroundColor: colors.primarySoft,
-                        fill: true,
-                        tension: 0.35,
-                        borderWidth: 2
-                    },
-                    {
-                        label: 'Net Sales',
-                        data: dailyTrends.map((item) => parseFloat(item.total_net || 0)),
-                        borderColor: colors.success,
-                        backgroundColor: colors.successSoft,
-                        fill: true,
-                        tension: 0.35,
-                        borderWidth: 2
-                    }
-                ]
+                labels: trendLabels,
+                datasets: trendDatasets
             },
             options: {
                 responsive: true,

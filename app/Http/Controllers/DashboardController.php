@@ -81,6 +81,9 @@ class DashboardController extends Controller
             'yoy' => $pw['yoy'] ? $this->pctChange($perfNet, $metrics->netSales($pw['yoy'][0], $pw['yoy'][1], $selectedStoreId)) : null,
         ];
 
+        // Daily sales flow — one net-sales line per store, anchored to the latest data.
+        $storeTrends = $this->getStoreSalesTrends($selectedStoreId);
+
         // Prepare data for impersonation modal (admin only)
         $modalOwnersData = [];
         $modalManagersData = [];
@@ -109,7 +112,7 @@ class DashboardController extends Controller
             })->toArray();
         }
 
-        return view('dashboard.index', compact('analytics', 'modalOwnersData', 'modalManagersData', 'circularMetrics', 'circularMetricsPeriod', 'yearOptions', 'selectedYear', 'selectedMonthNum', 'storeOptions', 'selectedStore', 'performance', 'periodLabels'));
+        return view('dashboard.index', compact('analytics', 'modalOwnersData', 'modalManagersData', 'circularMetrics', 'circularMetricsPeriod', 'yearOptions', 'selectedYear', 'selectedMonthNum', 'storeOptions', 'selectedStore', 'performance', 'periodLabels', 'storeTrends'));
     }
 
     /**
@@ -300,6 +303,68 @@ class DashboardController extends Controller
             ->groupBy('date')
             ->orderBy('date')
             ->get();
+    }
+
+    /**
+     * Daily net-sales timeline with one series per store. Net sales come from the
+     * revenue line items (the cached columns are usually 0), and the window is the
+     * 90 days up to the latest report that exists — so the chart shows data even
+     * when the most recent reports are older than 90 calendar days. Tenant-scoped;
+     * optionally narrowed to a single store.
+     *
+     * @return array{labels: array<int, string>, datasets: array<int, array{store: string, data: array}>}
+     */
+    private function getStoreSalesTrends(?int $storeId = null): array
+    {
+        $latest = DailyReport::max('report_date');
+        if (! $latest) {
+            return ['labels' => [], 'datasets' => []];
+        }
+
+        $end = Carbon::parse($latest)->endOfDay();
+        $start = $end->copy()->subDays(90)->startOfDay();
+
+        $reports = DailyReport::withSum('revenues', 'amount')
+            ->whereBetween('report_date', [$start, $end])
+            ->when($storeId, fn ($q) => $q->where('store_id', $storeId))
+            ->orderBy('report_date')
+            ->get();
+
+        if ($reports->isEmpty()) {
+            return ['labels' => [], 'datasets' => []];
+        }
+
+        $dates = [];
+        $byStore = [];
+        foreach ($reports as $r) {
+            $date = Carbon::parse($r->report_date)->format('Y-m-d');
+            $dates[$date] = true;
+
+            $sid = (int) ($r->store_id ?? 0);
+            $byStore[$sid]['name'] ??= ($r->store?->store_info ?? 'Unknown store');
+
+            // net sales = revenues − coupons − adjustments, with the column fallback.
+            $rev = (float) ($r->revenues_sum_amount ?? 0);
+            $net = $rev - (float) $r->coupons_received - (float) $r->adjustments_overrings;
+            if (abs($net) < 0.001) {
+                $net = (float) ($r->getRawOriginal('net_sales') ?: $r->getRawOriginal('gross_sales') ?: 0);
+            }
+            $byStore[$sid]['points'][$date] = ($byStore[$sid]['points'][$date] ?? 0) + $net;
+        }
+
+        $labels = array_keys($dates);
+        sort($labels);
+
+        $datasets = [];
+        foreach ($byStore as $info) {
+            $data = [];
+            foreach ($labels as $date) {
+                $data[] = $info['points'][$date] ?? null; // null = no report that day (gap)
+            }
+            $datasets[] = ['store' => $info['name'], 'data' => $data];
+        }
+
+        return ['labels' => $labels, 'datasets' => $datasets];
     }
 
     private function getWeeklyTrends($query, $thisWeek)
