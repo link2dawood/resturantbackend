@@ -956,6 +956,7 @@
 @endphp
 
 <div class="home-dashboard">
+    @includeWhen(isset($performance), 'dashboard.partials.performance')
     @includeWhen(isset($circularMetrics), 'dashboard.partials.circular-metrics')
 
     <section class="home-grid">

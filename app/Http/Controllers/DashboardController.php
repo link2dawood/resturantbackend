@@ -59,6 +59,33 @@ class DashboardController extends Controller
         );
         $circularMetricsPeriod = $metricsAnchor->format('F Y');
 
+        // Performance summary with a period preset (top of dashboard): net sales for
+        // the chosen window plus period-over-period (MoM) and year-over-year deltas.
+        $periodLabels = [
+            'last_month' => 'Last month',
+            'current_month' => 'Current month',
+            'last_3_months' => 'Last 3 months',
+            'last_year' => 'Last year',
+            'current_year' => 'Current year',
+            'all_time' => 'All time',
+        ];
+        $periodPreset = (string) $request->query('period', 'current_month');
+        if (! array_key_exists($periodPreset, $periodLabels)) {
+            $periodPreset = 'current_month';
+        }
+        $pw = $this->resolvePeriod($periodPreset);
+        $perfNet = $metrics->netSales($pw['start'], $pw['end'], $selectedStoreId);
+        $performance = [
+            'preset' => $periodPreset,
+            'label' => $pw['label'],
+            'net_sales' => $perfNet,
+            'pop_label' => $pw['pop_label'],
+            'show_pop' => $pw['prev'] !== null,
+            'pop' => $pw['prev'] ? $this->pctChange($perfNet, $metrics->netSales($pw['prev'][0], $pw['prev'][1], $selectedStoreId)) : null,
+            'show_yoy' => $pw['yoy'] !== null,
+            'yoy' => $pw['yoy'] ? $this->pctChange($perfNet, $metrics->netSales($pw['yoy'][0], $pw['yoy'][1], $selectedStoreId)) : null,
+        ];
+
         // Prepare data for impersonation modal (admin only)
         $modalOwnersData = [];
         $modalManagersData = [];
@@ -87,7 +114,86 @@ class DashboardController extends Controller
             })->toArray();
         }
 
-        return view('dashboard.index', compact('analytics', 'modalOwnersData', 'modalManagersData', 'circularMetrics', 'circularMetricsPeriod', 'yearOptions', 'selectedYear', 'selectedMonthNum', 'storeOptions', 'selectedStore'));
+        return view('dashboard.index', compact('analytics', 'modalOwnersData', 'modalManagersData', 'circularMetrics', 'circularMetricsPeriod', 'yearOptions', 'selectedYear', 'selectedMonthNum', 'storeOptions', 'selectedStore', 'performance', 'periodLabels'));
+    }
+
+    /**
+     * Resolve a period preset to its window, plus the previous-period and
+     * year-over-year comparison windows (null when a comparison doesn't apply).
+     *
+     * @return array{start:Carbon, end:Carbon, label:string, pop_label:string, prev:?array, yoy:?array}
+     */
+    private function resolvePeriod(string $preset): array
+    {
+        $now = Carbon::now();
+
+        return match ($preset) {
+            'last_month' => (function () use ($now) {
+                $a = $now->copy()->subMonthNoOverflow();
+                return [
+                    'start' => $a->copy()->startOfMonth(), 'end' => $a->copy()->endOfMonth(),
+                    'label' => $a->format('F Y'), 'pop_label' => 'vs previous month',
+                    'prev' => [$a->copy()->subMonthNoOverflow()->startOfMonth(), $a->copy()->subMonthNoOverflow()->endOfMonth()],
+                    'yoy' => [$a->copy()->subYear()->startOfMonth(), $a->copy()->subYear()->endOfMonth()],
+                ];
+            })(),
+            'last_3_months' => (function () use ($now) {
+                $start = $now->copy()->subMonthsNoOverflow(2)->startOfMonth();
+                $end = $now->copy()->endOfMonth();
+                return [
+                    'start' => $start, 'end' => $end, 'label' => 'Last 3 months', 'pop_label' => 'vs prior 3 months',
+                    'prev' => [$start->copy()->subMonthsNoOverflow(3), $start->copy()->subDay()],
+                    'yoy' => [$start->copy()->subYear(), $end->copy()->subYear()],
+                ];
+            })(),
+            'last_year' => (function () use ($now) {
+                $a = $now->copy()->subYear();
+                return [
+                    'start' => $a->copy()->startOfYear(), 'end' => $a->copy()->endOfYear(),
+                    'label' => $a->format('Y'), 'pop_label' => 'vs previous year',
+                    'prev' => [$a->copy()->subYear()->startOfYear(), $a->copy()->subYear()->endOfYear()], 'yoy' => null,
+                ];
+            })(),
+            'current_year' => (function () use ($now) {
+                return [
+                    'start' => $now->copy()->startOfYear(), 'end' => $now->copy()->endOfYear(),
+                    'label' => $now->format('Y'), 'pop_label' => 'vs last year',
+                    'prev' => [$now->copy()->subYear()->startOfYear(), $now->copy()->subYear()->endOfYear()], 'yoy' => null,
+                ];
+            })(),
+            'all_time' => (function () {
+                $min = DailyReport::min('report_date');
+                return [
+                    'start' => $min ? Carbon::parse($min)->startOfDay() : Carbon::now()->subYears(20),
+                    'end' => Carbon::now()->endOfDay(), 'label' => 'All time', 'pop_label' => '',
+                    'prev' => null, 'yoy' => null,
+                ];
+            })(),
+            default => (function () use ($now) { // current_month
+                return [
+                    'start' => $now->copy()->startOfMonth(), 'end' => $now->copy()->endOfMonth(),
+                    'label' => $now->format('F Y'), 'pop_label' => 'vs last month',
+                    'prev' => [$now->copy()->subMonthNoOverflow()->startOfMonth(), $now->copy()->subMonthNoOverflow()->endOfMonth()],
+                    'yoy' => [$now->copy()->subYear()->startOfMonth(), $now->copy()->subYear()->endOfMonth()],
+                ];
+            })(),
+        };
+    }
+
+    /**
+     * Percentage change vs a baseline. Null when the baseline is 0 (can't divide).
+     *
+     * @return array{pct:float, up:bool}|null
+     */
+    private function pctChange(float $current, float $base): ?array
+    {
+        if ($base <= 0) {
+            return null;
+        }
+
+        $pct = round(($current - $base) / $base * 100, 1);
+
+        return ['pct' => $pct, 'up' => $pct >= 0];
     }
 
     public function getAnalyticsData($user)

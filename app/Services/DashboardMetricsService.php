@@ -48,6 +48,20 @@ class DashboardMetricsService
         ];
     }
 
+    /**
+     * Total net sales for an arbitrary window (computed from revenue line items,
+     * with the column fallback), optionally narrowed to one store.
+     */
+    public function netSales(Carbon $start, Carbon $end, ?int $storeId = null): float
+    {
+        $reports = DailyReport::withSum('revenues', 'amount')
+            ->whereBetween('report_date', [$start, $end])
+            ->when($storeId, fn ($q) => $q->where('store_id', $storeId))
+            ->get();
+
+        return round((float) $reports->sum(fn ($r) => $this->reportNetSales($r)), 2);
+    }
+
     private function salesMetric(float $actual, float $projected, bool $hasReports): array
     {
         // Show actual sales whenever there are reports with sales — a projection is
