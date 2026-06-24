@@ -61,6 +61,7 @@ class RegisterController extends Controller
             'password' => ['required', 'string', 'min:8', 'confirmed'],
 
             // Step 2 — Business / corporate details
+            'logo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,svg,webp', 'max:2048'],
             'state' => ['required', 'string', 'size:2', $stateCodes],
             'corporate_address' => ['required', 'string', 'max:1000'],
             'corporate_phone' => ['required', 'string', 'max:30'],
@@ -90,12 +91,19 @@ class RegisterController extends Controller
     {
         // Create the owner, their corporate profile, and their first restaurant
         // atomically — a failure anywhere rolls the whole signup back.
-        $user = DB::transaction(function () use ($data) {
+        // Business logo (optional) — store on the 'public' disk, keep the filename.
+        $logoName = null;
+        if (isset($data['logo']) && $data['logo'] instanceof \Illuminate\Http\UploadedFile) {
+            $logoName = basename($data['logo']->store('logos', 'public'));
+        }
+
+        $user = DB::transaction(function () use ($data, $logoName) {
             $user = User::create([
                 'name' => $data['name'],
                 'email' => $data['email'],
                 'password' => Hash::make($data['password']),
                 // Business / corporate profile
+                'logo' => $logoName,
                 'state' => $data['state'],
                 'corporate_address' => $data['corporate_address'],
                 'corporate_phone' => $data['corporate_phone'],

@@ -681,7 +681,8 @@
             <div class="container-fluid px-4">
                 <!-- Brand Logo -->
                 <a class="navbar-brand d-flex align-items-center" href="{{ url('/home') }}" style="text-decoration: none;">
-                    <img src="{{ asset('images/logo.jpg') }}" height="40" alt="Restaurant Logo" style="border-radius: 8px;">
+                    @php($brandLogo = auth()->user()?->brandLogoUrl())
+                    <img src="{{ $brandLogo ?? asset('images/logo.jpg') }}" height="40" alt="Business Logo" style="border-radius: 8px; max-height: 40px; object-fit: contain;">
                 </a>
 
                 <!-- Mobile menu toggle -->

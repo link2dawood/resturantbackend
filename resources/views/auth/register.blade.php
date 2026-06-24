@@ -36,7 +36,7 @@
             <div class="alert alert-danger">Please review the highlighted fields and complete every step.</div>
         @endif
 
-        <form action="{{ route('register') }}" method="POST" autocomplete="off" novalidate>
+        <form action="{{ route('register') }}" method="POST" autocomplete="off" enctype="multipart/form-data" novalidate>
             @csrf
 
             {{-- ===================== STEP 1 — ACCOUNT ===================== --}}
@@ -79,6 +79,23 @@
             {{-- ================= STEP 2 — BUSINESS / CORPORATE ================= --}}
             <div class="wizard-step d-none" data-step="1">
                 <h3 class="mb-3">Business details</h3>
+
+                <div class="mb-3">
+                    <label class="form-label">Business logo <span class="text-muted">(optional)</span></label>
+                    <div class="d-flex align-items-center gap-3">
+                        <span id="logo-preview" class="d-inline-flex align-items-center justify-content-center"
+                              style="width:56px;height:56px;border:1px solid #e6eaf0;border-radius:10px;background:#f7f9fc;overflow:hidden;">
+                            <img id="logo-preview-img" src="" alt="" style="display:none;max-width:100%;max-height:100%;">
+                            <i class="bi bi-image text-muted" id="logo-preview-icon"></i>
+                        </span>
+                        <div class="flex-fill">
+                            <input type="file" class="form-control @error('logo') is-invalid @enderror" name="logo"
+                                   id="logo-input" accept="image/png,image/jpeg,image/svg+xml,image/webp">
+                            <small class="form-hint">Shown on your dashboard instead of the default logo. PNG, JPG, SVG or WebP, up to 2&nbsp;MB.</small>
+                            @error('logo')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
+                    </div>
+                </div>
 
                 <div class="row">
                     <div class="col-md-8 mb-3">
@@ -260,6 +277,24 @@
         btn.addEventListener('click', () => { if (validateStep(current)) show(current + 1); }));
     document.querySelectorAll('[data-back]').forEach(btn =>
         btn.addEventListener('click', () => show(current - 1)));
+
+    // Live preview of the chosen business logo.
+    const logoInput = document.getElementById('logo-input');
+    if (logoInput) {
+        logoInput.addEventListener('change', () => {
+            const file = logoInput.files && logoInput.files[0];
+            const img = document.getElementById('logo-preview-img');
+            const icon = document.getElementById('logo-preview-icon');
+            if (file) {
+                img.src = URL.createObjectURL(file);
+                img.style.display = 'block';
+                icon.style.display = 'none';
+            } else {
+                img.style.display = 'none';
+                icon.style.display = 'block';
+            }
+        });
+    }
 
     // Convenience: default the restaurant contact to the account name.
     const nameEl = document.querySelector('[name="name"]');

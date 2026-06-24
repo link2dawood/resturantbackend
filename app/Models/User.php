@@ -32,6 +32,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'password',
         'google_id',
         'avatar',
+        'logo',
         'state',
         'email_verified_at',
         'username',
@@ -103,6 +104,36 @@ class User extends Authenticatable implements MustVerifyEmail
         }
 
         return 'https://ui-avatars.com/api/?name='.urlencode($this->name).'&background=206bc4&color=fff&size=128';
+    }
+
+    /**
+     * The owner whose brand applies to this user: an owner is their own brand;
+     * a manager inherits the brand of the owner who created their store; admins
+     * and the franchisor fall back to the default brand (null).
+     */
+    public function brandOwner(): ?self
+    {
+        if ($this->isOwner()) {
+            return $this;
+        }
+
+        if ($this->isManager()) {
+            $storeId = $this->getAccessibleStoreIds()[0] ?? null;
+
+            return $storeId ? optional(Store::find($storeId))->owner : null;
+        }
+
+        return null;
+    }
+
+    /**
+     * URL of the brand logo to show in the app shell, or null to use the default.
+     */
+    public function brandLogoUrl(): ?string
+    {
+        $owner = $this->brandOwner();
+
+        return ($owner && $owner->logo) ? asset('storage/logos/'.$owner->logo) : null;
     }
 
     /**

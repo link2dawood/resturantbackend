@@ -5,7 +5,9 @@ namespace Tests\Feature;
 use App\Models\Store;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 use Tests\Concerns\SignsUpOwners;
 use Tests\TestCase;
 
@@ -52,6 +54,25 @@ class RegistrationWizardTest extends TestCase
 
         // …and immediately visible through the owner's access scope.
         $this->assertTrue($owner->accessibleStores()->where('stores.id', $store->id)->exists());
+    }
+
+    /** @test */
+    public function uploaded_logo_is_stored_and_drives_the_brand_logo(): void
+    {
+        Mail::fake();
+        Storage::fake('public');
+
+        $this->post('/register', $this->ownerSignupPayload([
+            'email' => 'logo@example.com',
+            'logo' => UploadedFile::fake()->image('brand.png', 200, 200),
+        ]))->assertRedirect('/home');
+
+        $owner = User::where('email', 'logo@example.com')->first();
+        $this->assertNotNull($owner->logo, 'The logo filename should be saved on the owner.');
+        Storage::disk('public')->assertExists('logos/'.$owner->logo);
+
+        // The owner's own brand resolves to the uploaded logo.
+        $this->assertStringContainsString('storage/logos/'.$owner->logo, $owner->brandLogoUrl());
     }
 
     /** @test */
