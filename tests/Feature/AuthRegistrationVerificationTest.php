@@ -9,6 +9,7 @@ use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Notification;
+use Tests\Concerns\SignsUpOwners;
 use Tests\TestCase;
 
 /**
@@ -20,16 +21,12 @@ use Tests\TestCase;
 class AuthRegistrationVerificationTest extends TestCase
 {
     use RefreshDatabase;
+    use SignsUpOwners;
 
     /** @test */
     public function self_serve_registration_creates_an_unverified_owner(): void
     {
-        $response = $this->post('/register', [
-            'name' => 'Jane Founder',
-            'email' => 'jane@example.com',
-            'password' => 'password1234',
-            'password_confirmation' => 'password1234',
-        ]);
+        $response = $this->post('/register', $this->ownerSignupPayload());
 
         $user = User::where('email', 'jane@example.com')->first();
 
@@ -43,12 +40,10 @@ class AuthRegistrationVerificationTest extends TestCase
     {
         Notification::fake();
 
-        $this->post('/register', [
+        $this->post('/register', $this->ownerSignupPayload([
             'name' => 'Verify Me',
             'email' => 'verify@example.com',
-            'password' => 'password1234',
-            'password_confirmation' => 'password1234',
-        ]);
+        ]));
 
         $user = User::where('email', 'verify@example.com')->first();
         Notification::assertSentTo($user, VerifyEmail::class);
@@ -59,12 +54,10 @@ class AuthRegistrationVerificationTest extends TestCase
     {
         // Guards against the listener wiring regressing in AppServiceProvider.
         Event::fake();
-        $this->post('/register', [
+        $this->post('/register', $this->ownerSignupPayload([
             'name' => 'Event User',
             'email' => 'event@example.com',
-            'password' => 'password1234',
-            'password_confirmation' => 'password1234',
-        ]);
+        ]));
         Event::assertDispatched(Registered::class);
     }
 

@@ -6,6 +6,7 @@ use App\Mail\TrialMail;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
+use Tests\Concerns\SignsUpOwners;
 use Tests\TestCase;
 
 /**
@@ -17,6 +18,7 @@ use Tests\TestCase;
 class TrialSystemTest extends TestCase
 {
     use RefreshDatabase;
+    use SignsUpOwners;
 
     private function owner(array $overrides = []): User
     {
@@ -31,12 +33,10 @@ class TrialSystemTest extends TestCase
         Mail::fake();
         config(['trial.days' => 30, 'trial.sales_email' => 'sales@test.com']);
 
-        $this->post('/register', [
+        $this->post('/register', $this->ownerSignupPayload([
             'name' => 'Trial Owner',
             'email' => 'trial@example.com',
-            'password' => 'password1234',
-            'password_confirmation' => 'password1234',
-        ]);
+        ]));
 
         $owner = User::where('email', 'trial@example.com')->first();
 

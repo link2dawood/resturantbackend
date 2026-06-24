@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Laravel\Cashier\Events\WebhookHandled;
+use Tests\Concerns\SignsUpOwners;
 use Tests\TestCase;
 
 /**
@@ -18,6 +19,7 @@ use Tests\TestCase;
 class EndToEndSaasFlowTest extends TestCase
 {
     use RefreshDatabase;
+    use SignsUpOwners;
 
     /** @test */
     public function full_signup_trial_paid_renewal_lifecycle(): void
@@ -25,12 +27,10 @@ class EndToEndSaasFlowTest extends TestCase
         Mail::fake();
 
         // 1. Sign up (self-serve) → Owner, unverified, on trial.
-        $this->post('/register', [
+        $this->post('/register', $this->ownerSignupPayload([
             'name' => 'Lifecycle Owner',
             'email' => 'life@example.com',
-            'password' => 'password1234',
-            'password_confirmation' => 'password1234',
-        ]);
+        ]));
 
         $owner = User::where('email', 'life@example.com')->first();
         $this->assertNotNull($owner);
