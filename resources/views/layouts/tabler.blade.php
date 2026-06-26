@@ -681,8 +681,9 @@
             <div class="container-fluid px-4">
                 <!-- Brand Logo -->
                 <a class="navbar-brand d-flex align-items-center" href="{{ url('/home') }}" style="text-decoration: none;">
-                    @php($brandLogo = auth()->user()?->brandLogoUrl())
-                    <img src="{{ $brandLogo ?? asset('images/logo.jpg') }}" height="40" alt="Business Logo" style="border-radius: 8px; max-height: 40px; object-fit: contain;">
+                    {{-- Owner/manager see their business logo; admin & everyone else get the default brand. --}}
+                    <img src="{{ (auth()->check() ? auth()->user()->brandLogoUrl() : null) ?? asset('images/logo.jpg') }}"
+                         height="40" alt="Business Logo" style="border-radius: 8px; max-height: 40px; object-fit: contain;">
                 </a>
 
                 <!-- Mobile menu toggle -->
