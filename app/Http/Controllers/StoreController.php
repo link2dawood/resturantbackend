@@ -12,14 +12,36 @@ class StoreController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
-        // Only Admin and Franchisor (controls entire Fann's Philly Grill brand) can manage stores
+        // Creating, deleting, and reassigning store ownership stay admin/franchisor
+        // only. Owners may VIEW and EDIT the stores they own (e.g. the store they
+        // created at signup) — scoped per-store in show()/edit() and enforced by
+        // UpdateStoreRequest::authorize() on update.
         $this->middleware(function ($request, $next) {
             $user = auth()->user();
-            if (!$user->isAdmin() && !$user->isFranchisor()) {
-                abort(403, 'Unauthorized access. Only Administrators and Franchisor can manage stores.');
+            if (! $user || (! $user->isAdmin() && ! $user->isFranchisor())) {
+                abort(403, 'Only Administrators and the Franchisor can perform this action.');
             }
             return $next($request);
-        });
+        })->only(['create', 'store', 'destroy', 'assignOwnerForm', 'assignOwner']);
+    }
+
+    /**
+     * Owners (and managers) may only reach a store they have access to; admins
+     * and the franchisor can reach any store.
+     */
+    private function authorizeStoreAccess(Store $store): void
+    {
+        $user = auth()->user();
+
+        if ($user->isAdmin() || $user->isFranchisor()) {
+            return;
+        }
+
+        abort_unless(
+            $user->accessibleStores()->where('stores.id', $store->id)->exists(),
+            403,
+            'You can only manage your own stores.'
+        );
     }
 
     /**
@@ -108,6 +130,8 @@ class StoreController extends Controller
      */
     public function show(Store $store)
     {
+        $this->authorizeStoreAccess($store);
+
         $store->load('owners');
         $availableOwners = User::where('role', 'owner')->get();
         
@@ -132,6 +156,8 @@ class StoreController extends Controller
      */
     public function edit(Store $store)
     {
+        $this->authorizeStoreAccess($store);
+
         $owners = User::where('role', 'owner')->get();
         $franchisor = User::getOrCreateFranchisor();
 
