@@ -528,6 +528,7 @@
 
 <select id="vendorDescriptionTemplate" style="display:none;">
     <option value="">Select Vendor / Description</option>
+    <option value="__create_new__">➕ Create new vendor…</option>
     @foreach($types as $type)
         <option value="{{ $type->name }}" data-default-coa-id="{{ $type->default_coa_id ?? '' }}">{{ $type->name }}</option>
     @endforeach
@@ -585,6 +586,7 @@
                                     <td>
                                         <select class="form-input vendor-description-select" name="transactions[0][company]" data-row="0" onchange="handleVendorDescriptionChange(this)">
                                             <option value="">Select Vendor / Description</option>
+                                            <option value="__create_new__">➕ Create new vendor…</option>
                                             @foreach($types as $type)
                                                 <option value="{{ $type->name }}" data-default-coa-id="{{ $type->default_coa_id ?? '' }}">{{ $type->name }}</option>
                                             @endforeach
@@ -1401,7 +1403,7 @@ function initLightDropdowns(container) {
             btn.addEventListener('click', function(e) {
                 e.preventDefault();
                 const val = btn.dataset.value;
-                if (select.classList.contains('vendor-select') && val === '__create_new__') {
+                if (val === '__create_new__') {
                     openCreateVendorModal(select.getAttribute('data-row'), select);
                     menu.classList.remove('open');
                     return;
@@ -1437,6 +1439,17 @@ function initLightDropdowns(container) {
 // Handle Vendor / Description (transaction type) selection: auto-fill default COA in Transaction Type
 // optionalDefaultCoaId: pass from custom dropdown button so we don't rely on reading from option
 window.handleVendorDescriptionChange = function(selectElement, optionalDefaultCoaId) {
+    // "Create new vendor…" opens the modal instead of selecting a value.
+    if (selectElement && selectElement.value === '__create_new__') {
+        openCreateVendorModal(selectElement.getAttribute('data-row'), selectElement);
+        selectElement.value = '';
+        const wrap = selectElement.parentElement;
+        if (wrap && wrap.classList.contains('custom-select-wrap')) {
+            const ov = wrap.querySelector('.custom-select-overlay');
+            if (ov) ov.textContent = 'Select Vendor / Description';
+        }
+        return;
+    }
     let defaultCoaId = (optionalDefaultCoaId !== undefined && optionalDefaultCoaId !== null) ? String(optionalDefaultCoaId).trim() : '';
     if (!defaultCoaId && selectElement.options && selectElement.options[selectElement.selectedIndex]) {
         const selectedOption = selectElement.options[selectElement.selectedIndex];

@@ -1114,8 +1114,9 @@ class DailyReportController extends Controller
                 continue; // Skip empty transaction rows
             }
 
-            // Get company name from vendor if vendor_id is provided
-            $companyName = $transactionData['company'] ?? '';
+            // Resolve the vendor / description name (prefer the linked vendor's name).
+            $companyName = trim($transactionData['company'] ?? '');
+            $vendor = null;
             if (!empty($transactionData['vendor_id'])) {
                 $vendor = \App\Models\Vendor::find($transactionData['vendor_id']);
                 if ($vendor) {
@@ -1123,30 +1124,48 @@ class DailyReportController extends Controller
                 }
             }
 
-            // Handle transaction_type - can be COA ID or TransactionType ID
-            $transactionTypeId = $transactionData['transaction_type'] ?? null;
-            if ($transactionTypeId) {
-                // Check if it's a COA ID (ChartOfAccount)
-                $coa = ChartOfAccount::find($transactionTypeId);
-                if ($coa) {
-                    // Find a TransactionType with this COA as default
-                    $transactionType = TransactionType::where('default_coa_id', $transactionTypeId)->first();
-                    if (!$transactionType) {
-                        // Create a TransactionType if one doesn't exist with this COA as default
+            // The Transaction Type dropdown submits a Chart of Account id.
+            $rawTypeId = $transactionData['transaction_type'] ?? null;
+            $coa = $rawTypeId ? ChartOfAccount::find($rawTypeId) : null;
+            $transactionTypeId = $rawTypeId;
+
+            if ($coa) {
+                // Remember this vendor / description -> COA so it auto-fills next time.
+                if ($vendor && (int) $vendor->default_coa_id !== (int) $coa->id) {
+                    $vendor->default_coa_id = $coa->id;
+                    $vendor->save();
+                }
+
+                $transactionType = null;
+                if ($companyName !== '') {
+                    $transactionType = TransactionType::whereRaw('LOWER(name) = ?', [mb_strtolower($companyName)])->first();
+                    if ($transactionType) {
+                        if ((int) $transactionType->default_coa_id !== (int) $coa->id) {
+                            $transactionType->default_coa_id = $coa->id;
+                            $transactionType->save();
+                        }
+                    } else {
+                        // First time we see this description — store it with its COA.
                         $transactionType = TransactionType::create([
-                            'name' => $coa->account_name,
-                            'default_coa_id' => $transactionTypeId,
-                        ]);
-                    }
-                    $transactionTypeId = $transactionType->id;
-                } else {
-                    // Check if it's a valid TransactionType ID
-                    if (! TransactionType::find($transactionTypeId)) {
-                        throw ValidationException::withMessages([
-                            'transactions' => "Invalid transaction type ID: {$transactionTypeId}",
+                            'name' => $companyName,
+                            'default_coa_id' => $coa->id,
                         ]);
                     }
                 }
+
+                // No description name -> fall back to a type named after the COA.
+                if (! $transactionType) {
+                    $transactionType = TransactionType::firstOrCreate(
+                        ['default_coa_id' => $coa->id],
+                        ['name' => $coa->account_name]
+                    );
+                }
+
+                $transactionTypeId = $transactionType->id;
+            } elseif ($rawTypeId && ! TransactionType::find($rawTypeId)) {
+                throw ValidationException::withMessages([
+                    'transactions' => "Invalid transaction type ID: {$rawTypeId}",
+                ]);
             }
 
             DailyReportTransaction::create([
