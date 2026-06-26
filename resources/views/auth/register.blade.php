@@ -224,12 +224,6 @@
                                name="store_sales_tax_rate" value="{{ old('store_sales_tax_rate', '0') }}" required>
                         @error('store_sales_tax_rate')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label required">Medicare tax rate (%)</label>
-                        <input type="number" step="0.01" min="0" max="100" class="form-control @error('store_medicare_tax_rate') is-invalid @enderror"
-                               name="store_medicare_tax_rate" value="{{ old('store_medicare_tax_rate', '0') }}" required>
-                        @error('store_medicare_tax_rate')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                    </div>
                 </div>
 
                 <div class="mb-3">

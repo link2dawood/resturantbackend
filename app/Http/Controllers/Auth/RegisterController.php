@@ -79,7 +79,6 @@ class RegisterController extends Controller
             'store_state' => ['required', 'string', 'size:2', $stateCodes],
             'store_zip' => ['required', 'string', 'max:12'],
             'store_sales_tax_rate' => ['required', 'numeric', 'min:0', 'max:100'],
-            'store_medicare_tax_rate' => ['required', 'numeric', 'min:0', 'max:100'],
 
             // Must accept the terms before the account is created.
             'terms' => ['accepted'],
@@ -134,7 +133,9 @@ class RegisterController extends Controller
                 'state' => $data['store_state'],
                 'zip' => $data['store_zip'],
                 'sales_tax_rate' => $data['store_sales_tax_rate'],
-                'medicare_tax_rate' => $data['store_medicare_tax_rate'],
+                // medicare_tax_rate is no longer collected at signup; the column is
+                // NOT NULL, so default to 0 (owners can set it later in store settings).
+                'medicare_tax_rate' => 0,
                 'store_type' => 'franchisee',
                 'created_by' => $user->id,
             ]);
