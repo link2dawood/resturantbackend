@@ -119,7 +119,17 @@
         background: #f1f3f4 !important;
         color: #202124 !important;
     }
-    
+    /* "Create new vendor" reads as an action, not a vendor row. */
+    .custom-select-option--create {
+        color: #1a73e8 !important;
+        font-weight: 600;
+        border-top: 1px solid #eef0f2;
+    }
+    .custom-select-option--create:hover {
+        background: #e8f0fe !important;
+        color: #1a73e8 !important;
+    }
+
     /* Ensure buttons are visible in Safari */
     button {
         display: inline-block;
@@ -1396,6 +1406,7 @@ function initLightDropdowns(container) {
             const btn = document.createElement('button');
             btn.type = 'button';
             btn.className = 'custom-select-option';
+            if (opt.value === '__create_new__') btn.classList.add('custom-select-option--create');
             btn.textContent = opt.textContent.trim();
             btn.dataset.value = opt.value;
             if (opt.getAttribute('data-vendor-name')) btn.dataset.vendorName = opt.getAttribute('data-vendor-name');
@@ -1486,7 +1497,9 @@ window.openCreateVendorModal = function(row, selectElement) {
     // Reset modal form
     document.getElementById('newVendorName').value = '';
     document.getElementById('newVendorCoa').value = '';
-    
+    const errBox = document.getElementById('newVendorError');
+    if (errBox) errBox.classList.add('d-none');
+
     // Show modal
     const modal = new bootstrap.Modal(document.getElementById('createVendorModal'));
     modal.show();
@@ -1494,19 +1507,16 @@ window.openCreateVendorModal = function(row, selectElement) {
 
 // Save new vendor
 window.saveNewVendor = async function() {
+    const errBox = document.getElementById('newVendorError');
+    const showErr = function(msg) { if (errBox) { errBox.textContent = msg; errBox.classList.remove('d-none'); } };
+    if (errBox) errBox.classList.add('d-none');
+
     const vendorName = document.getElementById('newVendorName').value.trim();
     const coaId = document.getElementById('newVendorCoa').value;
-    
-    if (!vendorName) {
-        alert('Please enter a vendor description');
-        return;
-    }
-    
-    if (!coaId) {
-        alert('Please select a default chart of account');
-        return;
-    }
-    
+
+    if (!vendorName) { showErr('Please enter a vendor description.'); return; }
+    if (!coaId) { showErr('Please select a default chart of account.'); return; }
+
     try {
         const response = await fetch('/api/vendors', {
             method: 'POST',
@@ -1581,19 +1591,17 @@ window.saveNewVendor = async function() {
                 }
             }
 
-            // Close modal
+            // Close modal — the new vendor is now selected in the row, which is
+            // feedback enough (no intrusive success alert).
             const modal = bootstrap.Modal.getInstance(document.getElementById('createVendorModal'));
             modal.hide();
-            
-            // Show success message
-            alert('Vendor created successfully!');
         } else {
             const errMsg = (json.errors && Object.values(json.errors).flat().join(' ')) || json.message || json.error || 'Unknown error';
-            alert('Error creating vendor: ' + errMsg);
+            showErr('Could not create vendor: ' + errMsg);
         }
     } catch (error) {
         console.error('Error:', error);
-        alert('Error creating vendor. Please try again.');
+        showErr('Could not create vendor. Please try again.');
     }
 }
 </script>
@@ -1607,6 +1615,7 @@ window.saveNewVendor = async function() {
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
+                    <div id="newVendorError" class="alert alert-danger py-2 mb-3 d-none"></div>
                     <form id="createVendorForm">
                         <div class="mb-3">
                             <label for="newVendorName" class="form-label">Vendor Description <span class="text-danger">*</span></label>
