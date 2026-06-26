@@ -39,6 +39,7 @@ class RegistrationWizardTest extends TestCase
         $this->assertNotNull($owner);
         $this->assertTrue($owner->isOwner());
         // Business profile persisted on the owner.
+        $this->assertSame('Acme Restaurants LLC', $owner->corporate_name);
         $this->assertSame('999 Corporate Blvd', $owner->corporate_address);
         $this->assertSame('TX', $owner->state);
         $this->assertSame('office@example.com', $owner->corporate_email);
@@ -89,8 +90,8 @@ class RegistrationWizardTest extends TestCase
         $owner = User::where('email', 'nologo@example.com')->first();
         $this->assertNull($owner->logo);
         $this->assertNull($owner->brandLogoUrl());
-        // Falls back to the restaurant/business name they entered.
-        $this->assertSame('The Corner Grill', $owner->brandName());
+        // Falls back to the corporate / business name they entered.
+        $this->assertSame('Acme Restaurants LLC', $owner->brandName());
     }
 
     /** @test */

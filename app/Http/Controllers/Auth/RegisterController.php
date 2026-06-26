@@ -62,6 +62,7 @@ class RegisterController extends Controller
 
             // Step 2 — Business / corporate details
             'logo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,svg,webp', 'max:2048'],
+            'corporate_name' => ['required', 'string', 'max:255'],
             'state' => ['required', 'string', 'size:2', $stateCodes],
             'corporate_address' => ['required', 'string', 'max:1000'],
             'corporate_phone' => ['required', 'string', 'max:30'],
@@ -107,6 +108,7 @@ class RegisterController extends Controller
                 'password' => Hash::make($data['password']),
                 // Business / corporate profile
                 'logo' => $logoName,
+                'corporate_name' => $data['corporate_name'],
                 'state' => $data['state'],
                 'corporate_address' => $data['corporate_address'],
                 'corporate_phone' => $data['corporate_phone'],

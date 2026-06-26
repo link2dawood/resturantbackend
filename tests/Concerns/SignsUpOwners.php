@@ -20,6 +20,7 @@ trait SignsUpOwners
             'password' => 'password1234',
             'password_confirmation' => 'password1234',
             // Business / corporate
+            'corporate_name' => 'Acme Restaurants LLC',
             'state' => 'CA',
             'corporate_address' => '123 Corp St',
             'corporate_phone' => '(555) 123-4567',

@@ -42,6 +42,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'personal_phone',
         'personal_email',
         // Corporate Information
+        'corporate_name',
         'corporate_address',
         'corporate_phone',
         'corporate_email',
@@ -158,6 +159,10 @@ class User extends Authenticatable implements MustVerifyEmail
 
         if (! $owner) {
             return null;
+        }
+
+        if (! empty($owner->corporate_name)) {
+            return $owner->corporate_name;
         }
 
         $storeName = Store::where('created_by', $owner->id)->orderBy('id')->value('store_info');

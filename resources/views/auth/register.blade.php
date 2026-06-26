@@ -97,6 +97,13 @@
                     </div>
                 </div>
 
+                <div class="mb-3">
+                    <label class="form-label required">Corporate / business name</label>
+                    <input type="text" class="form-control @error('corporate_name') is-invalid @enderror" name="corporate_name"
+                           value="{{ old('corporate_name') }}" placeholder="Acme Restaurants LLC" required>
+                    @error('corporate_name')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                </div>
+
                 <div class="row">
                     <div class="col-md-8 mb-3">
                         <label class="form-label required">Corporate / business address</label>
