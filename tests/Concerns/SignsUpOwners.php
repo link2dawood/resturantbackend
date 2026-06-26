@@ -34,6 +34,8 @@ trait SignsUpOwners
             'store_zip' => '19102',
             'store_sales_tax_rate' => '8.5',
             'store_medicare_tax_rate' => '1.45',
+            // Terms acceptance
+            'terms' => 'on',
         ], $overrides);
     }
 }

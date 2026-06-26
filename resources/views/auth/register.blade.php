@@ -36,7 +36,7 @@
             <div class="alert alert-danger">Please review the highlighted fields and complete every step.</div>
         @endif
 
-        <form action="{{ route('register') }}" method="POST" autocomplete="off" enctype="multipart/form-data" novalidate>
+        <form id="signupForm" action="{{ route('register') }}" method="POST" autocomplete="off" enctype="multipart/form-data" novalidate>
             @csrf
 
             {{-- ===================== STEP 1 — ACCOUNT ===================== --}}
@@ -228,9 +228,10 @@
 
                 <div class="mb-3">
                     <label class="form-check">
-                        <input type="checkbox" class="form-check-input" required>
+                        <input type="checkbox" name="terms" value="1" class="form-check-input @error('terms') is-invalid @enderror" required {{ old('terms') ? 'checked' : '' }}>
                         <span class="form-check-label">I agree to the <a href="#" tabindex="-1">terms and policy</a>.</span>
                     </label>
+                    @error('terms')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
                 </div>
 
                 <div class="form-footer d-flex justify-content-between">
@@ -302,6 +303,54 @@
     if (nameEl && contactEl) {
         nameEl.addEventListener('blur', () => { if (!contactEl.value) contactEl.value = nameEl.value; });
     }
+
+    // --- Persist inputs to localStorage until signup completes ---------------
+    const form = document.getElementById('signupForm');
+    const STORAGE_KEY = 'signup_wizard_v1';
+
+    // Everything except passwords, the file upload, and hidden fields (e.g. CSRF).
+    function persistFields() {
+        return Array.from(form.querySelectorAll('input, select, textarea')).filter(function (el) {
+            return el.name && el.type !== 'password' && el.type !== 'file' && el.type !== 'hidden';
+        });
+    }
+    function saveState() {
+        const data = {};
+        persistFields().forEach(function (el) {
+            data[el.name] = (el.type === 'checkbox') ? el.checked : el.value;
+        });
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch (e) {}
+    }
+    function restoreState() {
+        let data = {};
+        try { data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch (e) {}
+        persistFields().forEach(function (el) {
+            if (!(el.name in data)) return;
+            if (el.type === 'checkbox') { if (data[el.name]) el.checked = true; }
+            else if (!el.value) { el.value = data[el.name]; } // server old() values win
+        });
+    }
+    restoreState();
+    saveState(); // capture any server old() values so a refresh keeps them too
+    form.addEventListener('input', saveState);
+    form.addEventListener('change', saveState);
+
+    // --- Block completion until every step (incl. the terms box) is valid ----
+    form.addEventListener('submit', function (e) {
+        for (let i = 0; i < steps.length; i++) {
+            const fields = steps[i].querySelectorAll('input, select, textarea');
+            let ok = true;
+            for (const el of fields) { if (!el.checkValidity()) { ok = false; break; } }
+            if (!ok) {
+                e.preventDefault();
+                show(i);          // reveal the offending step first
+                validateStep(i);  // then surface the native message
+                return;
+            }
+        }
+        // All good — signup is going through; drop the saved draft.
+        try { localStorage.removeItem(STORAGE_KEY); } catch (e2) {}
+    });
 
     // After a server-side validation error, open the step with the first problem.
     const firstInvalid = document.querySelector('.is-invalid');

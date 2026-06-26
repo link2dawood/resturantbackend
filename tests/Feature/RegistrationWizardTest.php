@@ -94,6 +94,18 @@ class RegistrationWizardTest extends TestCase
     }
 
     /** @test */
+    public function signup_is_blocked_until_the_terms_are_accepted(): void
+    {
+        $response = $this->from('/register')->post('/register', $this->ownerSignupPayload([
+            'email' => 'noterms@example.com',
+            'terms' => '', // not accepted
+        ]));
+
+        $response->assertSessionHasErrors('terms');
+        $this->assertDatabaseMissing('users', ['email' => 'noterms@example.com']);
+    }
+
+    /** @test */
     public function business_and_restaurant_fields_are_required_and_block_signup(): void
     {
         $response = $this->from('/register')->post('/register', $this->ownerSignupPayload([

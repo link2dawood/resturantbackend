@@ -79,6 +79,9 @@ class RegisterController extends Controller
             'store_zip' => ['required', 'string', 'max:12'],
             'store_sales_tax_rate' => ['required', 'numeric', 'min:0', 'max:100'],
             'store_medicare_tax_rate' => ['required', 'numeric', 'min:0', 'max:100'],
+
+            // Must accept the terms before the account is created.
+            'terms' => ['accepted'],
         ]);
     }
 
