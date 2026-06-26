@@ -16,7 +16,16 @@ class TrialMailer
 {
     protected static function salesEmail(): string
     {
-        return (string) config('trial.sales_email');
+        $email = trim((string) config('trial.sales_email'));
+
+        // Skip the unset/placeholder sales address — emailing it just bounces
+        // (mail servers reject @example.com) and spams the log. Set
+        // SALES_TEAM_EMAIL in .env to a real inbox to enable these alerts.
+        if ($email === '' || str_ends_with(strtolower($email), '@example.com')) {
+            return '';
+        }
+
+        return $email;
     }
 
     protected static function send(string $to, string $subject, string $view, array $payload): void
