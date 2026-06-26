@@ -27,7 +27,7 @@
             <div style="max-width: 1200px; margin: 0 auto; padding: 0.75rem 1.5rem; display: flex; align-items: center; justify-content: space-between;">
                 <!-- Brand -->
                 <a href="{{ route('home') }}" style="display: flex; align-items: center; text-decoration: none; margin-right: auto; margin-left: 20px">
-                    <img src="{{ asset('images/logo.jpg') }}" height="32" alt="Restaurant Logo" style="border-radius: 6px;">
+                    <span style="font-weight: 700; font-size: 1.1rem; color: #1d2b3a;">{{ (auth()->user() && auth()->user()->brandName()) ? auth()->user()->brandName() : config('app.name') }}</span>
                 </a>
                 
                 <!-- Mobile Menu Toggle -->

@@ -19,7 +19,6 @@
 </style>
 
 <div class="text-center mb-4">
-    <img src="{{ asset('images/logo.jpg') }}" height="36" alt="Restaurant Logo">
     <h1 class="h2 text-white mt-3">Create your owner account</h1>
     <p class="text-white-50">Tell us about your business to start your 30-day free trial.</p>
 </div>

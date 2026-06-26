@@ -4,7 +4,6 @@
 
 @section('content')
 <div class="text-center mb-4">
-    <img src="{{ asset('images/logo.jpg') }}" height="36" alt="Restaurant Logo">
     <h1 class="h2 mt-3" style="color: #1b1b18;">Login to your account</h1>
     <p style="color: #706f6c;">Enter your email address and password to access your account</p>
 </div>
