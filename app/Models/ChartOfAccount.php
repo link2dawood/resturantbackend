@@ -260,6 +260,22 @@ class ChartOfAccount extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    /**
+     * Whether the given user may edit/delete this account. Admins and the
+     * franchisor may manage any account; an owner may manage only the
+     * (non-system) accounts they created themselves.
+     */
+    public function canBeManagedBy(User $user): bool
+    {
+        if ($user->isAdmin() || $user->isFranchisor()) {
+            return true;
+        }
+
+        return $user->isOwner()
+            && ! $this->is_system_account
+            && (int) $this->created_by === (int) $user->id;
+    }
+
     // Scopes
     public function scopeActive($query)
     {

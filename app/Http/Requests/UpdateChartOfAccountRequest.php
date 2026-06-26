@@ -13,7 +13,17 @@ class UpdateChartOfAccountRequest extends FormRequest
     public function authorize(): bool
     {
         $user = auth()->user();
-        return auth()->check() && ($user->isAdmin() || $user->isOwner());
+        if (! $user) {
+            return false;
+        }
+
+        $coa = $this->route('chartOfAccount');
+        if ($coa instanceof \App\Models\ChartOfAccount) {
+            // Owners may only update the accounts they created themselves.
+            return $coa->canBeManagedBy($user);
+        }
+
+        return $user->isAdmin() || $user->isOwner();
     }
 
     /**

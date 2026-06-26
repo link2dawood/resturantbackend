@@ -190,6 +190,8 @@ class ChartOfAccountController extends Controller
      */
     public function edit(ChartOfAccount $chartOfAccount): View
     {
+        abort_unless($chartOfAccount->canBeManagedBy(auth()->user()), 403, 'You can only edit accounts you created.');
+
         $chartOfAccount->load('stores:id,store_info');
 
         $stores = Store::orderBy('store_info')->get(['id', 'store_info']);
@@ -236,6 +238,8 @@ class ChartOfAccountController extends Controller
      */
     public function destroy(ChartOfAccount $chartOfAccount): RedirectResponse
     {
+        abort_unless($chartOfAccount->canBeManagedBy(auth()->user()), 403, 'You can only delete accounts you created.');
+
         $chartOfAccount->delete();
 
         return redirect()

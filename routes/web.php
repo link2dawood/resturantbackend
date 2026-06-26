@@ -212,8 +212,10 @@ Route::middleware(['auth', 'verified', 'trial'])->group(function () {
             ->name('api.coa.children');
     });
 
-    // Chart of Accounts — modifying EXISTING accounts is Admin only (owners can add, not modify)
-    Route::middleware('role:admin')->group(function () {
+    // Chart of Accounts — owners may edit/delete the accounts THEY created;
+    // admin/franchisor may manage any. Per-account ownership is enforced in the
+    // controller (edit/destroy) and UpdateChartOfAccountRequest (update).
+    Route::middleware('role:admin,owner')->group(function () {
         Route::resource('chart-of-accounts', ChartOfAccountController::class)
             ->parameters(['chart-of-accounts' => 'chartOfAccount'])
             ->only(['edit', 'update', 'destroy'])

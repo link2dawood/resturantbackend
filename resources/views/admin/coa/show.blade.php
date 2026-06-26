@@ -12,9 +12,11 @@
                     <p class="text-muted mb-0">Account Code: {{ $chartOfAccount->account_code }}</p>
                 </div>
                 <div class="d-flex gap-2">
+                    @if($chartOfAccount->canBeManagedBy(auth()->user()))
                         <a href="{{ route('coa.edit', $chartOfAccount) }}" class="btn btn-primary">
                             <i class="bi bi-pencil me-2"></i>Edit
                         </a>
+                    @endif
                     <a href="{{ route('coa.index') }}" class="btn btn-outline-secondary">
                         <i class="bi bi-arrow-left me-2"></i>Back
                     </a>

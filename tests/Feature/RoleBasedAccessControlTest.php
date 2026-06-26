@@ -62,14 +62,28 @@ class RoleBasedAccessControlTest extends TestCase
     }
 
     /** @test */
-    public function owner_cannot_reach_coa_edit_update_or_destroy_routes(): void
+    public function owner_can_edit_and_delete_accounts_they_created(): void
     {
         $owner = User::factory()->create(['role' => 'owner']);
-        $coa = $this->coa();
+        $own = ChartOfAccount::create([
+            'account_code' => '6160', 'account_name' => 'Owner Acct', 'account_type' => 'Expense',
+            'is_active' => true, 'is_system_account' => false, 'created_by' => $owner->id,
+        ]);
 
-        $this->actingAs($owner)->get(route('coa.edit', $coa))->assertForbidden();
-        $this->actingAs($owner)->put(route('coa.update', $coa), [])->assertForbidden();
-        $this->actingAs($owner)->delete(route('coa.destroy', $coa))->assertForbidden();
+        $this->actingAs($owner)->get(route('coa.edit', $own))->assertOk();
+        $this->actingAs($owner)->delete(route('coa.destroy', $own))->assertRedirect();
+        $this->assertDatabaseMissing('chart_of_accounts', ['id' => $own->id]);
+    }
+
+    /** @test */
+    public function owner_cannot_edit_or_delete_accounts_they_did_not_create(): void
+    {
+        $owner = User::factory()->create(['role' => 'owner']);
+        $foreign = $this->coa(); // created_by null (system / admin-seeded)
+
+        $this->actingAs($owner)->get(route('coa.edit', $foreign))->assertForbidden();
+        $this->actingAs($owner)->put(route('coa.update', $foreign), [])->assertForbidden();
+        $this->actingAs($owner)->delete(route('coa.destroy', $foreign))->assertForbidden();
     }
 
     // --- Admin: full control ---------------------------------------------
