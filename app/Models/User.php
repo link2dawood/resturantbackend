@@ -106,6 +106,11 @@ class User extends Authenticatable implements MustVerifyEmail
         return 'https://ui-avatars.com/api/?name='.urlencode($this->name).'&background=206bc4&color=fff&size=128';
     }
 
+    /** Memoized result of brandOwner() so the navbar doesn't re-resolve per call. */
+    protected ?self $resolvedBrandOwner = null;
+
+    protected bool $brandOwnerResolved = false;
+
     /**
      * The owner whose brand applies to this user: an owner is their own brand;
      * a manager inherits the brand of the owner who created their store; admins
@@ -113,17 +118,23 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function brandOwner(): ?self
     {
+        if ($this->brandOwnerResolved) {
+            return $this->resolvedBrandOwner;
+        }
+
+        $this->brandOwnerResolved = true;
+
         if ($this->isOwner()) {
-            return $this;
+            return $this->resolvedBrandOwner = $this;
         }
 
         if ($this->isManager()) {
             $storeId = $this->getAccessibleStoreIds()[0] ?? null;
 
-            return $storeId ? optional(Store::find($storeId))->owner : null;
+            return $this->resolvedBrandOwner = $storeId ? optional(Store::find($storeId))->owner : null;
         }
 
-        return null;
+        return $this->resolvedBrandOwner = null;
     }
 
     /**
@@ -134,6 +145,24 @@ class User extends Authenticatable implements MustVerifyEmail
         $owner = $this->brandOwner();
 
         return ($owner && $owner->logo) ? asset('storage/logos/'.$owner->logo) : null;
+    }
+
+    /**
+     * The business name shown in the app shell when no logo was uploaded: the
+     * brand owner's restaurant name, falling back to the owner's own name.
+     * Null for admins/franchisor (no specific business → default brand logo).
+     */
+    public function brandName(): ?string
+    {
+        $owner = $this->brandOwner();
+
+        if (! $owner) {
+            return null;
+        }
+
+        $storeName = Store::where('created_by', $owner->id)->orderBy('id')->value('store_info');
+
+        return $storeName ?: $owner->name;
     }
 
     /**

@@ -76,6 +76,24 @@ class RegistrationWizardTest extends TestCase
     }
 
     /** @test */
+    public function without_a_logo_the_brand_falls_back_to_the_business_name(): void
+    {
+        Mail::fake();
+
+        $this->post('/register', $this->ownerSignupPayload([
+            'email' => 'nologo@example.com',
+            'store_info' => 'The Corner Grill',
+            // no 'logo' uploaded
+        ]))->assertRedirect('/home');
+
+        $owner = User::where('email', 'nologo@example.com')->first();
+        $this->assertNull($owner->logo);
+        $this->assertNull($owner->brandLogoUrl());
+        // Falls back to the restaurant/business name they entered.
+        $this->assertSame('The Corner Grill', $owner->brandName());
+    }
+
+    /** @test */
     public function business_and_restaurant_fields_are_required_and_block_signup(): void
     {
         $response = $this->from('/register')->post('/register', $this->ownerSignupPayload([

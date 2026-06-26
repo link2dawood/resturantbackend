@@ -681,9 +681,20 @@
             <div class="container-fluid px-4">
                 <!-- Brand Logo -->
                 <a class="navbar-brand d-flex align-items-center" href="{{ url('/home') }}" style="text-decoration: none;">
-                    {{-- Owner/manager see their business logo; admin & everyone else get the default brand. --}}
-                    <img src="{{ (auth()->check() ? auth()->user()->brandLogoUrl() : null) ?? asset('images/logo.jpg') }}"
-                         height="40" alt="Business Logo" style="border-radius: 8px; max-height: 40px; object-fit: contain;">
+                    {{-- Owner/manager: their uploaded logo, else their business name as text.
+                         Admin & everyone else: the default brand logo. --}}
+                    @php
+                        $navUser = auth()->user();
+                        $navLogo = $navUser ? $navUser->brandLogoUrl() : null;
+                        $navName = $navUser ? $navUser->brandName() : null;
+                    @endphp
+                    @if ($navLogo)
+                        <img src="{{ $navLogo }}" height="40" alt="Business Logo" style="border-radius: 8px; max-height: 40px; object-fit: contain;">
+                    @elseif ($navName)
+                        <span style="font-weight: 700; font-size: 1.15rem; color: #1d2b3a; letter-spacing: .2px;">{{ $navName }}</span>
+                    @else
+                        <img src="{{ asset('images/logo.jpg') }}" height="40" alt="Restaurant Logo" style="border-radius: 8px;">
+                    @endif
                 </a>
 
                 <!-- Mobile menu toggle -->
