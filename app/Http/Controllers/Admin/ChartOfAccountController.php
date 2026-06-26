@@ -73,10 +73,47 @@ class ChartOfAccountController extends Controller
     public function create(): View
     {
         $stores = Store::orderBy('store_info')->get(['id', 'store_info']);
-        $parentAccounts = ChartOfAccount::orderBy('account_name')->get(['id', 'account_name', 'account_code']);
+        $parentAccounts = $this->parentAccountOptions();
         $accountTypes = self::ACCOUNT_TYPES;
 
         return view('admin.coa.create', compact('stores', 'parentAccounts', 'accountTypes'));
+    }
+
+    /**
+     * Build the parent-account picker options: every account, annotated with its
+     * type, whether its code can have children (a trailing-zero "header" like
+     * 6450), and how many sub-accounts it already has. The create form uses this
+     * to show, for the chosen type, only the main/header accounts that can roll
+     * up children, with their child counts.
+     *
+     * @return \Illuminate\Support\Collection<int, object>
+     */
+    private function parentAccountOptions(?int $excludeId = null): \Illuminate\Support\Collection
+    {
+        $all = ChartOfAccount::orderByRaw('CAST(account_code AS UNSIGNED) ASC')
+            ->get(['id', 'account_name', 'account_code', 'account_type']);
+
+        return $all
+            ->when($excludeId, fn ($c) => $c->where('id', '!=', $excludeId))
+            ->map(function ($acct) use ($all) {
+                $range = ChartOfAccount::childCodeRangeForParent((string) $acct->account_code);
+
+                $childCount = $range
+                    ? $all->filter(fn ($c) => $c->id !== $acct->id
+                        && (int) $c->account_code >= $range[0]
+                        && (int) $c->account_code <= $range[1])->count()
+                    : 0;
+
+                return (object) [
+                    'id' => $acct->id,
+                    'account_code' => $acct->account_code,
+                    'account_name' => $acct->account_name,
+                    'account_type' => $acct->account_type,
+                    'can_have_children' => $range !== null,
+                    'children_count' => $childCount,
+                ];
+            })
+            ->values();
     }
 
     /**

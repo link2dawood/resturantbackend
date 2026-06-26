@@ -21,6 +21,48 @@
                     <form action="{{ route('coa.store') }}" method="POST">
                         @csrf
 
+                        {{-- Step 1: pick the account type. --}}
+                        <div class="mb-3">
+                            <label for="account_type" class="form-label">Account Type <span class="text-danger">*</span></label>
+                            <select id="account_type" name="account_type" class="form-select @error('account_type') is-invalid @enderror" required>
+                                <option value="">Select Type</option>
+                                @foreach($accountTypes as $type)
+                                    <option value="{{ $type }}" @selected(old('account_type') === $type)>{{ $type }}</option>
+                                @endforeach
+                            </select>
+                            @error('account_type')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                            <div class="form-text text-primary" id="code-range-hint"></div>
+                        </div>
+
+                        {{-- Step 2: pick the parent (main account of that type that can roll up children). --}}
+                        <div class="mb-3">
+                            <label for="parent_account_id" class="form-label">Parent Account (optional)</label>
+                            <select id="parent_account_id" name="parent_account_id" class="form-select @error('parent_account_id') is-invalid @enderror" disabled>
+                                <option value="">None (top level)</option>
+                                @foreach($parentAccounts as $parent)
+                                    <option value="{{ $parent->id }}"
+                                            data-account-code="{{ $parent->account_code }}"
+                                            data-account-type="{{ $parent->account_type }}"
+                                            data-can-parent="{{ $parent->can_have_children ? '1' : '0' }}"
+                                            data-children="{{ $parent->children_count }}"
+                                            @selected((string) old('parent_account_id') === (string) $parent->id)>
+                                        {{ $parent->account_code }} - {{ $parent->account_name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error('parent_account_id')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                            <small class="text-muted">Choose a type first — this lists the main accounts of that type you can roll up into.</small>
+                            <div id="parent-children" class="mt-2 d-none">
+                                <div class="small text-muted mb-1">Accounts already under this parent:</div>
+                                <div id="parent-children-list" class="d-flex flex-wrap gap-1"></div>
+                            </div>
+                        </div>
+
+                        {{-- Step 3: the code + name for this account. --}}
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label for="account_code" class="form-label">Account Code <span class="text-danger">*</span></label>
@@ -29,46 +71,13 @@
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                                 <small class="text-muted">Example: 4000, 5100, 6300</small>
-                                <div class="form-text text-primary" id="code-range-hint"></div>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label for="account_type" class="form-label">Account Type <span class="text-danger">*</span></label>
-                                <select id="account_type" name="account_type" class="form-select @error('account_type') is-invalid @enderror" required>
-                                    <option value="">Select Type</option>
-                                    @foreach($accountTypes as $type)
-                                        <option value="{{ $type }}" @selected(old('account_type') === $type)>{{ $type }}</option>
-                                    @endforeach
-                                </select>
-                                @error('account_type')
+                                <label for="account_name" class="form-label">Account Name <span class="text-danger">*</span></label>
+                                <input type="text" id="account_name" name="account_name" class="form-control @error('account_name') is-invalid @enderror" value="{{ old('account_name') }}" maxlength="100" required>
+                                @error('account_name')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
-                            </div>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="account_name" class="form-label">Account Name <span class="text-danger">*</span></label>
-                            <input type="text" id="account_name" name="account_name" class="form-control @error('account_name') is-invalid @enderror" value="{{ old('account_name') }}" maxlength="100" required>
-                            @error('account_name')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="parent_account_id" class="form-label">Parent Account (optional)</label>
-                            <select id="parent_account_id" name="parent_account_id" class="form-select @error('parent_account_id') is-invalid @enderror">
-                                <option value="">None (top level)</option>
-                                @foreach($parentAccounts as $parent)
-                                    <option value="{{ $parent->id }}" data-account-code="{{ $parent->account_code }}" @selected((string) old('parent_account_id') === (string) $parent->id)>
-                                        {{ $parent->account_code }} - {{ $parent->account_name }}
-                                    </option>
-                                @endforeach
-                            </select>
-                            @error('parent_account_id')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                            <div id="parent-children" class="mt-2 d-none">
-                                <div class="small text-muted mb-1">Accounts already under this parent:</div>
-                                <div id="parent-children-list" class="d-flex flex-wrap gap-1"></div>
                             </div>
                         </div>
 
@@ -142,35 +151,53 @@
         const parentSelect = document.getElementById('parent_account_id');
         if (accountTypeSelect && parentSelect) {
             var parentOptionsCache = [];
-            parentSelect.querySelectorAll('option').forEach(function(o) {
-                parentOptionsCache.push({ value: o.value, code: o.dataset.accountCode || '', text: o.textContent.trim() });
+            parentSelect.querySelectorAll('option').forEach(function (o) {
+                if (!o.value) return; // skip the "None (top level)" placeholder
+                parentOptionsCache.push({
+                    value: o.value,
+                    code: o.dataset.accountCode || '',
+                    type: o.dataset.accountType || '',
+                    canParent: o.dataset.canParent === '1',
+                    children: parseInt(o.dataset.children || '0', 10),
+                    name: o.textContent.trim()
+                });
             });
+
+            // After a type is picked, list only that type's MAIN accounts — the
+            // headers that can roll up children (e.g. Expense -> 6450 …) — with
+            // their current sub-account counts.
             function syncParentFromType() {
                 const type = accountTypeSelect.value;
-                const range = accountTypeRange[type];
+                const prev = parentSelect.value;
                 parentSelect.innerHTML = '';
+
                 const none = document.createElement('option');
                 none.value = '';
                 none.textContent = 'None (top level)';
                 parentSelect.appendChild(none);
-                if (!range) {
+
+                if (!type) {
+                    parentSelect.disabled = true;
                     parentSelect.value = '';
                     return;
                 }
-                let defaultVal = '';
-                for (let i = 0; i < parentOptionsCache.length; i++) {
-                    const item = parentOptionsCache[i];
-                    if (!item.value) continue;
-                    const codeNum = parseInt(item.code, 10);
-                    if (isNaN(codeNum) || codeNum < range.min || codeNum > range.max) continue;
-                    const opt = document.createElement('option');
-                    opt.value = item.value;
-                    opt.textContent = item.text;
-                    opt.dataset.accountCode = item.code;
-                    parentSelect.appendChild(opt);
-                    if (item.code.trim() === range.defaultCode) defaultVal = item.value;
-                }
-                parentSelect.value = defaultVal || '';
+                parentSelect.disabled = false;
+
+                parentOptionsCache
+                    .filter(function (item) { return item.type === type && item.canParent; })
+                    .forEach(function (item) {
+                        const opt = document.createElement('option');
+                        opt.value = item.value;
+                        opt.dataset.accountCode = item.code;
+                        const note = item.children > 0
+                            ? ' · ' + item.children + ' sub-account' + (item.children === 1 ? '' : 's')
+                            : ' · no sub-accounts yet';
+                        opt.textContent = item.name + note;
+                        parentSelect.appendChild(opt);
+                    });
+
+                parentSelect.value = prev;          // keep prior choice if still valid
+                if (parentSelect.value !== prev) parentSelect.value = '';
             }
             accountTypeSelect.addEventListener('change', syncParentFromType);
             syncParentFromType();
