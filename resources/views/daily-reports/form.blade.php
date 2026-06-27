@@ -130,6 +130,26 @@
         color: #1a73e8 !important;
     }
 
+    /* Keep the dropdown opaque on hover — never let an option go transparent. */
+    .custom-select-menu { background-color: #ffffff !important; opacity: 1 !important; }
+    .custom-select-menu .custom-select-option {
+        background-color: #ffffff !important;
+        opacity: 1 !important;
+    }
+    .custom-select-menu .custom-select-option:hover,
+    .custom-select-menu .custom-select-option:focus,
+    .custom-select-menu .custom-select-option:active {
+        background-color: #f1f3f4 !important;
+        color: #202124 !important;
+        opacity: 1 !important;
+    }
+    .custom-select-menu .custom-select-option--create:hover,
+    .custom-select-menu .custom-select-option--create:focus {
+        background-color: #e8f0fe !important;
+        color: #1a73e8 !important;
+        opacity: 1 !important;
+    }
+
     /* Ensure buttons are visible in Safari */
     button {
         display: inline-block;
