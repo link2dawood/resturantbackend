@@ -945,7 +945,8 @@
                                     KPI Targets
                                 </a></li>
                                 @endif
-                                @if(Auth::user()->isOwner() && Route::has('billing.show'))
+                                {{-- Payment/billing link hidden while billing is disabled; returns when config('subscription.enabled') is true. --}}
+                                @if(Auth::user()->isOwner() && Route::has('billing.show') && config('subscription.enabled'))
                                 <li><a class="dropdown-item d-flex align-items-center" href="{{ route('billing.show') }}" style="padding: 10px 16px; font-family: 'Google Sans', sans-serif; font-size: 14px; border-radius: 8px; margin: 0 8px;">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-3">
                                         <rect x="3" y="5" width="18" height="14" rx="2"/>
