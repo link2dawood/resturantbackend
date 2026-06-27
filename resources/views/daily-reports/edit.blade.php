@@ -689,6 +689,36 @@
                                 <td></td>
                             </tr>
                             <tr>
+                                <td>
+                                    <div style="display:flex;justify-content: space-between;align-items: center;">
+                                        <span><strong>Adjustments for Cash:</strong></span>
+                                        <span style="width:30%;"><input type="number" name="adjustments_cash" class="form-input number-input" value="{{ $dailyReport->adjustments_cash }}" style="background: white;"></span>
+                                    </div>
+                                </td>
+                                <td></td>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div style="display:flex;justify-content: space-between;align-items: center;">
+                                        <span><strong>Adjustments for Credit Card:</strong></span>
+                                        <span style="width:30%;"><input type="number" name="adjustments_credit_card" class="form-input number-input" value="{{ $dailyReport->adjustments_credit_card }}" style="background: white;"></span>
+                                    </div>
+                                </td>
+                                <td></td>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div style="display:flex;justify-content: space-between;align-items: center;">
+                                        <span><strong>Tips:</strong></span>
+                                        <span style="width:30%;"><input type="number" name="tips" class="form-input number-input" value="{{ $dailyReport->tips }}" style="background: white;"></span>
+                                    </div>
+                                </td>
+                                <td></td>
+                                <td></td>
+                            </tr>
+                            <tr>
                                 <td rowspan="2">
                                     <div style="display:flex;justify-content: space-between;align-items: center;">
                                         <span>Total # of Customers</span>
@@ -730,8 +760,12 @@
                                 <td id="onlineRevenue2" class="calculated-field number-input">$0.00</td>
                             </tr>
                             <tr>
-                                <td><strong>Credit Card (Square sales):</strong><br><small class="text-muted">Square fee (2.45%) is calculated automatically on save</small></td>
+                                <td><strong>Credit Card (sales):</strong><br><small class="text-muted">Square fee (2.45%) is calculated on sales only, on save</small></td>
                                 <td id="creditCards2" class="calculated-field number-input"><input type="number" name="credit_cards" id="creditCardsInput" class="form-input number-input" value="{{ $dailyReport->credit_cards }}" style="background: #e7f3ff !important;"></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Credit Card (tips):</strong><br><small class="text-muted">Paid out in cash — reduces cash to account for</small></td>
+                                <td class="calculated-field number-input"><input type="number" name="credit_card_tips" class="form-input number-input" value="{{ $dailyReport->credit_card_tips }}" style="background: #e7f3ff !important;"></td>
                             </tr>
                             <tr>
                                 <td><strong>Square fee (2.45%):</strong></td>
@@ -774,7 +808,11 @@ function calculateTotals() {
     // Get form values
     const couponsReceived = parseFloat(document.querySelector('input[name="coupons_received"]').value || 0);
     const adjustmentsOverrings = parseFloat(document.querySelector('input[name="adjustments_overrings"]').value || 0);
+    const adjustmentsCash = parseFloat(document.querySelector('input[name="adjustments_cash"]')?.value || 0);
+    const adjustmentsCreditCard = parseFloat(document.querySelector('input[name="adjustments_credit_card"]')?.value || 0);
+    const tips = parseFloat(document.querySelector('input[name="tips"]')?.value || 0);
     let creditCards = parseFloat(document.querySelector('input[name="credit_cards"]').value || 0);
+    const creditCardTips = parseFloat(document.querySelector('input[name="credit_card_tips"]')?.value || 0);
     const actualDeposit = parseFloat(document.querySelector('input[name="actual_deposit"]').value || 0);
 
     // Calculate total paid outs from transactions (Transaction Expenses)
@@ -826,7 +864,7 @@ function calculateTotals() {
     const grossSales = totalRevenueIncome + couponsReceived;
     
     // Net Sales = Total Revenue Income - Adjustments only (do not deduct coupons)
-    const netSales = totalRevenueIncome - adjustmentsOverrings;
+    const netSales = totalRevenueIncome - adjustmentsOverrings - adjustmentsCash - adjustmentsCreditCard - tips;
     
     // Tax = Net Sales minus (Net Sales / 1.0825)
     const tax = netSales - (netSales / 1.0825);
@@ -867,7 +905,7 @@ function calculateTotals() {
     }
     
     // Cash To Account For = Net Sales - Total Transaction Expenses - Online Platform Revenue - Credit Cards - Checks - Crypto
-    let cashToAccountFor = netSales - totalPaidOuts - onlinePlatformRevenue - creditCards - checksRevenue - cryptoRevenue;
+    let cashToAccountFor = netSales - totalPaidOuts - onlinePlatformRevenue - creditCards - checksRevenue - cryptoRevenue - creditCardTips;
     
     // Ensure result is not negative (numbers cannot go negative)
     cashToAccountFor = Math.max(0, Math.round(cashToAccountFor * 100) / 100);
@@ -1189,6 +1227,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const inputs = [
         'input[name="coupons_received"]',
         'input[name="adjustments_overrings"]',
+        'input[name="adjustments_cash"]',
+        'input[name="adjustments_credit_card"]',
+        'input[name="tips"]',
+        'input[name="credit_card_tips"]',
         'input[name="credit_cards"]',
         'input[name="actual_deposit"]',
         'input[name="total_customers"]',
