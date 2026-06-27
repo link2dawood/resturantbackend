@@ -626,28 +626,8 @@
 }
 
 /* Dark mode support */
-@media (prefers-color-scheme: dark) {
-  .gd-form-input,
-  .gd-form-select,
-  .gd-form-textarea {
-    background-color: #2d2d2d;
-    border-color: #4a4a4a;
-    color: #e0e0e0;
-  }
-
-  .gd-form-input:focus {
-    border-color: #669df6;
-    box-shadow: 0 0 0 1px #669df6;
-  }
-
-  .gd-form-label {
-    color: #e0e0e0;
-  }
-
-  .gd-form-help {
-    color: #9aa0a6;
-  }
-}
+/* Dark-mode form overrides disabled — the app is light-only and these made
+   form labels/inputs render light-on-white (invisible) in system dark mode. */
 
 /* ===== FORM ACCESSIBILITY ENHANCEMENTS ===== */
 /* High contrast form controls */

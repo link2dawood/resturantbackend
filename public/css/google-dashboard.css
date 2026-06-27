@@ -1105,22 +1105,9 @@ a.skip-link {
 }
 
 /* Color blindness support */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --surface-0: #121212;
-    --surface-1: #1e1e1e;
-    --surface-2: #232323;
-    --surface-3: #2c2c2c;
-    --surface-4: #2f2f2f;
-    --surface-5: #333333;
-    --on-surface: #ffffff;
-    --on-surface-variant: #e8eaed;
-    --trust-500: #8ab4f8;
-    --success-500: #81c995;
-    --warning-500: #fdd663;
-    --error-500: #f28b82;
-  }
-}
+/* Dark-mode token overrides disabled — the app is light-only; flipping
+   --on-surface to white made dashboard text render white-on-white in system
+   dark mode. Keep the light palette regardless of OS preference. */
 
 /* Text readability enhancements */
 .gd-high-contrast {

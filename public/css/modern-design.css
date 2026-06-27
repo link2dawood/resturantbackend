@@ -2,6 +2,9 @@
 @import url('https://fonts.googleapis.com/css2?family=Google+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,500&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap');
 :root {
+    /* App is light-only — keep native controls (inputs, scrollbars, autofill)
+       light even when the OS is in dark mode. */
+    color-scheme: light;
     /* Material Design 3 Color Tokens */
     --bg-primary: var(--surface, #ffffff);
     --bg-secondary: var(--google-grey-50, #f8f9fa);
@@ -1585,15 +1588,13 @@ tr:hover {
 @font-display: swap;
 
 /* Dark mode compatibility placeholder */
-@media (prefers-color-scheme: dark) {
-    :root {
-        --surface: #1f1f1f;
-        --on-surface: #e0e0e0;
-        --google-grey-50: #2d2d2d;
-        --google-grey-100: #3a3a3a;
-        --google-grey-200: #4a4a4a;
-    }
-}
+/*
+ * Dark-mode token overrides intentionally disabled.
+ * The app uses hardcoded white cards and inline dark headings throughout, so
+ * flipping --on-surface (text) to a light colour for system dark mode made
+ * labels and .btn-white text render white-on-white (invisible). Until a full
+ * dark theme exists, force the light palette regardless of OS preference.
+ */
 
 /* ==================== RESPONSIVE DESIGN ENHANCEMENTS ==================== */
 
