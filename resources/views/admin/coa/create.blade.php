@@ -9,7 +9,7 @@
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <div>
                     <h1 class="mb-0">Add Chart of Account</h1>
-                    <p class="text-muted mb-0">Define a new category for classifying financial activity.</p>
+                    <p class="text-muted mb-0">Pick where it belongs — the code is assigned automatically.</p>
                 </div>
                 <a href="{{ route('coa.index') }}" class="btn btn-outline-secondary">
                     <i class="bi bi-arrow-left me-2"></i>Back to List
@@ -21,7 +21,7 @@
                     <form action="{{ route('coa.store') }}" method="POST">
                         @csrf
 
-                        {{-- Step 1: pick the account type. --}}
+                        {{-- Step 1: Account type --}}
                         <div class="mb-3">
                             <label for="account_type" class="form-label">Account Type <span class="text-danger">*</span></label>
                             <select id="account_type" name="account_type" class="form-select @error('account_type') is-invalid @enderror" required>
@@ -30,56 +30,51 @@
                                     <option value="{{ $type }}" @selected(old('account_type') === $type)>{{ $type }}</option>
                                 @endforeach
                             </select>
-                            @error('account_type')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
+                            @error('account_type')<div class="invalid-feedback">{{ $message }}</div>@enderror
                             <div class="form-text text-primary" id="code-range-hint"></div>
                         </div>
 
-                        {{-- Step 2: pick the parent (main account of that type that can roll up children). --}}
+                        {{-- Step 2: Parent account (top level, e.g. 6000) --}}
                         <div class="mb-3">
-                            <label for="parent_account_id" class="form-label">Parent Account (optional)</label>
-                            <select id="parent_account_id" name="parent_account_id" class="form-select @error('parent_account_id') is-invalid @enderror" disabled>
-                                <option value="">None (top level)</option>
-                                @foreach($parentAccounts as $parent)
-                                    <option value="{{ $parent->id }}"
-                                            data-account-code="{{ $parent->account_code }}"
-                                            data-account-type="{{ $parent->account_type }}"
-                                            data-can-parent="{{ $parent->can_have_children ? '1' : '0' }}"
-                                            data-children="{{ $parent->children_count }}"
-                                            @selected((string) old('parent_account_id') === (string) $parent->id)>
-                                        {{ $parent->account_code }} - {{ $parent->account_name }}
-                                    </option>
-                                @endforeach
+                            <label for="parent_top" class="form-label">Parent Account <span class="text-danger">*</span></label>
+                            <select id="parent_top" class="form-select" disabled required>
+                                <option value="">Choose a type first…</option>
                             </select>
-                            @error('parent_account_id')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                            <small class="text-muted">Choose a type first — this lists the main accounts of that type you can roll up into.</small>
+                            <small class="text-muted">The top-level category (e.g. 6000) this account belongs to.</small>
+                        </div>
+
+                        {{-- Step 3: Sub-parent (only parents that have children) --}}
+                        <div class="mb-3">
+                            <label for="sub_parent" class="form-label">Sub-parent <span class="text-muted">(optional)</span></label>
+                            <select id="sub_parent" class="form-select" disabled>
+                                <option value="">Add directly under the parent</option>
+                            </select>
+                            <small class="text-muted">Nest under a sub-category that has its own accounts (e.g. 6500 Payroll, 6450 Online Merchant).</small>
                             <div id="parent-children" class="mt-2 d-none">
                                 <div class="small text-muted mb-1">Accounts already under this parent:</div>
                                 <div id="parent-children-list" class="d-flex flex-wrap gap-1"></div>
                             </div>
                         </div>
 
-                        {{-- Step 3: the code + name for this account. --}}
+                        {{-- Step 4: Name + auto-assigned code --}}
                         <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="account_code" class="form-label">Account Code <span class="text-danger">*</span></label>
-                                <input type="text" id="account_code" name="account_code" class="form-control @error('account_code') is-invalid @enderror" value="{{ old('account_code') }}" maxlength="10" required>
-                                @error('account_code')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                                <small class="text-muted">Example: 4000, 5100, 6300</small>
-                            </div>
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-8 mb-3">
                                 <label for="account_name" class="form-label">Account Name <span class="text-danger">*</span></label>
                                 <input type="text" id="account_name" name="account_name" class="form-control @error('account_name') is-invalid @enderror" value="{{ old('account_name') }}" maxlength="100" required>
-                                @error('account_name')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
+                                @error('account_name')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Account Code</label>
+                                <input type="text" id="auto_code_display" class="form-control bg-light" value="—" readonly>
+                                <small class="text-muted">Auto-assigned from the parent.</small>
                             </div>
                         </div>
+
+                        {{-- Submitted values (set by the cascade) --}}
+                        <input type="hidden" name="parent_account_id" id="parent_account_id" value="{{ old('parent_account_id') }}">
+                        <input type="hidden" name="account_code" id="account_code" value="{{ old('account_code') }}">
+                        @error('account_code')<div class="text-danger small mb-2">{{ $message }}</div>@enderror
+                        @error('parent_account_id')<div class="text-danger small mb-2">{{ $message }}</div>@enderror
 
                         <div id="rollup-warning" class="alert alert-warning py-2 d-none"></div>
 
@@ -97,9 +92,7 @@
                                     </div>
                                 @endforeach
                             </div>
-                            @error('store_ids')
-                                <div class="text-danger small mt-2">{{ $message }}</div>
-                            @enderror
+                            @error('store_ids')<div class="text-danger small mt-2">{{ $message }}</div>@enderror
                         </div>
 
                         <div class="form-check form-switch mb-3">
@@ -123,10 +116,11 @@
 
 @push('scripts')
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const globalToggle = document.getElementById('is_global');
-        const storeSelection = document.getElementById('store_selection');
-
+document.addEventListener('DOMContentLoaded', function () {
+    // Store assignment toggle
+    const globalToggle = document.getElementById('is_global');
+    const storeSelection = document.getElementById('store_selection');
+    if (globalToggle && storeSelection) {
         globalToggle.addEventListener('change', function () {
             if (this.checked) {
                 storeSelection.classList.add('d-none');
@@ -135,147 +129,155 @@
                 storeSelection.classList.remove('d-none');
             }
         });
+    }
 
-        // Parent Account: show only options in the selected type's range (e.g. Assets → 1000-1999) and auto-select default
-        const accountTypeRange = {
-            'Assets':      { min: 1000, max: 1999, defaultCode: '1000' },
-            'Liability':  { min: 2000, max: 2999, defaultCode: '2000' },
-            'Taxes':      { min: 3000, max: 3999, defaultCode: '3000' },
-            'Revenue':    { min: 4000, max: 4999, defaultCode: '4000' },
-            'COGS':       { min: 5000, max: 5999, defaultCode: '5000' },
-            'Expense':    { min: 6000, max: 6999, defaultCode: '6000' },
-            'Adjustments': { min: 7000, max: 7999, defaultCode: '7000' },
-            'Equity':     { min: 8000, max: 8999, defaultCode: '8000' }
-        };
-        const accountTypeSelect = document.getElementById('account_type');
-        const parentSelect = document.getElementById('parent_account_id');
-        if (accountTypeSelect && parentSelect) {
-            var parentOptionsCache = [];
-            parentSelect.querySelectorAll('option').forEach(function (o) {
-                if (!o.value) return; // skip the "None (top level)" placeholder
-                parentOptionsCache.push({
-                    value: o.value,
-                    code: o.dataset.accountCode || '',
-                    type: o.dataset.accountType || '',
-                    canParent: o.dataset.canParent === '1',
-                    children: parseInt(o.dataset.children || '0', 10),
-                    name: o.textContent.trim()
-                });
-            });
+    // Every account: {id, account_code, account_name, account_type, can_have_children, children_count}
+    const ACCOUNTS = @json($parentAccounts);
+    const rollupCodes = @json(\App\Models\ChartOfAccount::totalRollupAccountCodes());
+    const typeRange = { Assets:[1000,1999], Liability:[2000,2999], Taxes:[3000,3999], Revenue:[4000,4999], COGS:[5000,5999], Expense:[6000,6999], Adjustments:[7000,7999], Equity:[8000,8999] };
 
-            // After a type is picked, list only that type's MAIN accounts — the
-            // headers that can roll up children (e.g. Expense -> 6450 …) — with
-            // their current sub-account counts.
-            function syncParentFromType() {
-                const type = accountTypeSelect.value;
-                const prev = parentSelect.value;
-                parentSelect.innerHTML = '';
+    const typeSel = document.getElementById('account_type');
+    const parentSel = document.getElementById('parent_top');
+    const subSel = document.getElementById('sub_parent');
+    const codeHidden = document.getElementById('account_code');
+    const parentHidden = document.getElementById('parent_account_id');
+    const codeDisplay = document.getElementById('auto_code_display');
+    const codeHint = document.getElementById('code-range-hint');
+    const rollupWarn = document.getElementById('rollup-warning');
+    const childrenWrap = document.getElementById('parent-children');
+    const childrenList = document.getElementById('parent-children-list');
 
-                const none = document.createElement('option');
-                none.value = '';
-                none.textContent = 'None (top level)';
-                parentSelect.appendChild(none);
+    const usedCodes = new Set(ACCOUNTS.map(a => parseInt(a.account_code, 10)).filter(n => !isNaN(n)));
 
-                if (!type) {
-                    parentSelect.disabled = true;
-                    parentSelect.value = '';
-                    return;
-                }
-                parentSelect.disabled = false;
-
-                parentOptionsCache
-                    .filter(function (item) { return item.type === type && item.canParent; })
-                    .forEach(function (item) {
-                        const opt = document.createElement('option');
-                        opt.value = item.value;
-                        opt.dataset.accountCode = item.code;
-                        const note = item.children > 0
-                            ? ' · ' + item.children + ' sub-account' + (item.children === 1 ? '' : 's')
-                            : ' · no sub-accounts yet';
-                        opt.textContent = item.name + note;
-                        parentSelect.appendChild(opt);
-                    });
-
-                parentSelect.value = prev;          // keep prior choice if still valid
-                if (parentSelect.value !== prev) parentSelect.value = '';
-            }
-            accountTypeSelect.addEventListener('change', syncParentFromType);
-            syncParentFromType();
-
-            // --- Hierarchy hints: code range, rollup warnings, parent children ---
-            const codeInput = document.getElementById('account_code');
-            const codeHint = document.getElementById('code-range-hint');
-            const rollupWarn = document.getElementById('rollup-warning');
-            const childrenWrap = document.getElementById('parent-children');
-            const childrenList = document.getElementById('parent-children-list');
-            const rollupCodes = @json(\App\Models\ChartOfAccount::totalRollupAccountCodes());
-            const childrenBase = @json(url('/api/coa'));
-
-            function showCodeRange() {
-                const r = accountTypeRange[accountTypeSelect.value];
-                codeHint.textContent = r ? (accountTypeSelect.value + ' accounts use codes ' + r.min + '–' + r.max + '.') : '';
-            }
-            function inferParent(code) {
-                if (!/^\d{4}$/.test(code)) return null;
-                if (code.endsWith('000')) return null;
-                if (code.endsWith('00')) return code[0] + '000';
-                return code.slice(0, 2) + '00';
-            }
-            function updateRollupWarning() {
-                const code = (codeInput.value || '').trim();
-                const sel = parentSelect.options[parentSelect.selectedIndex];
-                const parentCode = sel ? (sel.dataset.accountCode || '') : '';
-                let msg = '';
-                if (rollupCodes.includes(code)) {
-                    msg = 'Account ' + code + ' is a rollup total — post transactions to its sub-accounts, not directly to it.';
-                } else {
-                    const eff = parentCode || inferParent(code);
-                    if (eff && rollupCodes.includes(eff)) {
-                        msg = 'This account rolls up into the ' + eff + ' total — avoid posting the same amounts to ' + eff + ' directly.';
-                    }
-                }
-                rollupWarn.textContent = msg;
-                rollupWarn.classList.toggle('d-none', !msg);
-            }
-            async function loadParentChildren() {
-                const id = parentSelect.value;
-                if (!id) { childrenWrap.classList.add('d-none'); childrenList.innerHTML = ''; updateRollupWarning(); return; }
-                try {
-                    const res = await fetch(childrenBase + '/' + id + '/children', { headers: { 'Accept': 'application/json' } });
-                    if (!res.ok) throw new Error('failed');
-                    const data = await res.json();
-                    childrenList.innerHTML = '';
-                    (data.children || []).forEach(function (c) {
-                        const b = document.createElement('span');
-                        b.className = 'badge bg-blue-lt';
-                        b.textContent = c.account_code + ' ' + c.account_name;
-                        childrenList.appendChild(b);
-                    });
-                    if (data.child_range) {
-                        const hint = document.createElement('span');
-                        hint.className = 'small text-primary ms-1';
-                        hint.textContent = 'Sub-codes ' + data.child_range[0] + '–' + data.child_range[1];
-                        childrenList.appendChild(hint);
-                    }
-                    if (!(data.children || []).length && !data.child_range) {
-                        childrenList.innerHTML = '<span class="small text-muted">No sub-accounts yet.</span>';
-                    }
-                    childrenWrap.classList.remove('d-none');
-                } catch (e) {
-                    childrenWrap.classList.add('d-none');
-                }
-                updateRollupWarning();
-            }
-
-            accountTypeSelect.addEventListener('change', showCodeRange);
-            accountTypeSelect.addEventListener('change', loadParentChildren);
-            codeInput.addEventListener('input', updateRollupWarning);
-            parentSelect.addEventListener('change', loadParentChildren);
-            showCodeRange();
-            loadParentChildren();
+    function isFourDigit(code) { return /^\d{4}$/.test(String(code)); }
+    function childRange(code) {
+        if (!isFourDigit(code)) return null;
+        const n = parseInt(code, 10);
+        if (n % 1000 === 0) return [n + 1, n + 999];
+        if (n % 100 === 0) return [n + 1, n + 99];
+        if (n % 10 === 0) return [n + 1, n + 9];
+        return null;
+    }
+    function naturalStep(code) {
+        const n = parseInt(code, 10);
+        if (n % 1000 === 0) return 100;
+        if (n % 100 === 0) return 10;
+        return 1;
+    }
+    function inRange(code, parentCode) {
+        const r = childRange(parentCode);
+        if (!r) return false;
+        const n = parseInt(code, 10);
+        return n >= r[0] && n <= r[1];
+    }
+    function nextCode(parentCode) {
+        const r = childRange(parentCode);
+        if (!r) return null;
+        const step = naturalStep(parentCode);
+        // Prefer the natural block step (100 under x000, 10 under xy00, 1 under xyz0).
+        for (let c = parseInt(parentCode, 10) + step; c <= r[1]; c += step) {
+            if (!usedCodes.has(c)) return String(c);
         }
-    });
+        for (let c = r[0]; c <= r[1]; c++) {
+            if (!usedCodes.has(c)) return String(c);
+        }
+        return null;
+    }
+
+    function resetSelect(sel, placeholder) {
+        sel.innerHTML = '';
+        const o = document.createElement('option');
+        o.value = ''; o.textContent = placeholder;
+        sel.appendChild(o);
+    }
+    function addOption(sel, acct, suffix) {
+        const o = document.createElement('option');
+        o.value = acct.id;
+        o.dataset.code = acct.account_code;
+        o.textContent = acct.account_code + ' - ' + acct.account_name + (suffix || '');
+        sel.appendChild(o);
+    }
+    function selectedCode(sel) {
+        const o = sel.options[sel.selectedIndex];
+        return (sel.value && o) ? o.dataset.code : '';
+    }
+
+    function fillParents() {
+        const type = typeSel.value;
+        resetSelect(parentSel, type ? 'Select parent…' : 'Choose a type first…');
+        parentSel.disabled = !type;
+        if (type) {
+            // Top-level accounts (x000) of this type.
+            ACCOUNTS
+                .filter(a => a.account_type === type && parseInt(a.account_code, 10) % 1000 === 0)
+                .sort((a, b) => parseInt(a.account_code) - parseInt(b.account_code))
+                .forEach(a => addOption(parentSel, a));
+            // Auto-select when there is exactly one top-level.
+            if (parentSel.options.length === 2) parentSel.value = parentSel.options[1].value;
+        }
+        fillSubParents();
+    }
+
+    function fillSubParents() {
+        resetSelect(subSel, 'Add directly under the parent');
+        const parentCode = selectedCode(parentSel);
+        subSel.disabled = !parentCode;
+        if (parentCode) {
+            // Children of the parent that THEMSELVES have children (the sub-parents).
+            ACCOUNTS
+                .filter(a => a.account_type === typeSel.value && inRange(a.account_code, parentCode) && a.children_count > 0)
+                .sort((a, b) => parseInt(a.account_code) - parseInt(b.account_code))
+                .forEach(a => addOption(subSel, a, ' · ' + a.children_count + ' sub'));
+        }
+        updateCode();
+    }
+
+    function deepest() {
+        if (selectedCode(subSel)) return { id: subSel.value, code: selectedCode(subSel) };
+        if (selectedCode(parentSel)) return { id: parentSel.value, code: selectedCode(parentSel) };
+        return null;
+    }
+
+    function updateCode() {
+        const d = deepest();
+        if (d) {
+            const code = nextCode(d.code);
+            codeHidden.value = code || '';
+            parentHidden.value = d.id;
+            codeDisplay.value = code ? code : 'Parent is full — pick another';
+        } else {
+            codeHidden.value = ''; parentHidden.value = ''; codeDisplay.value = '—';
+        }
+        // Rollup hint
+        let msg = '';
+        if (d && rollupCodes.includes(String(d.code))) {
+            msg = 'New accounts roll up into the ' + d.code + ' total — post transactions to them, not to ' + d.code + ' directly.';
+        }
+        rollupWarn.textContent = msg;
+        rollupWarn.classList.toggle('d-none', !msg);
+        // Existing children preview (skip noisy top-level lists)
+        if (d && parseInt(d.code, 10) % 1000 !== 0) {
+            const kids = ACCOUNTS.filter(a => inRange(a.account_code, d.code)).sort((a, b) => parseInt(a.account_code) - parseInt(b.account_code));
+            childrenList.innerHTML = '';
+            kids.forEach(c => { const b = document.createElement('span'); b.className = 'badge bg-blue-lt'; b.textContent = c.account_code + ' ' + c.account_name; childrenList.appendChild(b); });
+            if (!kids.length) childrenList.innerHTML = '<span class="small text-muted">No sub-accounts yet.</span>';
+            childrenWrap.classList.remove('d-none');
+        } else {
+            childrenWrap.classList.add('d-none');
+        }
+    }
+
+    function showCodeRange() {
+        const r = typeRange[typeSel.value];
+        codeHint.textContent = r ? (typeSel.value + ' accounts use codes ' + r[0] + '–' + r[1] + '.') : '';
+    }
+
+    typeSel.addEventListener('change', function () { fillParents(); showCodeRange(); });
+    parentSel.addEventListener('change', fillSubParents);
+    subSel.addEventListener('change', updateCode);
+
+    fillParents();
+    showCodeRange();
+});
 </script>
 @endpush
-
-

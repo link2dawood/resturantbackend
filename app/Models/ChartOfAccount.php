@@ -265,6 +265,42 @@ class ChartOfAccount extends Model
      * franchisor may manage any account; an owner may manage only the
      * (non-system) accounts they created themselves.
      */
+    /**
+     * The next available code to assign to a new child of $parentCode, preferring
+     * the natural block step (100 under x000, 10 under xy00, 1 under xyz0) and
+     * falling back to any free code in the parent's range. Null if the code can't
+     * have children or the range is full.
+     */
+    public static function nextChildCode(string $parentCode): ?string
+    {
+        $range = self::childCodeRangeForParent($parentCode);
+        if (! $range) {
+            return null;
+        }
+
+        [$min, $max] = $range;
+        $code = (int) $parentCode;
+        $step = $code % 1000 === 0 ? 100 : ($code % 100 === 0 ? 10 : 1);
+
+        $used = self::whereBetween('account_code', [(string) $min, (string) $max])
+            ->pluck('account_code')
+            ->map(fn ($c) => (int) $c)
+            ->all();
+
+        for ($c = $code + $step; $c <= $max; $c += $step) {
+            if (! in_array($c, $used, true)) {
+                return (string) $c;
+            }
+        }
+        for ($c = $min; $c <= $max; $c++) {
+            if (! in_array($c, $used, true)) {
+                return (string) $c;
+            }
+        }
+
+        return null;
+    }
+
     public function canBeManagedBy(User $user): bool
     {
         if ($user->isAdmin() || $user->isFranchisor()) {

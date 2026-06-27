@@ -1073,9 +1073,33 @@
             @if ($trialOwner && $trialOwner->onFreeTrial())
                 @php($trialDaysLeft = $trialOwner->trialDaysLeft())
                 <div style="background: {{ $trialDaysLeft <= 5 ? '#fff4e5' : '#eef3fb' }}; border-bottom: 1px solid {{ $trialDaysLeft <= 5 ? '#ffd8a8' : '#d0def5' }}; color: {{ $trialDaysLeft <= 5 ? '#b56a00' : '#1a59a3' }}; padding: .55rem 1rem; text-align: center; font-size: .9rem;">
-                    <strong>{{ $trialDaysLeft }}</strong> day{{ $trialDaysLeft === 1 ? '' : 's' }} left in your free trial.
+                    <span id="trial-countdown" data-ends="{{ optional($trialOwner->trial_ends_at)->toIso8601String() }}">
+                        <strong>{{ $trialDaysLeft }}</strong> day{{ $trialDaysLeft === 1 ? '' : 's' }} left in your free trial.
+                    </span>
                     <a href="{{ route('trial.expired') }}" style="color: inherit; font-weight: 600; text-decoration: underline;">Continue your subscription</a>
                 </div>
+                <script>
+                (function () {
+                    var el = document.getElementById('trial-countdown');
+                    if (!el || !el.dataset.ends) return;
+                    var endTime = new Date(el.dataset.ends).getTime();
+                    function render() {
+                        var diff = Math.max(0, endTime - Date.now());
+                        var d = Math.floor(diff / 86400000);
+                        var h = Math.floor((diff % 86400000) / 3600000);
+                        var m = Math.floor((diff % 3600000) / 60000);
+                        if (diff <= 0) {
+                            el.innerHTML = 'Your free trial has ended.';
+                        } else if (d >= 1) {
+                            el.innerHTML = '<strong>' + d + '</strong> day' + (d === 1 ? '' : 's') + ', ' + h + ' hr left in your free trial.';
+                        } else {
+                            el.innerHTML = '<strong>' + h + '</strong> hr ' + m + ' min left in your free trial.';
+                        }
+                    }
+                    render();
+                    setInterval(render, 60000);
+                })();
+                </script>
             @endif
         @endauth
 

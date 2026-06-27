@@ -25,6 +25,17 @@ class StoreChartOfAccountRequest extends FormRequest
             'is_global' => $this->has('is_global'),
             'is_active' => $this->has('is_active'),
         ]);
+
+        // The code is auto-assigned from the chosen parent (the form has no
+        // free-text code field) — derive it server-side so it's authoritative.
+        $parentId = $this->input('parent_account_id');
+        if ($parentId) {
+            $parent = \App\Models\ChartOfAccount::find($parentId);
+            $next = $parent ? \App\Models\ChartOfAccount::nextChildCode((string) $parent->account_code) : null;
+            if ($next) {
+                $this->merge(['account_code' => $next]);
+            }
+        }
     }
 
     /**
