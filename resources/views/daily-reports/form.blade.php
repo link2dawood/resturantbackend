@@ -746,6 +746,47 @@
                                 <td></td>
                                 <td></td>
                             </tr>
+                            {{-- Adjustments (next to Gross Sales) — all reduce Net Sales --}}
+                            <tr>
+                                <td>
+                                    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                                        <span><strong>Adjustments: Overrings/Returns:</strong></span>
+                                        <span style="width:30%;"><input type="number" name="adjustments_overrings" class="form-input number-input" value="0" style="background: white;"></span>
+                                    </div>
+                                </td>
+                                <td></td>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                                        <span><strong>Adjustments for Cash:</strong></span>
+                                        <span style="width:30%;"><input type="number" name="adjustments_cash" class="form-input number-input" value="0" style="background: white;"></span>
+                                    </div>
+                                </td>
+                                <td></td>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                                        <span><strong>Adjustments for Credit Card:</strong></span>
+                                        <span style="width:30%;"><input type="number" name="adjustments_credit_card" class="form-input number-input" value="0" style="background: white;"></span>
+                                    </div>
+                                </td>
+                                <td></td>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                                        <span><strong>Tips:</strong></span>
+                                        <span style="width:30%;"><input type="number" name="tips" class="form-input number-input" value="0" style="background: white;"></span>
+                                    </div>
+                                </td>
+                                <td></td>
+                                <td></td>
+                            </tr>
                             <tr>
                                 <td>
                                     <div style="display: -webkit-flex; display: flex; -webkit-justify-content: space-between; justify-content: space-between; -webkit-align-items: center; align-items: center; width: 100%;">
@@ -761,16 +802,6 @@
                                     <div style="display: -webkit-flex; display: flex; -webkit-justify-content: space-between; justify-content: space-between; -webkit-align-items: center; align-items: center; width: 100%;">
                                         <span><strong>Total Amount of Coupons Received:</strong></span>
                                         <span style="width:30%;"><input type="number" name="coupons_received" class="form-input number-input" value="0" style="background: white;"></span>
-                                    </div>
-                                </td>
-                                <td></td>
-                                <td></td>
-                            </tr>
-                            <tr>
-                                <td>
-                                    <div style="display: -webkit-flex; display: flex; -webkit-justify-content: space-between; justify-content: space-between; -webkit-align-items: center; align-items: center; width: 100%;">
-                                        <span><strong>Adjustments: Overrings/Returns:</strong></span>
-                                        <span style="width:30%;"><input type="number" name="adjustments_overrings" class="form-input number-input" value="0" style="background: white;"></span>
                                     </div>
                                 </td>
                                 <td></td>
@@ -821,8 +852,12 @@
                                 <td id="onlineRevenue2" class="calculated-field number-input">$0</td>
                             </tr>
                             <tr>
-                                <td><strong>Credit Card (Square sales):</strong><br><small class="text-muted">Square fee (2.45%) is calculated automatically on save</small></td>
+                                <td><strong>Credit Card (sales):</strong><br><small class="text-muted">Square fee (2.45%) is calculated on sales only, on save</small></td>
                                 <td id="creditCards2" class="calculated-field number-input"><input type="number" name="credit_cards" class="form-input number-input" value="0" style="background: #e7f3ff !important;"></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Credit Card (tips):</strong><br><small class="text-muted">Paid out in cash — reduces cash to account for</small></td>
+                                <td class="calculated-field number-input"><input type="number" name="credit_card_tips" class="form-input number-input" value="0" style="background: #e7f3ff !important;"></td>
                             </tr>
                             <tr>
                                 <td><strong>Square fee (2.45%):</strong></td>
@@ -876,7 +911,11 @@ function calculateTotals() {
     // Get form values
     const couponsReceived = parseFloat(document.querySelector('input[name="coupons_received"]').value || 0);
     const adjustmentsOverrings = parseFloat(document.querySelector('input[name="adjustments_overrings"]').value || 0);
+    const adjustmentsCash = parseFloat(document.querySelector('input[name="adjustments_cash"]')?.value || 0);
+    const adjustmentsCreditCard = parseFloat(document.querySelector('input[name="adjustments_credit_card"]')?.value || 0);
+    const tips = parseFloat(document.querySelector('input[name="tips"]')?.value || 0);
     let creditCards = parseFloat(document.querySelector('input[name="credit_cards"]').value || 0);
+    const creditCardTips = parseFloat(document.querySelector('input[name="credit_card_tips"]')?.value || 0);
     const actualDeposit = parseFloat(document.querySelector('input[name="actual_deposit"]').value || 0);
     const totalCustomers = parseFloat(document.querySelector('input[name="total_customers"]').value || 0);
 
@@ -928,8 +967,8 @@ function calculateTotals() {
     // Gross Sales = Total Revenue Entries + Coupons Amount Received
     const grossSales = totalRevenueIncome + couponsReceived;
     
-    // Net Sales = Total Revenue Income - Adjustments only (same as Total Revenue Income; do not deduct coupons)
-    const netSales = totalRevenueIncome - adjustmentsOverrings;
+    // Net Sales = Total Revenue Income − all adjustments − tips (coupons not deducted here)
+    const netSales = totalRevenueIncome - adjustmentsOverrings - adjustmentsCash - adjustmentsCreditCard - tips;
     
     // Tax = Net Sales minus (Net Sales / 1.0825)
     const tax = netSales - (netSales / 1.0825);
@@ -969,8 +1008,9 @@ function calculateTotals() {
 
     }
     
-    // Cash To Account For = Net Sales - Total Transaction Expenses - Online Platform Revenue - Credit Cards - Checks - Crypto
-    let cashToAccountFor = netSales - totalPaidOuts - onlinePlatformRevenue - creditCards - checksRevenue - cryptoRevenue;
+    // Cash To Account For = Net Sales − Expenses − Online − Credit Card (sales)
+    //   − Checks − Crypto − Credit Card Tips (paid out in cash)
+    let cashToAccountFor = netSales - totalPaidOuts - onlinePlatformRevenue - creditCards - checksRevenue - cryptoRevenue - creditCardTips;
     console.log(cashToAccountFor,'cashToAccountFor');
     // Ensure result is not negative (numbers cannot go negative)
     // cashToAccountFor = Math.max(0, Math.round(cashToAccountFor * 100) / 100);
@@ -1212,7 +1252,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const inputs = [
         'input[name="coupons_received"]',
         'input[name="adjustments_overrings"]',
+        'input[name="adjustments_cash"]',
+        'input[name="adjustments_credit_card"]',
+        'input[name="tips"]',
         'input[name="credit_cards"]',
+        'input[name="credit_card_tips"]',
         'input[name="actual_deposit"]',
         'input[name="total_customers"]',
         'input[name*="[amount]"]'

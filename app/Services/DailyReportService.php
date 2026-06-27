@@ -173,8 +173,12 @@ class DailyReportService
     {
         $grossSales = (float) $reportData['gross_sales'];
         $couponsReceived = (float) ($reportData['coupons_received'] ?? 0);
-        $adjustments = (float) ($reportData['adjustments_overrings'] ?? 0);
+        $adjustments = (float) ($reportData['adjustments_overrings'] ?? 0)
+            + (float) ($reportData['adjustments_cash'] ?? 0)
+            + (float) ($reportData['adjustments_credit_card'] ?? 0)
+            + (float) ($reportData['tips'] ?? 0);
         $creditCards = (float) $reportData['credit_cards'];
+        $creditCardTips = (float) ($reportData['credit_card_tips'] ?? 0);
         $actualDeposit = (float) $reportData['actual_deposit'];
 
         // Net sales should be positive
@@ -194,7 +198,7 @@ class DailyReportService
         }
 
         // Actual deposit should be reasonable compared to net sales
-        $expectedCash = $netSales - $creditCards;
+        $expectedCash = $netSales - $creditCards - $creditCardTips;
         $variance = abs($actualDeposit - $expectedCash);
 
         if ($variance > ($grossSales * 0.1)) { // 10% variance threshold

@@ -28,8 +28,12 @@ class DailyReport extends Model
         'total_coupons',
         'coupons_received',
         'adjustments_overrings',
+        'adjustments_cash',
+        'adjustments_credit_card',
+        'tips',
         'total_customers',
         'credit_cards',
+        'credit_card_tips',
         'actual_deposit',
         'store_id',
         'created_by',
@@ -53,7 +57,11 @@ class DailyReport extends Model
         'amount_of_voids' => 'decimal:2',
         'coupons_received' => 'decimal:2',
         'adjustments_overrings' => 'decimal:2',
+        'adjustments_cash' => 'decimal:2',
+        'adjustments_credit_card' => 'decimal:2',
+        'tips' => 'decimal:2',
         'credit_cards' => 'decimal:2',
+        'credit_card_tips' => 'decimal:2',
         'actual_deposit' => 'decimal:2',
     ];
 
@@ -130,11 +138,25 @@ class DailyReport extends Model
 
     public function getNetSalesAttribute(): float
     {
-        // Net Sales = Total Revenue Entries - Coupons Received - Adjustments: Overrings/Returns
+        // Net Sales = Revenue Entries
+        //   − Coupons Received
+        //   − Adjustments: Overrings/Returns
+        //   − Adjustments for Cash
+        //   − Adjustments for Credit Card
+        //   − Tips   (tips are not sales)
         $totalRevenueEntries = $this->getTotalRevenueEntriesAttribute();
         $couponsReceived = (float) ($this->coupons_received ?? 0);
         $adjustmentsOverrings = (float) ($this->adjustments_overrings ?? 0);
-        return $totalRevenueEntries - $couponsReceived - $adjustmentsOverrings;
+        $adjustmentsCash = (float) ($this->adjustments_cash ?? 0);
+        $adjustmentsCreditCard = (float) ($this->adjustments_credit_card ?? 0);
+        $tips = (float) ($this->tips ?? 0);
+
+        return $totalRevenueEntries
+            - $couponsReceived
+            - $adjustmentsOverrings
+            - $adjustmentsCash
+            - $adjustmentsCreditCard
+            - $tips;
     }
 
     public function getTaxAttribute(): float
@@ -152,15 +174,19 @@ class DailyReport extends Model
 
     public function getCashToAccountForAttribute(): float
     {
-        // Cash To Account For = Net Sales - Total Transaction Expenses - Online Platform Revenue - Credit Cards - Checks - Crypto
+        // Cash To Account For = Net Sales − Transaction Expenses − Online Platform
+        //   − Credit Card (sales) − Checks − Crypto − Credit Card Tips
+        // Credit card tips are paid out to staff in cash, so they reduce the cash
+        // owed to the deposit.
         $netSales = $this->getNetSalesAttribute();
         $transactionExpenses = $this->getTotalTransactionExpensesAttribute();
         $onlinePlatformRevenue = $this->getOnlinePlatformRevenueAttribute();
         $creditCards = (float) ($this->credit_cards ?? 0);
+        $creditCardTips = (float) ($this->credit_card_tips ?? 0);
         $checksRevenue = $this->getChecksRevenueAttribute();
         $cryptoRevenue = $this->getCryptoRevenueAttribute();
-        
-        $result = $netSales - $transactionExpenses - $onlinePlatformRevenue - $creditCards - $checksRevenue - $cryptoRevenue;
+
+        $result = $netSales - $transactionExpenses - $onlinePlatformRevenue - $creditCards - $checksRevenue - $cryptoRevenue - $creditCardTips;
         
         // Ensure result is not negative (numbers cannot go negative)
         return max(0, round($result, 2));

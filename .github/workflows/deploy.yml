@@ -1,0 +1,74 @@
+name: Deploy
+
+# Auto-deploy to production over SSH on every push to `coa` (and on manual run).
+on:
+  push:
+    branches: [coa]
+  workflow_dispatch:
+
+# Never let two deploys run at once.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to production (SSH)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: 162.241.226.193
+          port: 22
+          username: hbpfkwmy
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script_stop: true
+          command_timeout: 20m
+          script: |
+            set -euo pipefail
+
+            # --- Configurable per-server settings (set as GitHub repo Variables) ---
+            APP_PATH="${{ vars.DEPLOY_PATH || '/home/hbpfkwmy/public_html' }}"
+            PHP="${{ vars.PHP_BINARY || 'php' }}"
+            COMPOSER="${{ vars.COMPOSER_BINARY || 'composer' }}"
+            BRANCH="coa"
+
+            echo "==> Deploying '$BRANCH' to $APP_PATH"
+            cd "$APP_PATH"
+
+            # Maintenance mode while we update (tolerate a not-yet-bootable app).
+            $PHP artisan down --retry=60 || true
+
+            # Deterministic update: fetch and hard-reset to the deployed branch.
+            # .env, storage/ and bootstrap/cache are gitignored, so they're preserved.
+            git fetch --all --prune
+            git reset --hard "origin/$BRANCH"
+
+            # PHP dependencies (production only).
+            $COMPOSER install --no-dev --optimize-autoloader --no-interaction --prefer-dist
+
+            # Build frontend assets only if a Node toolchain exists on the server;
+            # otherwise we assume compiled assets (public/css, public/js) are committed.
+            if command -v npm >/dev/null 2>&1 && [ -f package.json ]; then
+              npm ci || true
+              npm run production || npm run prod || npm run build || true
+            fi
+
+            # IMPORTANT: database migrations are intentionally NOT run here, to keep
+            # existing production data safe. When you are ready, run manually:
+            #   $PHP artisan migrate --force      # applies only new migrations
+            # NEVER run migrate:fresh / migrate:refresh in production (drops data).
+
+            # Refresh caches for the new code.
+            $PHP artisan storage:link || true
+            $PHP artisan config:cache
+            $PHP artisan route:cache
+            $PHP artisan view:cache
+
+            # Pick up new code in queue workers (no-op if none running).
+            $PHP artisan queue:restart || true
+
+            # Back online.
+            $PHP artisan up
+            echo "==> Deploy complete."
