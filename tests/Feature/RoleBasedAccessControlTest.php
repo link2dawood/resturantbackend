@@ -76,14 +76,14 @@ class RoleBasedAccessControlTest extends TestCase
     }
 
     /** @test */
-    public function owner_can_manage_any_chart_of_account(): void
+    public function owner_cannot_edit_or_delete_seeded_or_others_accounts(): void
     {
         $owner = User::factory()->create(['role' => 'owner']);
-        $foreign = $this->coa(); // created_by null (system / admin-seeded)
+        $foreign = $this->coa(); // created_by null (seeded / admin)
 
-        $this->actingAs($owner)->get(route('coa.edit', $foreign))->assertOk();
-        $this->actingAs($owner)->delete(route('coa.destroy', $foreign))->assertRedirect();
-        $this->assertDatabaseMissing('chart_of_accounts', ['id' => $foreign->id]);
+        $this->actingAs($owner)->get(route('coa.edit', $foreign))->assertForbidden();
+        $this->actingAs($owner)->put(route('coa.update', $foreign), [])->assertForbidden();
+        $this->actingAs($owner)->delete(route('coa.destroy', $foreign))->assertForbidden();
     }
 
     // --- Admin: full control ---------------------------------------------
