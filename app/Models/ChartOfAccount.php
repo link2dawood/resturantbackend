@@ -303,13 +303,9 @@ class ChartOfAccount extends Model
 
     public function canBeManagedBy(User $user): bool
     {
-        if ($user->isAdmin() || $user->isFranchisor()) {
-            return true;
-        }
-
-        return $user->isOwner()
-            && ! $this->is_system_account
-            && (int) $this->created_by === (int) $user->id;
+        // Admins, the franchisor, and owners may manage any chart-of-accounts.
+        // (Managers may not.)
+        return $user->isAdmin() || $user->isFranchisor() || $user->isOwner();
     }
 
     // Scopes
