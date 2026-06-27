@@ -87,7 +87,7 @@
                             <div id="store_selection" class="border rounded p-3 @if(old('is_global')) d-none @endif">
                                 @foreach($stores as $store)
                                     <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" name="store_ids[]" value="{{ $store->id }}" id="store{{ $store->id }}" @checked(in_array($store->id, old('store_ids', [])))>
+                                        <input class="form-check-input" type="checkbox" name="store_ids[]" value="{{ $store->id }}" id="store{{ $store->id }}" @checked(in_array($store->id, old('store_ids', $defaultStoreIds ?? [])))>
                                         <label class="form-check-label" for="store{{ $store->id }}">{{ $store->store_info }}</label>
                                     </div>
                                 @endforeach

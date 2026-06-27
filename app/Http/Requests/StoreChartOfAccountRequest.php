@@ -75,6 +75,18 @@ class StoreChartOfAccountRequest extends FormRequest
                 $validator->errors()->add('store_ids', 'Select at least one store or mark the account as global.');
             }
 
+            // Owners may only assign accounts to their own stores.
+            $user = auth()->user();
+            if ($user && ! $user->isAdmin() && ! empty($storeIds)) {
+                $accessible = $user->getAccessibleStoreIds();
+                foreach ($storeIds as $sid) {
+                    if (! in_array((int) $sid, $accessible, true)) {
+                        $validator->errors()->add('store_ids', 'You can only assign accounts to your own stores.');
+                        break;
+                    }
+                }
+            }
+
             \App\Support\CoaHierarchy::applyTo($validator, $this->all());
         });
     }

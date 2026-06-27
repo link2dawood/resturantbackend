@@ -72,11 +72,16 @@ class ChartOfAccountController extends Controller
      */
     public function create(): View
     {
-        $stores = Store::orderBy('store_info')->get(['id', 'store_info']);
+        $user = auth()->user();
+        // Only the user's own stores (admins see all). Prevents owners seeing
+        // other tenants' stores.
+        $stores = $user->accessibleStores()->orderBy('store_info')->get(['id', 'store_info']);
+        // Auto-select the owner's store(s); admins choose explicitly.
+        $defaultStoreIds = $user->isAdmin() ? [] : $stores->pluck('id')->all();
         $parentAccounts = $this->parentAccountOptions();
         $accountTypes = self::ACCOUNT_TYPES;
 
-        return view('admin.coa.create', compact('stores', 'parentAccounts', 'accountTypes'));
+        return view('admin.coa.create', compact('stores', 'parentAccounts', 'accountTypes', 'defaultStoreIds'));
     }
 
     /**
@@ -194,7 +199,8 @@ class ChartOfAccountController extends Controller
 
         $chartOfAccount->load('stores:id,store_info');
 
-        $stores = Store::orderBy('store_info')->get(['id', 'store_info']);
+        // Only the user's own stores (admins see all).
+        $stores = auth()->user()->accessibleStores()->orderBy('store_info')->get(['id', 'store_info']);
         $parentAccounts = ChartOfAccount::where('id', '!=', $chartOfAccount->id)
             ->orderBy('account_name')
             ->get(['id', 'account_name', 'account_code']);
