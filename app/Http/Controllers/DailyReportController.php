@@ -391,13 +391,13 @@ class DailyReportController extends Controller
 
         $dailyReport->load(['store', 'creator', 'approver', 'transactions.transactionType.defaultCoa', 'revenues.revenueIncomeType']);
 
-        // Display net sales: Total Revenue Income − all adjustments − tips (no coupons here).
+        // Display net sales: Total Revenue Income − all adjustments − CC tips (no coupons here).
         $totalRevenueEntries = (float) $dailyReport->gross_sales - (float) ($dailyReport->coupons_received ?? 0);
         $displayNetSales = $totalRevenueEntries
             - (float) ($dailyReport->adjustments_overrings ?? 0)
             - (float) ($dailyReport->adjustments_cash ?? 0)
             - (float) ($dailyReport->adjustments_credit_card ?? 0)
-            - (float) ($dailyReport->tips ?? 0);
+            - (float) ($dailyReport->credit_card_tips ?? 0);
 
         // Prev/Next day reports (same store) for navigation buttons
         $reportDate = $dailyReport->report_date->format('Y-m-d');
@@ -886,13 +886,13 @@ class DailyReportController extends Controller
         $grossSales = $totalRevenueEntries + $couponsReceived;
         $data['gross_sales'] = $grossSales;
 
-        // Net Sales = Total Revenue Income − all adjustments − tips (coupons are
+        // Net Sales = Total Revenue Income − all adjustments − CC tips (coupons are
         // not deducted here, matching the historical stored-column convention).
         $adjustmentsOverrings = (float) ($data['adjustments_overrings'] ?? 0);
         $adjustmentsCash = (float) ($data['adjustments_cash'] ?? 0);
         $adjustmentsCreditCard = (float) ($data['adjustments_credit_card'] ?? 0);
-        $tips = (float) ($data['tips'] ?? 0);
-        $netSales = $totalRevenueEntries - $adjustmentsOverrings - $adjustmentsCash - $adjustmentsCreditCard - $tips;
+        $creditCardTips = (float) ($data['credit_card_tips'] ?? 0);
+        $netSales = $totalRevenueEntries - $adjustmentsOverrings - $adjustmentsCash - $adjustmentsCreditCard - $creditCardTips;
         $data['net_sales'] = $netSales;
 
         // Calculate Tax = Net Sales minus (Net Sales / 1.0825)
@@ -926,9 +926,10 @@ class DailyReportController extends Controller
         }
         
         // Cash to account for = Net Sales − Transaction Expenses − Online − Credit
-        // Card (sales) − Checks − Crypto − Credit Card Tips (paid out in cash).
-        $creditCardTips = (float) ($data['credit_card_tips'] ?? 0);
-        $cashToAccountFor = $netSales - $totalPaidOuts - $onlinePlatformRevenue - $creditCards - $checksRevenue - $cryptoRevenue - $creditCardTips;
+        // Card SALES (= card total − tips) − Checks − Crypto. Tips come out of the
+        // card total, not cash.
+        $creditCardSales = $creditCards - $creditCardTips; // $creditCards is the card TOTAL
+        $cashToAccountFor = $netSales - $totalPaidOuts - $onlinePlatformRevenue - $creditCardSales - $checksRevenue - $cryptoRevenue;
         
         // Ensure result is not negative (numbers cannot go negative)
         $cashToAccountFor = max(0, round($cashToAccountFor, 2));
@@ -944,10 +945,10 @@ class DailyReportController extends Controller
             $data['over'] = $actualDeposit - $cashToAccountFor;
         }
 
-        // Calculate Average Ticket = Net Sales / Total Customers
+        // Calculate Average Ticket = Sales (Pre-Tax) / Total Customers
         $totalCustomers = (int) ($data['total_customers'] ?? 0);
         if ($totalCustomers > 0) {
-            $data['average_ticket'] = $netSales / $totalCustomers;
+            $data['average_ticket'] = $data['sales'] / $totalCustomers;
         } else {
             $data['average_ticket'] = 0;
         }

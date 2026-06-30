@@ -143,20 +143,26 @@ class DailyReport extends Model
         //   − Adjustments: Overrings/Returns
         //   − Adjustments for Cash
         //   − Adjustments for Credit Card
-        //   − Tips   (tips are not sales)
+        //   − Credit Card Tips   (tips are charged on the card but aren't sales)
         $totalRevenueEntries = $this->getTotalRevenueEntriesAttribute();
         $couponsReceived = (float) ($this->coupons_received ?? 0);
         $adjustmentsOverrings = (float) ($this->adjustments_overrings ?? 0);
         $adjustmentsCash = (float) ($this->adjustments_cash ?? 0);
         $adjustmentsCreditCard = (float) ($this->adjustments_credit_card ?? 0);
-        $tips = (float) ($this->tips ?? 0);
+        $creditCardTips = (float) ($this->credit_card_tips ?? 0);
 
         return $totalRevenueEntries
             - $couponsReceived
             - $adjustmentsOverrings
             - $adjustmentsCash
             - $adjustmentsCreditCard
-            - $tips;
+            - $creditCardTips;
+    }
+
+    /** Credit Card sales = the card total charged minus the tips portion. */
+    public function getCreditCardSalesAttribute(): float
+    {
+        return round((float) ($this->credit_cards ?? 0) - (float) ($this->credit_card_tips ?? 0), 2);
     }
 
     public function getTaxAttribute(): float
@@ -175,18 +181,17 @@ class DailyReport extends Model
     public function getCashToAccountForAttribute(): float
     {
         // Cash To Account For = Net Sales − Transaction Expenses − Online Platform
-        //   − Credit Card (sales) − Checks − Crypto − Credit Card Tips
-        // Credit card tips are paid out to staff in cash, so they reduce the cash
-        // owed to the deposit.
+        //   − Credit Card SALES (= card total − tips) − Checks − Crypto.
+        // Tips come out of the card total (not the cash drawer), so only the card
+        // SALES reduce the cash owed.
         $netSales = $this->getNetSalesAttribute();
         $transactionExpenses = $this->getTotalTransactionExpensesAttribute();
         $onlinePlatformRevenue = $this->getOnlinePlatformRevenueAttribute();
-        $creditCards = (float) ($this->credit_cards ?? 0);
-        $creditCardTips = (float) ($this->credit_card_tips ?? 0);
+        $creditCardSales = $this->getCreditCardSalesAttribute();
         $checksRevenue = $this->getChecksRevenueAttribute();
         $cryptoRevenue = $this->getCryptoRevenueAttribute();
 
-        $result = $netSales - $transactionExpenses - $onlinePlatformRevenue - $creditCards - $checksRevenue - $cryptoRevenue - $creditCardTips;
+        $result = $netSales - $transactionExpenses - $onlinePlatformRevenue - $creditCardSales - $checksRevenue - $cryptoRevenue;
         
         // Ensure result is not negative (numbers cannot go negative)
         return max(0, round($result, 2));
@@ -210,8 +215,9 @@ class DailyReport extends Model
 
     public function getAverageTicketAttribute(): float
     {
+        // Average ticket is based on Sales (Pre-Tax), not Net Sales.
         return $this->total_customers > 0 ?
-               $this->getNetSalesAttribute() / $this->total_customers : 0;
+               $this->getSalesPreTaxAttribute() / $this->total_customers : 0;
     }
 
     public function getTotalRevenueIncomeAttribute(): float

@@ -173,12 +173,12 @@ class DailyReportService
     {
         $grossSales = (float) $reportData['gross_sales'];
         $couponsReceived = (float) ($reportData['coupons_received'] ?? 0);
+        $creditCards = (float) $reportData['credit_cards']; // card TOTAL (sales + tips)
+        $creditCardTips = (float) ($reportData['credit_card_tips'] ?? 0);
         $adjustments = (float) ($reportData['adjustments_overrings'] ?? 0)
             + (float) ($reportData['adjustments_cash'] ?? 0)
             + (float) ($reportData['adjustments_credit_card'] ?? 0)
-            + (float) ($reportData['tips'] ?? 0);
-        $creditCards = (float) $reportData['credit_cards'];
-        $creditCardTips = (float) ($reportData['credit_card_tips'] ?? 0);
+            + $creditCardTips; // tips are backed out of net sales
         $actualDeposit = (float) $reportData['actual_deposit'];
 
         // Net sales should be positive
@@ -197,8 +197,9 @@ class DailyReportService
             ]);
         }
 
-        // Actual deposit should be reasonable compared to net sales
-        $expectedCash = $netSales - $creditCards - $creditCardTips;
+        // Actual deposit should be reasonable compared to net sales (subtract card
+        // SALES = total − tips; tips don't come out of cash).
+        $expectedCash = $netSales - ($creditCards - $creditCardTips);
         $variance = abs($actualDeposit - $expectedCash);
 
         if ($variance > ($grossSales * 0.1)) { // 10% variance threshold
