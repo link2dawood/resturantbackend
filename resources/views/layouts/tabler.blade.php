@@ -171,6 +171,18 @@
             font-size: 0.875rem;
             letter-spacing: 0.1px;
         }
+
+        /* Clean nav: no outlined boxes around each item — only the active pill
+           and the hover state carry a background. */
+        .navbar-nav .nav-link,
+        .navbar-nav .nav-link:focus,
+        .navbar-nav .nav-item .nav-link {
+            border: 0 !important;
+            outline: none !important;
+        }
+        .navbar-nav .nav-link:not(.active) {
+            box-shadow: none !important;
+        }
         
         .nav-link:hover {
             background-color: var(--google-blue-50, #e8f0fe) !important;
@@ -747,15 +759,15 @@
                         </li>
                         @endif
 
-                        <!-- Transaction Management (Admin and Owners) -->
+                        <!-- Accounts: Chart of Accounts / Revenue & Transaction Types (Admin and Owners) -->
                         @if(Auth::user()->isAdmin() || Auth::user()->isOwner())
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle d-flex align-items-center {{ request()->routeIs('transaction-types.*') || request()->routeIs('revenue-income-types.*') || request()->routeIs('coa.*') || request()->routeIs('admin.expenses.*') ? 'active' : '' }}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="padding: 8px 16px; border-radius: 20px; font-family: 'Google Sans', sans-serif; font-weight: 500; font-size: 14px; transition: all 0.2s ease; {{ request()->routeIs('transaction-types.*') || request()->routeIs('revenue-income-types.*') || request()->routeIs('coa.*') || request()->routeIs('admin.expenses.*') ? 'background: #4285f4; color: white;' : 'color: #5f6368;' }}" onmouseover="if(!this.classList.contains('active')) { this.style.background='#f1f3f4'; this.style.color='#1a73e8'; }" onmouseout="if(!this.classList.contains('active')) { this.style.background='transparent'; this.style.color='#5f6368'; }">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
-                                    <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
-                                    <line x1="1" y1="10" x2="23" y2="10"/>
+                                    <path d="M3 3v18h18"/>
+                                    <path d="M7 15l3-3 3 3 5-5"/>
                                 </svg>
-                                Transactions
+                                Accounts
                             </a>
                             <ul class="dropdown-menu" style="border-radius: 12px; border: 1px solid #e0e0e0; box-shadow: 0 4px 12px rgba(0,0,0,0.15); padding: 8px 0;">
                                 <li><a class="dropdown-item d-flex align-items-center" href="{{ route('coa.index') }}" style="padding: 8px 16px; font-family: 'Google Sans', sans-serif; font-size: 14px; border-radius: 8px; margin: 0 8px;">
