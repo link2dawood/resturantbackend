@@ -634,8 +634,17 @@
                     <div class="col-md-6">
                         <table class="sales-table">
                             <tr>
-                                <td>Projected Sales</td>
-                                <td><input type="number" name="projected_sales" class="form-input number-input" value="{{ $dailyReport->projected_sales }}" required></td>
+                                <td>
+                                    Projected Sales<br>
+                                    <small class="text-muted">
+                                        From the <a href="{{ route('sales-projections.index') }}" target="_blank">Sales Projection</a> calendar for this date.
+                                    </small>
+                                </td>
+                                <td>
+                                    <input type="number" name="projected_sales" class="form-input number-input"
+                                           value="{{ old('projected_sales', $projectedSales ?? $dailyReport->projected_sales) }}" readonly
+                                           style="background:#f1f3f4;" title="Set this on the Sales Projection calendar">
+                                </td>
                             </tr>
                         </table>
                     </div>

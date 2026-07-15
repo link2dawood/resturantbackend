@@ -37,7 +37,9 @@ class DashboardMetricsService
             ->get();
 
         $netSales = round((float) $reports->sum(fn ($r) => $this->reportNetSales($r)), 2);
-        $projectedSales = round((float) $reports->sum(fn ($r) => (float) $r->projected_sales), 2);
+        // Projected sales come from the Sales Projection calendar (one query;
+        // SalesProjection is tenant-scoped), not from the daily report column.
+        $projectedSales = round((float) $this->projectedSales($start, $end, $storeId), 2);
         $hasReports = $reports->isNotEmpty();
 
         return [
@@ -46,6 +48,17 @@ class DashboardMetricsService
             'payroll' => $this->costMetric('Payroll Cost', 'payroll', $netSales, $hasReports, $start, $end, $storeId),
             'rent' => $this->costMetric('Rental Cost', 'rent', $netSales, $hasReports, $start, $end, $storeId),
         ];
+    }
+
+    /**
+     * Projected sales for a window, taken from the Sales Projection calendar.
+     * Tenant-scoped via the SalesProjection model; optionally one store.
+     */
+    public function projectedSales(Carbon $start, Carbon $end, ?int $storeId = null): float
+    {
+        return (float) \App\Models\SalesProjection::whereBetween('projection_date', [$start, $end])
+            ->when($storeId, fn ($q) => $q->where('store_id', $storeId))
+            ->sum('amount');
     }
 
     /**

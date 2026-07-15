@@ -45,6 +45,15 @@ class DashboardMetricsTest extends TestCase
             'coupons_received' => 0,
             'adjustments_overrings' => 0,
         ])->revenues()->create(['revenue_income_type_id' => $type->id, 'amount' => $netSales]);
+
+        // Projected sales are read from the Sales Projection calendar, not the
+        // daily report column.
+        if ($projected > 0) {
+            \App\Models\SalesProjection::updateOrCreate(
+                ['store_id' => $storeId, 'projection_date' => Carbon::parse($date)->toDateString()],
+                ['amount' => $projected]
+            );
+        }
     }
 
     private function metrics(User $user): array

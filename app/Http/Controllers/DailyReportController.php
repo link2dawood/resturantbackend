@@ -236,7 +236,12 @@ class DailyReportController extends Controller
         $prevReport = DailyReport::where('store_id', $store->id)->whereDate('report_date', $prevDate)->first();
         $nextReport = DailyReport::where('store_id', $store->id)->whereDate('report_date', $nextDate)->first();
 
-        return view('daily-reports.create', compact('store', 'types', 'revenueTypes', 'reportDate', 'coas', 'prevReport', 'nextReport', 'prevDate', 'nextDate'));
+        // Projected sales come from the Sales Projection calendar for this store/date.
+        $projectedSales = (float) (\App\Models\SalesProjection::where('store_id', $store->id)
+            ->whereDate('projection_date', $reportDate)
+            ->value('amount') ?? 0);
+
+        return view('daily-reports.create', compact('store', 'types', 'revenueTypes', 'reportDate', 'coas', 'prevReport', 'nextReport', 'prevDate', 'nextDate', 'projectedSales'));
     }
 
     /**
@@ -469,7 +474,13 @@ class DailyReportController extends Controller
             ->orderBy('report_date', 'asc')
             ->first();
 
-        return view('daily-reports.edit', compact('dailyReport', 'stores', 'types', 'revenueTypes', 'vendors', 'coas', 'prevReport', 'nextReport'));
+        // Projected sales come from the Sales Projection calendar (fall back to the
+        // value stored on the report for legacy rows).
+        $projectedSales = (float) (\App\Models\SalesProjection::where('store_id', $dailyReport->store_id)
+            ->whereDate('projection_date', $dailyReport->report_date)
+            ->value('amount') ?? $dailyReport->projected_sales ?? 0);
+
+        return view('daily-reports.edit', compact('dailyReport', 'stores', 'types', 'revenueTypes', 'vendors', 'coas', 'prevReport', 'nextReport', 'projectedSales'));
     }
 
     /**
