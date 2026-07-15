@@ -1,42 +1,49 @@
-# Auto Deployment (GitHub Actions → SSH)
+# Deployment (manual, over SSH)
 
-Pushing to **`coa`** triggers `.github/workflows/deploy.yml`, which SSHes into the
-production server and updates the app. Manual runs: Actions tab → **Deploy** → *Run workflow*.
+There is **no CI/CD pipeline** — deploys are run by hand on the production server.
 
-- Host: `162.241.226.193`  •  Port: `22`  •  User: `hbpfkwmy`
+- Host: `162.241.226.193` • Port: `22` • User: `hbpfkwmy`
+- App path: `~/public_html/stores`
 - Branch deployed: `coa`
-- **Migrations are NOT run automatically** (your data stays safe). Run them yourself when ready:
-  `php artisan migrate --force`  — never `migrate:fresh`/`migrate:refresh` in production.
 
-## One-time setup
+## Deploy
 
-### 1. GitHub secret (required)
-Repo → **Settings → Secrets and variables → Actions → Secrets** → New secret:
+```bash
+ssh hbpfkwmy@162.241.226.193
+cd ~/public_html/stores
 
-| Name | Value |
-|------|-------|
-| `DEPLOY_SSH_KEY` | The **private** SSH key (PEM). Its **public** key must be in the server's `~/.ssh/authorized_keys` for `hbpfkwmy`. |
+git fetch origin && git reset --hard origin/coa
 
-### 2. GitHub variables (optional — only if defaults are wrong)
-Repo → **Settings → Secrets and variables → Actions → Variables**:
+# Only when the release adds/changes columns. Additive migrations only —
+# NEVER run migrate:fresh / migrate:refresh: they would drop live data.
+php artisan migrate --force
 
-| Name | Default | Set if… |
-|------|---------|---------|
-| `DEPLOY_PATH` | `/home/hbpfkwmy/public_html` | the Laravel app lives elsewhere on the server |
-| `PHP_BINARY` | `php` | cPanel needs a specific PHP, e.g. `/opt/cpanel/ea-php82/root/usr/bin/php` |
-| `COMPOSER_BINARY` | `composer` | composer isn't on PATH, e.g. `/usr/local/bin/composer` |
+php artisan view:clear
+php artisan optimize:clear
+```
 
-### 3. Server prerequisites (one-time, on the server)
-- The repo is a **git checkout** at `DEPLOY_PATH` (`git clone … .` once), with a remote it can `git fetch` (deploy key/token for a private repo).
-- A `.env` exists at `DEPLOY_PATH` (it's gitignored, so deploys never touch it).
-- `composer` and a PHP 8.2+ binary are available (see variables above).
+Hard-refresh the browser (Cmd/Ctrl+Shift+R) if the release touched CSS/JS.
 
-## What each deploy does
-1. `php artisan down` (maintenance mode)
-2. `git fetch` + `git reset --hard origin/coa`
-3. `composer install --no-dev --optimize-autoloader`
-4. Build assets **if** Node is present (else assumes compiled assets are committed)
-5. `config:cache` / `route:cache` / `view:cache`, `storage:link`, `queue:restart`
-6. `php artisan up` (back online)
+## One-time server setup
 
-If any step fails the deploy stops **in maintenance mode** (so a broken build isn't served) and the Actions run is marked failed.
+```bash
+php artisan storage:link   # serves uploaded avatars/logos from storage/app/public
+```
+
+## After changing `.env`
+
+The server's `.env` (`~/public_html/stores/.env`) is separate from any local file.
+Config is cached, so changes don't take effect until:
+
+```bash
+php artisan config:clear
+```
+
+## Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| 500 right after a deploy | `php artisan view:clear` — a stale compiled Blade view is cached |
+| `Class ... not found` after `composer install` | `rm -f bootstrap/cache/packages.php bootstrap/cache/services.php bootstrap/cache/config.php && php artisan package:discover --ansi` |
+| Uploaded logo/avatar 404s | `php artisan storage:link` |
+| Email not sending | `php artisan mail:test you@example.com` — prints the effective mail config, queue state, and the exact SMTP error |
