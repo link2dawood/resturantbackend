@@ -12,9 +12,10 @@ use Tests\TestCase;
 /**
  * Daily report — net sales / cash reconciliation.
  *
- * Credit Card field is the TOTAL (sales + tips); CC sales = total − tips. Tips
- * come out of the card total (not cash), reduce net sales, and the Square fee is
- * 2.45% of the total. Average ticket is based on Sales (Pre-Tax).
+ * Credit Card SALES is entered; the card TOTAL = sales + tips (calculated). Tips
+ * ride on the card (not cash), reduce net sales, and the Square fee is 2.45% of
+ * the total. Average ticket is based on Sales (Pre-Tax). There is no separate
+ * "Adjustment for Credit Card" — tips cover it.
  */
 class DailyReportReconciliationTest extends TestCase
 {
@@ -30,7 +31,7 @@ class DailyReportReconciliationTest extends TestCase
         $report = DailyReport::factory()->create(array_merge([
             'store_id' => $store->id, 'report_date' => now(),
             'coupons_received' => 0, 'adjustments_overrings' => 0,
-            'adjustments_cash' => 0, 'adjustments_credit_card' => 0,
+            'adjustments_cash' => 0,
             'credit_cards' => 0, 'credit_card_tips' => 0,
         ], $overrides));
         $report->revenues()->create(['revenue_income_type_id' => $type->id, 'amount' => 1000]);
@@ -39,23 +40,23 @@ class DailyReportReconciliationTest extends TestCase
     }
 
     /** @test */
-    public function net_sales_subtracts_cc_tips_and_cash_uses_cc_sales(): void
+    public function cc_total_is_sales_plus_tips_and_cash_uses_cc_sales(): void
     {
         $r = $this->report([
             'coupons_received' => 10,
             'adjustments_overrings' => 5,
             'adjustments_cash' => 20,
-            'adjustments_credit_card' => 15,
-            'credit_cards' => 400,      // card TOTAL (sales + tips)
+            'credit_cards' => 370,      // card SALES (entered)
             'credit_card_tips' => 30,
         ]);
 
-        // Net Sales = 1000 − 10 − 5 − 20 − 15 − 30 (CC tips) = 920
-        $this->assertEqualsWithDelta(920.0, $r->net_sales, 0.01);
-        // CC sales = 400 − 30 = 370
+        // Net Sales = 1000 − 10 − 5 − 20 − 30 (CC tips) = 935
+        $this->assertEqualsWithDelta(935.0, $r->net_sales, 0.01);
+        // CC sales = what was entered; total = sales + tips = 400
         $this->assertEqualsWithDelta(370.0, $r->credit_card_sales, 0.01);
-        // Cash = 920 − CC sales(370) = 550 (tips do NOT reduce cash)
-        $this->assertEqualsWithDelta(550.0, $r->cash_to_account_for, 0.01);
+        $this->assertEqualsWithDelta(400.0, $r->credit_card_total, 0.01);
+        // Cash = 935 − CC sales(370) = 565 (tips ride on the card, not cash)
+        $this->assertEqualsWithDelta(565.0, $r->cash_to_account_for, 0.01);
     }
 
     /** @test */

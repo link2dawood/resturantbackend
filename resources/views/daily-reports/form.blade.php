@@ -796,16 +796,7 @@
                                 <td></td>
                                 <td></td>
                             </tr>
-                            <tr>
-                                <td>
-                                    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                                        <span><strong>Adjustments for Credit Card:</strong></span>
-                                        <span style="width:30%;"><input type="number" name="adjustments_credit_card" class="form-input number-input" value="0" style="background: white;"></span>
-                                    </div>
-                                </td>
-                                <td></td>
-                                <td></td>
-                            </tr>
+                            {{-- "Adjustments for Credit Card" removed — Credit Card (tips) covers it. --}}
                             {{-- Tips moved to the Credit Card (tips) section (taken out of the card total). --}}
                             <tr>
                                 <td>
@@ -872,16 +863,16 @@
                                 <td id="onlineRevenue2" class="calculated-field number-input">$0</td>
                             </tr>
                             <tr>
-                                <td><strong>Credit Card (total):</strong><br><small class="text-muted">Total charged to cards (sales + tips)</small></td>
+                                <td><strong>Credit Card (sales):</strong><br><small class="text-muted">Card sales, excluding tips</small></td>
                                 <td id="creditCards2" class="calculated-field number-input"><input type="number" name="credit_cards" class="form-input number-input" value="0" style="background: #e7f3ff !important;"></td>
                             </tr>
                             <tr>
-                                <td><strong>Credit Card (tips):</strong><br><small class="text-muted">Taken out of the card total — does not reduce cash</small></td>
+                                <td><strong>Credit Card (tips):</strong><br><small class="text-muted">Tips charged on cards — not sales, and not out of cash</small></td>
                                 <td class="calculated-field number-input"><input type="number" name="credit_card_tips" class="form-input number-input" value="0" style="background: #e7f3ff !important;"></td>
                             </tr>
                             <tr>
-                                <td><strong>Credit Card (sales):</strong><br><small class="text-muted">Total − tips</small></td>
-                                <td id="creditCardSales" class="calculated-field number-input">$0.00</td>
+                                <td><strong>Credit Card (total):</strong><br><small class="text-muted">Sales + tips</small></td>
+                                <td id="creditCardTotal" class="calculated-field number-input">$0.00</td>
                             </tr>
                             <tr>
                                 <td><strong>Square fee (2.45% of total):</strong></td>
@@ -936,7 +927,6 @@ function calculateTotals() {
     const couponsReceived = parseFloat(document.querySelector('input[name="coupons_received"]').value || 0);
     const adjustmentsOverrings = parseFloat(document.querySelector('input[name="adjustments_overrings"]').value || 0);
     const adjustmentsCash = parseFloat(document.querySelector('input[name="adjustments_cash"]')?.value || 0);
-    const adjustmentsCreditCard = parseFloat(document.querySelector('input[name="adjustments_credit_card"]')?.value || 0);
     let creditCards = parseFloat(document.querySelector('input[name="credit_cards"]').value || 0);
     const creditCardTips = parseFloat(document.querySelector('input[name="credit_card_tips"]')?.value || 0);
     const actualDeposit = parseFloat(document.querySelector('input[name="actual_deposit"]').value || 0);
@@ -991,7 +981,7 @@ function calculateTotals() {
     const grossSales = totalRevenueIncome + couponsReceived;
     
     // Net Sales = Total Revenue Income − all adjustments − tips (coupons not deducted here)
-    const netSales = totalRevenueIncome - adjustmentsOverrings - adjustmentsCash - adjustmentsCreditCard - creditCardTips;
+    const netSales = totalRevenueIncome - adjustmentsOverrings - adjustmentsCash - creditCardTips;
     
     // Tax = Net Sales minus (Net Sales / 1.0825)
     const tax = netSales - (netSales / 1.0825);
@@ -1023,15 +1013,16 @@ function calculateTotals() {
         creditCards = parseFloat(creditCardsInput.value || 0);
     }
 
-    // Credit Card sales = total − tips
-    const creditCardSales = creditCards - creditCardTips;
-    const ccSalesEl = document.getElementById('creditCardSales');
-    if (ccSalesEl) ccSalesEl.textContent = '$' + creditCardSales.toFixed(2);
+    // Credit Card: sales is entered; total = sales + tips
+    const creditCardSales = creditCards;
+    const creditCardTotal = creditCardSales + creditCardTips;
+    const ccTotalEl = document.getElementById('creditCardTotal');
+    if (ccTotalEl) ccTotalEl.textContent = '$' + creditCardTotal.toFixed(2);
 
     // Square fee preview = 2.45% of the card TOTAL (sales + tips)
     const squareFeeEl = document.getElementById('squareFeePreview');
     if (squareFeeEl) {
-        const squareFee = creditCards * 0.0245;
+        const squareFee = creditCardTotal * 0.0245;
         squareFeeEl.textContent = '$' + squareFee.toFixed(2);
     }
 
@@ -1280,7 +1271,6 @@ document.addEventListener('DOMContentLoaded', function() {
         'input[name="coupons_received"]',
         'input[name="adjustments_overrings"]',
         'input[name="adjustments_cash"]',
-        'input[name="adjustments_credit_card"]',
         'input[name="credit_cards"]',
         'input[name="credit_card_tips"]',
         'input[name="actual_deposit"]',
