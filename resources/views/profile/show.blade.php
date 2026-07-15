@@ -160,8 +160,66 @@
                     @endif
                 </div>
             </div>
+
+            @if($user->isOwner() || $user->isAdmin() || $user->isFranchisor())
+            <!-- Business Logo Card -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h3 class="card-title">Business Logo</h3>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted">Shown in the dashboard header. Without one, your business name is shown instead.</p>
+
+                    <div class="row align-items-center mb-3">
+                        <div class="col-auto">
+                            <span class="d-inline-flex align-items-center justify-content-center"
+                                  style="width:72px;height:72px;border:1px solid #e6eaf0;border-radius:10px;background:#f7f9fc;overflow:hidden;">
+                                @if($user->logo)
+                                    <img src="{{ asset('storage/logos/'.$user->logo) }}" alt="Business logo" style="max-width:100%;max-height:100%;object-fit:contain;">
+                                @else
+                                    <span class="text-muted small">No logo</span>
+                                @endif
+                            </span>
+                        </div>
+                        <div class="col">
+                            <div class="fw-bold">{{ $user->brandName() ?: $user->name }}</div>
+                            <div class="text-muted small">{{ $user->logo ? 'Current logo' : 'Currently showing your business name' }}</div>
+                        </div>
+                    </div>
+
+                    <form action="{{ route('profile.logo.update') }}" method="POST" enctype="multipart/form-data">
+                        @csrf
+                        <div class="mb-3">
+                            <label for="logo" class="form-label">{{ $user->logo ? 'Replace logo' : 'Choose a logo' }}</label>
+                            <input type="file" class="form-control @error('logo') is-invalid @enderror" id="logo" name="logo"
+                                   accept="image/jpeg,image/png,image/jpg,image/gif" required>
+                            <div class="form-text">Supported formats: JPG, PNG, GIF. Maximum size: 2MB.</div>
+                            @error('logo')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-upload me-2"></i>{{ $user->logo ? 'Replace Logo' : 'Upload Logo' }}
+                            </button>
+                            @if($user->logo)
+                                <button type="button" class="btn btn-outline-danger"
+                                        onclick="if(confirm('Remove your business logo? Your business name will be shown instead.')) { document.getElementById('remove-logo-form').submit(); }">
+                                    <i class="bi bi-trash me-2"></i>Remove Logo
+                                </button>
+                            @endif
+                        </div>
+                    </form>
+
+                    @if($user->logo)
+                    <form id="remove-logo-form" action="{{ route('profile.logo.remove') }}" method="POST" style="display: none;">
+                        @csrf
+                        @method('DELETE')
+                    </form>
+                    @endif
+                </div>
+            </div>
+            @endif
         </div>
-        
+
         <div class="col-md-6">
             <div class="neuro-card neuro-fade-in">
                 <h3 class="card-title mb-4">Account Details</h3>

@@ -251,4 +251,63 @@ class ProfileController extends Controller
 
         return redirect()->route('profile.show')->with('success', 'Picture removed successfully.');
     }
+
+    /**
+     * Business logo — shown in the dashboard navbar in place of the business name.
+     */
+    public function updateLogo(Request $request)
+    {
+        $user = Auth::user();
+        abort_unless($user->isOwner() || $user->isAdmin() || $user->isFranchisor(), 403);
+
+        try {
+            $request->validate([
+                'logo' => ['required', 'image', 'mimes:jpeg,png,jpg,gif', 'max:2048'],
+            ]);
+
+            $file = $request->file('logo');
+
+            if (! $this->isSecureImageFile($file)) {
+                Log::warning('Insecure logo upload attempt', [
+                    'user_id' => $user->id,
+                    'filename' => $file->getClientOriginalName(),
+                    'mime_type' => $file->getMimeType(),
+                ]);
+
+                return back()->withErrors(['logo' => 'File failed security validation']);
+            }
+
+            if ($user->logo && Storage::disk('public')->exists('logos/'.$user->logo)) {
+                Storage::disk('public')->delete('logos/'.$user->logo);
+            }
+
+            $logoName = $user->id.'_'.time().'_'.bin2hex(random_bytes(8)).'.'.$file->getClientOriginalExtension();
+            $file->storeAs('logos', $logoName, 'public');
+
+            $user->update(['logo' => $logoName]);
+
+            return redirect()->route('profile.show')->with('success', 'Business logo updated successfully.');
+        } catch (\Exception $e) {
+            Log::error('Business logo upload failed', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return back()->withErrors(['logo' => 'Upload failed. Please try again.']);
+        }
+    }
+
+    public function removeLogo()
+    {
+        $user = Auth::user();
+        abort_unless($user->isOwner() || $user->isAdmin() || $user->isFranchisor(), 403);
+
+        if ($user->logo && Storage::disk('public')->exists('logos/'.$user->logo)) {
+            Storage::disk('public')->delete('logos/'.$user->logo);
+        }
+
+        $user->update(['logo' => null]);
+
+        return redirect()->route('profile.show')->with('success', 'Business logo removed successfully.');
+    }
 }

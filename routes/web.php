@@ -82,6 +82,9 @@ Route::middleware(['auth', 'verified', 'trial'])->group(function () {
     Route::put('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password.update');
     Route::post('/profile/avatar', [ProfileController::class, 'updateAvatar'])->name('profile.avatar.update');
     Route::delete('/profile/avatar', [ProfileController::class, 'removeAvatar'])->name('profile.avatar.remove');
+    // Business logo (owner/admin) — shown in the dashboard navbar
+    Route::post('/profile/logo', [ProfileController::class, 'updateLogo'])->name('profile.logo.update');
+    Route::delete('/profile/logo', [ProfileController::class, 'removeLogo'])->name('profile.logo.remove');
 
     // Owner management - Owners/Franchisor only (business control)
     Route::middleware(['role:admin', 'convert_date_format'])->group(function () {
