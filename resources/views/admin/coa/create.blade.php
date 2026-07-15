@@ -223,11 +223,20 @@ document.addEventListener('DOMContentLoaded', function () {
         const parentCode = selectedCode(parentSel);
         subSel.disabled = !parentCode;
         if (parentCode) {
-            // Children of the parent that THEMSELVES have children (the sub-parents).
+            // Sub-parents = accounts under this parent that CAN hold sub-accounts
+            // (header codes). Includes ones with children and standalone headers
+            // with none yet — otherwise a newly added sub-parent could never
+            // receive its first child. Leaf/detail codes (e.g. 6451) are excluded.
             ACCOUNTS
-                .filter(a => a.account_type === typeSel.value && inRange(a.account_code, parentCode) && a.children_count > 0)
+                .filter(a => a.account_type === typeSel.value && inRange(a.account_code, parentCode) && a.can_have_children)
                 .sort((a, b) => parseInt(a.account_code) - parseInt(b.account_code))
-                .forEach(a => addOption(subSel, a, ' · ' + a.children_count + ' sub'));
+                .forEach(a => addOption(
+                    subSel,
+                    a,
+                    a.children_count > 0
+                        ? ' · ' + a.children_count + ' sub-account' + (a.children_count === 1 ? '' : 's')
+                        : ' · no sub-accounts yet'
+                ));
         }
         updateCode();
     }
