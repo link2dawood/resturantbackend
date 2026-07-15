@@ -36,20 +36,20 @@
 
                         {{-- Step 2: Parent account (top level, e.g. 6000) --}}
                         <div class="mb-3">
-                            <label for="parent_top" class="form-label">Parent Account <span class="text-danger">*</span></label>
+                            <label for="parent_top" class="form-label">Category <span class="text-danger">*</span></label>
                             <select id="parent_top" class="form-select" disabled required>
                                 <option value="">Choose a type first…</option>
                             </select>
-                            <small class="text-muted">The top-level category (e.g. 6000) this account belongs to.</small>
+                            <small class="text-muted">The category this account belongs to (e.g. Online Ordering, Insurance, Payroll).</small>
                         </div>
 
                         {{-- Step 3: Sub-parent (only parents that have children) --}}
                         <div class="mb-3">
-                            <label for="sub_parent" class="form-label">Sub-parent <span class="text-muted">(optional)</span></label>
+                            <label for="sub_parent" class="form-label">Sub-category <span class="text-muted">(optional)</span></label>
                             <select id="sub_parent" class="form-select" disabled>
-                                <option value="">Add directly under the parent</option>
+                                <option value="">Add directly under the category</option>
                             </select>
-                            <small class="text-muted">Nest under a sub-category that has its own accounts (e.g. 6500 Payroll, 6450 Online Merchant).</small>
+                            <small class="text-muted">Optional — nest one level deeper (e.g. Online Ordering → DoorDash).</small>
                             <div id="parent-children" class="mt-2 d-none">
                                 <div class="small text-muted mb-1">Accounts already under this parent:</div>
                                 <div id="parent-children-list" class="d-flex flex-wrap gap-1"></div>
@@ -131,7 +131,8 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Every account: {id, account_code, account_name, account_type, can_have_children, children_count}
+    // Every account, with its stored parent. The Category/Sub-category cascade
+    // walks parent_account_id — the account number only decides the new code.
     const ACCOUNTS = @json($parentAccounts);
     const rollupCodes = @json(\App\Models\ChartOfAccount::totalRollupAccountCodes());
     const typeRange = { Assets:[1000,1999], Liability:[2000,2999], Taxes:[3000,3999], Revenue:[4000,4999], COGS:[5000,5999], Expense:[6000,6999], Adjustments:[7000,7999], Equity:[8000,8999] };
@@ -163,12 +164,6 @@ document.addEventListener('DOMContentLoaded', function () {
         if (n % 1000 === 0) return 100;
         if (n % 100 === 0) return 10;
         return 1;
-    }
-    function inRange(code, parentCode) {
-        const r = childRange(parentCode);
-        if (!r) return false;
-        const n = parseInt(code, 10);
-        return n >= r[0] && n <= r[1];
     }
     function nextCode(parentCode) {
         const r = childRange(parentCode);
@@ -202,34 +197,48 @@ document.addEventListener('DOMContentLoaded', function () {
         return (sel.value && o) ? o.dataset.code : '';
     }
 
+    // The type's root account (e.g. 6000 Expenses All) — it has no parent.
+    function typeRoot(type) {
+        return ACCOUNTS.find(a => a.account_type === type && !a.parent_account_id) || null;
+    }
+    // Children of an account, straight from the stored tree.
+    function childrenOf(parentId) {
+        return ACCOUNTS
+            .filter(a => String(a.parent_account_id) === String(parentId))
+            .sort((a, b) => parseInt(a.account_code) - parseInt(b.account_code));
+    }
+
     function fillParents() {
         const type = typeSel.value;
-        resetSelect(parentSel, type ? 'Select parent…' : 'Choose a type first…');
+        resetSelect(parentSel, type ? 'Select category…' : 'Choose a type first…');
         parentSel.disabled = !type;
         if (type) {
-            // Top-level accounts (x000) of this type.
-            ACCOUNTS
-                .filter(a => a.account_type === type && parseInt(a.account_code, 10) % 1000 === 0)
-                .sort((a, b) => parseInt(a.account_code) - parseInt(b.account_code))
-                .forEach(a => addOption(parentSel, a));
-            // Auto-select when there is exactly one top-level.
+            const root = typeRoot(type);
+            if (root) {
+                // Categories = the type root's children (stored tree, not codes).
+                childrenOf(root.id)
+                    .filter(a => a.can_have_children)
+                    .forEach(a => addOption(
+                        parentSel,
+                        a,
+                        a.children_count > 0
+                            ? ' · ' + a.children_count + ' sub-account' + (a.children_count === 1 ? '' : 's')
+                            : ''
+                    ));
+            }
             if (parentSel.options.length === 2) parentSel.value = parentSel.options[1].value;
         }
         fillSubParents();
     }
 
     function fillSubParents() {
-        resetSelect(subSel, 'Add directly under the parent');
-        const parentCode = selectedCode(parentSel);
-        subSel.disabled = !parentCode;
-        if (parentCode) {
-            // Sub-parents = accounts under this parent that CAN hold sub-accounts
-            // (header codes). Includes ones with children and standalone headers
-            // with none yet — otherwise a newly added sub-parent could never
-            // receive its first child. Leaf/detail codes (e.g. 6451) are excluded.
-            ACCOUNTS
-                .filter(a => a.account_type === typeSel.value && inRange(a.account_code, parentCode) && a.can_have_children)
-                .sort((a, b) => parseInt(a.account_code) - parseInt(b.account_code))
+        resetSelect(subSel, 'Add directly under the category');
+        subSel.disabled = !parentSel.value;
+        if (parentSel.value) {
+            // Sub-categories = the selected category's children (stored tree).
+            // Detail codes (e.g. 6451 DoorDash) can't hold sub-accounts.
+            childrenOf(parentSel.value)
+                .filter(a => a.can_have_children)
                 .forEach(a => addOption(
                     subSel,
                     a,
@@ -266,7 +275,7 @@ document.addEventListener('DOMContentLoaded', function () {
         rollupWarn.classList.toggle('d-none', !msg);
         // Existing children preview (skip noisy top-level lists)
         if (d && parseInt(d.code, 10) % 1000 !== 0) {
-            const kids = ACCOUNTS.filter(a => inRange(a.account_code, d.code)).sort((a, b) => parseInt(a.account_code) - parseInt(b.account_code));
+            const kids = childrenOf(d.id);
             childrenList.innerHTML = '';
             kids.forEach(c => { const b = document.createElement('span'); b.className = 'badge bg-blue-lt'; b.textContent = c.account_code + ' ' + c.account_name; childrenList.appendChild(b); });
             if (!kids.length) childrenList.innerHTML = '<span class="small text-muted">No sub-accounts yet.</span>';

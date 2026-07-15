@@ -85,37 +85,36 @@ class ChartOfAccountController extends Controller
     }
 
     /**
-     * Build the parent-account picker options: every account, annotated with its
-     * type, whether its code can have children (a trailing-zero "header" like
-     * 6450), and how many sub-accounts it already has. The create form uses this
-     * to show, for the chosen type, only the main/header accounts that can roll
-     * up children, with their child counts.
+     * Every account, annotated for the Type → Category → Sub-category picker.
+     *
+     * The hierarchy comes from the STORED `parent_account_id` — never inferred
+     * from the account number. That's what lets an admin put an account in any
+     * category regardless of its code (previously an account numbered 63xx was
+     * forced under "Delivery Service Fees" 6300 by arithmetic alone).
      *
      * @return \Illuminate\Support\Collection<int, object>
      */
     private function parentAccountOptions(?int $excludeId = null): \Illuminate\Support\Collection
     {
         $all = ChartOfAccount::orderByRaw('CAST(account_code AS UNSIGNED) ASC')
-            ->get(['id', 'account_name', 'account_code', 'account_type']);
+            ->get(['id', 'account_name', 'account_code', 'account_type', 'parent_account_id']);
+
+        // Real child counts, straight off the stored tree.
+        $childCounts = $all->groupBy('parent_account_id')->map->count();
 
         return $all
             ->when($excludeId, fn ($c) => $c->where('id', '!=', $excludeId))
-            ->map(function ($acct) use ($all) {
-                $range = ChartOfAccount::childCodeRangeForParent((string) $acct->account_code);
-
-                $childCount = $range
-                    ? $all->filter(fn ($c) => $c->id !== $acct->id
-                        && (int) $c->account_code >= $range[0]
-                        && (int) $c->account_code <= $range[1])->count()
-                    : 0;
-
+            ->map(function ($acct) use ($childCounts) {
                 return (object) [
                     'id' => $acct->id,
                     'account_code' => $acct->account_code,
                     'account_name' => $acct->account_name,
                     'account_type' => $acct->account_type,
-                    'can_have_children' => $range !== null,
-                    'children_count' => $childCount,
+                    'parent_account_id' => $acct->parent_account_id,
+                    // A code can only hold sub-accounts if it has a sub-code range
+                    // (trailing-zero header). Detail codes like 6451 cannot.
+                    'can_have_children' => ChartOfAccount::childCodeRangeForParent((string) $acct->account_code) !== null,
+                    'children_count' => (int) ($childCounts[$acct->id] ?? 0),
                 ];
             })
             ->values();
@@ -161,9 +160,13 @@ class ChartOfAccountController extends Controller
     }
 
     /**
-     * JSON: the child accounts that roll up under a parent (e.g. Online
-     * Merchant 6450 -> DoorDash, GrubHub, Uber Eats, EasyCatering), plus the
-     * allowed sub-code range. Powers the create/edit form's live hierarchy hints.
+     * JSON: the sub-accounts filed under an account (e.g. Online Merchant 6450 ->
+     * DoorDash, GrubHub, Uber Eats), plus the allowed sub-code range. Powers the
+     * create/edit form's live hierarchy hints.
+     *
+     * Children come from the stored tree, NOT the code range: the range version
+     * listed every account whose number happened to fall in the block, so e.g.
+     * insurance accounts numbered 63xx appeared under "Delivery Service Fees".
      */
     public function children(ChartOfAccount $chartOfAccount)
     {
@@ -171,7 +174,10 @@ class ChartOfAccountController extends Controller
             'parent' => $chartOfAccount->only(['id', 'account_code', 'account_name', 'account_type']),
             'child_range' => ChartOfAccount::childCodeRangeForParent((string) $chartOfAccount->account_code),
             'is_rollup_total' => $chartOfAccount->isRollupTotal(),
-            'children' => $chartOfAccount->blockChildren()->get(['id', 'account_code', 'account_name', 'account_type']),
+            'children' => $chartOfAccount->children()
+                ->active()
+                ->orderBy('account_code')
+                ->get(['id', 'account_code', 'account_name', 'account_type']),
         ]);
     }
 

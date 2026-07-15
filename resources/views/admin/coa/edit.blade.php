@@ -51,20 +51,31 @@
                             @enderror
                         </div>
 
-                        <div class="mb-3">
-                            <label for="parent_account_id" class="form-label">Parent Account (optional)</label>
-                            <select id="parent_account_id" name="parent_account_id" class="form-select @error('parent_account_id') is-invalid @enderror">
-                                <option value="">None (top level)</option>
-                                @foreach($parentAccounts as $parent)
-                                    <option value="{{ $parent->id }}" data-account-code="{{ $parent->account_code }}" @selected((string) old('parent_account_id', $chartOfAccount->parent_account_id) === (string) $parent->id)>
-                                        {{ $parent->account_code }} - {{ $parent->account_name }}
-                                    </option>
-                                @endforeach
-                            </select>
-                            @error('parent_account_id')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
+                        {{-- Where this account sits in the chart. Move it freely: the
+                             stored parent wins, the account number does not. --}}
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="category_select" class="form-label">Category</label>
+                                <select id="category_select" class="form-select">
+                                    <option value="">None (top level)</option>
+                                </select>
+                                <small class="text-muted">Move this account to a different category (e.g. Insurance instead of Delivery Fees).</small>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="subcategory_select" class="form-label">Sub-category <span class="text-muted">(optional)</span></label>
+                                <select id="subcategory_select" class="form-select">
+                                    <option value="">Directly under the category</option>
+                                </select>
+                                <small class="text-muted">Nest one level deeper (e.g. Online Ordering → DoorDash).</small>
+                            </div>
                         </div>
+
+                        <input type="hidden" name="parent_account_id" id="parent_account_id" value="{{ old('parent_account_id', $chartOfAccount->parent_account_id) }}">
+                        @error('parent_account_id')
+                            <div class="text-danger small mb-2">{{ $message }}</div>
+                        @enderror
+
+                        <div id="current-path" class="alert alert-light border py-2 small d-none"></div>
 
                         <div class="mb-3">
                             <label class="form-label">Store Assignment</label>
@@ -122,56 +133,127 @@
             }
         });
 
-        // Parent Account: show only options in the selected type's range (e.g. Assets → 1000-1999) and auto-select default
-        const accountTypeRange = {
-            'Assets':      { min: 1000, max: 1999, defaultCode: '1000' },
-            'Liability':  { min: 2000, max: 2999, defaultCode: '2000' },
-            'Taxes':      { min: 3000, max: 3999, defaultCode: '3000' },
-            'Revenue':    { min: 4000, max: 4999, defaultCode: '4000' },
-            'COGS':       { min: 5000, max: 5999, defaultCode: '5000' },
-            'Expense':    { min: 6000, max: 6999, defaultCode: '6000' },
-            'Adjustments': { min: 7000, max: 7999, defaultCode: '7000' },
-            'Equity':     { min: 8000, max: 8999, defaultCode: '8000' }
-        };
-        const accountTypeSelect = document.getElementById('account_type');
-        const parentSelect = document.getElementById('parent_account_id');
-        if (accountTypeSelect && parentSelect) {
-            var parentOptionsCache = [];
-            parentSelect.querySelectorAll('option').forEach(function(o) {
-                parentOptionsCache.push({ value: o.value, code: o.dataset.accountCode || '', text: o.textContent.trim() });
-            });
-            function syncParentFromType() {
-                const type = accountTypeSelect.value;
-                const range = accountTypeRange[type];
-                const previousVal = parentSelect.value;
-                parentSelect.innerHTML = '';
-                const none = document.createElement('option');
-                none.value = '';
-                none.textContent = 'None (top level)';
-                parentSelect.appendChild(none);
-                if (!range) {
-                    parentSelect.value = '';
-                    return;
+        // ── Category / Sub-category cascade ──────────────────────────────
+        // Driven entirely by the STORED tree (parent_account_id). An account's
+        // number no longer decides where it lives — the admin does.
+        const ACCOUNTS = @json($parentAccounts);
+        const SELF_ID = {{ (int) $chartOfAccount->id }};
+
+        const typeSel = document.getElementById('account_type');
+        const catSel = document.getElementById('category_select');
+        const subSel = document.getElementById('subcategory_select');
+        const parentField = document.getElementById('parent_account_id');
+        const pathBox = document.getElementById('current-path');
+
+        if (typeSel && catSel && subSel && parentField) {
+            const byId = {};
+            ACCOUNTS.forEach(a => { byId[String(a.id)] = a; });
+
+            const typeRoot = type => ACCOUNTS.find(a => a.account_type === type && !a.parent_account_id) || null;
+            const childrenOf = pid => ACCOUNTS
+                .filter(a => String(a.parent_account_id) === String(pid))
+                .sort((a, b) => parseInt(a.account_code) - parseInt(b.account_code));
+
+            // An account can't be moved under itself or its own descendants.
+            function isDescendant(candidate) {
+                let cur = candidate, guard = 0;
+                while (cur && guard++ < 20) {
+                    if (String(cur.id) === String(SELF_ID)) return true;
+                    cur = cur.parent_account_id ? byId[String(cur.parent_account_id)] : null;
                 }
-                let defaultVal = '';
-                let previousStillValid = false;
-                for (let i = 0; i < parentOptionsCache.length; i++) {
-                    const item = parentOptionsCache[i];
-                    if (!item.value) continue;
-                    const codeNum = parseInt(item.code, 10);
-                    if (isNaN(codeNum) || codeNum < range.min || codeNum > range.max) continue;
-                    const opt = document.createElement('option');
-                    opt.value = item.value;
-                    opt.textContent = item.text;
-                    opt.dataset.accountCode = item.code;
-                    parentSelect.appendChild(opt);
-                    if (item.code.trim() === range.defaultCode) defaultVal = item.value;
-                    if (item.value === previousVal) previousStillValid = true;
-                }
-                parentSelect.value = previousStillValid ? previousVal : (defaultVal || '');
+                return false;
             }
-            accountTypeSelect.addEventListener('change', syncParentFromType);
-            syncParentFromType();
+
+            function addOption(sel, a) {
+                const o = document.createElement('option');
+                o.value = a.id;
+                o.textContent = a.account_code + ' - ' + a.account_name
+                    + (a.children_count > 0 ? ' · ' + a.children_count + ' sub-account' + (a.children_count === 1 ? '' : 's') : '');
+                sel.appendChild(o);
+            }
+
+            function reset(sel, placeholder) {
+                sel.innerHTML = '';
+                const o = document.createElement('option');
+                o.value = '';
+                o.textContent = placeholder;
+                sel.appendChild(o);
+            }
+
+            function fillCategories(preselect) {
+                reset(catSel, 'None (top level)');
+                const root = typeRoot(typeSel.value);
+                if (root) {
+                    childrenOf(root.id)
+                        .filter(a => a.can_have_children && !isDescendant(a))
+                        .forEach(a => addOption(catSel, a));
+                }
+                if (preselect) catSel.value = preselect;
+            }
+
+            function fillSubcategories(preselect) {
+                reset(subSel, 'Directly under the category');
+                subSel.disabled = !catSel.value;
+                if (catSel.value) {
+                    childrenOf(catSel.value)
+                        .filter(a => a.can_have_children && !isDescendant(a))
+                        .forEach(a => addOption(subSel, a));
+                }
+                if (preselect) subSel.value = preselect;
+            }
+
+            // The submitted parent is the deepest thing chosen.
+            function syncParentField() {
+                parentField.value = subSel.value || catSel.value || '';
+                renderPath();
+            }
+
+            function renderPath() {
+                if (!pathBox) return;
+                const chain = [];
+                let cur = parentField.value ? byId[parentField.value] : null;
+                let guard = 0;
+                while (cur && guard++ < 20) {
+                    chain.unshift(cur.account_code + ' ' + cur.account_name);
+                    cur = cur.parent_account_id ? byId[String(cur.parent_account_id)] : null;
+                }
+                chain.push('{{ $chartOfAccount->account_code }} {{ $chartOfAccount->account_name }}');
+                pathBox.textContent = 'Will appear under: ' + chain.join('  →  ');
+                pathBox.classList.remove('d-none');
+            }
+
+            // Prefill from where the account currently sits: if its parent's own
+            // parent is the type root, the parent IS the category; otherwise the
+            // parent is a sub-category and its parent is the category.
+            function prefill() {
+                const current = parentField.value ? byId[parentField.value] : null;
+                let catId = '', subId = '';
+                if (current) {
+                    const grand = current.parent_account_id ? byId[String(current.parent_account_id)] : null;
+                    if (grand && grand.parent_account_id) {
+                        catId = String(grand.id);
+                        subId = String(current.id);
+                    } else {
+                        catId = String(current.id);
+                    }
+                }
+                fillCategories(catId);
+                fillSubcategories(subId);
+                syncParentField();
+            }
+
+            typeSel.addEventListener('change', function () {
+                fillCategories('');
+                fillSubcategories('');
+                syncParentField();
+            });
+            catSel.addEventListener('change', function () {
+                fillSubcategories('');
+                syncParentField();
+            });
+            subSel.addEventListener('change', syncParentField);
+
+            prefill();
         }
     });
 </script>

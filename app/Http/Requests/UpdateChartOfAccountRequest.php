@@ -81,10 +81,40 @@ class UpdateChartOfAccountRequest extends FormRequest
             $parentAccountId = $this->input('parent_account_id');
             if ($parentAccountId && (int) $parentAccountId === (int) $chartOfAccountId) {
                 $validator->errors()->add('parent_account_id', 'An account cannot be its own parent.');
+            } elseif ($parentAccountId && $chartOfAccountId
+                && $this->isDescendantOf((int) $parentAccountId, (int) $chartOfAccountId)) {
+                // Moving an account under one of its own sub-accounts would detach
+                // that whole branch from the chart.
+                $validator->errors()->add('parent_account_id', 'That category is a sub-account of this one — pick a category outside this branch.');
             }
 
-            \App\Support\CoaHierarchy::applyTo($validator, $this->all());
+            // enforceChildCodeRange: false — an admin may move an existing account
+            // to any category; its number doesn't have to match the new parent's block.
+            \App\Support\CoaHierarchy::applyTo($validator, $this->all(), enforceChildCodeRange: false);
         });
+    }
+
+    /** Walk up from $candidateId; true if $accountId is anywhere in its ancestry. */
+    private function isDescendantOf(int $candidateId, int $accountId): bool
+    {
+        $seen = [];
+        $currentId = $candidateId;
+
+        while ($currentId && ! isset($seen[$currentId])) {
+            $seen[$currentId] = true;
+
+            $parentId = \App\Models\ChartOfAccount::withoutGlobalScopes()
+                ->whereKey($currentId)
+                ->value('parent_account_id');
+
+            if ((int) $parentId === $accountId) {
+                return true;
+            }
+
+            $currentId = (int) $parentId;
+        }
+
+        return false;
     }
 }
 

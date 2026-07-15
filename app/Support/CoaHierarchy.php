@@ -10,13 +10,19 @@ use Illuminate\Contracts\Validation\Validator;
  * and the API controller so the rules are enforced identically everywhere:
  *
  *  - codes must be a 4-digit number within their account-type range
- *  - a child's code must fall inside its parent's sub-range
  *  - a child's type must match its parent's type
  *  - detail (leaf) accounts cannot be used as parents
+ *  - on CREATE only: a child's code must fall inside its parent's sub-range
+ *
+ * The sub-range rule is deliberately NOT enforced when re-parenting an existing
+ * account. The tree lives in `parent_account_id`, and an admin must be able to
+ * file any account under any category regardless of the number it was given
+ * (e.g. moving 6310 Life Insurance under 6900 Insurance). On create the code is
+ * derived from the chosen parent anyway, so the rule still holds there.
  */
 class CoaHierarchy
 {
-    public static function applyTo(Validator $validator, array $input): void
+    public static function applyTo(Validator $validator, array $input, bool $enforceChildCodeRange = true): void
     {
         // Only add hierarchy errors when the base fields are otherwise present.
         if ($validator->errors()->hasAny(['account_code', 'account_type'])) {
@@ -63,7 +69,7 @@ class CoaHierarchy
                         'parent_account_id',
                         "Account {$parent->account_code} is a detail account and cannot be a parent."
                     );
-                } elseif ($codeNum < $childRange[0] || $codeNum > $childRange[1]) {
+                } elseif ($enforceChildCodeRange && ($codeNum < $childRange[0] || $codeNum > $childRange[1])) {
                     $validator->errors()->add(
                         'account_code',
                         "Under parent {$parent->account_code}, the code must be between {$childRange[0]} and {$childRange[1]}."

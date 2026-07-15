@@ -67,51 +67,60 @@ class ChartOfAccount extends Model
     }
 
     /**
-     * Infer the parent code of a 4-digit account by the code pattern:
-     *   X000 -> null (type root)   XY00 -> X000   XYZW -> XY00
+     * The code blocks a 4-digit code rolls into, nearest first — pure arithmetic,
+     * no database lookup:
+     *
+     *   6451 -> [6450, 6400, 6000]
+     *   6450 -> [6400, 6000]
+     *   6100 -> [6000]
+     *   6000 -> []          (X000 is a type root)
+     *
+     * @return array<int, int>
+     */
+    public static function parentCodeCandidates(string $accountCode): array
+    {
+        if (! ctype_digit($accountCode) || strlen($accountCode) !== 4) {
+            return [];
+        }
+
+        $n = (int) $accountCode;
+        if ($n % 1000 === 0) {
+            return [];
+        }
+
+        $candidates = [];
+        if ($n % 100 !== 0) {
+            $candidates[] = intdiv($n, 10) * 10;   // XYZ0 (e.g. 6450 for 6451)
+        }
+        $candidates[] = intdiv($n, 100) * 100;     // XY00
+        $candidates[] = intdiv($n, 1000) * 1000;   // X000
+
+        return array_values(array_unique(array_filter($candidates, fn ($c) => $c !== $n)));
+    }
+
+    /**
+     * Best-guess parent CODE for a 4-digit account, from its number: the nearest
+     * block that actually exists (6451 -> 6450 if present, else 6400, else 6000).
+     *
+     * NOTE: this is only a seeding/backfill heuristic, used to give the chart an
+     * initial shape. Once `parent_account_id` is set it is the source of truth —
+     * an admin can move an account to any category regardless of its number.
      */
     public static function inferParentCode(string $accountCode): ?string
     {
-        if (! ctype_digit($accountCode) || strlen($accountCode) !== 4) {
-            return null;
+        foreach (static::parentCodeCandidates($accountCode) as $candidate) {
+            if (static::withoutGlobalScopes()->where('account_code', (string) $candidate)->exists()) {
+                return (string) $candidate;
+            }
         }
-        if (substr($accountCode, -3) === '000') {
-            return null;
-        }
-        if (substr($accountCode, -2) === '00') {
-            $parent = substr($accountCode, 0, 1).'000';
 
-            return $parent !== $accountCode ? $parent : null;
-        }
-        $parent = substr($accountCode, 0, 2).'00';
-
-        return $parent !== $accountCode ? $parent : null;
+        return null;
     }
 
     /** True if this account is itself a rollup "total" row. */
     public function isRollupTotal(): bool
     {
         return in_array((string) $this->account_code, self::totalRollupAccountCodes(), true);
-    }
-
-    /**
-     * Accounts that roll up under this account (by code containment), e.g.
-     * 6450 -> 6451 DoorDash, 6452 GrubHub, 6453 Uber Eats, 6454 EasyCatering.
-     */
-    public function blockChildren()
-    {
-        $range = self::childCodeRangeForParent((string) $this->account_code);
-
-        if (! $range) {
-            return static::query()->whereRaw('1 = 0');
-        }
-
-        // Codes are 4-digit, so a lexical BETWEEN equals a numeric one (portable).
-        return static::query()
-            ->active()
-            ->whereBetween('account_code', [(string) $range[0], (string) $range[1]])
-            ->where('id', '!=', $this->id)
-            ->orderBy('account_code');
     }
 
     /**
@@ -126,7 +135,19 @@ class ChartOfAccount extends Model
             return "Account {$code} is a rollup total that sums its sub-accounts. Post day-to-day transactions to its child accounts, not to this total directly.";
         }
 
-        $effectiveParent = $parentCode ?: self::inferParentCode($code);
+        $effectiveParent = $parentCode;
+
+        // No explicit parent chosen: warn if the code numerically rolls into a
+        // total. This is about the number block, so it doesn't depend on which
+        // ancestor rows happen to exist yet.
+        if (! $effectiveParent) {
+            foreach (self::parentCodeCandidates($code) as $candidate) {
+                if (in_array((string) $candidate, $rollups, true)) {
+                    $effectiveParent = (string) $candidate;
+                    break;
+                }
+            }
+        }
 
         if ($effectiveParent && in_array($effectiveParent, $rollups, true)) {
             return "This account rolls up into the {$effectiveParent} total — avoid also posting the same amounts to {$effectiveParent} directly (it would double-count).";
