@@ -796,8 +796,21 @@
                                 <td></td>
                                 <td></td>
                             </tr>
-                            {{-- "Adjustments for Credit Card" removed — Credit Card (tips) covers it. --}}
-                            {{-- Tips moved to the Credit Card (tips) section (taken out of the card total). --}}
+                            {{-- Tips block: the single place tips are entered. Credit Card (tips)
+                                 in the box below auto-fills from here. Tips are not sales and are
+                                 not taken out of cash. --}}
+                            <tr>
+                                <td colspan="3">
+                                    <div class="tips-block" style="border:1px solid #b6d4fe; border-radius:6px; padding:8px 10px; background:#f4f9ff;">
+                                        <div style="font-weight:600; margin-bottom:6px;">Tips</div>
+                                        <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+                                            <span><strong>Credit Card Tips:</strong></span>
+                                            <span style="width:30%;"><input type="number" name="credit_card_tips" id="tipsBlockInput" class="form-input number-input" value="0" style="background:white;"></span>
+                                        </div>
+                                        <small class="text-muted">Auto-fills Credit Card (tips) below. Not sales; not out of cash.</small>
+                                    </div>
+                                </td>
+                            </tr>
                             <tr>
                                 <td>
                                     <div style="display: -webkit-flex; display: flex; -webkit-justify-content: space-between; justify-content: space-between; -webkit-align-items: center; align-items: center; width: 100%;">
@@ -867,8 +880,8 @@
                                 <td id="creditCards2" class="calculated-field number-input"><input type="number" name="credit_cards" class="form-input number-input" value="0" style="background: #e7f3ff !important;"></td>
                             </tr>
                             <tr>
-                                <td><strong>Credit Card (tips):</strong><br><small class="text-muted">Tips charged on cards — not sales, and not out of cash</small></td>
-                                <td class="calculated-field number-input"><input type="number" name="credit_card_tips" class="form-input number-input" value="0" style="background: #e7f3ff !important;"></td>
+                                <td><strong>Credit Card (tips):</strong><br><small class="text-muted">Auto-filled from the Tips block</small></td>
+                                <td id="creditCardTipsCalc" class="calculated-field number-input">$0.00</td>
                             </tr>
                             <tr>
                                 <td><strong>Credit Card (total):</strong><br><small class="text-muted">Sales + tips</small></td>
@@ -1016,6 +1029,9 @@ function calculateTotals() {
     // Credit Card: sales is entered; total = sales + tips
     const creditCardSales = creditCards;
     const creditCardTotal = creditCardSales + creditCardTips;
+    // Credit Card (tips) box mirrors the Tips block (read-only).
+    const ccTipsEl = document.getElementById('creditCardTipsCalc');
+    if (ccTipsEl) ccTipsEl.textContent = '$' + creditCardTips.toFixed(2);
     const ccTotalEl = document.getElementById('creditCardTotal');
     if (ccTotalEl) ccTotalEl.textContent = '$' + creditCardTotal.toFixed(2);
 

@@ -60,6 +60,41 @@ class DailyReportReconciliationTest extends TestCase
     }
 
     /** @test */
+    public function the_create_form_shows_a_dedicated_tips_block_feeding_a_read_only_credit_card_tips(): void
+    {
+        $owner = User::factory()->create(['role' => 'owner']);
+        $store = Store::factory()->create(['created_by' => $owner->id]);
+
+        $response = $this->actingAs($owner)->get(route('daily-reports.create-form', [
+            'store_id' => $store->id,
+            'report_date' => now()->format('Y-m-d'),
+        ]));
+
+        $response->assertStatus(200)
+            // The dedicated Tips block is the single entry point for tips.
+            ->assertSee('id="tipsBlockInput"', false)
+            ->assertSee('Credit Card Tips:')
+            // Credit Card (tips) in the box is now a read-only mirror, not an input.
+            ->assertSee('id="creditCardTipsCalc"', false)
+            ->assertSee('Auto-filled from the Tips block');
+    }
+
+    /** @test */
+    public function the_edit_form_prefills_the_tips_block_from_the_saved_value(): void
+    {
+        $r = $this->report(['credit_card_tips' => 42]);
+
+        $response = $this->actingAs(User::where('role', 'owner')->first())
+            ->get("/daily-reports/{$r->id}/edit");
+
+        $response->assertStatus(200)
+            ->assertSee('id="tipsBlockInput"', false)
+            // The saved tip value is prefilled into the block's input (decimal:2 cast).
+            ->assertSee('value="42.00"', false)
+            ->assertSee('id="creditCardTipsCalc"', false);
+    }
+
+    /** @test */
     public function average_ticket_is_based_on_sales_pre_tax(): void
     {
         $r = $this->report(['total_customers' => 10]);
