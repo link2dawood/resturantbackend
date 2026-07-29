@@ -53,10 +53,9 @@ class DailyReportController extends Controller
         $selectedYear = $request->get('year');
         $selectedMonth = $request->get('month');
         
-        // Generate years list (2000 to current year)
+        // Year picker shows only the current year (past years hidden by request).
         $currentYear = (int) date('Y');
-        $years = range(2000, $currentYear);
-        rsort($years); // Most recent first
+        $years = [$currentYear];
         
         // Months list
         $months = [
