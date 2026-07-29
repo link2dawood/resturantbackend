@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Vendor;
 use App\Models\VendorAlias;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
@@ -80,41 +81,72 @@ class VendorController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $vendor = Vendor::create([
-            'vendor_name' => $request->vendor_name,
-            'vendor_identifier' => $request->vendor_identifier,
-            'vendor_type' => $request->vendor_type,
-            'default_coa_id' => $request->default_coa_id,
-            'default_transaction_type_id' => $request->default_transaction_type_id,
-            'contact_name' => $request->contact_name,
-            'contact_email' => $request->contact_email,
-            'contact_phone' => $request->contact_phone,
-            'address' => $request->address,
-            'notes' => $request->notes,
-            'is_active' => true,
-            'created_by' => auth()->id(),
-        ]);
+        $vendorName = trim($request->vendor_name);
 
-        // Attach stores if provided
-        if ($request->has('store_ids') && is_array($request->store_ids) && count($request->store_ids) > 0) {
-            $vendor->stores()->sync($request->store_ids);
+        // Idempotent: if a vendor with this name (or a matching alias) already
+        // exists, reuse it instead of creating a duplicate. Vendor aliases are
+        // globally unique on (alias, source), so re-creating an existing name
+        // would otherwise crash on the alias insert (1062 duplicate) and leave an
+        // orphaned vendor row behind.
+        $existing = Vendor::whereRaw('LOWER(vendor_name) = ?', [mb_strtolower($vendorName)])->first();
+        if (! $existing) {
+            $existing = optional(
+                VendorAlias::whereRaw('LOWER(alias) = ?', [mb_strtolower($vendorName)])->first()
+            )->vendor;
         }
 
-        // Create initial alias from vendor name
-        VendorAlias::create([
-            'vendor_id' => $vendor->id,
-            'alias' => $vendor->vendor_name,
-            'source' => 'manual'
-        ]);
+        if ($existing) {
+            // Backfill a default COA / store link if the caller supplied one.
+            if ($request->filled('default_coa_id') && ! $existing->default_coa_id) {
+                $existing->update(['default_coa_id' => $request->default_coa_id]);
+            }
+            if ($request->filled('store_ids') && is_array($request->store_ids)) {
+                $existing->stores()->syncWithoutDetaching($request->store_ids);
+            }
 
-        // Create alias from vendor_identifier if different
-        if ($request->vendor_identifier && strtoupper($request->vendor_identifier) !== strtoupper($vendor->vendor_name)) {
-            VendorAlias::create([
-                'vendor_id' => $vendor->id,
-                'alias' => $request->vendor_identifier,
-                'source' => 'manual'
+            return response()->json([
+                'message' => 'Vendor already existed and was selected.',
+                'data' => $existing->load(['defaultCoa', 'stores', 'aliases']),
+            ], 200);
+        }
+
+        // Create the vendor and its aliases atomically so a failed alias never
+        // leaves a half-created vendor behind. firstOrCreate guards against a
+        // stray alias left by an earlier partial failure.
+        $vendor = DB::transaction(function () use ($request, $vendorName) {
+            $vendor = Vendor::create([
+                'vendor_name' => $vendorName,
+                'vendor_identifier' => $request->vendor_identifier,
+                'vendor_type' => $request->vendor_type,
+                'default_coa_id' => $request->default_coa_id,
+                'default_transaction_type_id' => $request->default_transaction_type_id,
+                'contact_name' => $request->contact_name,
+                'contact_email' => $request->contact_email,
+                'contact_phone' => $request->contact_phone,
+                'address' => $request->address,
+                'notes' => $request->notes,
+                'is_active' => true,
+                'created_by' => auth()->id(),
             ]);
-        }
+
+            if ($request->filled('store_ids') && is_array($request->store_ids)) {
+                $vendor->stores()->sync($request->store_ids);
+            }
+
+            VendorAlias::firstOrCreate(
+                ['alias' => $vendor->vendor_name, 'source' => 'manual'],
+                ['vendor_id' => $vendor->id]
+            );
+
+            if ($request->vendor_identifier && strtoupper($request->vendor_identifier) !== strtoupper($vendor->vendor_name)) {
+                VendorAlias::firstOrCreate(
+                    ['alias' => $request->vendor_identifier, 'source' => 'manual'],
+                    ['vendor_id' => $vendor->id]
+                );
+            }
+
+            return $vendor;
+        });
 
         return response()->json([
             'message' => 'Vendor created successfully',

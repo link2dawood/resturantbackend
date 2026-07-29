@@ -397,8 +397,19 @@
 
     <select id="vendorDescriptionTemplate" style="display:none;">
         <option value="">Select Vendor / Description</option>
+        <option value="__create_new__">➕ Create new vendor…</option>
+        @php
+            $__seen = [];
+            foreach ($types as $__t) { $__seen[mb_strtolower(trim($__t->name))] = true; }
+        @endphp
         @foreach($types as $type)
             <option value="{{ $type->name }}" data-default-coa-id="{{ $type->default_coa_id ?? '' }}">{{ $type->name }}</option>
+        @endforeach
+        @foreach(($vendors ?? []) as $vendor)
+            @php $__k = mb_strtolower(trim($vendor->vendor_name)); @endphp
+            @continue(isset($__seen[$__k]))
+            @php $__seen[$__k] = true; @endphp
+            <option value="{{ $vendor->vendor_name }}" data-default-coa-id="{{ $vendor->default_coa_id ?? '' }}">{{ $vendor->vendor_name }}</option>
         @endforeach
     </select>
 

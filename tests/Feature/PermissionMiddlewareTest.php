@@ -69,6 +69,30 @@ class PermissionMiddlewareTest extends TestCase
     }
 
     /** @test */
+    public function creating_a_vendor_whose_name_already_exists_reuses_it_instead_of_crashing()
+    {
+        $owner = \App\Models\User::factory()->create(['role' => 'owner']);
+
+        // First create succeeds and lays down the "Sams Club" / manual alias.
+        $first = $this->actingAs($owner)->postJson('/api/vendors', [
+            'vendor_name' => 'Sams Club', 'vendor_type' => 'Supplies',
+        ]);
+        $first->assertStatus(201);
+        $vendorId = $first->json('data.id');
+
+        // Re-creating the same name used to 1062 on vendor_aliases. It must now
+        // resolve to the existing vendor (200), not crash, and not duplicate it.
+        $second = $this->actingAs($owner)->postJson('/api/vendors', [
+            'vendor_name' => 'sams club', 'vendor_type' => 'Supplies',
+        ]);
+        $second->assertStatus(200);
+        $this->assertSame($vendorId, $second->json('data.id'));
+
+        $this->assertSame(1, \App\Models\Vendor::whereRaw('LOWER(vendor_name) = ?', ['sams club'])->count());
+        $this->assertSame(1, \App\Models\VendorAlias::where('alias', 'Sams Club')->where('source', 'manual')->count());
+    }
+
+    /** @test */
     public function users_cannot_access_stores_they_dont_own()
     {
         $owner1 = User::factory()->create(['role' => 'owner']);

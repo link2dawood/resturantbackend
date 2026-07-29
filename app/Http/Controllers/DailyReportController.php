@@ -240,7 +240,10 @@ class DailyReportController extends Controller
             ->whereDate('projection_date', $reportDate)
             ->value('amount') ?? 0);
 
-        return view('daily-reports.create', compact('store', 'types', 'revenueTypes', 'reportDate', 'coas', 'prevReport', 'nextReport', 'prevDate', 'nextDate', 'projectedSales'));
+        // Vendors for the "Vendor / Description" dropdown (merged with types in the view).
+        $vendors = Vendor::active()->orderBy('vendor_name')->get(['id', 'vendor_name', 'default_coa_id']);
+
+        return view('daily-reports.create', compact('store', 'types', 'revenueTypes', 'reportDate', 'coas', 'prevReport', 'nextReport', 'prevDate', 'nextDate', 'projectedSales', 'vendors'));
     }
 
     /**
