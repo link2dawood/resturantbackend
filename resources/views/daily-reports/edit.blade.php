@@ -764,7 +764,7 @@
                                 <td id="onlineRevenue2" class="calculated-field number-input">$0.00</td>
                             </tr>
                             <tr>
-                                <td><strong>Credit Card (sales):</strong><br><small class="text-muted">Card sales, excluding tips</small></td>
+                                <td><strong>Business Credit Card:</strong><br><small class="text-muted">Card sales, excluding tips</small></td>
                                 <td id="creditCards2" class="calculated-field number-input"><input type="number" name="credit_cards" id="creditCardsInput" class="form-input number-input" value="{{ $dailyReport->credit_cards }}" style="background: #e7f3ff !important;"></td>
                             </tr>
                             <tr>
