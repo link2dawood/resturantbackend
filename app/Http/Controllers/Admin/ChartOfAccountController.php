@@ -53,24 +53,65 @@ class ChartOfAccountController extends Controller
 
         // Sort by numeric account code so the list matches the COA code ranges (1000, 1010, 1100, ...)
         // account_code is stored as string, so cast to unsigned for correct ordering.
-        $coas = $query
-            ->orderByRaw('CAST(account_code AS UNSIGNED) ASC')
-            ->orderBy('account_name')
-            ->paginate(25)
-            ->onEachSide(1)
-            ->withQueryString();
+        $query->orderByRaw('CAST(account_code AS UNSIGNED) ASC')->orderBy('account_name');
 
         $stores = Store::orderBy('store_info')->get(['id', 'store_info']);
-
         $accountTypes = self::ACCOUNT_TYPES;
 
-        return view('admin.coa.index', compact('coas', 'stores', 'accountTypes'));
+        // Searching returns a flat, paginated list so a match is found at any depth.
+        // Otherwise the list is a collapsible tree: categories/standalones at the
+        // top, their sub-accounts hidden until a parent is expanded.
+        if ($request->filled('search')) {
+            $coas = $query->paginate(50)->withQueryString();
+
+            return view('admin.coa.index', compact('coas', 'stores', 'accountTypes') + ['tree' => null]);
+        }
+
+        $tree = $this->buildAccountTree($query->get());
+
+        return view('admin.coa.index', compact('tree', 'stores', 'accountTypes') + ['coas' => null]);
+    }
+
+    /**
+     * Turn a flat account collection into top-level nodes, each carrying its
+     * descendants on ->childNodes and its ->depth (0 = type root). A node is
+     * top-level when its parent isn't in the set (a type root, or an account
+     * whose parent was filtered out).
+     *
+     * @param  \Illuminate\Support\Collection<int, ChartOfAccount>  $accounts
+     * @return \Illuminate\Support\Collection<int, ChartOfAccount>
+     */
+    private function buildAccountTree(\Illuminate\Support\Collection $accounts): \Illuminate\Support\Collection
+    {
+        $byId = $accounts->keyBy('id');
+        $childrenByParent = $accounts->groupBy('parent_account_id');
+
+        $assignDepth = function (ChartOfAccount $node, int $depth) use (&$assignDepth, $childrenByParent) {
+            $node->depth = $depth;
+            $node->childNodes = $childrenByParent->get($node->id, collect())
+                ->sortBy(fn ($c) => (int) $c->account_code)
+                ->values();
+            foreach ($node->childNodes as $child) {
+                $assignDepth($child, $depth + 1);
+            }
+        };
+
+        $roots = $accounts
+            ->filter(fn ($a) => ! $a->parent_account_id || ! $byId->has($a->parent_account_id))
+            ->sortBy(fn ($a) => (int) $a->account_code)
+            ->values();
+
+        foreach ($roots as $root) {
+            $assignDepth($root, 0);
+        }
+
+        return $roots;
     }
 
     /**
      * Show the form for creating a new resource.
      */
-    public function create(): View
+    public function create(Request $request): View
     {
         $user = auth()->user();
         // Only the user's own stores (admins see all). Prevents owners seeing
@@ -81,7 +122,13 @@ class ChartOfAccountController extends Controller
         $parentAccounts = $this->parentAccountOptions();
         $accountTypes = self::ACCOUNT_TYPES;
 
-        return view('admin.coa.create', compact('stores', 'parentAccounts', 'accountTypes', 'defaultStoreIds'));
+        // "Add sub-account" from the list deep-links here with ?parent=<id> so the
+        // form opens with that parent's type + category already selected.
+        $preselectParent = $request->filled('parent')
+            ? ChartOfAccount::find((int) $request->input('parent'))
+            : null;
+
+        return view('admin.coa.create', compact('stores', 'parentAccounts', 'accountTypes', 'defaultStoreIds', 'preselectParent'));
     }
 
     /**

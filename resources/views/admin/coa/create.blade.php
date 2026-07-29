@@ -296,6 +296,31 @@ document.addEventListener('DOMContentLoaded', function () {
 
     fillParents();
     showCodeRange();
+
+    // "Add sub-account" deep-link: preselect the parent's type + category so the
+    // new account lands under it (its number stays in the parent's range).
+    @php $preselectParentId = optional($preselectParent ?? null)->id; @endphp
+    const PRESELECT_PARENT_ID = @json($preselectParentId);
+    if (PRESELECT_PARENT_ID) {
+        const parent = ACCOUNTS.find(a => String(a.id) === String(PRESELECT_PARENT_ID));
+        if (parent) {
+            typeSel.value = parent.account_type;
+            fillParents();
+            // If the parent is a category (child of the type root) select it directly;
+            // if it's a sub-category, select its category first, then the sub-category.
+            const grand = parent.parent_account_id ? ACCOUNTS.find(a => String(a.id) === String(parent.parent_account_id)) : null;
+            if (grand && grand.parent_account_id) {
+                parentSel.value = String(grand.id);
+                fillSubParents();
+                subSel.value = String(parent.id);
+            } else {
+                parentSel.value = String(parent.id);
+                fillSubParents();
+            }
+            updateCode();
+            showCodeRange();
+        }
+    }
 });
 </script>
 @endpush

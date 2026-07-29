@@ -100,34 +100,54 @@
         </div>
     </div>
 
-    @php
-        $headers = [
-            'Code',
-            'Account Name',
-            'Type',
-            'Stores',
-            'Status',
-            ['label' => 'Actions', 'align' => 'end']
-        ];
-    @endphp
-
-    <x-table 
-        :headers="$headers"
-        emptyMessage="No accounts found with the current filters."
-        emptyActionHref="{{ route('coa.create') }}"
-        emptyActionText="Add First Account">
-        @if($coas->count() > 0)
+    @isset($tree)
+        {{-- Collapsible hierarchy: categories/standalones shown; sub-accounts hidden until expanded. --}}
+        <div class="card">
+            <div class="card-body p-2">
+                <div class="d-flex justify-content-end mb-2 gap-2">
+                    <button type="button" id="coaExpandAll" class="btn btn-sm btn-outline-secondary">Expand all</button>
+                    <button type="button" id="coaCollapseAll" class="btn btn-sm btn-outline-secondary">Collapse all</button>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-vcenter table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Code</th>
+                                <th>Account Name</th>
+                                <th>Type</th>
+                                <th>Stores</th>
+                                <th>Status</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="coaTreeBody">
+                            @if($tree->isNotEmpty())
+                                @include('admin.coa._tree-rows', ['nodes' => $tree])
+                            @else
+                                <tr><td colspan="6" class="text-center text-muted py-4">
+                                    No accounts found with the current filters.
+                                    <a href="{{ route('coa.create') }}">Add the first account</a>.
+                                </td></tr>
+                            @endif
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    @else
+        {{-- Search results: flat list across all levels. --}}
+        @php
+            $headers = ['Code', 'Account Name', 'Type', 'Stores', 'Status', ['label' => 'Actions', 'align' => 'end']];
+        @endphp
+        <x-table :headers="$headers"
+            emptyMessage="No accounts found with the current filters."
+            emptyActionHref="{{ route('coa.create') }}"
+            emptyActionText="Add First Account">
             @foreach($coas as $coa)
                 <x-table-row>
-                    <x-table-cell>
-                        <strong>{{ $coa->account_code }}</strong>
-                    </x-table-cell>
-                    <x-table-cell>
-                        {{ $coa->account_name }}
-                    </x-table-cell>
-                    <x-table-cell>
-                        <span class="badge bg-secondary">{{ $coa->account_type }}</span>
-                    </x-table-cell>
+                    <x-table-cell><strong>{{ $coa->account_code }}</strong></x-table-cell>
+                    <x-table-cell>{{ $coa->account_name }}</x-table-cell>
+                    <x-table-cell><span class="badge bg-secondary">{{ $coa->account_type }}</span></x-table-cell>
                     <x-table-cell>
                         @if($coa->stores->isEmpty())
                             <span class="text-muted">All Stores</span>
@@ -156,14 +176,12 @@
                     </x-table-cell>
                 </x-table-row>
             @endforeach
-        @endif
-    </x-table>
+        </x-table>
 
-    @if($coas->hasPages())
-        <div class="mt-3">
-            <x-pagination :paginator="$coas" />
-        </div>
-    @endif
+        @if($coas->hasPages())
+            <div class="mt-3"><x-pagination :paginator="$coas" /></div>
+        @endif
+    @endisset
 </div>
 
 @push('scripts')
@@ -186,6 +204,59 @@
             debounceTimer = setTimeout(function() { form.submit(); }, 350);
         });
     }
+})();
+
+// ── Chart-of-Accounts tree expand/collapse ────────────────────────────────
+(function() {
+    var body = document.getElementById('coaTreeBody');
+    if (!body) return;
+
+    function directChildren(parentId) {
+        return body.querySelectorAll('tr.coa-node[data-parent-id="' + parentId + '"]');
+    }
+
+    // Collapse a node: hide all its descendants and reset their carets.
+    function collapse(nodeId) {
+        directChildren(nodeId).forEach(function(row) {
+            row.style.display = 'none';
+            var t = row.querySelector('.coa-toggle');
+            if (t) { t.setAttribute('aria-expanded', 'false'); t.querySelector('.coa-caret').textContent = '▸'; }
+            collapse(row.getAttribute('data-node-id'));
+        });
+    }
+
+    function setToggle(btn, expanded) {
+        btn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+        btn.querySelector('.coa-caret').textContent = expanded ? '▾' : '▸';
+    }
+
+    body.addEventListener('click', function(e) {
+        var btn = e.target.closest('.coa-toggle');
+        if (!btn) return;
+        var id = btn.getAttribute('data-target');
+        var expanded = btn.getAttribute('aria-expanded') === 'true';
+        if (expanded) {
+            collapse(id); // hides descendants, resets their carets
+            setToggle(btn, false);
+        } else {
+            directChildren(id).forEach(function(row) { row.style.display = ''; });
+            setToggle(btn, true);
+        }
+    });
+
+    var expandAll = document.getElementById('coaExpandAll');
+    if (expandAll) expandAll.addEventListener('click', function() {
+        body.querySelectorAll('tr.coa-node').forEach(function(row) { row.style.display = ''; });
+        body.querySelectorAll('.coa-toggle').forEach(function(btn) { setToggle(btn, true); });
+    });
+
+    var collapseAll = document.getElementById('coaCollapseAll');
+    if (collapseAll) collapseAll.addEventListener('click', function() {
+        body.querySelectorAll('tr.coa-node').forEach(function(row) {
+            if (parseInt(row.getAttribute('data-depth'), 10) >= 2) row.style.display = 'none';
+        });
+        body.querySelectorAll('.coa-toggle').forEach(function(btn) { setToggle(btn, false); });
+    });
 })();
 </script>
 @endpush
