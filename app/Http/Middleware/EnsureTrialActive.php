@@ -38,8 +38,10 @@ class EnsureTrialActive
             return $next($request);
         }
 
-        // Trial has expired — block access.
-        if ($request->expectsJson()) {
+        // Trial has expired — block access. AJAX/API callers get JSON (so the UI
+        // can show the real reason instead of choking on an HTML redirect); page
+        // requests are sent to the Trial Expired screen.
+        if ($request->expectsJson() || $request->ajax() || $request->is('api/*')) {
             return response()->json([
                 'message' => 'Your free trial has expired.',
                 'trial_expired' => true,

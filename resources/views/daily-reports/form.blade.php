@@ -1594,11 +1594,16 @@ window.saveNewVendor = async function() {
     if (!coaId) { showErr('Please select a default chart of account.'); return; }
 
     try {
+        const csrfMeta = document.querySelector('meta[name="csrf-token"]');
         const response = await fetch('/api/vendors', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                // Announce we want JSON so auth/verified/trial gates and CSRF (419)
+                // reply with JSON instead of an HTML redirect we can't read.
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': csrfMeta ? csrfMeta.content : ''
             },
             body: JSON.stringify({
                 vendor_name: vendorName,
@@ -1606,9 +1611,13 @@ window.saveNewVendor = async function() {
                 default_coa_id: coaId
             })
         });
-        
-        const json = await response.json();
-        
+
+        // Read the body defensively — a gate may still return non-JSON.
+        let json = {};
+        if ((response.headers.get('content-type') || '').includes('application/json')) {
+            json = await response.json().catch(function () { return {}; });
+        }
+
         if (response.ok) {
             const v = json.data || json;
             const vendorName = v.vendor_name || v.name || '';
@@ -1672,14 +1681,25 @@ window.saveNewVendor = async function() {
             const modal = bootstrap.Modal.getInstance(document.getElementById('createVendorModal'));
             modal.hide();
         } else {
-            const errMsg = (json.errors && Object.values(json.errors).flat().join(' ')) || json.message || json.error || 'Unknown error';
-            showErr('Could not create vendor: ' + errMsg);
+            showErr('Could not create vendor: ' + vendorErrorMessage(response, json));
         }
     } catch (error) {
         console.error('Error:', error);
         showErr('Could not create vendor. Please try again.');
     }
 }
+
+// Turn a failed vendor-create response into a message that names the real cause.
+window.vendorErrorMessage = function (response, data) {
+    data = data || {};
+    if (data.trial_expired) return 'Your free trial has expired. Renew to keep adding vendors.';
+    if (data.errors) return Object.values(data.errors).flat().join(' ');
+    if (data.message || data.error) return data.message || data.error;
+    if (response.status === 419) return 'Your session expired. Please refresh the page and try again.';
+    if (response.status === 401) return 'You have been signed out. Please refresh the page and sign in again.';
+    if (response.status === 403) return 'You do not have permission to create vendors.';
+    return 'Server error (' + response.status + '). Please try again.';
+};
 </script>
 
     <!-- Create Vendor Modal -->
