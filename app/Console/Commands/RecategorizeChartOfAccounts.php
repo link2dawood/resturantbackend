@@ -26,7 +26,6 @@ class RecategorizeChartOfAccounts extends Command
         '6050' => 'Banking Fees Total',
         '6150' => 'Donations Total',
         '6200' => 'Marketing Fees Total',
-        '6300' => 'Delivery Service Fees Total',
         '6400' => 'Utilities Total',
         '6450' => 'Online Merchant Expenses Total',
         '6500' => 'Rent Total',
