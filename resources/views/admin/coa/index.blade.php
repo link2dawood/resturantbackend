@@ -9,7 +9,12 @@
             <h1 class="mb-0">Chart of Accounts</h1>
             <p class="text-muted mb-0">Manage and categorize the financial accounts used across your restaurants.</p>
         </div>
-        <x-button-add href="{{ route('coa.create') }}" text="Add Chart of Account" />
+        <div class="d-flex gap-2">
+            <a href="{{ route('coa.report', request()->only('account_type')) }}" class="btn btn-outline-secondary">
+                <i class="bi bi-list-nested me-1"></i> Report
+            </a>
+            <x-button-add href="{{ route('coa.create') }}" text="Add Chart of Account" />
+        </div>
     </div>
 
     @if(session('success'))

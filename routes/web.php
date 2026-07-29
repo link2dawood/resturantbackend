@@ -177,6 +177,12 @@ Route::middleware(['auth', 'verified', 'trial'])->group(function () {
     // Owners may VIEW and ADD accounts but may NOT modify existing ones;
     // edit/update/destroy are admin-only (registered separately below).
     Route::middleware('role:admin,owner')->group(function () {
+        // Hierarchy report + exports. MUST be registered before the resource route
+        // so "report"/"export" are not captured as a {chartOfAccount} parameter.
+        Route::get('chart-of-accounts/report', [ChartOfAccountController::class, 'report'])->name('coa.report');
+        Route::get('chart-of-accounts/export/csv', [ChartOfAccountController::class, 'exportCsv'])->name('coa.export.csv');
+        Route::get('chart-of-accounts/export/pdf', [ChartOfAccountController::class, 'exportPdf'])->name('coa.export.pdf');
+
         Route::resource('chart-of-accounts', ChartOfAccountController::class)
             ->parameters(['chart-of-accounts' => 'chartOfAccount'])
             ->only(['index', 'create', 'store', 'show'])

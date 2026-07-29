@@ -109,6 +109,137 @@ class ChartOfAccountController extends Controller
     }
 
     /**
+     * On-screen hierarchy report (Type → Category → Sub-category), printable.
+     * Respects ?account_type= (one type) or shows the entire chart.
+     */
+    public function report(Request $request): View
+    {
+        $type = $request->input('account_type');
+        $groups = $this->reportGroups($type);
+        $accountTypes = self::ACCOUNT_TYPES;
+
+        return view('admin.coa.report', compact('groups', 'accountTypes', 'type'));
+    }
+
+    /** Same report as a PDF. */
+    public function exportPdf(Request $request)
+    {
+        $type = $request->input('account_type');
+        $groups = $this->reportGroups($type);
+
+        $html = view('admin.coa.report-pdf', [
+            'groups' => $groups,
+            'type' => $type,
+        ])->render();
+
+        $dompdf = new \Dompdf\Dompdf;
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->render();
+
+        $suffix = $type ? \Illuminate\Support\Str::slug($type) : 'all';
+
+        return response($dompdf->output(), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => "attachment; filename=chart-of-accounts-{$suffix}.pdf",
+        ]);
+    }
+
+    /** The chart as a flat CSV with Type / Category / Sub-category columns. */
+    public function exportCsv(Request $request): \Symfony\Component\HttpFoundation\StreamedResponse
+    {
+        $type = $request->input('account_type');
+        $rows = $this->reportRows($type);
+        $suffix = $type ? \Illuminate\Support\Str::slug($type) : 'all';
+
+        return response()->stream(function () use ($rows) {
+            $out = fopen('php://output', 'w');
+            fputcsv($out, ['Account Type', 'Category', 'Sub-category', 'Code', 'Account Name', 'Status']);
+            foreach ($rows as $r) {
+                fputcsv($out, [
+                    $r['type'], $r['category'], $r['subcategory'],
+                    $r['code'], $r['name'], $r['active'] ? 'Active' : 'Inactive',
+                ]);
+            }
+            fclose($out);
+        }, 200, [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => "attachment; filename=chart-of-accounts-{$suffix}.csv",
+        ]);
+    }
+
+    /**
+     * Accounts grouped by type, each type carrying its top-level tree nodes.
+     *
+     * @return \Illuminate\Support\Collection<string, \Illuminate\Support\Collection>
+     */
+    private function reportGroups(?string $type): \Illuminate\Support\Collection
+    {
+        $query = ChartOfAccount::query()->where('is_active', true);
+        if ($type) {
+            $query->where('account_type', $type);
+        }
+        $accounts = $query->orderByRaw('CAST(account_code AS UNSIGNED) ASC')->get();
+
+        // Preserve the canonical type order.
+        return collect(self::ACCOUNT_TYPES)
+            ->mapWithKeys(fn ($t) => [$t => $this->buildAccountTree($accounts->where('account_type', $t)->values())])
+            ->filter(fn ($tree) => $tree->isNotEmpty());
+    }
+
+    /**
+     * Flat rows for CSV: each account with its Type, its Category (the level-1
+     * ancestor) and Sub-category (the account's own name when it's nested deeper).
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function reportRows(?string $type): array
+    {
+        $query = ChartOfAccount::query()->where('is_active', true);
+        if ($type) {
+            $query->where('account_type', $type);
+        }
+        $accounts = $query->orderByRaw('CAST(account_code AS UNSIGNED) ASC')->get();
+        $byId = $accounts->keyBy('id');
+
+        // The category is the ancestor whose own parent is the type root (or null).
+        $categoryOf = function (ChartOfAccount $a) use ($byId) {
+            $node = $a;
+            $guard = 0;
+            while ($node->parent_account_id && $byId->has($node->parent_account_id) && $guard++ < 20) {
+                $parent = $byId->get($node->parent_account_id);
+                if (! $parent->parent_account_id || ! $byId->has($parent->parent_account_id)) {
+                    return $node; // node's parent is the type root -> node is the category
+                }
+                $node = $parent;
+            }
+
+            return null; // $a is itself a type root
+        };
+
+        $rows = [];
+        foreach ($accounts as $a) {
+            $isRoot = ! $a->parent_account_id || ! $byId->has($a->parent_account_id);
+            if ($isRoot) {
+                continue; // skip the "Expenses All" type roots
+            }
+            $category = $categoryOf($a);
+            $isCategory = $category && (int) $category->id === (int) $a->id;
+
+            $rows[] = [
+                'type' => $a->account_type,
+                'category' => $category ? $category->account_code.' '.$category->account_name : '',
+                'subcategory' => $isCategory ? '' : $a->account_code.' '.$a->account_name,
+                'code' => $a->account_code,
+                'name' => $a->account_name,
+                'active' => (bool) $a->is_active,
+            ];
+        }
+
+        return $rows;
+    }
+
+    /**
      * Show the form for creating a new resource.
      */
     public function create(Request $request): View
