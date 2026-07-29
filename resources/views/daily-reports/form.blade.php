@@ -886,16 +886,16 @@
                                 <td id="onlineRevenue2" class="calculated-field number-input">$0</td>
                             </tr>
                             <tr>
-                                <td><strong>Business Credit Card:</strong><br><small class="text-muted">Card sales, excluding tips</small></td>
-                                <td id="creditCards2" class="calculated-field number-input"><input type="number" name="credit_cards" class="form-input number-input" value="0" style="background: #e7f3ff !important;"></td>
+                                <td><strong>Credit Card Total:</strong><br><small class="text-muted">Total charged to cards (includes tips)</small></td>
+                                <td id="creditCards2" class="calculated-field number-input"><input type="number" id="creditCardTotalInput" class="form-input number-input" value="0" style="background: #e7f3ff !important;"></td>
                             </tr>
                             <tr>
                                 <td><strong>Credit Card (tips):</strong><br><small class="text-muted">Auto-filled from the Tips block</small></td>
                                 <td id="creditCardTipsCalc" class="calculated-field number-input">$0.00</td>
                             </tr>
                             <tr>
-                                <td><strong>Credit Card (total):</strong><br><small class="text-muted">Sales + tips</small></td>
-                                <td id="creditCardTotal" class="calculated-field number-input">$0.00</td>
+                                <td><strong>Business Credit Card Sales:</strong><br><small class="text-muted">Credit Card Total − Tips</small></td>
+                                <td class="calculated-field number-input"><span id="businessCcSales">$0.00</span><input type="hidden" name="credit_cards" id="creditCardsHidden" value="0"></td>
                             </tr>
                             <tr>
                                 <td><strong>Square fee (2.45% of total):</strong></td>
@@ -950,7 +950,7 @@ function calculateTotals() {
     const couponsReceived = parseFloat(document.querySelector('input[name="coupons_received"]').value || 0);
     const adjustmentsOverrings = parseFloat(document.querySelector('input[name="adjustments_overrings"]').value || 0);
     const adjustmentsCash = parseFloat(document.querySelector('input[name="adjustments_cash"]')?.value || 0);
-    let creditCards = parseFloat(document.querySelector('input[name="credit_cards"]').value || 0);
+    let creditCards = 0; // Business Credit Card Sales (= Credit Card Total − tips), derived below.
     const creditCardTips = parseFloat(document.querySelector('input[name="credit_card_tips"]')?.value || 0);
     const actualDeposit = parseFloat(document.querySelector('input[name="actual_deposit"]').value || 0);
     const totalCustomers = parseFloat(document.querySelector('input[name="total_customers"]').value || 0);
@@ -1015,37 +1015,34 @@ function calculateTotals() {
     // Average Ticket = Net Sales / Total Customers
     const averageTicket = totalCustomers > 0 ? salesPreTax / totalCustomers : 0;
     
-    // Auto-fill Credit Cards from card category revenues
-    const creditCardsInput = document.querySelector('input[name="credit_cards"]');
-    if (creditCardsInput) {
-        // Auto-fill Credit Cards unless user has manually edited it
-        const isManuallyEdited = creditCardsInput.dataset.manuallyEdited === 'true';
-        
-        if (!isManuallyEdited) {
-            if (creditCardRevenue > 0) {
-                creditCardsInput.value = creditCardRevenue.toFixed(2);
-                creditCardsInput.dataset.lastCalculated = creditCardRevenue.toFixed(2);
-                checkNegativeInputs();
-            } else if (creditCardRevenue === 0) {
-                creditCardsInput.value = '0.00';
-            }
-        } else {
-            creditCardsInput.dataset.lastCalculated = creditCardRevenue.toFixed(2);
+    // Credit Card: the user enters the TOTAL charged to cards (gross, includes
+    // tips). Business Credit Card Sales = Total − Tips, and that sales figure is
+    // what we store (credit_cards) and reconcile — so cash, net sales and
+    // merchant-fee analytics are unchanged.
+    const ccTotalInput = document.getElementById('creditCardTotalInput');
+    if (ccTotalInput) {
+        // Auto-fill the Total from card revenue + tips, unless manually edited.
+        const autoTotal = creditCardRevenue + creditCardTips;
+        if (ccTotalInput.dataset.manuallyEdited !== 'true') {
+            ccTotalInput.value = autoTotal.toFixed(2);
         }
-        
-        creditCards = parseFloat(creditCardsInput.value || 0);
+        ccTotalInput.dataset.lastCalculated = autoTotal.toFixed(2);
     }
+    const creditCardTotal = parseFloat(ccTotalInput ? ccTotalInput.value : 0) || 0;
+    const creditCardSales = Math.max(0, creditCardTotal - creditCardTips);
+    creditCards = creditCardSales;
 
-    // Credit Card: sales is entered; total = sales + tips
-    const creditCardSales = creditCards;
-    const creditCardTotal = creditCardSales + creditCardTips;
-    // Credit Card (tips) box mirrors the Tips block (read-only).
+    // Persist the sales figure into the submitted (hidden) credit_cards field.
+    const ccHidden = document.getElementById('creditCardsHidden');
+    if (ccHidden) ccHidden.value = creditCardSales.toFixed(2);
+
+    // Displays: tips mirror + Business Credit Card Sales.
     const ccTipsEl = document.getElementById('creditCardTipsCalc');
     if (ccTipsEl) ccTipsEl.textContent = '$' + creditCardTips.toFixed(2);
-    const ccTotalEl = document.getElementById('creditCardTotal');
-    if (ccTotalEl) ccTotalEl.textContent = '$' + creditCardTotal.toFixed(2);
+    const ccSalesEl = document.getElementById('businessCcSales');
+    if (ccSalesEl) ccSalesEl.textContent = '$' + creditCardSales.toFixed(2);
 
-    // Square fee preview = 2.45% of the card TOTAL (sales + tips)
+    // Square fee preview = 2.45% of the card TOTAL (gross)
     const squareFeeEl = document.getElementById('squareFeePreview');
     if (squareFeeEl) {
         const squareFee = creditCardTotal * 0.0245;
@@ -1297,7 +1294,7 @@ document.addEventListener('DOMContentLoaded', function() {
         'input[name="coupons_received"]',
         'input[name="adjustments_overrings"]',
         'input[name="adjustments_cash"]',
-        'input[name="credit_cards"]',
+        '#creditCardTotalInput',
         'input[name="credit_card_tips"]',
         'input[name="actual_deposit"]',
         'input[name="total_customers"]',
@@ -1308,8 +1305,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const elements = document.querySelectorAll(selector);
         elements.forEach(element => {
             element.addEventListener('input', function() {
-                // Mark credit cards as manually edited if user changes it
-                if (element.name === 'credit_cards') {
+                // Mark the Credit Card Total as manually edited if user changes it
+                if (element.id === 'creditCardTotalInput') {
                     const currentValue = parseFloat(element.value || 0);
                     const lastCalculated = parseFloat(element.dataset.lastCalculated || 0);
                     // If value changed significantly, mark as manually edited

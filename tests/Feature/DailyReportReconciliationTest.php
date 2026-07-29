@@ -76,7 +76,12 @@ class DailyReportReconciliationTest extends TestCase
             ->assertSee('Credit Card Tips:')
             // Credit Card (tips) in the box is now a read-only mirror, not an input.
             ->assertSee('id="creditCardTipsCalc"', false)
-            ->assertSee('Auto-filled from the Tips block');
+            ->assertSee('Auto-filled from the Tips block')
+            // Credit Card Total is entered; Business Credit Card Sales = Total − tips.
+            ->assertSee('Credit Card Total:')
+            ->assertSee('id="creditCardTotalInput"', false)
+            ->assertSee('Business Credit Card Sales:')
+            ->assertSee('id="creditCardsHidden"', false);
     }
 
     /** @test */
