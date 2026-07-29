@@ -63,4 +63,53 @@ class RecategorizeChartOfAccountsTest extends TestCase
 
         $this->assertTrue(true);
     }
+
+    /** @test */
+    public function it_creates_equipment_total_and_files_smallwares_and_uniforms_under_it(): void
+    {
+        $root = $this->acct('6000', 'Expenses All');
+        $marketing = $this->acct('6200', 'Marketing Fees (Grubhub)', $root->id);
+        $smallwares = $this->acct('6205', 'Smallwares', $marketing->id);
+        $uniforms = $this->acct('6250', 'Uniforms', $marketing->id);
+
+        $this->artisan('coa:recategorize', ['--apply' => true])->assertSuccessful();
+
+        $equipment = ChartOfAccount::where('account_code', '6550')->first();
+        $this->assertNotNull($equipment, 'Equipment Total should be created');
+        $this->assertSame('Equipment Total', $equipment->account_name);
+        $this->assertSame($root->id, $equipment->parent_account_id);
+        $this->assertSame($equipment->id, $smallwares->fresh()->parent_account_id);
+        $this->assertSame($equipment->id, $uniforms->fresh()->parent_account_id);
+    }
+
+    /** @test */
+    public function it_deletes_the_emptied_delivery_service_fees(): void
+    {
+        $root = $this->acct('6000', 'Expenses All');
+        $delivery = $this->acct('6300', 'Delivery Service Fees', $root->id);
+        $insurance = $this->acct('6900', 'Insurance', $root->id);
+        // Its only children are insurance items that get moved out.
+        $this->acct('6310', 'Car Insurance', $delivery->id);
+
+        $this->artisan('coa:recategorize', ['--apply' => true])->assertSuccessful();
+
+        $this->assertNull(ChartOfAccount::find($delivery->id), '6300 should be deleted once empty');
+    }
+
+    /** @test */
+    public function it_deactivates_rather_than_deletes_when_still_referenced(): void
+    {
+        $root = $this->acct('6000', 'Expenses All');
+        $delivery = $this->acct('6300', 'Delivery Service Fees', $root->id);
+        $this->acct('6900', 'Insurance', $root->id);
+
+        // A transaction points at 6300 -> hard delete would violate the restrict FK.
+        \App\Models\ExpenseTransaction::factory()->create(['coa_id' => $delivery->id]);
+
+        $this->artisan('coa:recategorize', ['--apply' => true])->assertSuccessful();
+
+        $fresh = ChartOfAccount::find($delivery->id);
+        $this->assertNotNull($fresh, '6300 must not be deleted while referenced');
+        $this->assertFalse((bool) $fresh->is_active, '6300 should be deactivated instead');
+    }
 }
