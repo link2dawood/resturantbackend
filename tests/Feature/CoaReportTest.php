@@ -68,6 +68,24 @@ class CoaReportTest extends TestCase
     }
 
     /** @test */
+    public function the_category_picker_is_populated_and_enabled_for_a_type(): void
+    {
+        (new ChartOfAccountsSeeder)->run();
+
+        $onlineMerchant = \App\Models\ChartOfAccount::withoutGlobalScopes()->where('account_code', '6450')->first();
+
+        $response = $this->actingAs($this->admin())->get(route('coa.report', ['account_type' => 'Expense']));
+
+        $response->assertStatus(200)
+            // The picker lists categories (accounts that have sub-accounts).
+            ->assertSee('<option value="'.$onlineMerchant->id.'"', false)
+            // ...and is not disabled (empty).
+            ->assertSee('id="category"', false);
+
+        $this->assertStringNotContainsString('id="category" class="form-select" onchange="this.form.submit()" disabled', $response->getContent());
+    }
+
+    /** @test */
     public function the_report_can_be_scoped_to_a_single_category(): void
     {
         (new ChartOfAccountsSeeder)->run();

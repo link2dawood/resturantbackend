@@ -179,7 +179,7 @@ class ChartOfAccountController extends Controller
             ->where('is_active', true)
             ->when($type, fn ($q) => $q->where('account_type', $type))
             ->orderByRaw('CAST(account_code AS UNSIGNED) ASC')
-            ->get(['id', 'account_code', 'account_name', 'account_type']);
+            ->get(['id', 'account_code', 'account_name', 'account_type', 'parent_account_id']);
 
         $parentIds = $accounts->pluck('parent_account_id')->filter()->unique()->flip();
 
