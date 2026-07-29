@@ -261,6 +261,18 @@ class DailyReportController extends Controller
 
         $user = auth()->user();
 
+        // TEMP DR-DEBUG: prove the request reaches the controller and show the
+        // computed required fields' incoming values. Remove after diagnosing.
+        \Log::info('DR-DEBUG store() entered', [
+            'user_id' => $user?->id,
+            'has_token' => $request->has('_token'),
+            'store_id' => $request->input('store_id'),
+            'report_date' => $request->input('report_date'),
+            'projected_sales' => $request->input('projected_sales'),
+            'gross_sales' => $request->input('gross_sales'),
+            'total_paid_outs' => $request->input('total_paid_outs'),
+        ]);
+
         try {
             // Validate request data
             $validatedData = $request->validate([
@@ -364,6 +376,9 @@ class DailyReportController extends Controller
             ]);
 
         } catch (ValidationException $e) {
+            // TEMP DR-DEBUG: capture exactly which fields failed. Remove after diagnosing.
+            \Log::warning('DR-DEBUG validation failed', ['errors' => $e->errors()]);
+
             return back()->withInput()->withErrors($e->errors());
 
         } catch (\Exception $e) {
