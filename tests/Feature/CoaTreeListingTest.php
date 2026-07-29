@@ -18,7 +18,7 @@ class CoaTreeListingTest extends TestCase
     }
 
     /** @test */
-    public function the_listing_renders_as_a_tree_with_categories_shown_and_grandchildren_hidden(): void
+    public function the_listing_renders_the_full_hierarchy_without_collapse_controls(): void
     {
         (new ChartOfAccountsSeeder)->run();
 
@@ -26,15 +26,12 @@ class CoaTreeListingTest extends TestCase
 
         $response->assertStatus(200)
             ->assertSee('id="coaTreeBody"', false)
-            ->assertSee('Expand all')
             // A category with children (Online Merchant 6450) shows a sub-account badge.
             ->assertSee('sub-account')
-            // Grandchildren (DoorDash 6451, depth >= 2) render but start hidden.
-            ->assertSee('DoorDash');
-
-        // The 6451 row is present but collapsed (style display:none via depth >= 2).
-        $doordash = ChartOfAccount::withoutGlobalScopes()->where('account_code', '6451')->first();
-        $response->assertSee('data-node-id="' . $doordash->id . '"', false);
+            // Sub-accounts are shown inline (no expand/collapse).
+            ->assertSee('DoorDash')
+            ->assertDontSee('Expand all')
+            ->assertDontSee('Collapse all');
     }
 
     /** @test */
@@ -61,6 +58,26 @@ class CoaTreeListingTest extends TestCase
         $response->assertStatus(200)
             ->assertSee('PRESELECT_PARENT_ID', false)
             ->assertSee($insurance->id, false);
+    }
+
+    /** @test */
+    public function the_show_page_has_an_add_sub_account_button_for_a_parent_but_not_a_leaf(): void
+    {
+        (new ChartOfAccountsSeeder)->run();
+
+        $onlineMerchant = ChartOfAccount::withoutGlobalScopes()->where('account_code', '6450')->first(); // header
+        $doordash = ChartOfAccount::withoutGlobalScopes()->where('account_code', '6451')->first();       // leaf
+
+        // A header account offers "Add Sub-Account" linking to the prefilled form.
+        $this->actingAs($this->admin())->get(route('coa.show', $onlineMerchant))
+            ->assertStatus(200)
+            ->assertSee('Add Sub-Account')
+            ->assertSee(route('coa.create', ['parent' => $onlineMerchant->id]), false);
+
+        // A detail/leaf account (6451) cannot have children — no button.
+        $this->actingAs($this->admin())->get(route('coa.show', $doordash))
+            ->assertStatus(200)
+            ->assertDontSee('Add Sub-Account');
     }
 
     /** @test */

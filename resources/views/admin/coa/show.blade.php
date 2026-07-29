@@ -3,6 +3,11 @@
 @section('title', 'View Chart of Account')
 
 @section('content')
+@php
+    // A "header" code (trailing-zero block, e.g. 6400/6450) can hold sub-accounts;
+    // a detail/leaf code (e.g. 6451) cannot.
+    $canHaveChildren = \App\Models\ChartOfAccount::childCodeRangeForParent((string) $chartOfAccount->account_code) !== null;
+@endphp
 <div class="container-xl mt-4">
     <div class="row justify-content-center">
         <div class="col-xl-10">
@@ -12,6 +17,11 @@
                     <p class="text-muted mb-0">Account Code: {{ $chartOfAccount->account_code }}</p>
                 </div>
                 <div class="d-flex gap-2">
+                    @if($canHaveChildren)
+                        <a href="{{ route('coa.create', ['parent' => $chartOfAccount->id]) }}" class="btn btn-success">
+                            <i class="bi bi-plus-lg me-2"></i>Add Sub-Account
+                        </a>
+                    @endif
                     @if($chartOfAccount->canBeManagedBy(auth()->user()))
                         <a href="{{ route('coa.edit', $chartOfAccount) }}" class="btn btn-primary">
                             <i class="bi bi-pencil me-2"></i>Edit
@@ -99,46 +109,58 @@
                 </div>
             </div>
 
-            @if($chartOfAccount->children->isNotEmpty())
+            @if($chartOfAccount->children->isNotEmpty() || $canHaveChildren)
                 <div class="card mt-4">
-                    <div class="card-header bg-secondary text-white">
+                    <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
                         <h5 class="mb-0">Sub-Accounts ({{ $chartOfAccount->children->count() }})</h5>
+                        @if($canHaveChildren)
+                            <a href="{{ route('coa.create', ['parent' => $chartOfAccount->id]) }}" class="btn btn-sm btn-light">
+                                <i class="bi bi-plus-lg me-1"></i>Add Sub-Account
+                            </a>
+                        @endif
                     </div>
                     <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table table-hover mb-0 align-middle">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>Code</th>
-                                        <th>Name</th>
-                                        <th>Type</th>
-                                        <th>Status</th>
-                                        <th class="text-end">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach($chartOfAccount->children as $child)
+                        @if($chartOfAccount->children->isNotEmpty())
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0 align-middle">
+                                    <thead class="table-light">
                                         <tr>
-                                            <td><strong>{{ $child->account_code }}</strong></td>
-                                            <td>{{ $child->account_name }}</td>
-                                            <td><span class="badge bg-secondary">{{ $child->account_type }}</span></td>
-                                            <td>
-                                                @if($child->is_active)
-                                                    <span class="badge bg-success">Active</span>
-                                                @else
-                                                    <span class="badge bg-danger">Inactive</span>
-                                                @endif
-                                            </td>
-                                            <td class="text-end">
-                                                <a href="{{ route('coa.show', $child) }}" class="btn btn-sm btn-outline-secondary">
-                                                    <i class="bi bi-eye"></i>
-                                                </a>
-                                            </td>
+                                            <th>Code</th>
+                                            <th>Name</th>
+                                            <th>Type</th>
+                                            <th>Status</th>
+                                            <th class="text-end">Actions</th>
                                         </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
+                                    </thead>
+                                    <tbody>
+                                        @foreach($chartOfAccount->children as $child)
+                                            <tr>
+                                                <td><strong>{{ $child->account_code }}</strong></td>
+                                                <td>{{ $child->account_name }}</td>
+                                                <td><span class="badge bg-secondary">{{ $child->account_type }}</span></td>
+                                                <td>
+                                                    @if($child->is_active)
+                                                        <span class="badge bg-success">Active</span>
+                                                    @else
+                                                        <span class="badge bg-danger">Inactive</span>
+                                                    @endif
+                                                </td>
+                                                <td class="text-end">
+                                                    <a href="{{ route('coa.show', $child) }}" class="btn btn-sm btn-outline-secondary">
+                                                        <i class="bi bi-eye"></i>
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @else
+                            <p class="text-muted mb-0 p-3">
+                                No sub-accounts yet.
+                                <a href="{{ route('coa.create', ['parent' => $chartOfAccount->id]) }}">Add the first one</a>.
+                            </p>
+                        @endif
                     </div>
                 </div>
             @endif

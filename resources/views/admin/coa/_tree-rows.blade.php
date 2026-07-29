@@ -1,22 +1,10 @@
-{{-- Recursive Chart-of-Accounts tree rows. Depth 0 (type root) and depth 1
-     (categories/standalones) are visible; depth >= 2 is hidden until its parent
-     is expanded. --}}
+{{-- Recursive Chart-of-Accounts rows. The full hierarchy is shown, indented by
+     depth (categories flush, sub-accounts nested underneath). --}}
 @foreach($nodes as $node)
     @php $hasKids = $node->childNodes->isNotEmpty(); @endphp
-    <tr class="coa-node"
-        data-node-id="{{ $node->id }}"
-        data-parent-id="{{ $node->parent_account_id }}"
-        data-depth="{{ $node->depth }}"
-        @if($node->depth >= 2) style="display:none;" @endif>
+    <tr>
         <td>
-            <span style="display:inline-block; width: {{ $node->depth * 1.25 }}rem;"></span>
-            @if($hasKids)
-                <button type="button" class="btn btn-sm p-0 me-1 coa-toggle" data-target="{{ $node->id }}" aria-expanded="false" style="width:1.25rem; line-height:1;">
-                    <span class="coa-caret">▸</span>
-                </button>
-            @else
-                <span style="display:inline-block; width:1.25rem;"></span>
-            @endif
+            <span style="display:inline-block; width: {{ $node->depth * 1.5 }}rem;"></span>
             <strong>{{ $node->account_code }}</strong>
         </td>
         <td>
