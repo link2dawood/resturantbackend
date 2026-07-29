@@ -19,6 +19,8 @@
 
     <!-- Legacy CSS files for backward compatibility -->
     <link href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta17/dist/css/tabler.min.css" rel="stylesheet"/>
+    <!-- Bootstrap Icons: renders the bi-* glyphs used across the app's buttons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet"/>
     <link href="{{ asset('css/google-material-design.css') }}" rel="stylesheet"/>
     <link href="{{ asset('css/modern-design.css') }}" rel="stylesheet"/>
 

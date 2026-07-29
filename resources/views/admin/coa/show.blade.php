@@ -146,9 +146,7 @@
                                                     @endif
                                                 </td>
                                                 <td class="text-end">
-                                                    <a href="{{ route('coa.show', $child) }}" class="btn btn-sm btn-outline-secondary">
-                                                        <i class="bi bi-eye"></i>
-                                                    </a>
+                                                    <x-button-view href="{{ route('coa.show', $child) }}" iconOnly="true" />
                                                 </td>
                                             </tr>
                                         @endforeach
