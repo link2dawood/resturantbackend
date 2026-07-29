@@ -8,7 +8,11 @@
         <div>
             <h1 class="mb-0">Chart of Accounts Report</h1>
             <p class="text-muted mb-0">
-                {{ $type ? $type.' accounts' : 'Entire chart' }} — by category and sub-account.
+                @if($categoryId && $groups->isNotEmpty())
+                    {{ $groups->keys()->first() }} — sub-accounts.
+                @else
+                    {{ $type ? $type.' accounts' : 'Entire chart' }} — by category and sub-account.
+                @endif
             </p>
         </div>
         <div class="d-flex gap-2">
@@ -18,23 +22,33 @@
             <button type="button" class="btn btn-outline-secondary" onclick="window.print()">
                 <i class="bi bi-printer me-1"></i> Print
             </button>
-            <a href="{{ route('coa.export.csv', request()->only('account_type')) }}" class="btn btn-outline-primary">
+            <a href="{{ route('coa.export.csv', request()->only('account_type', 'category')) }}" class="btn btn-outline-primary">
                 <i class="bi bi-filetype-csv me-1"></i> CSV
             </a>
-            <a href="{{ route('coa.export.pdf', request()->only('account_type')) }}" class="btn btn-primary">
+            <a href="{{ route('coa.export.pdf', request()->only('account_type', 'category')) }}" class="btn btn-primary">
                 <i class="bi bi-filetype-pdf me-1"></i> PDF
             </a>
         </div>
     </div>
 
-    {{-- Filter by type (or show everything). --}}
-    <form method="GET" action="{{ route('coa.report') }}" class="d-print-none mb-3 d-flex gap-2 align-items-end" style="max-width:360px;">
-        <div class="flex-grow-1">
+    {{-- Filter by type, then optionally narrow to a single category + its sub-accounts. --}}
+    <form method="GET" action="{{ route('coa.report') }}" class="d-print-none mb-3 row g-2" style="max-width:720px;">
+        <div class="col-md-6">
             <label for="account_type" class="form-label mb-1">Account Type</label>
-            <select name="account_type" id="account_type" class="form-select" onchange="this.form.submit()">
+            {{-- Changing the type clears any category selection. --}}
+            <select name="account_type" id="account_type" class="form-select" onchange="document.getElementById('category').value=''; this.form.submit()">
                 <option value="">Entire chart (all types)</option>
                 @foreach($accountTypes as $t)
                     <option value="{{ $t }}" @selected($type === $t)>{{ $t }}</option>
+                @endforeach
+            </select>
+        </div>
+        <div class="col-md-6">
+            <label for="category" class="form-label mb-1">Category / Sub-category <span class="text-muted">(optional)</span></label>
+            <select name="category" id="category" class="form-select" onchange="this.form.submit()" @disabled($categories->isEmpty())>
+                <option value="">All categories</option>
+                @foreach($categories as $c)
+                    <option value="{{ $c->id }}" @selected($categoryId === (int) $c->id)>{{ $c->account_code }} — {{ $c->account_name }}</option>
                 @endforeach
             </select>
         </div>

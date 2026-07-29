@@ -110,22 +110,27 @@ class ChartOfAccountController extends Controller
 
     /**
      * On-screen hierarchy report (Type → Category → Sub-category), printable.
-     * Respects ?account_type= (one type) or shows the entire chart.
+     * Respects ?account_type= (one type), ?category= (one category + its
+     * sub-accounts), or shows the entire chart.
      */
     public function report(Request $request): View
     {
         $type = $request->input('account_type');
-        $groups = $this->reportGroups($type);
-        $accountTypes = self::ACCOUNT_TYPES;
+        $categoryId = $request->filled('category') ? (int) $request->input('category') : null;
 
-        return view('admin.coa.report', compact('groups', 'accountTypes', 'type'));
+        $groups = $this->reportGroups($type, $categoryId);
+        $accountTypes = self::ACCOUNT_TYPES;
+        $categories = $this->categoryOptions($type);
+
+        return view('admin.coa.report', compact('groups', 'accountTypes', 'type', 'categories', 'categoryId'));
     }
 
     /** Same report as a PDF. */
     public function exportPdf(Request $request)
     {
         $type = $request->input('account_type');
-        $groups = $this->reportGroups($type);
+        $categoryId = $request->filled('category') ? (int) $request->input('category') : null;
+        $groups = $this->reportGroups($type, $categoryId);
 
         $html = view('admin.coa.report-pdf', [
             'groups' => $groups,
@@ -137,20 +142,19 @@ class ChartOfAccountController extends Controller
         $dompdf->setPaper('A4', 'portrait');
         $dompdf->render();
 
-        $suffix = $type ? \Illuminate\Support\Str::slug($type) : 'all';
-
         return response($dompdf->output(), 200, [
             'Content-Type' => 'application/pdf',
-            'Content-Disposition' => "attachment; filename=chart-of-accounts-{$suffix}.pdf",
+            'Content-Disposition' => 'attachment; filename='.$this->reportFilename($type, $categoryId, 'pdf'),
         ]);
     }
 
-    /** The chart as a flat CSV with Type / Category / Sub-category columns. */
+    /** The chart (or one category) as a flat CSV with Type / Category / Sub-category columns. */
     public function exportCsv(Request $request): \Symfony\Component\HttpFoundation\StreamedResponse
     {
         $type = $request->input('account_type');
-        $rows = $this->reportRows($type);
-        $suffix = $type ? \Illuminate\Support\Str::slug($type) : 'all';
+        $categoryId = $request->filled('category') ? (int) $request->input('category') : null;
+        $rows = $this->reportRows($type, $categoryId);
+        $filename = $this->reportFilename($type, $categoryId, 'csv');
 
         return response()->stream(function () use ($rows) {
             $out = fopen('php://output', 'w');
@@ -164,17 +168,44 @@ class ChartOfAccountController extends Controller
             fclose($out);
         }, 200, [
             'Content-Type' => 'text/csv',
-            'Content-Disposition' => "attachment; filename=chart-of-accounts-{$suffix}.csv",
+            'Content-Disposition' => "attachment; filename={$filename}",
         ]);
     }
 
+    /** Categories (accounts that have sub-accounts) for the report's category picker. */
+    private function categoryOptions(?string $type): \Illuminate\Support\Collection
+    {
+        $accounts = ChartOfAccount::query()
+            ->where('is_active', true)
+            ->when($type, fn ($q) => $q->where('account_type', $type))
+            ->orderByRaw('CAST(account_code AS UNSIGNED) ASC')
+            ->get(['id', 'account_code', 'account_name', 'account_type']);
+
+        $parentIds = $accounts->pluck('parent_account_id')->filter()->unique()->flip();
+
+        // Only accounts that are a parent of something (i.e. real categories).
+        return $accounts->filter(fn ($a) => $parentIds->has($a->id))->values();
+    }
+
     /**
-     * Accounts grouped by type, each type carrying its top-level tree nodes.
+     * Accounts grouped for the report. Whole-type mode groups by type; category
+     * mode returns a single group (the category) carrying its sub-accounts.
      *
      * @return \Illuminate\Support\Collection<string, \Illuminate\Support\Collection>
      */
-    private function reportGroups(?string $type): \Illuminate\Support\Collection
+    private function reportGroups(?string $type, ?int $categoryId = null): \Illuminate\Support\Collection
     {
+        if ($categoryId) {
+            $category = ChartOfAccount::find($categoryId);
+            if (! $category) {
+                return collect();
+            }
+            $scope = $this->subtreeAccounts($category);
+            $label = $category->account_code.' '.$category->account_name;
+
+            return collect([$label => $this->buildAccountTree($scope)]);
+        }
+
         $query = ChartOfAccount::query()->where('is_active', true);
         if ($type) {
             $query->where('account_type', $type);
@@ -190,10 +221,12 @@ class ChartOfAccountController extends Controller
     /**
      * Flat rows for CSV: each account with its Type, its Category (the level-1
      * ancestor) and Sub-category (the account's own name when it's nested deeper).
+     * When $categoryId is set, only that category and its sub-accounts are output
+     * (ancestry is still computed from the full type set so the columns are right).
      *
      * @return array<int, array<string, mixed>>
      */
-    private function reportRows(?string $type): array
+    private function reportRows(?string $type, ?int $categoryId = null): array
     {
         $query = ChartOfAccount::query()->where('is_active', true);
         if ($type) {
@@ -201,6 +234,12 @@ class ChartOfAccountController extends Controller
         }
         $accounts = $query->orderByRaw('CAST(account_code AS UNSIGNED) ASC')->get();
         $byId = $accounts->keyBy('id');
+
+        // Restrict output to a category subtree when requested.
+        $scopeIds = null;
+        if ($categoryId && ($category = $byId->get($categoryId))) {
+            $scopeIds = $this->subtreeAccounts($category)->pluck('id')->flip();
+        }
 
         // The category is the ancestor whose own parent is the type root (or null).
         $categoryOf = function (ChartOfAccount $a) use ($byId) {
@@ -219,6 +258,9 @@ class ChartOfAccountController extends Controller
 
         $rows = [];
         foreach ($accounts as $a) {
+            if ($scopeIds !== null && ! $scopeIds->has($a->id)) {
+                continue;
+            }
             $isRoot = ! $a->parent_account_id || ! $byId->has($a->parent_account_id);
             if ($isRoot) {
                 continue; // skip the "Expenses All" type roots
@@ -237,6 +279,44 @@ class ChartOfAccountController extends Controller
         }
 
         return $rows;
+    }
+
+    /**
+     * A category account plus all its descendants (active only), code-ordered.
+     *
+     * @return \Illuminate\Support\Collection<int, ChartOfAccount>
+     */
+    private function subtreeAccounts(ChartOfAccount $category): \Illuminate\Support\Collection
+    {
+        $all = ChartOfAccount::query()
+            ->where('is_active', true)
+            ->where('account_type', $category->account_type)
+            ->get();
+        $byParent = $all->groupBy('parent_account_id');
+
+        $keep = collect();
+        $stack = [$category->id];
+        $guard = 0;
+        while ($stack && $guard++ < 5000) {
+            $id = array_pop($stack);
+            if ($node = $all->firstWhere('id', $id)) {
+                $keep->push($node);
+            }
+            foreach ($byParent->get($id, collect()) as $child) {
+                $stack[] = $child->id;
+            }
+        }
+
+        return $keep->sortBy(fn ($a) => (int) $a->account_code)->values();
+    }
+
+    private function reportFilename(?string $type, ?int $categoryId, string $ext): string
+    {
+        if ($categoryId && ($cat = ChartOfAccount::find($categoryId))) {
+            return 'coa-'.\Illuminate\Support\Str::slug($cat->account_code.'-'.$cat->account_name).'.'.$ext;
+        }
+
+        return 'chart-of-accounts-'.($type ? \Illuminate\Support\Str::slug($type) : 'all').'.'.$ext;
     }
 
     /**

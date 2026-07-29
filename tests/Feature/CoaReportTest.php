@@ -68,6 +68,44 @@ class CoaReportTest extends TestCase
     }
 
     /** @test */
+    public function the_report_can_be_scoped_to_a_single_category(): void
+    {
+        (new ChartOfAccountsSeeder)->run();
+
+        $onlineMerchant = \App\Models\ChartOfAccount::withoutGlobalScopes()->where('account_code', '6450')->first();
+
+        $response = $this->actingAs($this->admin())->get(route('coa.report', [
+            'account_type' => 'Expense',
+            'category' => $onlineMerchant->id,
+        ]));
+
+        $response->assertStatus(200)
+            // The chosen category and its sub-accounts show...
+            ->assertSee('Online Merchant Expenses')
+            ->assertSee('DoorDash')
+            // ...but a different category's sub-accounts do not.
+            ->assertDontSee('Payroll Taxes');
+    }
+
+    /** @test */
+    public function the_csv_export_can_be_scoped_to_a_single_category(): void
+    {
+        (new ChartOfAccountsSeeder)->run();
+
+        $onlineMerchant = \App\Models\ChartOfAccount::withoutGlobalScopes()->where('account_code', '6450')->first();
+
+        $response = $this->actingAs($this->admin())->get(route('coa.export.csv', [
+            'account_type' => 'Expense',
+            'category' => $onlineMerchant->id,
+        ]));
+
+        $response->assertStatus(200);
+        $csv = $response->streamedContent();
+        $this->assertStringContainsString('DoorDash', $csv);
+        $this->assertStringNotContainsString('Payroll', $csv);
+    }
+
+    /** @test */
     public function the_pdf_export_returns_a_pdf(): void
     {
         (new ChartOfAccountsSeeder)->run();
