@@ -264,8 +264,9 @@ class DailyReportController extends Controller
         $user = auth()->user();
 
         // TEMP DR-DEBUG: prove the request reaches the controller and show the
-        // computed required fields' incoming values. Remove after diagnosing.
-        \Log::info('DR-DEBUG store() entered', [
+        // computed required fields' incoming values. Logged at error level so it's
+        // captured regardless of LOG_LEVEL. Remove after diagnosing.
+        \Log::error('DR-DEBUG store() entered', [
             'user_id' => $user?->id,
             'has_token' => $request->has('_token'),
             'store_id' => $request->input('store_id'),
@@ -379,7 +380,7 @@ class DailyReportController extends Controller
 
         } catch (ValidationException $e) {
             // TEMP DR-DEBUG: capture exactly which fields failed. Remove after diagnosing.
-            \Log::warning('DR-DEBUG validation failed', ['errors' => $e->errors()]);
+            \Log::error('DR-DEBUG validation failed', ['errors' => $e->errors()]);
 
             return back()->withInput()->withErrors($e->errors());
 
