@@ -172,4 +172,23 @@ class CoaParentHierarchyTest extends TestCase
             ->assertOk()
             ->assertSee('Category');
     }
+
+    /** @test */
+    public function the_edit_form_ships_the_data_the_category_cascade_needs(): void
+    {
+        $this->seedChart();
+
+        $admin = User::factory()->create(['role' => 'admin']);
+        // A deeply nested account (DoorDash → Online Merchant → Expenses).
+        $account = ChartOfAccount::withoutGlobalScopes()->where('account_code', '6451')->first();
+
+        $response = $this->actingAs($admin)->get(route('coa.edit', $account));
+
+        // Without these fields in the @json options, the Category dropdown can't
+        // find the type root and shows only "None (top level)".
+        $response->assertOk()
+            ->assertSee('"account_type"', false)
+            ->assertSee('"parent_account_id"', false)
+            ->assertSee('"can_have_children"', false);
+    }
 }

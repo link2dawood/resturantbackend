@@ -465,9 +465,10 @@ class ChartOfAccountController extends Controller
 
         // Only the user's own stores (admins see all).
         $stores = auth()->user()->accessibleStores()->orderBy('store_info')->get(['id', 'store_info']);
-        $parentAccounts = ChartOfAccount::where('id', '!=', $chartOfAccount->id)
-            ->orderBy('account_name')
-            ->get(['id', 'account_name', 'account_code']);
+        // Full options (type, parent, can_have_children) so the Category /
+        // Sub-category cascade can populate. Exclude this account so it can't be
+        // made its own parent.
+        $parentAccounts = $this->parentAccountOptions($chartOfAccount->id);
         $accountTypes = self::ACCOUNT_TYPES;
         $assignedStoreIds = $chartOfAccount->stores->pluck('id')->all();
 
