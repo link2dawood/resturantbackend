@@ -642,7 +642,7 @@
                                         </select>
                                     </td>
                                     <td>
-                                        <input type="number" class="form-input number-input" name="transactions[0][amount]" min="0" placeholder="0.00">
+                                        <input type="number" step="0.01" class="form-input number-input" name="transactions[0][amount]" min="0" placeholder="0.00">
                                     </td>
                                     <td>
                                         <button type="button" class="btn-add-row" onclick="addTransactionRow()" style="width: auto; min-width: 40px;">+</button>
@@ -719,7 +719,7 @@
                                         </select>
                                     </td>
                                     <td>
-                                        <input type="number" class="form-input revenue-amount" name="revenues[0][amount]" min="0" placeholder="0">
+                                        <input type="number" step="0.01" class="form-input revenue-amount" name="revenues[0][amount]" min="0" placeholder="0">
                                     </td>
                                     <td>
                                         <input type="text" class="form-input" name="revenues[0][notes]" placeholder="Optional notes">
@@ -759,7 +759,7 @@
                                     </small>
                                 </td>
                                 <td>
-                                    <input type="number" name="projected_sales" class="form-input number-input"
+                                    <input type="number" step="0.01" name="projected_sales" class="form-input number-input"
                                            value="{{ old('projected_sales', $projectedSales ?? 0) }}" readonly
                                            style="background:#f1f3f4;" title="Set this on the Sales Projection calendar">
                                 </td>
@@ -790,7 +790,7 @@
                                 <td>
                                     <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
                                         <span><strong>Adjustments: Overrings/Returns:</strong></span>
-                                        <span style="width:30%;"><input type="number" name="adjustments_overrings" class="form-input number-input" value="0" style="background: white;"></span>
+                                        <span style="width:30%;"><input type="number" step="0.01" name="adjustments_overrings" class="form-input number-input" value="0" style="background: white;"></span>
                                     </div>
                                 </td>
                                 <td></td>
@@ -800,7 +800,7 @@
                                 <td>
                                     <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
                                         <span><strong>Adjustments for Cash:</strong></span>
-                                        <span style="width:30%;"><input type="number" name="adjustments_cash" class="form-input number-input" value="0" style="background: white;"></span>
+                                        <span style="width:30%;"><input type="number" step="0.01" name="adjustments_cash" class="form-input number-input" value="0" style="background: white;"></span>
                                     </div>
                                 </td>
                                 <td></td>
@@ -815,7 +815,7 @@
                                         <div style="font-weight:600; margin-bottom:6px;">Tips</div>
                                         <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
                                             <span><strong>Credit Card Tips:</strong></span>
-                                            <span style="width:30%;"><input type="number" name="credit_card_tips" id="tipsBlockInput" class="form-input number-input" value="0" style="background:white;"></span>
+                                            <span style="width:30%;"><input type="number" step="0.01" name="credit_card_tips" id="tipsBlockInput" class="form-input number-input" value="0" style="background:white;"></span>
                                         </div>
                                         <small class="text-muted">Auto-fills Credit Card (tips) below. Not sales; not out of cash.</small>
                                     </div>
@@ -835,7 +835,7 @@
                                 <td>
                                     <div style="display: -webkit-flex; display: flex; -webkit-justify-content: space-between; justify-content: space-between; -webkit-align-items: center; align-items: center; width: 100%;">
                                         <span><strong>Total Amount of Coupons Received:</strong></span>
-                                        <span style="width:30%;"><input type="number" name="coupons_received" class="form-input number-input" value="0" style="background: white;"></span>
+                                        <span style="width:30%;"><input type="number" step="0.01" name="coupons_received" class="form-input number-input" value="0" style="background: white;"></span>
                                     </div>
                                 </td>
                                 <td></td>
@@ -862,7 +862,7 @@
                                    
                                     <div style="display: -webkit-flex; display: flex; -webkit-justify-content: space-between; justify-content: space-between; -webkit-align-items: center; align-items: center; width: 100%;">
                                         <span> Average Ticket</span>
-                                        <span style="width:30%;"><input type="number" name="average_ticket" id="averageTicketInput" value="0" class="form-input number-input" style="background: white;" readonly></span>
+                                        <span style="width:30%;"><input type="number" step="0.01" name="average_ticket" id="averageTicketInput" value="0" class="form-input number-input" style="background: white;" readonly></span>
                                     </div>
                                 </td>
                                 <td><strong>Sales (Pre-tax):</strong></td>
@@ -886,8 +886,8 @@
                                 <td id="onlineRevenue2" class="calculated-field number-input">$0</td>
                             </tr>
                             <tr>
-                                <td><strong>Credit Card Total:</strong><br><small class="text-muted">Total charged to cards (includes tips)</small></td>
-                                <td id="creditCards2" class="calculated-field number-input"><input type="number" id="creditCardTotalInput" class="form-input number-input" value="0" style="background: #e7f3ff !important;"></td>
+                                <td><strong>Credit Card Total:</strong><br><small class="text-muted">From the Credit Card / Square revenue source</small></td>
+                                <td id="creditCards2" class="calculated-field number-input"><input type="number" step="0.01" id="creditCardTotalInput" class="form-input number-input" value="0" style="background: #e7f3ff !important;"></td>
                             </tr>
                             <tr>
                                 <td><strong>Credit Card (tips):</strong><br><small class="text-muted">Auto-filled from the Tips block</small></td>
@@ -907,7 +907,7 @@
                             </tr>
                             <tr>
                                 <td><strong>Actual Deposit:</strong></td>
-                                <td><input type="number" name="actual_deposit" class="form-input number-input" value="0"></td>
+                                <td><input type="number" step="0.01" name="actual_deposit" class="form-input number-input" value="0"></td>
                             </tr>
                             <tr>
                                 <td id="short-td"><strong>Short:</strong></td>
@@ -1022,7 +1022,8 @@ function calculateTotals() {
     const ccTotalInput = document.getElementById('creditCardTotalInput');
     if (ccTotalInput) {
         // Auto-fill the Total from card revenue + tips, unless manually edited.
-        const autoTotal = creditCardRevenue + creditCardTips;
+        // Credit Card Total mirrors the Credit Card / Square revenue source.
+        const autoTotal = creditCardRevenue;
         if (ccTotalInput.dataset.manuallyEdited !== 'true') {
             ccTotalInput.value = autoTotal.toFixed(2);
         }
@@ -1210,7 +1211,7 @@ window.addTransactionRow = function () {
             </select>
         </td>
         <td>
-            <input type="number" class="form-input number-input" name="transactions[${transactionCount}][amount]" min="0" placeholder="0.00">
+            <input type="number" step="0.01" class="form-input number-input" name="transactions[${transactionCount}][amount]" min="0" placeholder="0.00">
         </td>
         <td>
             <button type="button" class="btn-remove-row" onclick="removeTransactionRow(this)">×</button>
@@ -1371,7 +1372,7 @@ function addRevenueRow() {
             </select>
         </td>
         <td>
-            <input type="number" class="form-input revenue-amount" name="revenues[${revenueCount}][amount]" min="0" placeholder="0.00">
+            <input type="number" step="0.01" class="form-input revenue-amount" name="revenues[${revenueCount}][amount]" min="0" placeholder="0.00">
         </td>
         <td>
             <input type="text" class="form-input" name="revenues[${revenueCount}][notes]" placeholder="Optional notes">
