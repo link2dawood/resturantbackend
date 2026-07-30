@@ -180,16 +180,16 @@
         ];
     @endphp
 
-    <div class="card mb-4">
-        <div class="card-header">
-            <h3 class="card-title mb-0">COA Activity Summary</h3>
-        </div>
-        <div class="card-body">
-            <div class="text-muted small mb-3">
-                This report shows all reportable P&amp;L COAs with month-by-month activity and annual totals for the selected year.
-            </div>
-            <div class="row g-4">
-                <div class="col-12">
+    {{-- P&L section tabs: full statement + per-section COA activity --}}
+    <ul class="nav nav-tabs mb-3" id="plSectionTabs" role="tablist">
+        <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#plTabFull" type="button" role="tab">Full Breakdown</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#plTabIncome" type="button" role="tab">Income / Revenue</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#plTabCogs" type="button" role="tab">COGS</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#plTabExpense" type="button" role="tab">Expense</button></li>
+    </ul>
+    <div class="tab-content">
+        <div class="tab-pane fade" id="plTabIncome" role="tabpanel">
+            <div class="card mb-4"><div class="card-body">
                     <h4 class="h6 mb-2">Income by COA</h4>
                     <div class="table-responsive">
                         <table class="table table-sm table-hover align-middle mb-0" id="incomeCoaActivityTable">
@@ -231,8 +231,10 @@
                             </tfoot>
                         </table>
                     </div>
-                </div>
-                <div class="col-12">
+            </div></div>
+        </div>
+        <div class="tab-pane fade" id="plTabCogs" role="tabpanel">
+            <div class="card mb-4"><div class="card-body">
                     <h4 class="h6 mb-2">COGS by COA</h4>
                     <div class="table-responsive">
                         <table class="table table-sm table-hover align-middle mb-0" id="cogsCoaActivityTable">
@@ -274,8 +276,10 @@
                             </tfoot>
                         </table>
                     </div>
-                </div>
-                <div class="col-12">
+            </div></div>
+        </div>
+        <div class="tab-pane fade" id="plTabExpense" role="tabpanel">
+            <div class="card mb-4"><div class="card-body">
                     <h4 class="h6 mb-2">Expense by COA</h4>
                     <div class="table-responsive">
                         <table class="table table-sm table-hover align-middle mb-0" id="expenseCoaActivityTable">
@@ -317,12 +321,10 @@
                             </tfoot>
                         </table>
                     </div>
-                </div>
-            </div>
+            </div></div>
         </div>
-    </div>
-
-    {{-- Annual P&L Table --}}
+        <div class="tab-pane fade show active" id="plTabFull" role="tabpanel">
+    {{-- Annual P&L Table (full breakdown) --}}
     <div class="card">
         <div class="card-body p-0">
             <div id="plTableWrapper" style="overflow-x: auto;">
@@ -507,6 +509,8 @@
             </div>
         </div>
     </div>
+        </div>{{-- /Full Breakdown pane --}}
+    </div>{{-- /tab-content --}}
 
 </div>
 @endsection
