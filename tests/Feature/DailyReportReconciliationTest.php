@@ -85,6 +85,23 @@ class DailyReportReconciliationTest extends TestCase
     }
 
     /** @test */
+    public function the_create_form_offers_the_holiday_picker(): void
+    {
+        $owner = User::factory()->create(['role' => 'owner']);
+        $store = Store::factory()->create(['created_by' => $owner->id]);
+
+        $response = $this->actingAs($owner)->get(route('daily-reports.create-form', [
+            'store_id' => $store->id,
+            'report_date' => now()->format('Y-m-d'),
+        ]));
+
+        $response->assertStatus(200)
+            ->assertSee('id="holidayOptions"', false)
+            ->assertSee('Labor Day')
+            ->assertSee('Thanksgiving Day');
+    }
+
+    /** @test */
     public function the_edit_form_prefills_the_tips_block_from_the_saved_value(): void
     {
         $r = $this->report(['credit_card_tips' => 42]);
