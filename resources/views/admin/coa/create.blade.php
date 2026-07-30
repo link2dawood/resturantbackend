@@ -215,7 +215,16 @@ document.addEventListener('DOMContentLoaded', function () {
         if (type) {
             const root = typeRoot(type);
             if (root) {
-                // Categories = the type root's children (stored tree, not codes).
+                // Option to create a brand-new top-level category directly under
+                // the type root (e.g. a new category under Expenses). Its parent is
+                // the root, so it stays inside the type and gets the next X00 code.
+                const topOpt = document.createElement('option');
+                topOpt.value = root.id;
+                topOpt.dataset.code = root.account_code;
+                topOpt.textContent = '➕ New top-level category (under ' + root.account_code + ' ' + root.account_name + ')';
+                parentSel.appendChild(topOpt);
+
+                // Existing categories = the type root's children (stored tree).
                 childrenOf(root.id)
                     .filter(a => a.can_have_children)
                     .forEach(a => addOption(
@@ -226,15 +235,18 @@ document.addEventListener('DOMContentLoaded', function () {
                             : ''
                     ));
             }
-            if (parentSel.options.length === 2) parentSel.value = parentSel.options[1].value;
         }
         fillSubParents();
     }
 
     function fillSubParents() {
         resetSelect(subSel, 'Add directly under the category');
-        subSel.disabled = !parentSel.value;
-        if (parentSel.value) {
+        // When "New top-level category" is chosen the parent IS the type root, so
+        // there's no deeper category to nest under — leave the sub-category empty.
+        const selected = parentSel.value ? ACCOUNTS.find(a => String(a.id) === String(parentSel.value)) : null;
+        const parentIsRoot = selected && !selected.parent_account_id;
+        subSel.disabled = !parentSel.value || parentIsRoot;
+        if (parentSel.value && !parentIsRoot) {
             // Sub-categories = the selected category's children (stored tree).
             // Detail codes (e.g. 6451 DoorDash) can't hold sub-accounts.
             childrenOf(parentSel.value)

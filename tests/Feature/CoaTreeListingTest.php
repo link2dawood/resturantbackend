@@ -81,6 +81,46 @@ class CoaTreeListingTest extends TestCase
     }
 
     /** @test */
+    public function an_admin_can_create_a_new_top_level_category_under_expenses(): void
+    {
+        (new ChartOfAccountsSeeder)->run();
+
+        $expensesRoot = ChartOfAccount::withoutGlobalScopes()->where('account_code', '6000')->first();
+
+        // The "New top-level category" option posts the type root as the parent;
+        // the server derives the next X00 code.
+        $response = $this->actingAs($this->admin())->post(route('coa.store'), [
+            'account_type' => 'Expense',
+            'account_name' => 'Brand New Category',
+            'parent_account_id' => $expensesRoot->id,
+            'is_global' => 1,
+            'is_active' => 1,
+        ]);
+
+        $response->assertSessionHasNoErrors();
+
+        $created = ChartOfAccount::withoutGlobalScopes()->where('account_name', 'Brand New Category')->first();
+        $this->assertNotNull($created);
+        $this->assertSame('Expense', $created->account_type);
+        // It sits directly under Expenses (a real category), not detached.
+        $this->assertSame($expensesRoot->id, (int) $created->parent_account_id);
+        // ...with a code inside the Expense range (a clean X00 when one is free,
+        // else the next free code — either way it's a top-level category).
+        $this->assertGreaterThanOrEqual(6001, (int) $created->account_code);
+        $this->assertLessThanOrEqual(6999, (int) $created->account_code);
+    }
+
+    /** @test */
+    public function the_create_form_offers_a_new_top_level_category_option(): void
+    {
+        (new ChartOfAccountsSeeder)->run();
+
+        $this->actingAs($this->admin())->get(route('coa.create'))
+            ->assertStatus(200)
+            ->assertSee('New top-level category', false);
+    }
+
+    /** @test */
     public function searching_returns_a_flat_list_not_the_tree(): void
     {
         (new ChartOfAccountsSeeder)->run();
