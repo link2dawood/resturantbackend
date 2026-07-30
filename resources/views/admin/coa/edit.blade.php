@@ -202,9 +202,12 @@
                 if (preselect) subSel.value = preselect;
             }
 
-            // The submitted parent is the deepest thing chosen.
+            // The submitted parent is the deepest thing chosen. "None (top level)"
+            // means directly under the type root (e.g. Expenses 6000) — NOT a
+            // detached account with no parent, which would fall out of the type.
             function syncParentField() {
-                parentField.value = subSel.value || catSel.value || '';
+                const root = typeRoot(typeSel.value);
+                parentField.value = subSel.value || catSel.value || (root ? String(root.id) : '');
                 renderPath();
             }
 
@@ -228,8 +231,11 @@
             function prefill() {
                 const current = parentField.value ? byId[parentField.value] : null;
                 let catId = '', subId = '';
-                if (current) {
-                    const grand = current.parent_account_id ? byId[String(current.parent_account_id)] : null;
+                // Only descend when the current parent is itself under something.
+                // If the current parent is the type root (no parent), this account
+                // is a top-level category → leave the Category as "None (top level)".
+                if (current && current.parent_account_id) {
+                    const grand = byId[String(current.parent_account_id)];
                     if (grand && grand.parent_account_id) {
                         catId = String(grand.id);
                         subId = String(current.id);

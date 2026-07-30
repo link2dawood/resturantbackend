@@ -174,6 +174,30 @@ class CoaParentHierarchyTest extends TestCase
     }
 
     /** @test */
+    public function updating_a_category_with_no_parent_reattaches_it_to_the_type_root(): void
+    {
+        $this->seedChart();
+
+        $admin = User::factory()->create(['role' => 'admin']);
+        $utilities = ChartOfAccount::withoutGlobalScopes()->where('account_code', '6400')->first();
+        $expensesRoot = $this->id('6000');
+
+        // Simulate the old detach bug: submit a blank parent for a category.
+        $response = $this->actingAs($admin)->put(route('coa.update', $utilities), [
+            'account_code' => '6400',
+            'account_name' => 'Utilities Total',
+            'account_type' => 'Expense',
+            'parent_account_id' => '',
+            'is_global' => 1,
+            'is_active' => 1,
+        ]);
+
+        $response->assertSessionHasNoErrors();
+        // It must land back under Expenses, not float off as its own root.
+        $this->assertSame($expensesRoot, (int) $utilities->fresh()->parent_account_id);
+    }
+
+    /** @test */
     public function the_edit_form_ships_the_data_the_category_cascade_needs(): void
     {
         $this->seedChart();

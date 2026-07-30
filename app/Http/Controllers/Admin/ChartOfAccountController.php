@@ -310,6 +310,12 @@ class ChartOfAccountController extends Controller
         return $keep->sortBy(fn ($a) => (int) $a->account_code)->values();
     }
 
+    /** A type root is an X000 code (e.g. 6000 Expenses All) — it legitimately has no parent. */
+    private function isTypeRoot(?string $code): bool
+    {
+        return ctype_digit((string) $code) && (int) $code % 1000 === 0;
+    }
+
     private function reportFilename(?string $type, ?int $categoryId, string $ext): string
     {
         if ($categoryId && ($cat = ChartOfAccount::find($categoryId))) {
@@ -488,11 +494,22 @@ class ChartOfAccountController extends Controller
     {
         $data = $request->validated();
 
+        // Guard: a non-root account must never become parentless (that detaches it
+        // from its type — e.g. "Utilities Total" falling out of Expenses). If no
+        // parent is submitted, attach it directly to its type root (X000).
+        $parentId = $data['parent_account_id'] ?? null;
+        if (! $parentId && ! $this->isTypeRoot($chartOfAccount->account_code)) {
+            $parentId = ChartOfAccount::whereNull('parent_account_id')
+                ->where('account_type', $data['account_type'])
+                ->orderByRaw('CAST(account_code AS UNSIGNED) ASC')
+                ->value('id');
+        }
+
         $chartOfAccount->update([
             'account_code' => $data['account_code'],
             'account_name' => $data['account_name'],
             'account_type' => $data['account_type'],
-            'parent_account_id' => $data['parent_account_id'] ?? null,
+            'parent_account_id' => $parentId,
             'is_active' => $data['is_active'] ?? false,
         ]);
 
