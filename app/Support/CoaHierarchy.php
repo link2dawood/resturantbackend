@@ -62,14 +62,14 @@ class CoaHierarchy
                     );
                 }
 
+                // Any account can be a parent — the hierarchy is the parent link,
+                // not the number. When the parent's code has a natural sub-range we
+                // still keep new codes inside it on create (tidy numbering), but a
+                // code outside it is not an error (the child code is derived anyway).
                 $childRange = ChartOfAccount::childCodeRangeForParent((string) $parent->account_code);
 
-                if ($childRange === null) {
-                    $validator->errors()->add(
-                        'parent_account_id',
-                        "Account {$parent->account_code} is a detail account and cannot be a parent."
-                    );
-                } elseif ($enforceChildCodeRange && ($codeNum < $childRange[0] || $codeNum > $childRange[1])) {
+                if ($enforceChildCodeRange && $childRange !== null
+                    && ($codeNum < $childRange[0] || $codeNum > $childRange[1])) {
                     $validator->errors()->add(
                         'account_code',
                         "Under parent {$parent->account_code}, the code must be between {$childRange[0]} and {$childRange[1]}."

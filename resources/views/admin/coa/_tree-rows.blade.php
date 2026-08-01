@@ -35,11 +35,9 @@
         </td>
         <td class="text-end">
             <div class="d-flex gap-1 justify-content-end">
-                @if(\App\Models\ChartOfAccount::childCodeRangeForParent((string) $node->account_code) !== null)
-                    <a href="{{ route('coa.create', ['parent' => $node->id]) }}" class="btn btn-sm btn-outline-primary" title="Add a sub-account under {{ $node->account_name }}">
-                        <i class="bi bi-plus"></i> Sub
-                    </a>
-                @endif
+                <a href="{{ route('coa.create', ['parent' => $node->id]) }}" class="btn btn-sm btn-outline-primary" title="Add a sub-account under {{ $node->account_name }}">
+                    <i class="bi bi-plus"></i> Sub
+                </a>
                 <x-button-view href="{{ route('coa.show', $node) }}" iconOnly="true" />
                 @if($node->canBeManagedBy(auth()->user()))
                     <x-button-edit href="{{ route('coa.edit', $node) }}" iconOnly="true" />

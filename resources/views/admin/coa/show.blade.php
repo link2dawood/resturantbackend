@@ -4,9 +4,9 @@
 
 @section('content')
 @php
-    // A "header" code (trailing-zero block, e.g. 6400/6450) can hold sub-accounts;
-    // a detail/leaf code (e.g. 6451) cannot.
-    $canHaveChildren = \App\Models\ChartOfAccount::childCodeRangeForParent((string) $chartOfAccount->account_code) !== null;
+    // Any account can hold sub-accounts — the hierarchy is the parent link, not
+    // the code. (A child's code is derived from the type block if needed.)
+    $canHaveChildren = true;
 @endphp
 <div class="container-xl mt-4">
     <div class="row justify-content-center">

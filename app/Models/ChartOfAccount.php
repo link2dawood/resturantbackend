@@ -287,34 +287,49 @@ class ChartOfAccount extends Model
      * (non-system) accounts they created themselves.
      */
     /**
-     * The next available code to assign to a new child of $parentCode, preferring
-     * the natural block step (100 under x000, 10 under xy00, 1 under xyz0) and
-     * falling back to any free code in the parent's range. Null if the code can't
-     * have children or the range is full.
+     * The next available code to assign to a new child of $parentCode. Prefers the
+     * natural block step (100 under x000, 10 under xy00, 1 under xyz0). If the
+     * parent's code has no natural sub-range (e.g. 6305) — or that range is full —
+     * it falls back to the next free code anywhere in the parent's type block, so
+     * ANY account can take sub-accounts (the hierarchy is the parent link, not the
+     * number). Returns null only for a malformed code.
      */
     public static function nextChildCode(string $parentCode): ?string
     {
-        $range = self::childCodeRangeForParent($parentCode);
-        if (! $range) {
+        if (! ctype_digit($parentCode) || strlen($parentCode) !== 4) {
             return null;
         }
 
-        [$min, $max] = $range;
         $code = (int) $parentCode;
-        $step = $code % 1000 === 0 ? 100 : ($code % 100 === 0 ? 10 : 1);
+        $range = self::childCodeRangeForParent($parentCode);
 
-        $used = self::whereBetween('account_code', [(string) $min, (string) $max])
-            ->pluck('account_code')
-            ->map(fn ($c) => (int) $c)
-            ->all();
+        if ($range) {
+            [$min, $max] = $range;
+            $step = $code % 1000 === 0 ? 100 : ($code % 100 === 0 ? 10 : 1);
+            $used = self::whereBetween('account_code', [(string) $min, (string) $max])
+                ->pluck('account_code')->map(fn ($c) => (int) $c)->all();
 
-        for ($c = $code + $step; $c <= $max; $c += $step) {
-            if (! in_array($c, $used, true)) {
-                return (string) $c;
+            for ($c = $code + $step; $c <= $max; $c += $step) {
+                if (! in_array($c, $used, true)) {
+                    return (string) $c;
+                }
+            }
+            for ($c = $min; $c <= $max; $c++) {
+                if (! in_array($c, $used, true)) {
+                    return (string) $c;
+                }
             }
         }
-        for ($c = $min; $c <= $max; $c++) {
-            if (! in_array($c, $used, true)) {
+
+        // Fallback: no natural sub-range (or it's full). Take the next free code in
+        // the parent's type block (X001–X999).
+        $blockMin = intdiv($code, 1000) * 1000 + 1;
+        $blockMax = intdiv($code, 1000) * 1000 + 999;
+        $usedBlock = self::whereBetween('account_code', [(string) $blockMin, (string) $blockMax])
+            ->pluck('account_code')->map(fn ($c) => (int) $c)->all();
+
+        for ($c = $blockMin; $c <= $blockMax; $c++) {
+            if (! in_array($c, $usedBlock, true)) {
                 return (string) $c;
             }
         }

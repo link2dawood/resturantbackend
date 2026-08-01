@@ -61,23 +61,21 @@ class CoaTreeListingTest extends TestCase
     }
 
     /** @test */
-    public function the_show_page_has_an_add_sub_account_button_for_a_parent_but_not_a_leaf(): void
+    public function the_show_page_offers_add_sub_account_on_every_account(): void
     {
         (new ChartOfAccountsSeeder)->run();
 
         $onlineMerchant = ChartOfAccount::withoutGlobalScopes()->where('account_code', '6450')->first(); // header
         $doordash = ChartOfAccount::withoutGlobalScopes()->where('account_code', '6451')->first();       // leaf
 
-        // A header account offers "Add Sub-Account" linking to the prefilled form.
-        $this->actingAs($this->admin())->get(route('coa.show', $onlineMerchant))
-            ->assertStatus(200)
-            ->assertSee('Add Sub-Account')
-            ->assertSee(route('coa.create', ['parent' => $onlineMerchant->id]), false);
-
-        // A detail/leaf account (6451) cannot have children — no button.
-        $this->actingAs($this->admin())->get(route('coa.show', $doordash))
-            ->assertStatus(200)
-            ->assertDontSee('Add Sub-Account');
+        // Bug 1: the "Add Sub-Account" button must appear consistently — on a header
+        // account AND on what used to be a "leaf" (any account can be a parent now).
+        foreach ([$onlineMerchant, $doordash] as $account) {
+            $this->actingAs($this->admin())->get(route('coa.show', $account))
+                ->assertStatus(200)
+                ->assertSee('Add Sub-Account')
+                ->assertSee(route('coa.create', ['parent' => $account->id]), false);
+        }
     }
 
     /** @test */
@@ -108,6 +106,31 @@ class CoaTreeListingTest extends TestCase
         // else the next free code — either way it's a top-level category).
         $this->assertGreaterThanOrEqual(6001, (int) $created->account_code);
         $this->assertLessThanOrEqual(6999, (int) $created->account_code);
+    }
+
+    /** @test */
+    public function a_sub_account_can_be_created_under_a_parent_whose_code_has_no_natural_range(): void
+    {
+        $admin = $this->admin();
+        $root = ChartOfAccount::create(['account_code' => '6000', 'account_name' => 'Expenses All', 'account_type' => 'Expense', 'is_active' => true]);
+        // 6305 ends in 5 — the old code rule said it "cannot be a parent" (Bug 1).
+        $parent = ChartOfAccount::create(['account_code' => '6305', 'account_name' => 'Banking Fees Total', 'account_type' => 'Expense', 'is_active' => true, 'parent_account_id' => $root->id]);
+
+        $response = $this->actingAs($admin)->post(route('coa.store'), [
+            'account_type' => 'Expense',
+            'account_name' => 'Wire Transfer Fees',
+            'parent_account_id' => $parent->id,
+            'is_global' => 1,
+            'is_active' => 1,
+        ]);
+
+        $response->assertSessionHasNoErrors();
+        $child = ChartOfAccount::withoutGlobalScopes()->where('account_name', 'Wire Transfer Fees')->first();
+        $this->assertNotNull($child, 'A child should be creatable under any parent');
+        $this->assertSame($parent->id, (int) $child->parent_account_id);
+        // Code was derived inside the Expense block.
+        $this->assertGreaterThanOrEqual(6001, (int) $child->account_code);
+        $this->assertLessThanOrEqual(6999, (int) $child->account_code);
     }
 
     /** @test */

@@ -375,9 +375,10 @@ class ChartOfAccountController extends Controller
                     'account_name' => $acct->account_name,
                     'account_type' => $acct->account_type,
                     'parent_account_id' => $acct->parent_account_id,
-                    // A code can only hold sub-accounts if it has a sub-code range
-                    // (trailing-zero header). Detail codes like 6451 cannot.
-                    'can_have_children' => ChartOfAccount::childCodeRangeForParent((string) $acct->account_code) !== null,
+                    // Any account can hold sub-accounts — the hierarchy is the
+                    // parent link, not the number. (A child's code is derived from
+                    // the type block when the parent's code has no natural range.)
+                    'can_have_children' => true,
                     'children_count' => (int) ($childCounts[$acct->id] ?? 0),
                 ];
             })
