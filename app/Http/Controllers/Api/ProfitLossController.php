@@ -15,6 +15,9 @@ use Illuminate\Support\Str;
 
 class ProfitLossController extends Controller
 {
+    /** 8.25% sales tax — divide a tax-inclusive figure by this to get pre-tax. */
+    private const SALES_TAX_DIVISOR = 1.0825;
+
     /**
      * Get complete P&L report
      */
@@ -246,13 +249,21 @@ class ProfitLossController extends Controller
 
         // ── REVENUE ──────────────────────────────────────────────────────────
 
-        // In-Store Sales: SUM of daily_report_revenues line items, grouped by month.
-        // Sourced from line items (not daily_reports.gross_sales) so the headline
-        // TOTAL REVENUE reconciles with the COA Activity Summary's Income by COA total.
-        $drQuery = DB::table('daily_report_revenues')
-            ->join('daily_reports', 'daily_report_revenues.daily_report_id', '=', 'daily_reports.id')
+        // In-Store Sales: reported PRE-TAX and PRE-TIP, per report. Take each
+        // report's revenue lines, subtract coupons / adjustments / credit-card tips
+        // (net sales), then divide out the 8.25% sales tax:
+        //   (revenue − coupons − overrings − cashAdj − tips) / 1.0825
+        $taxDivisor = self::SALES_TAX_DIVISOR;
+        $revSub = '(SELECT COALESCE(SUM(drr.amount), 0) FROM daily_report_revenues drr WHERE drr.daily_report_id = daily_reports.id)';
+        $drQuery = DB::table('daily_reports')
             ->whereYear('daily_reports.report_date', $year)
-            ->selectRaw('MONTH(daily_reports.report_date) as month, SUM(daily_report_revenues.amount) as total')
+            ->selectRaw(
+                "MONTH(daily_reports.report_date) as month, SUM( ( {$revSub}"
+                .' - COALESCE(daily_reports.coupons_received, 0)'
+                .' - COALESCE(daily_reports.adjustments_overrings, 0)'
+                .' - COALESCE(daily_reports.adjustments_cash, 0)'
+                ." - COALESCE(daily_reports.credit_card_tips, 0) ) / {$taxDivisor} ) as total"
+            )
             ->groupBy(DB::raw('MONTH(daily_reports.report_date)'));
         $this->applyStoreFilter($drQuery, 'daily_reports.store_id', $storeId);
         $drRaw = $drQuery->pluck('total', 'month');
