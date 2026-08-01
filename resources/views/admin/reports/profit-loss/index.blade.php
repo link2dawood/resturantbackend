@@ -616,11 +616,14 @@ function applyDatePreset(preset) {
             start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
             end = new Date(today.getFullYear(), today.getMonth(), 0);
             break;
-        case 'this_quarter':
-            const quarter = Math.floor(today.getMonth() / 3);
+        case 'this_quarter': {
+            // Calendar quarters: Jan–Mar, Apr–Jun, Jul–Sep, Oct–Dec.
+            // getMonth() is 0-indexed, so months 0–2 → Q1, 3–5 → Q2, etc.
+            const quarter = Math.floor(today.getMonth() / 3); // 0..3
             start = new Date(today.getFullYear(), quarter * 3, 1);
-            end = new Date(today.getFullYear(), (quarter + 1) * 3, 0);
+            end = new Date(today.getFullYear(), quarter * 3 + 3, 0); // last day of the quarter
             break;
+        }
         case 'this_year':
             start = new Date(today.getFullYear(), 0, 1);
             end = new Date(today.getFullYear(), 11, 31);
@@ -644,6 +647,8 @@ function applyDatePreset(preset) {
         window.refreshUsDateVisible(startHidden);
         window.refreshUsDateVisible(endHidden);
     }
+    // Apply immediately so picking a preset loads that period (e.g. This Quarter).
+    form.submit();
 }
 </script>
 @endpush
