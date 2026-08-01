@@ -596,17 +596,17 @@
 
 @push('scripts')
 <script>
-function applyDatePreset(preset) {
+function toLocalYmd(d) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return y + '-' + m + '-' + day;
+}
+
+// The date range for a preset, as {start, end} in Y-m-d. Null for "Custom".
+function computePresetRange(preset) {
     const today = new Date();
     let start, end;
-
-    function toLocalYmd(d) {
-        const y = d.getFullYear();
-        const m = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
-        return y + '-' + m + '-' + day;
-    }
-
     switch(preset) {
         case 'this_month':
             start = new Date(today.getFullYear(), today.getMonth(), 1);
@@ -618,10 +618,9 @@ function applyDatePreset(preset) {
             break;
         case 'this_quarter': {
             // Calendar quarters: Jan–Mar, Apr–Jun, Jul–Sep, Oct–Dec.
-            // getMonth() is 0-indexed, so months 0–2 → Q1, 3–5 → Q2, etc.
             const quarter = Math.floor(today.getMonth() / 3); // 0..3
             start = new Date(today.getFullYear(), quarter * 3, 1);
-            end = new Date(today.getFullYear(), quarter * 3 + 3, 0); // last day of the quarter
+            end = new Date(today.getFullYear(), quarter * 3 + 3, 0);
             break;
         }
         case 'this_year':
@@ -633,16 +632,22 @@ function applyDatePreset(preset) {
             end = new Date('{{ $allYearsEndDate }}T00:00:00');
             break;
         default:
-            return;
+            return null;
     }
-    
+    return { start: toLocalYmd(start), end: toLocalYmd(end) };
+}
+
+function applyDatePreset(preset) {
+    const range = computePresetRange(preset);
+    if (!range) return;
+
     const form = document.getElementById('profitLossFilterForm');
     if (!form) return;
     const startHidden = form.querySelector('input[name="start_date"]');
     const endHidden = form.querySelector('input[name="end_date"]');
     if (!startHidden || !endHidden) return;
-    startHidden.value = toLocalYmd(start);
-    endHidden.value = toLocalYmd(end);
+    startHidden.value = range.start;
+    endHidden.value = range.end;
     if (window.refreshUsDateVisible) {
         window.refreshUsDateVisible(startHidden);
         window.refreshUsDateVisible(endHidden);
@@ -650,6 +655,24 @@ function applyDatePreset(preset) {
     // Apply immediately so picking a preset loads that period (e.g. This Quarter).
     form.submit();
 }
+
+// On load, reflect the current date range in the preset dropdown — so a
+// Jul 1 – Sep 30 range shows "This Quarter" rather than "Custom".
+document.addEventListener('DOMContentLoaded', function () {
+    const form = document.getElementById('profitLossFilterForm');
+    const select = document.getElementById('datePreset');
+    if (!form || !select) return;
+    const startInput = form.querySelector('input[name="start_date"]');
+    const endInput = form.querySelector('input[name="end_date"]');
+    if (!startInput || !endInput || !startInput.value || !endInput.value) return;
+
+    let matched = '';
+    ['this_month', 'last_month', 'this_quarter', 'this_year', 'all_years'].forEach(function (p) {
+        const r = computePresetRange(p);
+        if (r && r.start === startInput.value && r.end === endInput.value) matched = p;
+    });
+    select.value = matched; // '' = Custom
+});
 </script>
 @endpush
 
