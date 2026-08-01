@@ -311,14 +311,19 @@ class DailyReportController extends Controller
                 'revenues.*.notes' => 'nullable|string|max:500',
             ]);
 
-            // Prevent duplicate: one report per store per date
+            // Prevent duplicate: one report per store per date. Instead of a bare
+            // "already exists" error, tell the user which date and offer to edit it.
             $existingReport = DailyReport::where('store_id', $validatedData['store_id'])
                 ->whereDate('report_date', $validatedData['report_date'])
                 ->first();
 
             if ($existingReport) {
-                throw ValidationException::withMessages([
-                    'report_date' => ['A daily report for this store already exists for the selected date. Please choose a different date.'],
+                $dateLabel = \Carbon\Carbon::parse($validatedData['report_date'])->format('F j, Y');
+                $storeLabel = optional(Store::find($validatedData['store_id']))->store_info;
+
+                return back()->withInput()->with('duplicate_report', [
+                    'message' => 'A daily report'.($storeLabel ? " for {$storeLabel}" : '')." on {$dateLabel} already exists.",
+                    'edit_url' => route('daily-reports.edit', $existingReport),
                 ]);
             }
 

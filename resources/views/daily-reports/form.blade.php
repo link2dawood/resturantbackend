@@ -507,6 +507,18 @@
 </style>
 
 <div class="container-fluid p-4">
+    @if(session('duplicate_report'))
+        <div class="alert alert-warning alert-dismissible fade show d-flex justify-content-between align-items-center flex-wrap gap-2" role="alert">
+            <div>
+                <strong>Report already exists.</strong> {{ session('duplicate_report')['message'] }} Would you like to edit it?
+            </div>
+            <a href="{{ session('duplicate_report')['edit_url'] }}" class="btn btn-warning btn-sm">
+                <i class="bi bi-pencil me-1"></i> Edit the existing report
+            </a>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
     @if($errors->any())
         <div class="alert alert-danger alert-dismissible fade show" role="alert">
             <h5 class="alert-heading">⚠️ Please Review and Fix the Following Issues:</h5>

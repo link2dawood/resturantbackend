@@ -85,6 +85,36 @@ class DailyReportReconciliationTest extends TestCase
     }
 
     /** @test */
+    public function a_duplicate_report_gives_a_clear_message_with_an_edit_link(): void
+    {
+        $owner = User::factory()->create(['role' => 'owner']);
+        $store = Store::factory()->create(['created_by' => $owner->id]);
+        $manager = User::factory()->create(['role' => 'manager']);
+        $store->assignedManagers()->attach($manager->id);
+
+        $data = [
+            'store_id' => $store->id,
+            'report_date' => now()->format('Y-m-d'),
+            'projected_sales' => 1000.00,
+            'gross_sales' => 1200.00,
+            'total_paid_outs' => 100.00,
+            'total_customers' => 50,
+            'credit_cards' => 800.00,
+            'actual_deposit' => 1200.00,
+        ];
+
+        $this->actingAs($manager)->post('/daily-reports', $data)->assertSessionDoesntHaveErrors();
+
+        // Second save for the same store/date → clear message + edit link, not a bare error.
+        $response = $this->actingAs($manager)->post('/daily-reports', $data);
+        $response->assertSessionHas('duplicate_report');
+        $flash = session('duplicate_report');
+        $this->assertStringContainsString('already exists', $flash['message']);
+        $existing = \App\Models\DailyReport::where('store_id', $store->id)->first();
+        $this->assertSame(route('daily-reports.edit', $existing), $flash['edit_url']);
+    }
+
+    /** @test */
     public function saving_a_new_report_lands_on_its_view_page(): void
     {
         $owner = User::factory()->create(['role' => 'owner']);
