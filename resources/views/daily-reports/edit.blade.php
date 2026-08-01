@@ -883,7 +883,7 @@ function calculateTotals() {
     });
 
     // Gross Sales = Total Revenue Entries + Coupons Amount Received
-    const grossSales = totalRevenueIncome + couponsReceived;
+    const grossSales = totalRevenueIncome; // coupons are a deduction, not added to gross
     
     // Net Sales = Total Revenue Income - Adjustments only (do not deduct coupons)
     const netSales = totalRevenueIncome - adjustmentsOverrings - adjustmentsCash - creditCardTips;

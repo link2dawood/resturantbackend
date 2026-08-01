@@ -130,10 +130,10 @@ class DailyReport extends Model
 
     public function getGrossSalesAttribute(): float
     {
-        // Gross Sales = Total Revenue Entries + Coupons Received
-        $totalRevenueEntries = $this->getTotalRevenueEntriesAttribute();
-        $couponsReceived = (float) ($this->coupons_received ?? 0);
-        return $totalRevenueEntries + $couponsReceived;
+        // Gross Sales = the revenue lines. Coupons received are a deduction (they
+        // reduce Net Sales), not an addition — adding them here double-counted and
+        // showed a phantom amount on top of the revenue total.
+        return $this->getTotalRevenueEntriesAttribute();
     }
 
     public function getNetSalesAttribute(): float

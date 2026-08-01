@@ -143,6 +143,15 @@ class DailyReportReconciliationTest extends TestCase
     }
 
     /** @test */
+    public function gross_sales_equals_the_revenue_lines_and_excludes_coupons(): void
+    {
+        // Revenue line is 1000; a $10 coupon must NOT inflate Gross Sales (Bug 4).
+        $r = $this->report(['coupons_received' => 10]);
+
+        $this->assertEqualsWithDelta(1000.0, (float) $r->gross_sales, 0.01);
+    }
+
+    /** @test */
     public function average_ticket_is_based_on_sales_pre_tax(): void
     {
         $r = $this->report(['total_customers' => 10]);

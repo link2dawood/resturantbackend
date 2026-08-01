@@ -395,7 +395,7 @@ class DailyReportController extends Controller
         $dailyReport->load(['store', 'creator', 'approver', 'transactions.transactionType.defaultCoa', 'revenues.revenueIncomeType']);
 
         // Display net sales: Revenue − Overrings − Cash adj − CC tips (no coupons here).
-        $totalRevenueEntries = (float) $dailyReport->gross_sales - (float) ($dailyReport->coupons_received ?? 0);
+        $totalRevenueEntries = (float) $dailyReport->total_revenue_entries;
         $displayNetSales = $totalRevenueEntries
             - (float) ($dailyReport->adjustments_overrings ?? 0)
             - (float) ($dailyReport->adjustments_cash ?? 0)
@@ -889,10 +889,9 @@ class DailyReportController extends Controller
             }
         }
 
-        // Calculate Gross Sales = Total Revenue Entries + Coupons Amount Received
-        $couponsReceived = (float) ($data['coupons_received'] ?? 0);
-        $grossSales = $totalRevenueEntries + $couponsReceived;
-        $data['gross_sales'] = $grossSales;
+        // Gross Sales = Total Revenue Entries (the revenue lines). Coupons received
+        // are a deduction, not an addition — including them here inflated gross.
+        $data['gross_sales'] = $totalRevenueEntries;
 
         // Net Sales = Total Revenue Income − Overrings − Cash adj − CC tips (coupons
         // are not deducted here, matching the historical stored-column convention).
