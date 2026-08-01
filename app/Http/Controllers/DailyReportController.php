@@ -344,16 +344,10 @@ class DailyReportController extends Controller
                 $this->processRevenueEntries($request, $dailyReport);
             }
 
-            // Return to the reports list for this report's month (the view the user
-            // was on) instead of dumping them on a blank next-day form — keeps context.
-            $storeId = $validatedData['store_id'];
-            $reportDate = \Carbon\Carbon::parse($validatedData['report_date']);
-
-            return redirect()->route('daily-reports.index', [
-                'year' => $reportDate->year,
-                'month' => $reportDate->month,
-                'store_id' => $storeId,
-            ])->with('success', '✅ Daily report created successfully!');
+            // After saving, land on the report's own view page so the user stays
+            // on what they just created (not a list or a blank next-day form).
+            return redirect()->route('daily-reports.show', $dailyReport)
+                ->with('success', '✅ Daily report created successfully!');
 
         } catch (ReportException|StoreException|PermissionException $e) {
             Log::warning('Business rule validation failed for daily report creation', [

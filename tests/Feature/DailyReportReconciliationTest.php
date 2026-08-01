@@ -85,6 +85,32 @@ class DailyReportReconciliationTest extends TestCase
     }
 
     /** @test */
+    public function saving_a_new_report_lands_on_its_view_page(): void
+    {
+        $owner = User::factory()->create(['role' => 'owner']);
+        $store = Store::factory()->create(['created_by' => $owner->id]);
+        $manager = User::factory()->create(['role' => 'manager']);
+        $store->assignedManagers()->attach($manager->id);
+
+        $response = $this->actingAs($manager)->post('/daily-reports', [
+            'store_id' => $store->id,
+            'report_date' => now()->format('Y-m-d'),
+            'projected_sales' => 1000.00,
+            'gross_sales' => 1200.00,
+            'total_paid_outs' => 100.00,
+            'total_customers' => 50,
+            'credit_cards' => 800.00,
+            'actual_deposit' => 1200.00,
+        ]);
+
+        $response->assertSessionDoesntHaveErrors();
+        $report = \App\Models\DailyReport::where('store_id', $store->id)->latest('id')->first();
+        $this->assertNotNull($report);
+        // Lands on the report's own view page, not a list or blank form.
+        $response->assertRedirect(route('daily-reports.show', $report));
+    }
+
+    /** @test */
     public function the_create_form_offers_the_holiday_picker(): void
     {
         $owner = User::factory()->create(['role' => 'owner']);
