@@ -171,6 +171,12 @@ Route::middleware(['auth', 'verified', 'trial'])->group(function () {
         Route::patch('/transaction-types/{transactionType}/update-category', [TransactionTypeController::class, 'updateCategory'])->name('transaction-types.update-category');
         Route::delete('/transaction-types/{transactionType}', [TransactionTypeController::class, 'destroy'])->name('transaction-types.destroy');
         Route::post('transaction-types/{transactionType}/assign-stores', [TransactionTypeController::class, 'assignStores'])->name('transaction-types.assign.stores');
+
+        // Holidays - self-service management of the daily-report holiday list.
+        Route::get('/holidays', [\App\Http\Controllers\Admin\HolidayController::class, 'index'])->name('admin.holidays.index');
+        Route::post('/holidays', [\App\Http\Controllers\Admin\HolidayController::class, 'store'])->name('admin.holidays.store');
+        Route::put('/holidays/{holiday}', [\App\Http\Controllers\Admin\HolidayController::class, 'update'])->name('admin.holidays.update');
+        Route::delete('/holidays/{holiday}', [\App\Http\Controllers\Admin\HolidayController::class, 'destroy'])->name('admin.holidays.destroy');
     });
 
     // Chart of Accounts - Admin and Owners/Franchisor (business configuration)

@@ -551,7 +551,7 @@
                                 <label>Holiday/Special Event:</label>
                                 <input type="text" name="holiday_event" class="form-control" value="{{ $dailyReport->holiday_event }}" list="holidayOptions" placeholder="Select a holiday or type an event" autocomplete="off">
                                 <datalist id="holidayOptions">
-                                    @foreach(config('holidays', []) as $holiday)
+                                    @foreach(\App\Models\Holiday::optionList() as $holiday)
                                         <option value="{{ $holiday }}"></option>
                                     @endforeach
                                 </datalist>
