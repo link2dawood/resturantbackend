@@ -1,16 +1,21 @@
-{{-- Recursive Chart-of-Accounts rows. The full hierarchy is shown, indented by
-     depth (categories flush, sub-accounts nested underneath). --}}
+{{-- Recursive Chart-of-Accounts rows. The hierarchy is shown by indenting the
+     ACCOUNT NAME by depth, bolding categories, and shading the top levels so
+     Type → Category → Sub-account reads clearly. --}}
 @foreach($nodes as $node)
-    @php $hasKids = $node->childNodes->isNotEmpty(); @endphp
-    <tr>
+    @php
+        $hasKids = $node->childNodes->isNotEmpty();
+        $rowBg = $node->depth === 0 ? '#eef2f7' : ($node->depth === 1 ? '#f7f9fc' : '');
+    @endphp
+    <tr @if($rowBg) style="background: {{ $rowBg }};" @endif>
+        <td style="white-space:nowrap;"><strong>{{ $node->account_code }}</strong></td>
         <td>
-            <span style="display:inline-block; width: {{ $node->depth * 1.5 }}rem;"></span>
-            <strong>{{ $node->account_code }}</strong>
-        </td>
-        <td>
-            {{ $node->account_name }}
+            <span style="display:inline-block; width: {{ $node->depth * 1.75 }}rem;"></span>
+            @if($node->depth >= 2)
+                <span class="text-muted me-1" style="opacity:.6;">↳</span>
+            @endif
+            <span @if($node->depth <= 1 || $hasKids) style="font-weight:600;" @endif>{{ $node->account_name }}</span>
             @if($hasKids)
-                <span class="badge bg-blue-lt ms-1">{{ $node->childNodes->count() }} sub-account{{ $node->childNodes->count() === 1 ? '' : 's' }}</span>
+                <span class="badge bg-blue-lt ms-2">{{ $node->childNodes->count() }} sub-account{{ $node->childNodes->count() === 1 ? '' : 's' }}</span>
             @endif
         </td>
         <td><span class="badge bg-secondary">{{ $node->account_type }}</span></td>
