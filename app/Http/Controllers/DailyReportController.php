@@ -1133,7 +1133,14 @@ class DailyReportController extends Controller
      */
     private function processTransactions(Request $request, DailyReport $dailyReport): void
     {
-        
+        // Clear any previously-synced daily-report expense transactions (on re-save)
+        // so we don't double-count. The auto merchant-fee transaction (managed by
+        // DailyReportObserver, different hash prefix) is left untouched.
+        \App\Models\ExpenseTransaction::where('daily_report_id', $dailyReport->id)
+            ->where('duplicate_check_hash', 'like', 'drtxn-%')
+            ->delete();
+
+        $rowIndex = 0;
         foreach ($request->transactions as $transactionData) {
             if (empty($transactionData['amount'])) {
                 continue; // Skip empty transaction rows
@@ -1199,6 +1206,28 @@ class DailyReportController extends Controller
                 'company' => $companyName,
                 'amount' => (float) $transactionData['amount'],
             ]);
+
+            // Sync into expense_transactions so the expense reaches the P&L (which
+            // reads that table). Skipped only when no COA is set on the row.
+            if ($coa) {
+                \App\Models\ExpenseTransaction::create([
+                    'transaction_type' => 'cash',
+                    'transaction_date' => $dailyReport->report_date,
+                    'post_date' => $dailyReport->report_date,
+                    'store_id' => $dailyReport->store_id,
+                    'vendor_id' => $vendor?->id,
+                    'coa_id' => $coa->id,
+                    'amount' => (float) $transactionData['amount'],
+                    'description' => $companyName !== '' ? $companyName : $coa->account_name,
+                    'payment_method' => 'cash',
+                    'daily_report_id' => $dailyReport->id,
+                    'created_by' => auth()->id() ?? $dailyReport->created_by,
+                    'duplicate_check_hash' => 'drtxn-'.md5($dailyReport->id.'-'.$rowIndex.'-'.$coa->id.'-'.$transactionData['amount']),
+                    'needs_review' => false,
+                ]);
+            }
+
+            $rowIndex++;
         }
     }
 
