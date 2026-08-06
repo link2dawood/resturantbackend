@@ -904,36 +904,19 @@ class BankImportController extends Controller
     }
 
     /**
-     * Get COA from mapping rules based on description pattern
+     * Suggest a COA for a statement line via the categorization engine
+     * (per-client, fuzzy-matched against learned rules, and logged).
      */
     protected function getCoaFromMappingRule(string $description, ?Vendor $vendor = null): ?int
     {
-        // Try to find matching mapping rule
-        $mappingRule = TransactionMappingRule::where('description_pattern', 'like', '%' . substr($description, 0, 20) . '%')
-            ->orderBy('confidence_score', 'desc')
-            ->orderBy('times_used', 'desc')
-            ->first();
+        $engine = app(\App\Services\CategorizationEngine::class);
+        $ownerId = $engine->ownerIdForUser(auth()->user());
 
-        if ($mappingRule && $mappingRule->coa_id) {
-            // Update usage statistics
-            $mappingRule->markAsUsed();
-            return $mappingRule->coa_id;
-        }
+        $suggestion = $engine->suggest($description, $ownerId, [
+            'store_id' => null,
+        ]);
 
-        // If vendor provided, try vendor-specific mapping
-        if ($vendor) {
-            $vendorMapping = TransactionMappingRule::where('vendor_id', $vendor->id)
-                ->where('description_pattern', 'like', '%' . substr($description, 0, 20) . '%')
-                ->orderBy('confidence_score', 'desc')
-                ->first();
-
-            if ($vendorMapping && $vendorMapping->coa_id) {
-                $vendorMapping->markAsUsed();
-                return $vendorMapping->coa_id;
-            }
-        }
-
-        return null;
+        return $suggestion['coa_id'] ?? null;
     }
 
     /**

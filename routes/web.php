@@ -177,6 +177,12 @@ Route::middleware(['auth', 'verified', 'trial'])->group(function () {
         Route::post('/holidays', [\App\Http\Controllers\Admin\HolidayController::class, 'store'])->name('admin.holidays.store');
         Route::put('/holidays/{holiday}', [\App\Http\Controllers\Admin\HolidayController::class, 'update'])->name('admin.holidays.update');
         Route::delete('/holidays/{holiday}', [\App\Http\Controllers\Admin\HolidayController::class, 'destroy'])->name('admin.holidays.destroy');
+
+        // Categorization Rules (Phase 4) - learned import auto-categorization rules + decision log.
+        Route::get('/mapping-rules', [\App\Http\Controllers\Admin\MappingRuleController::class, 'index'])->name('admin.mapping-rules.index');
+        Route::put('/mapping-rules/{rule}', [\App\Http\Controllers\Admin\MappingRuleController::class, 'update'])->name('admin.mapping-rules.update');
+        Route::patch('/mapping-rules/{rule}/toggle', [\App\Http\Controllers\Admin\MappingRuleController::class, 'toggle'])->name('admin.mapping-rules.toggle');
+        Route::delete('/mapping-rules/{rule}', [\App\Http\Controllers\Admin\MappingRuleController::class, 'destroy'])->name('admin.mapping-rules.destroy');
     });
 
     // Chart of Accounts - Admin and Owners/Franchisor (business configuration)

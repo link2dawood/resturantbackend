@@ -463,17 +463,20 @@ class ExpenseController extends Controller
 
             $expense->update($updateData);
 
-            // Create mapping rule if requested
-            if ($request->boolean('create_mapping_rule') && $request->has('coa_id')) {
-                TransactionMappingRule::create([
-                    'description_pattern' => $expense->description ?? $expense->vendor_name_raw ?? 'Unknown',
-                    'vendor_id' => $request->vendor_id ?? null,
-                    'coa_id' => $request->coa_id,
-                    'confidence_score' => 0.75,
-                    'times_used' => 0,
-                    'times_correct' => 0,
-                    'times_incorrect' => 0,
-                ]);
+            // Categorization engine: learn per client + log the decision.
+            $engine = app(\App\Services\CategorizationEngine::class);
+            $ownerId = $engine->ownerIdForStore($expense->store);
+            $descr = $expense->description ?? $expense->vendor_name_raw ?? 'Unknown';
+            $decisionContext = ['store_id' => $expense->store_id, 'expense_transaction_id' => $expense->id];
+
+            if ($request->filled('coa_id')) {
+                // Audit every reviewer assignment.
+                $engine->logAssignment($descr, (int) $request->coa_id, $ownerId, 'manual', $decisionContext);
+            }
+
+            // Learn a per-client mapping rule if requested.
+            if ($request->boolean('create_mapping_rule') && $request->filled('coa_id')) {
+                $engine->learn($descr, (int) $request->coa_id, $ownerId, $request->vendor_id ?? null, $decisionContext);
             }
 
             DB::commit();
@@ -540,17 +543,19 @@ class ExpenseController extends Controller
                 $expense->update($updateData);
                 $updated++;
 
-                // Create mapping rule if requested (only for first transaction to avoid duplicates)
-                if ($updated === 1 && $request->boolean('create_mapping_rule') && $request->has('coa_id')) {
-                    TransactionMappingRule::create([
-                        'description_pattern' => $expense->description ?? $expense->vendor_name_raw ?? 'Unknown',
-                        'vendor_id' => $request->vendor_id ?? null,
-                        'coa_id' => $request->coa_id,
-                        'confidence_score' => 0.75,
-                        'times_used' => 0,
-                        'times_correct' => 0,
-                        'times_incorrect' => 0,
-                    ]);
+                // Categorization engine: log each assignment; learn once.
+                $engine = app(\App\Services\CategorizationEngine::class);
+                $ownerId = $engine->ownerIdForStore($expense->store);
+                $descr = $expense->description ?? $expense->vendor_name_raw ?? 'Unknown';
+                $decisionContext = ['store_id' => $expense->store_id, 'expense_transaction_id' => $expense->id];
+
+                if ($request->filled('coa_id')) {
+                    $engine->logAssignment($descr, (int) $request->coa_id, $ownerId, 'manual', $decisionContext);
+                }
+
+                // Learn a per-client rule from the first transaction only (avoid duplicates).
+                if ($updated === 1 && $request->boolean('create_mapping_rule') && $request->filled('coa_id')) {
+                    $engine->learn($descr, (int) $request->coa_id, $ownerId, $request->vendor_id ?? null, $decisionContext);
                 }
             }
 

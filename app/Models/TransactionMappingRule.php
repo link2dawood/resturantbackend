@@ -11,10 +11,12 @@ class TransactionMappingRule extends Model
     use HasFactory;
 
     protected $fillable = [
+        'owner_id',
         'description_pattern',
         'vendor_id',
         'coa_id',
         'confidence_score',
+        'is_active',
         'times_used',
         'times_correct',
         'times_incorrect',
@@ -23,6 +25,7 @@ class TransactionMappingRule extends Model
 
     protected $casts = [
         'confidence_score' => 'decimal:2',
+        'is_active' => 'boolean',
         'last_used' => 'datetime',
         'times_used' => 'integer',
         'times_correct' => 'integer',
@@ -30,6 +33,11 @@ class TransactionMappingRule extends Model
     ];
 
     // Relationships
+    public function owner(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'owner_id');
+    }
+
     public function vendor(): BelongsTo
     {
         return $this->belongsTo(Vendor::class, 'vendor_id');
@@ -59,6 +67,25 @@ class TransactionMappingRule extends Model
     public function scopeByPattern($query, $pattern)
     {
         return $query->where('description_pattern', $pattern);
+    }
+
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
+    }
+
+    /**
+     * Rules visible to a given client (owner): the owner's own learned rules
+     * plus any global (owner_id NULL) fallbacks. Passing null limits to globals.
+     */
+    public function scopeForOwner($query, ?int $ownerId)
+    {
+        return $query->where(function ($q) use ($ownerId) {
+            $q->whereNull('owner_id');
+            if ($ownerId !== null) {
+                $q->orWhere('owner_id', $ownerId);
+            }
+        });
     }
 
     // Update confidence score based on usage

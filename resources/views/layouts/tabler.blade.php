@@ -807,6 +807,13 @@
                                     </svg>
                                     Holidays
                                 </a></li>
+                                <li><a class="dropdown-item d-flex align-items-center" href="{{ route('admin.mapping-rules.index') }}" style="padding: 8px 16px; font-family: 'Google Sans', sans-serif; font-size: 14px; border-radius: 8px; margin: 0 8px;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
+                                        <path d="M9 11l3 3l8 -8"/>
+                                        <path d="M20 12v6a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h9"/>
+                                    </svg>
+                                    Categorization Rules
+                                </a></li>
                             </ul>
                         </li>
                         @endif
