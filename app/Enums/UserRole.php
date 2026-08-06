@@ -50,6 +50,7 @@ enum UserRole: string
                 'create_reports',
                 'manage_reports',
                 'view_reports',
+                'approve_reports',
                 'manage_managers',
                 'manage_owners',
                 'view_audit_logs',

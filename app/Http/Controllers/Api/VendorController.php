@@ -13,6 +13,23 @@ use Illuminate\Support\Str;
 class VendorController extends Controller
 {
     /**
+     * Restrict requested store IDs to those the current user may access, so an
+     * owner cannot assign a vendor to a store they do not control. Admins (and
+     * the franchisor, via getAccessibleStoreIds) keep the full requested list.
+     */
+    private function restrictToAccessibleStores($requested): array
+    {
+        $requested = array_map('intval', (array) ($requested ?? []));
+        $user = auth()->user();
+
+        if ($user->isAdmin()) {
+            return $requested;
+        }
+
+        return array_values(array_intersect($requested, $user->getAccessibleStoreIds()));
+    }
+
+    /**
      * Display a listing of vendors
      */
     public function index(Request $request)
@@ -100,8 +117,9 @@ class VendorController extends Controller
             if ($request->filled('default_coa_id') && ! $existing->default_coa_id) {
                 $existing->update(['default_coa_id' => $request->default_coa_id]);
             }
-            if ($request->filled('store_ids') && is_array($request->store_ids)) {
-                $existing->stores()->syncWithoutDetaching($request->store_ids);
+            $storeIds = $this->restrictToAccessibleStores($request->store_ids);
+            if (! empty($storeIds)) {
+                $existing->stores()->syncWithoutDetaching($storeIds);
             }
 
             return response()->json([
@@ -113,7 +131,8 @@ class VendorController extends Controller
         // Create the vendor and its aliases atomically so a failed alias never
         // leaves a half-created vendor behind. firstOrCreate guards against a
         // stray alias left by an earlier partial failure.
-        $vendor = DB::transaction(function () use ($request, $vendorName) {
+        $storeIds = $this->restrictToAccessibleStores($request->store_ids);
+        $vendor = DB::transaction(function () use ($request, $vendorName, $storeIds) {
             $vendor = Vendor::create([
                 'vendor_name' => $vendorName,
                 'vendor_identifier' => $request->vendor_identifier,
@@ -129,8 +148,8 @@ class VendorController extends Controller
                 'created_by' => auth()->id(),
             ]);
 
-            if ($request->filled('store_ids') && is_array($request->store_ids)) {
-                $vendor->stores()->sync($request->store_ids);
+            if (! empty($storeIds)) {
+                $vendor->stores()->sync($storeIds);
             }
 
             VendorAlias::firstOrCreate(
@@ -208,9 +227,9 @@ class VendorController extends Controller
             'is_active'
         ]));
 
-        // Update store assignments
+        // Update store assignments (restricted to stores the user can access).
         if ($request->has('store_ids')) {
-            $vendor->stores()->sync($request->store_ids ?? []);
+            $vendor->stores()->sync($this->restrictToAccessibleStores($request->store_ids));
         }
 
         return response()->json([
