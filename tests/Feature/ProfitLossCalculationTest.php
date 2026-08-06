@@ -10,6 +10,7 @@ use App\Models\ExpenseTransaction;
 use App\Models\ChartOfAccount;
 use App\Models\RevenueIncomeType;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class ProfitLossCalculationTest extends TestCase
@@ -19,7 +20,15 @@ class ProfitLossCalculationTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        
+
+        // The P&L reports use MySQL-only SQL (YEAR()/MONTH()/CAST(... AS UNSIGNED)),
+        // so these tests only run against MySQL. phpunit.xml points the suite at a
+        // MySQL test database; on any other driver we skip cleanly rather than
+        // fail with a syntax error.
+        if (DB::connection()->getDriverName() !== 'mysql') {
+            $this->markTestSkipped('P&L reporting requires MySQL (YEAR/MONTH/CAST); see phpunit.xml for the test DB.');
+        }
+
         // Create test data
         $this->seed(\Database\Seeders\ChartOfAccountsSeeder::class);
         $this->seed(\Database\Seeders\RevenueIncomeTypeSeeder::class);
