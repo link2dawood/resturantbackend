@@ -824,6 +824,13 @@
                                     </svg>
                                     Categorization Rules
                                 </a></li>
+                                <li><a class="dropdown-item d-flex align-items-center" href="{{ route('admin.menu-items.index') }}" style="padding: 8px 16px; font-family: 'Google Sans', sans-serif; font-size: 14px; border-radius: 8px; margin: 0 8px;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
+                                        <path d="M4 3h16a1 1 0 0 1 1 1v16a1 1 0 0 1 -1 1h-16a1 1 0 0 1 -1 -1v-16a1 1 0 0 1 1 -1"/>
+                                        <path d="M8 7h8M8 11h8M8 15h5"/>
+                                    </svg>
+                                    Menu &amp; Recipes
+                                </a></li>
                             </ul>
                         </li>
                         @endif

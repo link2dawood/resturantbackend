@@ -73,16 +73,7 @@ class VarianceCalculationService
     /** Convert a quantity to the item's base unit via an EXPLICIT factor, or throw. */
     public function convertToBase(float $qty, string $unit, InventoryItem $item): float
     {
-        if ($unit === $item->base_unit) {
-            return $qty;
-        }
-        if ($unit === $item->purchase_unit) {
-            return $qty * (float) $item->units_per_purchase;
-        }
-
-        throw new UnitMismatchException(
-            "No conversion from '{$unit}' to base unit '{$item->base_unit}' for inventory item {$item->id}."
-        );
+        return UnitConverter::toBase($item, $qty, $unit);
     }
 
     /** Green ≤ green threshold; yellow ≤ yellow threshold; red above (by |%|). */

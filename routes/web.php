@@ -191,6 +191,18 @@ Route::middleware(['auth', 'verified', 'trial'])->group(function () {
         Route::put('/mapping-rules/{rule}', [\App\Http\Controllers\Admin\MappingRuleController::class, 'update'])->name('admin.mapping-rules.update');
         Route::patch('/mapping-rules/{rule}/toggle', [\App\Http\Controllers\Admin\MappingRuleController::class, 'toggle'])->name('admin.mapping-rules.toggle');
         Route::delete('/mapping-rules/{rule}', [\App\Http\Controllers\Admin\MappingRuleController::class, 'destroy'])->name('admin.mapping-rules.destroy');
+
+        // Menu items & recipes (Phase 5.3). Import routes MUST precede {menuItem}.
+        Route::get('/menu-items', [\App\Http\Controllers\Admin\MenuItemController::class, 'index'])->name('admin.menu-items.index');
+        Route::get('/menu-items/create', [\App\Http\Controllers\Admin\MenuItemController::class, 'create'])->name('admin.menu-items.create');
+        Route::post('/menu-items', [\App\Http\Controllers\Admin\MenuItemController::class, 'store'])->name('admin.menu-items.store');
+        Route::get('/menu-items/import', [\App\Http\Controllers\Admin\MenuItemController::class, 'importForm'])->name('admin.menu-items.import.form');
+        Route::post('/menu-items/import', [\App\Http\Controllers\Admin\MenuItemController::class, 'import'])->name('admin.menu-items.import');
+        Route::get('/menu-items/{menuItem}', [\App\Http\Controllers\Admin\MenuItemController::class, 'show'])->name('admin.menu-items.show');
+        Route::get('/menu-items/{menuItem}/edit', [\App\Http\Controllers\Admin\MenuItemController::class, 'edit'])->name('admin.menu-items.edit');
+        Route::put('/menu-items/{menuItem}', [\App\Http\Controllers\Admin\MenuItemController::class, 'update'])->name('admin.menu-items.update');
+        Route::delete('/menu-items/{menuItem}', [\App\Http\Controllers\Admin\MenuItemController::class, 'destroy'])->name('admin.menu-items.destroy');
+        Route::put('/menu-items/{menuItem}/recipe/{size}', [\App\Http\Controllers\Admin\MenuItemController::class, 'updateRecipe'])->name('admin.menu-items.recipe.update');
     });
 
     // Chart of Accounts - Admin and Owners/Franchisor (business configuration)
