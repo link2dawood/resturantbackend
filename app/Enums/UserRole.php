@@ -7,6 +7,7 @@ enum UserRole: string
     case ADMIN = 'admin';
     case OWNER = 'owner';
     case MANAGER = 'manager';
+    case EMPLOYEE = 'employee';
 
     public static function values(): array
     {
@@ -19,6 +20,7 @@ enum UserRole: string
             self::ADMIN => 'Administrator',
             self::OWNER => 'Owner',
             self::MANAGER => 'Manager',
+            self::EMPLOYEE => 'Employee',
         };
     }
 
@@ -62,6 +64,12 @@ enum UserRole: string
                 'view_assigned_stores',
                 'view_daily_reports',
                 'create_reports',
+                'enter_inventory',
+            ]),
+            // EMPLOYEE: inventory entry only, for their assigned store.
+            self::EMPLOYEE => in_array($permission, [
+                'view_assigned_stores',
+                'enter_inventory',
             ]),
         };
     }
@@ -70,8 +78,9 @@ enum UserRole: string
     {
         return match ($this) {
             self::ADMIN => true,
-            self::OWNER => $targetRole === self::MANAGER,
-            self::MANAGER => false,
+            self::OWNER => in_array($targetRole, [self::MANAGER, self::EMPLOYEE], true),
+            self::MANAGER => $targetRole === self::EMPLOYEE,
+            self::EMPLOYEE => false,
         };
     }
 }

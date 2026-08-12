@@ -236,6 +236,14 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->role === UserRole::MANAGER;
     }
 
+    /**
+     * Check if user is an employee (inventory entry only).
+     */
+    public function isEmployee(): bool
+    {
+        return $this->role === UserRole::EMPLOYEE;
+    }
+
     // -----------------------------------------------------------------------
     // Trial / subscription (Phase 4 — SaaS)
     //
@@ -593,8 +601,8 @@ class User extends Authenticatable implements MustVerifyEmail
             return Store::whereIn('id', $allStoreIds)->whereNull('deleted_at');
         }
 
-        if ($this->isManager()) {
-            // Managers can only see stores they are assigned to
+        if ($this->isManager() || $this->isEmployee()) {
+            // Managers and employees can only see stores they are assigned to
             // Corporate store managers: only see their assigned corporate store locations
             // Franchisee store managers: only see their assigned franchisee locations
             $storeIds = collect([$this->store_id])->filter();
@@ -645,7 +653,8 @@ class User extends Authenticatable implements MustVerifyEmail
             return array_unique(array_merge($storeIds, $createdStoreIds));
         }
 
-        if ($this->isManager()) {
+        // Managers and employees see only the store(s) they are assigned to.
+        if ($this->isManager() || $this->isEmployee()) {
             $storeIds = collect([$this->store_id])->filter();
             $pivotStoreIds = $this->assignedStoresPivot()->pluck('stores.id');
             return $storeIds->merge($pivotStoreIds)->unique()->filter()->toArray();

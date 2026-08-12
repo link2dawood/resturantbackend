@@ -146,6 +146,14 @@ Route::middleware(['auth', 'verified', 'trial'])->group(function () {
         Route::post('/daily-reports/{dailyReport}/return-to-draft', [DailyReportController::class, 'returnToDraft'])->name('daily-reports.return-to-draft');
     });
 
+    // Inventory entry (Phase 5) — weekly Monday count. Employees are restricted
+    // to this workflow; managers/owners/admins can also access it.
+    Route::middleware('role:admin,owner,manager,employee')->group(function () {
+        Route::get('/inventory', [\App\Http\Controllers\InventoryEntryController::class, 'index'])->name('inventory.entry.index');
+        Route::post('/inventory/draft', [\App\Http\Controllers\InventoryEntryController::class, 'saveDraft'])->name('inventory.entry.draft');
+        Route::post('/inventory/submit', [\App\Http\Controllers\InventoryEntryController::class, 'submit'])->name('inventory.entry.submit');
+    });
+
     // Manager management - Admin and Owner access
     Route::middleware('role:admin,owner')->group(function () {
         Route::get('/managers', [ManagerController::class, 'index'])->name('managers.index');

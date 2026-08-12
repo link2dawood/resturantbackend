@@ -15,6 +15,9 @@ Artisan::command('inspire', function () {
 // handles the emails + status bookkeeping. Runs once a day.
 Schedule::command('trials:check')->dailyAt('08:00');
 
+// Phase 5 — open the weekly inventory-count rows every Monday morning.
+Schedule::command('inventory:open-week')->weeklyOn(1, '00:05');
+
 Artisan::command('create:test-users', function () {
     $this->info('Creating test users...');
 
