@@ -203,10 +203,10 @@
                                 </div>
                             </div>
                             <div class="mb-3">
-                                <label class="form-label">Fann's Philly Email</label>
-                                <input type="email" name="fanns_philly_email" class="form-control @error('fanns_philly_email') is-invalid @enderror" 
-                                       value="{{ old('fanns_philly_email', $owner->fanns_philly_email) }}" placeholder="Fann's Philly specific email">
-                                @error('fanns_philly_email')
+                                <label class="form-label">Franchise Email</label>
+                                <input type="email" name="franchise_email" class="form-control @error('franchise_email') is-invalid @enderror"
+                                       value="{{ old('franchise_email', $owner->franchise_email) }}" placeholder="Franchise-specific email">
+                                @error('franchise_email')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>

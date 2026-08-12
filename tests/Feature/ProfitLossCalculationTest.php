@@ -463,6 +463,65 @@ class ProfitLossCalculationTest extends TestCase
     }
 
     /** @test */
+    public function annual_in_store_revenue_is_reported_pre_tax()
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $store = Store::factory()->create(['created_by' => $admin->id]);
+        $cashType = RevenueIncomeType::where('name', 'Cash')->firstOrFail();
+
+        $report = DailyReport::factory()->create([
+            'store_id' => $store->id,
+            'report_date' => now()->startOfYear()->addMonth()->format('Y-m-d'),
+            'coupons_received' => 0,
+            'adjustments_overrings' => 0,
+            'adjustments_cash' => 0,
+            'credit_card_tips' => 0,
+            'credit_cards' => 0,
+            'created_by' => $admin->id,
+        ]);
+        DailyReportRevenue::create([
+            'daily_report_id' => $report->id,
+            'revenue_income_type_id' => $cashType->id,
+            'amount' => 1082.50,
+        ]);
+
+        $response = $this->actingAs($admin)
+            ->getJson('/api/reports/pl/annual?store_id=' . $store->id . '&year=' . now()->year);
+
+        $response->assertStatus(200);
+
+        $inStore = collect($response->json('pl.revenue.items'))->firstWhere('name', 'In-Store Sales');
+        $this->assertNotNull($inStore);
+        // 1082.50 net ÷ 1.0825 = 1000.00 pre-tax — NOT the raw 1082.50.
+        $this->assertEqualsWithDelta(1000.00, $inStore['annual_total'], 0.01);
+    }
+
+    /** @test */
+    public function annual_revenue_includes_third_party_gross_sales()
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $store = Store::factory()->create(['created_by' => $admin->id]);
+
+        DB::table('third_party_statements')->insert([
+            'platform' => 'grubhub',
+            'store_id' => $store->id,
+            'statement_date' => now()->startOfYear()->addMonth()->format('Y-m-d'),
+            'gross_sales' => 2000.00,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $response = $this->actingAs($admin)
+            ->getJson('/api/reports/pl/annual?store_id=' . $store->id . '&year=' . now()->year);
+
+        $response->assertStatus(200);
+
+        $thirdParty = collect($response->json('pl.revenue.items'))->firstWhere('name', 'Third-Party Sales');
+        $this->assertNotNull($thirdParty);
+        $this->assertEqualsWithDelta(2000.00, $thirdParty['annual_total'], 0.01);
+    }
+
+    /** @test */
     public function manager_cannot_view_annual_profit_and_loss_for_unassigned_store()
     {
         $managerStore = Store::factory()->create();

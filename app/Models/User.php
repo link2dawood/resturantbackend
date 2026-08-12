@@ -46,7 +46,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'corporate_address',
         'corporate_phone',
         'corporate_email',
-        'fanns_philly_email',
+        'franchise_email',
         // Business Details
         'corporate_ein',
         'corporate_creation_date',
