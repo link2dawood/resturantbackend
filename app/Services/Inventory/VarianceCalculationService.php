@@ -76,6 +76,18 @@ class VarianceCalculationService
         return UnitConverter::toBase($item, $qty, $unit);
     }
 
+    /**
+     * Theoretical usage (base units) of one item at one store for a week — the
+     * same calculation the variance uses, exposed for the stock-up engine so
+     * usage is computed in exactly one place.
+     */
+    public function usage(int $storeId, int $itemId, string|CarbonInterface $week): float
+    {
+        [$usage] = $this->theoreticalUsage($storeId, $itemId, Carbon::parse($week)->toDateString());
+
+        return $usage;
+    }
+
     /** Green ≤ green threshold; yellow ≤ yellow threshold; red above (by |%|). */
     public function severityFor(float $variancePct): string
     {

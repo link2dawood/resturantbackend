@@ -751,6 +751,14 @@
                                 Square Import
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link d-flex align-items-center {{ request()->routeIs('admin.stock-up.*') ? 'active' : '' }}" href="{{ route('admin.stock-up.index') }}" style="padding: 8px 16px; border-radius: 20px; font-family: 'Google Sans', sans-serif; font-weight: 500; font-size: 14px; transition: all 0.2s ease; {{ request()->routeIs('admin.stock-up.*') ? 'background: #4285f4; color: white;' : 'color: #5f6368;' }}" onmouseover="if(!this.classList.contains('active')) { this.style.background='#f1f3f4'; this.style.color='#1a73e8'; }" onmouseout="if(!this.classList.contains('active')) { this.style.background='transparent'; this.style.color='#5f6368'; }">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
+                                    <path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/>
+                                </svg>
+                                Stock-Up
+                            </a>
+                        </li>
                         @endif
 
                         {{-- Stores moved into the profile dropdown (see User Profile Menu below). --}}

@@ -159,6 +159,9 @@ Route::middleware(['auth', 'verified', 'trial'])->group(function () {
         Route::get('/square-import', [\App\Http\Controllers\Admin\SquareSalesImportController::class, 'form'])->name('admin.square-import.form');
         Route::post('/square-import/preview', [\App\Http\Controllers\Admin\SquareSalesImportController::class, 'preview'])->name('admin.square-import.preview');
         Route::post('/square-import/commit', [\App\Http\Controllers\Admin\SquareSalesImportController::class, 'commit'])->name('admin.square-import.commit');
+
+        // Stock-up worksheet (Phase 5.5) — projection → suggested order quantities.
+        Route::get('/stock-up', [\App\Http\Controllers\Admin\StockUpController::class, 'index'])->name('admin.stock-up.index');
     });
 
     // Manager management - Admin and Owner access
