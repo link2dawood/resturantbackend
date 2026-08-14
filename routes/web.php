@@ -171,6 +171,12 @@ Route::middleware(['auth', 'verified', 'trial'])->group(function () {
         Route::patch('/orders/{order}/placed', [\App\Http\Controllers\Admin\OrderController::class, 'markPlaced'])->name('admin.orders.placed');
         Route::patch('/orders/{order}/received', [\App\Http\Controllers\Admin\OrderController::class, 'markReceived'])->name('admin.orders.received');
         Route::delete('/orders/{order}', [\App\Http\Controllers\Admin\OrderController::class, 'destroy'])->name('admin.orders.destroy');
+
+        // Vendor prices & comparison (Phase 5.7).
+        Route::get('/vendor-prices', [\App\Http\Controllers\Admin\VendorPriceController::class, 'index'])->name('admin.vendor-prices.index');
+        Route::post('/vendor-prices', [\App\Http\Controllers\Admin\VendorPriceController::class, 'bulkUpdate'])->name('admin.vendor-prices.bulk');
+        Route::post('/vendor-prices/apply-cheapest', [\App\Http\Controllers\Admin\VendorPriceController::class, 'applyCheapest'])->name('admin.vendor-prices.apply-cheapest');
+        Route::get('/vendor-prices/history/{inventoryItem}', [\App\Http\Controllers\Admin\VendorPriceController::class, 'history'])->name('admin.vendor-prices.history');
     });
 
     // Manager management - Admin and Owner access
