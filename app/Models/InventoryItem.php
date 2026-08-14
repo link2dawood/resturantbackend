@@ -12,7 +12,7 @@ class InventoryItem extends Model
     use HasFactory;
 
     protected $fillable = [
-        'store_id', 'category', 'name', 'base_unit', 'purchase_unit',
+        'store_id', 'preferred_vendor_id', 'category', 'name', 'base_unit', 'purchase_unit',
         'units_per_purchase', 'min_stock_level', 'safety_buffer_pct',
         'reorder_threshold', 'is_active',
     ];
@@ -28,6 +28,11 @@ class InventoryItem extends Model
     public function store(): BelongsTo
     {
         return $this->belongsTo(Store::class);
+    }
+
+    public function preferredVendor(): BelongsTo
+    {
+        return $this->belongsTo(Vendor::class, 'preferred_vendor_id');
     }
 
     public function stockRows(): HasMany

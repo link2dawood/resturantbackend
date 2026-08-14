@@ -162,6 +162,15 @@ Route::middleware(['auth', 'verified', 'trial'])->group(function () {
 
         // Stock-up worksheet (Phase 5.5) — projection → suggested order quantities.
         Route::get('/stock-up', [\App\Http\Controllers\Admin\StockUpController::class, 'index'])->name('admin.stock-up.index');
+
+        // Multi-vendor orders (Phase 5.6). build/generate MUST precede {order}.
+        Route::get('/orders', [\App\Http\Controllers\Admin\OrderController::class, 'index'])->name('admin.orders.index');
+        Route::get('/orders/build', [\App\Http\Controllers\Admin\OrderController::class, 'build'])->name('admin.orders.build');
+        Route::post('/orders/generate', [\App\Http\Controllers\Admin\OrderController::class, 'generate'])->name('admin.orders.generate');
+        Route::get('/orders/{order}', [\App\Http\Controllers\Admin\OrderController::class, 'show'])->name('admin.orders.show');
+        Route::patch('/orders/{order}/placed', [\App\Http\Controllers\Admin\OrderController::class, 'markPlaced'])->name('admin.orders.placed');
+        Route::patch('/orders/{order}/received', [\App\Http\Controllers\Admin\OrderController::class, 'markReceived'])->name('admin.orders.received');
+        Route::delete('/orders/{order}', [\App\Http\Controllers\Admin\OrderController::class, 'destroy'])->name('admin.orders.destroy');
     });
 
     // Manager management - Admin and Owner access
