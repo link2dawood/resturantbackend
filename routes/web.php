@@ -154,6 +154,13 @@ Route::middleware(['auth', 'verified', 'trial'])->group(function () {
         Route::post('/inventory/submit', [\App\Http\Controllers\InventoryEntryController::class, 'submit'])->name('inventory.entry.submit');
     });
 
+    // Square sales import (Phase 5.4) — weekly Items Sold CSV wizard.
+    Route::middleware('role:admin,owner,manager')->group(function () {
+        Route::get('/square-import', [\App\Http\Controllers\Admin\SquareSalesImportController::class, 'form'])->name('admin.square-import.form');
+        Route::post('/square-import/preview', [\App\Http\Controllers\Admin\SquareSalesImportController::class, 'preview'])->name('admin.square-import.preview');
+        Route::post('/square-import/commit', [\App\Http\Controllers\Admin\SquareSalesImportController::class, 'commit'])->name('admin.square-import.commit');
+    });
+
     // Manager management - Admin and Owner access
     Route::middleware('role:admin,owner')->group(function () {
         Route::get('/managers', [ManagerController::class, 'index'])->name('managers.index');
