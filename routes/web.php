@@ -177,6 +177,12 @@ Route::middleware(['auth', 'verified', 'trial'])->group(function () {
         Route::post('/vendor-prices', [\App\Http\Controllers\Admin\VendorPriceController::class, 'bulkUpdate'])->name('admin.vendor-prices.bulk');
         Route::post('/vendor-prices/apply-cheapest', [\App\Http\Controllers\Admin\VendorPriceController::class, 'applyCheapest'])->name('admin.vendor-prices.apply-cheapest');
         Route::get('/vendor-prices/history/{inventoryItem}', [\App\Http\Controllers\Admin\VendorPriceController::class, 'history'])->name('admin.vendor-prices.history');
+
+        // Variance report (Phase 5.8) — the headline module.
+        Route::get('/variance', [\App\Http\Controllers\Admin\VarianceReportController::class, 'index'])->name('admin.variance.index');
+        Route::get('/variance/export/pdf', [\App\Http\Controllers\Admin\VarianceReportController::class, 'exportPdf'])->name('admin.variance.export.pdf');
+        Route::get('/variance/export/csv', [\App\Http\Controllers\Admin\VarianceReportController::class, 'exportCsv'])->name('admin.variance.export.csv');
+        Route::get('/variance/drill-down/{inventoryItem}', [\App\Http\Controllers\Admin\VarianceReportController::class, 'drillDown'])->name('admin.variance.drill-down');
     });
 
     // Manager management - Admin and Owner access
