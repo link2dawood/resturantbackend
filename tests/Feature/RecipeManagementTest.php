@@ -114,7 +114,7 @@ class RecipeManagementTest extends TestCase
         $this->steak($store);
 
         $this->actingAs($admin)->get(route('admin.menu-items.show', $menu))
-            ->assertOk()->assertSee('regular recipe');
+            ->assertOk()->assertSee('Recipe by size')->assertSee('Standard Steak');
         $this->actingAs($admin)->get(route('admin.menu-items.index', ['store_id' => $store->id]))
             ->assertOk()->assertSee('Standard Steak');
     }
