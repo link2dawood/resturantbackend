@@ -39,7 +39,12 @@ class VendorsSeeder extends Seeder
                 ? DB::table('chart_of_accounts')->where('account_code', '6200')->value('id')
                 : ($coaByType[$vendor['vendor_type']] ?? null);
 
-            $existingId = DB::table('vendors')->where('vendor_name', $vendor['vendor_name'])->value('id');
+            // Match an existing vendor by name OR by a known alias (identifier),
+            // so we never create a duplicate for a vendor the client already has.
+            $existingId = DB::table('vendors')->where('vendor_name', $vendor['vendor_name'])->value('id')
+                ?? DB::table('vendor_aliases')
+                    ->whereIn('alias', [$vendor['vendor_name'], $vendor['vendor_identifier']])
+                    ->value('vendor_id');
 
             if ($existingId) {
                 DB::table('vendors')->where('id', $existingId)->update([
@@ -59,7 +64,8 @@ class VendorsSeeder extends Seeder
             ]));
 
             foreach (array_unique([$vendor['vendor_name'], $vendor['vendor_identifier']]) as $alias) {
-                DB::table('vendor_aliases')->insert([
+                // insertOrIgnore: skip an alias that already exists (unique alias+source).
+                DB::table('vendor_aliases')->insertOrIgnore([
                     'vendor_id' => $vendorId, 'alias' => $alias, 'source' => 'manual',
                     'created_at' => now(), 'updated_at' => now(),
                 ]);
