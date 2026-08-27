@@ -23,7 +23,12 @@ class BankReconciliationController extends Controller
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 
-        $query = BankTransaction::with(['bankAccount', 'matchedExpense', 'matchedRevenue']);
+        // Scope to the stores this user may see (admin/franchisor get all).
+        $accessibleStoreIds = auth()->user()->getAccessibleStoreIds();
+        $query = BankTransaction::with(['bankAccount', 'matchedExpense', 'matchedRevenue'])
+            ->whereHas('bankAccount', function ($q) use ($accessibleStoreIds) {
+                $q->whereIn('store_id', $accessibleStoreIds);
+            });
 
         // Apply filters
         if ($request->has('bank_account_id')) {
@@ -61,6 +66,9 @@ class BankReconciliationController extends Controller
         }
 
         $bankTransaction = BankTransaction::findOrFail($id);
+        if ($denied = $this->denyIfStoreInaccessible($bankTransaction)) {
+            return $denied;
+        }
 
         $matches = [
             'expense_matches' => [],
@@ -102,6 +110,9 @@ class BankReconciliationController extends Controller
 
         try {
             $bankTransaction = BankTransaction::findOrFail($id);
+            if ($denied = $this->denyIfStoreInaccessible($bankTransaction)) {
+                return $denied;
+            }
 
             DB::beginTransaction();
 
@@ -156,6 +167,9 @@ class BankReconciliationController extends Controller
 
         try {
             $bankTransaction = BankTransaction::findOrFail($id);
+            if ($denied = $this->denyIfStoreInaccessible($bankTransaction)) {
+                return $denied;
+            }
 
             DB::beginTransaction();
 
@@ -180,6 +194,21 @@ class BankReconciliationController extends Controller
             Log::error('Error marking transaction as reviewed: ' . $e->getMessage());
             return response()->json(['error' => 'Failed to mark as reviewed'], 500);
         }
+    }
+
+    /**
+     * Block access to a bank transaction whose store the user cannot see.
+     * Returns a 403 JSON response to short-circuit, or null when allowed.
+     */
+    private function denyIfStoreInaccessible(BankTransaction $bankTransaction): ?\Illuminate\Http\JsonResponse
+    {
+        $storeId = $bankTransaction->bankAccount?->store_id;
+
+        if (! in_array($storeId, auth()->user()->getAccessibleStoreIds())) {
+            return response()->json(['error' => "You do not have access to this store's bank transactions."], 403);
+        }
+
+        return null;
     }
 
     /**

@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreVendorRequest;
+use App\Http\Requests\UpdateVendorRequest;
 use App\Models\Vendor;
 use App\Models\VendorAlias;
 use Illuminate\Http\Request;
@@ -13,11 +15,36 @@ use Illuminate\Support\Str;
 class VendorController extends Controller
 {
     /**
+     * Restrict requested store IDs to those the current user may access, so an
+     * owner cannot assign a vendor to a store they do not control. Admins (and
+     * the franchisor, via getAccessibleStoreIds) keep the full requested list.
+     */
+    private function restrictToAccessibleStores($requested): array
+    {
+        $requested = array_map('intval', (array) ($requested ?? []));
+        $user = auth()->user();
+
+        if ($user->isAdmin()) {
+            return $requested;
+        }
+
+        return array_values(array_intersect($requested, $user->getAccessibleStoreIds()));
+    }
+
+    /**
      * Display a listing of vendors
      */
     public function index(Request $request)
     {
-        $query = Vendor::with(['defaultCoa', 'stores', 'creator']);
+        $query = Vendor::with(['defaultCoa', 'stores', 'creator'])
+            ->withCount(['inventoryItems', 'preferredForItems']);
+
+        // Hidden (soft-deleted) vendors are excluded unless explicitly asked for.
+        if ($request->boolean('only_trashed')) {
+            $query->onlyTrashed();
+        } elseif ($request->boolean('with_trashed')) {
+            $query->withTrashed();
+        }
 
         // Filters
         if ($request->has('store_id')) {
@@ -54,34 +81,30 @@ class VendorController extends Controller
     /**
      * Store a newly created vendor
      */
-    public function store(Request $request)
+    public function store(StoreVendorRequest $request)
     {
-        // Authorization check - only admin/owner can create
-        $user = auth()->user();
-        if (!$user->isAdmin() && !$user->isOwner()) {
-            return response()->json(['error' => 'Unauthorized'], 403);
-        }
-
-        $validator = Validator::make($request->all(), [
-            'vendor_name' => 'required|string|max:100',
-            'vendor_identifier' => 'nullable|string|max:100|unique:vendors',
-            'vendor_type' => 'required|in:Food,Beverage,Supplies,Utilities,Services,Other',
-            'default_coa_id' => 'nullable|exists:chart_of_accounts,id',
-            'default_transaction_type_id' => 'nullable|exists:transaction_types,id',
-            'store_ids' => 'nullable|array',
-            'store_ids.*' => 'exists:stores,id',
-            'contact_name' => 'nullable|string|max:100',
-            'contact_email' => 'nullable|email|max:100',
-            'contact_phone' => 'nullable|string|max:50',
-            'address' => 'nullable|string',
-            'notes' => 'nullable|string',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
-        }
-
         $vendorName = trim($request->vendor_name);
+
+        // A hidden vendor still owns its name and its aliases. Restoring it beats
+        // creating a second row that would collide on the unique alias index.
+        $trashed = Vendor::onlyTrashed()
+            ->whereRaw('LOWER(vendor_name) = ?', [mb_strtolower($vendorName)])
+            ->first();
+
+        if ($trashed) {
+            $trashed->restore();
+            $trashed->update($this->vendorAttributes($request) + ['is_active' => true]);
+
+            $storeIds = $this->restrictToAccessibleStores($request->store_ids);
+            if (! empty($storeIds)) {
+                $trashed->stores()->syncWithoutDetaching($storeIds);
+            }
+
+            return response()->json([
+                'message' => 'This vendor was hidden and has been restored.',
+                'data' => $trashed->load(['defaultCoa', 'stores', 'aliases']),
+            ], 200);
+        }
 
         // Idempotent: if a vendor with this name (or a matching alias) already
         // exists, reuse it instead of creating a duplicate. Vendor aliases are
@@ -100,8 +123,9 @@ class VendorController extends Controller
             if ($request->filled('default_coa_id') && ! $existing->default_coa_id) {
                 $existing->update(['default_coa_id' => $request->default_coa_id]);
             }
-            if ($request->filled('store_ids') && is_array($request->store_ids)) {
-                $existing->stores()->syncWithoutDetaching($request->store_ids);
+            $storeIds = $this->restrictToAccessibleStores($request->store_ids);
+            if (! empty($storeIds)) {
+                $existing->stores()->syncWithoutDetaching($storeIds);
             }
 
             return response()->json([
@@ -113,7 +137,8 @@ class VendorController extends Controller
         // Create the vendor and its aliases atomically so a failed alias never
         // leaves a half-created vendor behind. firstOrCreate guards against a
         // stray alias left by an earlier partial failure.
-        $vendor = DB::transaction(function () use ($request, $vendorName) {
+        $storeIds = $this->restrictToAccessibleStores($request->store_ids);
+        $vendor = DB::transaction(function () use ($request, $vendorName, $storeIds) {
             $vendor = Vendor::create([
                 'vendor_name' => $vendorName,
                 'vendor_identifier' => $request->vendor_identifier,
@@ -123,14 +148,15 @@ class VendorController extends Controller
                 'contact_name' => $request->contact_name,
                 'contact_email' => $request->contact_email,
                 'contact_phone' => $request->contact_phone,
+                'website' => $request->website,
                 'address' => $request->address,
                 'notes' => $request->notes,
                 'is_active' => true,
                 'created_by' => auth()->id(),
             ]);
 
-            if ($request->filled('store_ids') && is_array($request->store_ids)) {
-                $vendor->stores()->sync($request->store_ids);
+            if (! empty($storeIds)) {
+                $vendor->stores()->sync($storeIds);
             }
 
             VendorAlias::firstOrCreate(
@@ -160,57 +186,43 @@ class VendorController extends Controller
     public function show($id)
     {
         $vendor = Vendor::with(['defaultCoa', 'stores', 'aliases', 'creator'])->findOrFail($id);
+
+        // Items this vendor supplies, limited to stores the viewer can see, so
+        // the vendor panel does not leak another owner's item list.
+        $vendor->setRelation('inventoryItems', $vendor->inventoryItems()
+            ->whereIn('inventory_items.store_id', auth()->user()->getAccessibleStoreIds())
+            ->with('store:id,store_info')
+            ->orderBy('inventory_items.name')
+            ->get());
+
         return response()->json($vendor);
     }
 
     /**
      * Update the specified vendor
      */
-    public function update(Request $request, $id)
+    public function update(UpdateVendorRequest $request, $id)
     {
-        // Authorization check - only admin/owner can update
-        $user = auth()->user();
-        if (!$user->isAdmin() && !$user->isOwner()) {
-            return response()->json(['error' => 'Unauthorized'], 403);
-        }
-
         $vendor = Vendor::findOrFail($id);
-
-        $validator = Validator::make($request->all(), [
-            'vendor_name' => 'required|string|max:100',
-            'vendor_identifier' => 'nullable|string|max:100|unique:vendors,vendor_identifier,' . $id,
-            'vendor_type' => 'required|in:Food,Beverage,Supplies,Utilities,Services,Other',
-            'default_coa_id' => 'nullable|exists:chart_of_accounts,id',
-            'store_ids' => 'nullable|array',
-            'store_ids.*' => 'exists:stores,id',
-            'contact_name' => 'nullable|string|max:100',
-            'contact_email' => 'nullable|email|max:100',
-            'contact_phone' => 'nullable|string|max:50',
-            'address' => 'nullable|string',
-            'notes' => 'nullable|string',
-            'is_active' => 'nullable|boolean',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
-        }
 
         $vendor->update($request->only([
             'vendor_name',
             'vendor_identifier',
             'vendor_type',
             'default_coa_id',
+            'default_transaction_type_id',
             'contact_name',
             'contact_email',
             'contact_phone',
+            'website',
             'address',
             'notes',
-            'is_active'
+            'is_active',
         ]));
 
-        // Update store assignments
+        // Update store assignments (restricted to stores the user can access).
         if ($request->has('store_ids')) {
-            $vendor->stores()->sync($request->store_ids ?? []);
+            $vendor->stores()->sync($this->restrictToAccessibleStores($request->store_ids));
         }
 
         return response()->json([
@@ -220,7 +232,11 @@ class VendorController extends Controller
     }
 
     /**
-     * Permanently delete the specified vendor
+     * Hide (soft-delete) the specified vendor.
+     *
+     * Refused while inventory items are still assigned, because an order built
+     * from those items would silently lose its supplier. The blocking items are
+     * returned so the UI can name them instead of showing a bare failure.
      */
     public function destroy($id)
     {
@@ -230,15 +246,99 @@ class VendorController extends Controller
         }
 
         $vendor = Vendor::findOrFail($id);
+        $blocking = $this->assignedInventoryItems($vendor);
 
-        // Hard delete.
-        // Related records:
-        // - vendor_aliases + vendor_store_assignments cascade delete
-        // - expense_transactions / transaction_mapping_rules vendor_id is set null
+        if ($blocking->isNotEmpty()) {
+            return response()->json([
+                'error' => 'This vendor still supplies '.$blocking->count().' inventory '
+                    .Str::plural('item', $blocking->count())
+                    .'. Reassign them to another vendor first, or set the vendor inactive instead.',
+                'items' => $blocking->values(),
+            ], 422);
+        }
+
+        // Soft delete: expense history, aliases and store assignments all survive,
+        // so the vendor can be restored later.
         $vendor->delete();
 
         return response()->json([
-            'message' => 'Vendor deleted successfully'
+            'message' => 'Vendor hidden successfully. Expense history is unchanged.',
+        ]);
+    }
+
+    /**
+     * Restore a hidden vendor.
+     */
+    public function restore($id)
+    {
+        if (!auth()->user()->isAdmin()) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        $vendor = Vendor::onlyTrashed()->findOrFail($id);
+        $vendor->restore();
+
+        return response()->json([
+            'message' => 'Vendor restored successfully',
+            'data' => $vendor->fresh()->load(['defaultCoa', 'stores', 'aliases']),
+        ]);
+    }
+
+    /**
+     * Flip a vendor between active and inactive without deleting it. Inactive
+     * vendors stay attached to their items and history, they just drop out of
+     * the ordering dropdowns.
+     */
+    public function toggleActive($id)
+    {
+        $user = auth()->user();
+        if (!$user->isAdmin() && !$user->isOwner()) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        $vendor = Vendor::findOrFail($id);
+        $vendor->update(['is_active' => ! $vendor->is_active]);
+
+        return response()->json([
+            'message' => $vendor->is_active ? 'Vendor activated' : 'Vendor deactivated',
+            'data' => ['id' => $vendor->id, 'is_active' => $vendor->is_active],
+        ]);
+    }
+
+    /**
+     * Distinct inventory items tied to this vendor, whether through the
+     * item/vendor pivot or by being the item's preferred vendor.
+     */
+    private function assignedInventoryItems(Vendor $vendor)
+    {
+        return $vendor->inventoryItems()
+            ->select('inventory_items.id', 'inventory_items.name', 'inventory_items.store_id')
+            ->get()
+            ->concat(
+                $vendor->preferredForItems()
+                    ->select('inventory_items.id', 'inventory_items.name', 'inventory_items.store_id')
+                    ->get()
+            )
+            ->unique('id')
+            ->map(fn ($item) => ['id' => $item->id, 'name' => $item->name]);
+    }
+
+    /**
+     * The editable vendor columns, pulled off a validated request.
+     */
+    private function vendorAttributes($request): array
+    {
+        return $request->only([
+            'vendor_identifier',
+            'vendor_type',
+            'default_coa_id',
+            'default_transaction_type_id',
+            'contact_name',
+            'contact_email',
+            'contact_phone',
+            'website',
+            'address',
+            'notes',
         ]);
     }
 

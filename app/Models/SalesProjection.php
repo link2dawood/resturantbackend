@@ -26,7 +26,7 @@ class SalesProjection extends Model
 
     protected $casts = [
         'projection_date' => 'date',
-        'amount' => 'float',
+        'amount' => 'decimal:2',
     ];
 
     public function store(): BelongsTo

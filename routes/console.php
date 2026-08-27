@@ -15,6 +15,15 @@ Artisan::command('inspire', function () {
 // handles the emails + status bookkeeping. Runs once a day.
 Schedule::command('trials:check')->dailyAt('08:00');
 
+// Phase 5 — open the weekly inventory-count rows every Monday morning.
+Schedule::command('inventory:open-week')->weeklyOn(1, '00:05');
+
+// Phase 5.9 — Monday reminder to count; weekly variance snapshot + large-variance alerts.
+Schedule::command('inventory:remind')->weeklyOn(1, '06:00');
+// Task 14 — chase only the stores that still have not submitted, Wednesday 08:00.
+Schedule::command('inventory:remind-overdue')->weeklyOn(3, '08:00');
+Schedule::command('inventory:generate-variance')->weeklyOn(2, '02:00');
+
 Artisan::command('create:test-users', function () {
     $this->info('Creating test users...');
 

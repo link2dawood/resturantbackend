@@ -45,7 +45,7 @@ class OwnerController extends Controller
                 'corporate_address' => 'nullable|string|max:1000',
                 'corporate_phone' => 'nullable|string|regex:/^\(\d{3}\)\s\d{3}-\d{4}$/',
                 'corporate_email' => 'nullable|email|max:255',
-                'fanns_philly_email' => 'nullable|email|max:255',
+                'franchise_email' => 'nullable|email|max:255',
 
                 // Business Details
                 'corporate_ein' => 'nullable|string|max:20',
@@ -109,7 +109,7 @@ class OwnerController extends Controller
             'corporate_address' => 'nullable|string|max:1000',
             'corporate_phone' => 'nullable|string|max:50',
             'corporate_email' => 'nullable|email|max:255',
-            'fanns_philly_email' => 'nullable|email|max:255',
+            'franchise_email' => 'nullable|email|max:255',
 
             // Business Details
             'corporate_ein' => 'nullable|string|max:20',
