@@ -12,7 +12,13 @@ class VendorViewController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Vendor::with(['stores', 'defaultCoa']);
+        $query = Vendor::with(['stores', 'defaultCoa'])
+            ->withCount(['inventoryItems', 'preferredForItems']);
+
+        // Hidden vendors are out of the list unless the user asks to see them.
+        if ($request->get('status') === 'hidden') {
+            $query->onlyTrashed();
+        }
 
         // Apply filters
         if ($request->has('store_id') && $request->store_id) {
@@ -35,7 +41,8 @@ class VendorViewController extends Controller
                 $q->where('vendor_name', 'like', "%{$search}%")
                   ->orWhere('vendor_identifier', 'like', "%{$search}%")
                   ->orWhere('contact_name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%");
+                  ->orWhere('contact_email', 'like', "%{$search}%")
+                  ->orWhere('contact_phone', 'like', "%{$search}%");
             });
         }
 
@@ -47,7 +54,7 @@ class VendorViewController extends Controller
             }
         }
 
-        $vendors = $query->orderBy('vendor_name', 'asc')->paginate(25);
+        $vendors = $query->orderBy('vendor_name', 'asc')->paginate(25)->withQueryString();
         $stores = Store::all();
         $coas = ChartOfAccount::where('account_code', '>', 5000)
         ->where('account_code', '<', 7000)->where('is_active', true)->orderBy('account_name')->get();

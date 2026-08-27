@@ -62,6 +62,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
 // Dashboard Analytics Routes
 Route::middleware(['auth', 'verified', 'trial'])->group(function () {
     Route::get('/home', [DashboardController::class, 'index'])->name('home');
+
+    // Task 14 — in-app notification bell. Every route reads only the signed-in
+    // user's own notifications, so there is nothing to scope beyond auth.
+    Route::get('/notifications', [\App\Http\Controllers\NotificationController::class, 'index'])->name('notifications.index');
+    Route::get('/notifications/recent', [\App\Http\Controllers\NotificationController::class, 'recent'])->name('notifications.recent');
+    Route::post('/notifications/read-all', [\App\Http\Controllers\NotificationController::class, 'markAllRead'])->name('notifications.read-all');
+    Route::post('/notifications/{id}/read', [\App\Http\Controllers\NotificationController::class, 'markRead'])->name('notifications.read');
     Route::get('/dashboard/chart-data', [DashboardController::class, 'getChartData'])->name('dashboard.chart-data');
     Route::get('/dashboard/export', [DashboardController::class, 'exportData'])->name('dashboard.export');
 });
@@ -152,6 +159,15 @@ Route::middleware(['auth', 'verified', 'trial'])->group(function () {
         Route::get('/inventory', [\App\Http\Controllers\InventoryEntryController::class, 'index'])->name('inventory.entry.index');
         Route::post('/inventory/draft', [\App\Http\Controllers\InventoryEntryController::class, 'saveDraft'])->name('inventory.entry.draft');
         Route::post('/inventory/submit', [\App\Http\Controllers\InventoryEntryController::class, 'submit'])->name('inventory.entry.submit');
+
+        // Phase 5 Part 1 Task 8 — the Monday weekly count. Literal sub-paths
+        // only, so ordering against a wildcard is not a concern here.
+        Route::get('/inventory/weekly-count', [\App\Http\Controllers\WeeklyCountController::class, 'index'])->name('inventory.weekly-count.index');
+        Route::post('/inventory/weekly-count/autosave', [\App\Http\Controllers\WeeklyCountController::class, 'autosave'])->name('inventory.weekly-count.autosave');
+        Route::post('/inventory/weekly-count/submit', [\App\Http\Controllers\WeeklyCountController::class, 'submit'])->name('inventory.weekly-count.submit');
+        Route::post('/inventory/weekly-count/unlock', [\App\Http\Controllers\WeeklyCountController::class, 'unlock'])->name('inventory.weekly-count.unlock');
+        Route::get('/inventory/weekly-count/suggestions', [\App\Http\Controllers\WeeklyCountController::class, 'suggestions'])->name('inventory.weekly-count.suggestions');
+        Route::post('/inventory/weekly-count/generate-order', [\App\Http\Controllers\WeeklyCountController::class, 'generateOrder'])->name('inventory.weekly-count.generate-order');
     });
 
     // Square sales import (Phase 5.4) — weekly Items Sold CSV wizard.
@@ -167,16 +183,30 @@ Route::middleware(['auth', 'verified', 'trial'])->group(function () {
         Route::get('/orders', [\App\Http\Controllers\Admin\OrderController::class, 'index'])->name('admin.orders.index');
         Route::get('/orders/build', [\App\Http\Controllers\Admin\OrderController::class, 'build'])->name('admin.orders.build');
         Route::post('/orders/generate', [\App\Http\Controllers\Admin\OrderController::class, 'generate'])->name('admin.orders.generate');
+        // /orders/history MUST precede /orders/{order} or the wildcard eats it.
+        Route::get('/orders/history', [\App\Http\Controllers\Admin\OrderHistoryController::class, 'index'])->name('admin.orders.history');
         Route::get('/orders/{order}', [\App\Http\Controllers\Admin\OrderController::class, 'show'])->name('admin.orders.show');
+        Route::get('/orders/{order}/report', [\App\Http\Controllers\Admin\OrderController::class, 'report'])->name('admin.orders.report');
+        Route::get('/orders/{order}/report/pdf', [\App\Http\Controllers\Admin\OrderController::class, 'reportPdf'])->name('admin.orders.report.pdf');
         Route::patch('/orders/{order}/placed', [\App\Http\Controllers\Admin\OrderController::class, 'markPlaced'])->name('admin.orders.placed');
         Route::patch('/orders/{order}/received', [\App\Http\Controllers\Admin\OrderController::class, 'markReceived'])->name('admin.orders.received');
+        Route::patch('/orders/{order}/cancel', [\App\Http\Controllers\Admin\OrderController::class, 'cancel'])->name('admin.orders.cancel');
+        Route::put('/orders/{order}/items', [\App\Http\Controllers\Admin\OrderController::class, 'updateItems'])->name('admin.orders.items.update');
+        Route::post('/orders/{order}/duplicate', [\App\Http\Controllers\Admin\OrderController::class, 'duplicateForSecondOrder'])->name('admin.orders.duplicate');
+        Route::post('/orders/{order}/reorder', [\App\Http\Controllers\Admin\OrderHistoryController::class, 'reorder'])->name('admin.orders.reorder');
         Route::delete('/orders/{order}', [\App\Http\Controllers\Admin\OrderController::class, 'destroy'])->name('admin.orders.destroy');
 
-        // Vendor prices & comparison (Phase 5.7).
-        Route::get('/vendor-prices', [\App\Http\Controllers\Admin\VendorPriceController::class, 'index'])->name('admin.vendor-prices.index');
-        Route::post('/vendor-prices', [\App\Http\Controllers\Admin\VendorPriceController::class, 'bulkUpdate'])->name('admin.vendor-prices.bulk');
-        Route::post('/vendor-prices/apply-cheapest', [\App\Http\Controllers\Admin\VendorPriceController::class, 'applyCheapest'])->name('admin.vendor-prices.apply-cheapest');
-        Route::get('/vendor-prices/history/{inventoryItem}', [\App\Http\Controllers\Admin\VendorPriceController::class, 'history'])->name('admin.vendor-prices.history');
+        // Vendor prices & comparison (Phase 5.7, extended in Phase 5 Part 1 Task 6).
+        // Paths moved from /vendor-prices to /pricing/*; the route NAMES are kept
+        // so every existing route() call and test keeps resolving.
+        // /compare/export must precede nothing here, but keep literal paths above
+        // any wildcard if one is ever added.
+        Route::get('/pricing/update', [\App\Http\Controllers\Admin\VendorPriceController::class, 'index'])->name('admin.vendor-prices.index');
+        Route::post('/pricing/update', [\App\Http\Controllers\Admin\VendorPriceController::class, 'bulkUpdate'])->name('admin.vendor-prices.bulk');
+        Route::get('/pricing/compare', [\App\Http\Controllers\Admin\VendorPriceController::class, 'compare'])->name('admin.vendor-prices.compare');
+        Route::get('/pricing/compare/export', [\App\Http\Controllers\Admin\VendorPriceController::class, 'exportCompare'])->name('admin.vendor-prices.compare.export');
+        Route::post('/pricing/apply-cheapest', [\App\Http\Controllers\Admin\VendorPriceController::class, 'applyCheapest'])->name('admin.vendor-prices.apply-cheapest');
+        Route::get('/pricing/history/{inventoryItem}', [\App\Http\Controllers\Admin\VendorPriceController::class, 'history'])->name('admin.vendor-prices.history');
 
         // Variance report (Phase 5.8) — the headline module.
         Route::get('/variance', [\App\Http\Controllers\Admin\VarianceReportController::class, 'index'])->name('admin.variance.index');
@@ -184,8 +214,38 @@ Route::middleware(['auth', 'verified', 'trial'])->group(function () {
         Route::get('/variance/export/csv', [\App\Http\Controllers\Admin\VarianceReportController::class, 'exportCsv'])->name('admin.variance.export.csv');
         Route::get('/variance/drill-down/{inventoryItem}', [\App\Http\Controllers\Admin\VarianceReportController::class, 'drillDown'])->name('admin.variance.drill-down');
 
+        // Per-store stock targets (Phase 5). Literal sub-paths precede nothing
+        // here, but keep them above any future wildcard.
+        Route::get('/stores/{store}/inventory-targets', [\App\Http\Controllers\Admin\InventoryTargetController::class, 'index'])->name('admin.inventory-targets.index');
+        Route::post('/stores/{store}/inventory-targets', [\App\Http\Controllers\Admin\InventoryTargetController::class, 'update'])->name('admin.inventory-targets.update');
+        Route::post('/stores/{store}/inventory-targets/bulk-default', [\App\Http\Controllers\Admin\InventoryTargetController::class, 'bulkDefault'])->name('admin.inventory-targets.bulk-default');
+        Route::post('/stores/{store}/inventory-targets/copy-from', [\App\Http\Controllers\Admin\InventoryTargetController::class, 'copyFrom'])->name('admin.inventory-targets.copy-from');
+
         // Inventory operations dashboard (Phase 5.9).
         Route::get('/inventory-dashboard', [\App\Http\Controllers\Admin\InventoryDashboardController::class, 'index'])->name('admin.inventory-dashboard.index');
+
+        // Inventory item master (Phase 5). The literal /import* paths MUST come
+        // before {inventoryItem} so the wildcard does not swallow them.
+        Route::get('/inventory-items', [\App\Http\Controllers\Admin\InventoryItemController::class, 'index'])->name('admin.inventory-items.index');
+        Route::get('/inventory-items/import', [\App\Http\Controllers\Admin\InventoryItemController::class, 'importForm'])->name('admin.inventory-items.import');
+        Route::post('/inventory-items/import/preview', [\App\Http\Controllers\Admin\InventoryItemController::class, 'importPreview'])->name('admin.inventory-items.import.preview');
+        Route::post('/inventory-items/import/commit', [\App\Http\Controllers\Admin\InventoryItemController::class, 'importCommit'])->name('admin.inventory-items.import.commit');
+        Route::post('/inventory-items/bulk-assign-vendor', [\App\Http\Controllers\Admin\InventoryItemController::class, 'bulkAssignVendor'])->name('admin.inventory-items.bulk-assign-vendor');
+        Route::post('/inventory-items', [\App\Http\Controllers\Admin\InventoryItemController::class, 'store'])->name('admin.inventory-items.store');
+        Route::get('/inventory-items/{inventoryItem}', [\App\Http\Controllers\Admin\InventoryItemController::class, 'show'])->name('admin.inventory-items.show');
+        Route::put('/inventory-items/{inventoryItem}', [\App\Http\Controllers\Admin\InventoryItemController::class, 'update'])->name('admin.inventory-items.update');
+        Route::delete('/inventory-items/{inventoryItem}', [\App\Http\Controllers\Admin\InventoryItemController::class, 'destroy'])->name('admin.inventory-items.destroy');
+    });
+
+    // Inventory categories (Phase 5) — shared order-guide grouping. Admin only:
+    // a rename changes every store's count sheet. "reorder" MUST precede
+    // {inventoryCategory} so the drag-save is not swallowed by the wildcard.
+    Route::middleware('role:admin')->group(function () {
+        Route::get('/inventory-categories', [\App\Http\Controllers\Admin\InventoryCategoryController::class, 'index'])->name('admin.inventory-categories.index');
+        Route::post('/inventory-categories/reorder', [\App\Http\Controllers\Admin\InventoryCategoryController::class, 'reorder'])->name('admin.inventory-categories.reorder');
+        Route::post('/inventory-categories', [\App\Http\Controllers\Admin\InventoryCategoryController::class, 'store'])->name('admin.inventory-categories.store');
+        Route::put('/inventory-categories/{inventoryCategory}', [\App\Http\Controllers\Admin\InventoryCategoryController::class, 'update'])->name('admin.inventory-categories.update');
+        Route::delete('/inventory-categories/{inventoryCategory}', [\App\Http\Controllers\Admin\InventoryCategoryController::class, 'destroy'])->name('admin.inventory-categories.destroy');
     });
 
     // Manager management - Admin and Owner access
@@ -419,12 +479,16 @@ Route::middleware(['auth', 'verified', 'trial'])->group(function () {
         // Vendors - Admin and Owner can manage
         Route::middleware('role:admin,owner')->group(function () {
             Route::get('vendors/match', [VendorController::class, 'match']);
+            // Active toggle must precede apiResource so "toggle-active" is not
+            // swallowed by the {vendor} wildcard.
+            Route::patch('vendors/{id}/toggle-active', [VendorController::class, 'toggleActive']);
             Route::apiResource('vendors', VendorController::class);
         });
         
-        // Vendor aliases - Admin only
+        // Vendor aliases + restore - Admin only
         Route::middleware('role:admin')->group(function () {
             Route::post('vendors/{id}/aliases', [VendorController::class, 'addAlias']);
+            Route::post('vendors/{id}/restore', [VendorController::class, 'restore']);
         });
         
         // Expense API

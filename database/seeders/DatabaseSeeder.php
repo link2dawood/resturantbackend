@@ -68,6 +68,13 @@ class DatabaseSeeder extends Seeder
             RevenueIncomeTypeSeeder::class,
             StoresSeeder::class,
             VendorsSeeder::class,
+            InventoryCategoriesSeeder::class,
+            // The client's real 30-Dec-2024 order guide. Runs before the
+            // small sample set so the sample can top up anything missing.
+            FannsPhillyOrderGuideSeeder::class,
+            InventoryItemsSeeder::class,
+            VendorPricesSeeder::class,
+            StoreInventoryTargetsSeeder::class,
         ]);
     }
 }
