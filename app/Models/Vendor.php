@@ -7,10 +7,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Vendor extends Model
 {
     use HasFactory;
+    use SoftDeletes;
 
     protected $fillable = [
         'vendor_name',
@@ -21,6 +23,7 @@ class Vendor extends Model
         'contact_name',
         'contact_email',
         'contact_phone',
+        'website',
         'address',
         'notes',
         'is_active',
@@ -59,6 +62,29 @@ class Vendor extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    /**
+     * Inventory items this vendor supplies (Phase 5). An item can be bought from
+     * several vendors, so the pivot carries the per-vendor SKU and price.
+     */
+    public function inventoryItems(): BelongsToMany
+    {
+        return $this->belongsToMany(InventoryItem::class, 'inventory_item_vendor')
+                    ->withPivot(['vendor_sku', 'current_price', 'price_updated_at', 'is_preferred_vendor', 'notes'])
+                    ->withTimestamps();
+    }
+
+    /** Items that name this vendor as their default ordering vendor. */
+    public function preferredForItems(): HasMany
+    {
+        return $this->hasMany(InventoryItem::class, 'preferred_vendor_id');
+    }
+
+    /** Dated price history for this vendor's items. */
+    public function vendorPrices(): HasMany
+    {
+        return $this->hasMany(VendorPrice::class, 'vendor_id');
+    }
+
     // Scopes
     public function scopeActive($query)
     {
@@ -79,7 +105,9 @@ class Vendor extends Model
     {
         return $query->where(function($q) use ($search) {
             $q->where('vendor_name', 'like', "%{$search}%")
-              ->orWhere('vendor_identifier', 'like', "%{$search}%");
+              ->orWhere('vendor_identifier', 'like', "%{$search}%")
+              ->orWhere('contact_name', 'like', "%{$search}%")
+              ->orWhere('contact_email', 'like', "%{$search}%");
         });
     }
 }

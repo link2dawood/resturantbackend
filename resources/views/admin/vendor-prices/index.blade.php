@@ -12,6 +12,8 @@
             <p class="text-muted mb-0">Enter per-vendor prices; the cheapest vendor per item is flagged (compared per base unit).</p>
         </div>
         <div class="d-flex gap-2 align-items-center">
+            <a href="{{ route('admin.vendor-prices.compare', ['store_id' => $store->id, 'inventory_category_id' => request('inventory_category_id')]) }}"
+               class="btn btn-outline-secondary">Compare prices</a>
             @if($stores->isNotEmpty())
                 <form method="GET"><select name="store_id" class="form-select" onchange="this.form.submit()">
                     @foreach($stores as $s)<option value="{{ $s->id }}" @selected($s->id === $store->id)>{{ $s->store_info ?? ('Store #'.$s->id) }}</option>@endforeach
@@ -26,8 +28,22 @@
 
     @if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
 
+    <form method="GET" class="row g-2 align-items-end mb-3">
+        <input type="hidden" name="store_id" value="{{ $store->id }}">
+        <div class="col-md-3">
+            <label class="form-label">Category</label>
+            <select name="inventory_category_id" class="form-select" onchange="this.form.submit()">
+                <option value="">All categories</option>
+                @foreach($categories as $category)
+                    <option value="{{ $category->id }}" @selected((string) request('inventory_category_id') === (string) $category->id)>{{ $category->name }}</option>
+                @endforeach
+            </select>
+        </div>
+    </form>
+
     <form method="POST" action="{{ route('admin.vendor-prices.bulk') }}">
         @csrf<input type="hidden" name="store_id" value="{{ $store->id }}">
+        <input type="hidden" name="inventory_category_id" value="{{ request('inventory_category_id') }}">
         <div class="card">
             <div class="card-body p-0">
                 <div class="table-responsive">
@@ -38,9 +54,11 @@
                         </tr></thead>
                         <tbody>
                             @forelse($items as $item)
-                                <tr>
+                                @php $unpriced = ($current->get($item->id)?->count() ?? 0) === 0; @endphp
+                                <tr class="{{ $unpriced ? 'table-warning' : '' }}">
                                     <td>
                                         {{ $item->name }}
+                                        @if($unpriced)<span class="badge bg-warning text-dark">no price</span>@endif
                                         <span class="text-muted small d-block">per {{ $item->purchase_unit }}
                                             · <a href="{{ route('admin.vendor-prices.history', $item) }}">history</a></span>
                                     </td>

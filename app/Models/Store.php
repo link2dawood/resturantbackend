@@ -36,6 +36,18 @@ class Store extends Model
      */
     protected $guarded = [];
 
+    /** Per-item stock targets for this store (Phase 5). */
+    public function inventoryTargets()
+    {
+        return $this->hasMany(StoreInventoryTarget::class, 'store_id');
+    }
+
+    /** The item master for this store. */
+    public function inventoryItems()
+    {
+        return $this->hasMany(InventoryItem::class, 'store_id');
+    }
+
     /**
      * The owner who created the store.
      */

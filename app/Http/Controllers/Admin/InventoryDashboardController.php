@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\InventoryStock;
 use App\Models\Order;
 use App\Models\Store;
+use App\Services\Inventory\ManagerDashboardService;
 use App\Services\Inventory\VarianceReportService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -16,8 +17,10 @@ use Illuminate\Support\Carbon;
  */
 class InventoryDashboardController extends Controller
 {
-    public function __construct(private VarianceReportService $variance)
-    {
+    public function __construct(
+        private VarianceReportService $variance,
+        private ManagerDashboardService $widgets,
+    ) {
     }
 
     public function index(Request $request)
@@ -30,11 +33,11 @@ class InventoryDashboardController extends Controller
         $totalItems = (clone $stock)->count();
         $submittedItems = (clone $stock)->where('status', 'submitted')->count();
 
-        $pendingOrders = Order::with('vendor')
-            ->where('store_id', $store->id)
-            ->whereDate('week_start_date', $week->toDateString())
-            ->whereIn('status', ['draft', 'placed'])
-            ->orderBy('order_sequence')->get();
+        // Task 13 widgets.
+        $countStatus = $this->widgets->countStatus($store, $week);
+        $pendingOrders = $this->widgets->pendingOrders($store, $week);
+        $lowStock = $this->widgets->lowStock($store, $week);
+        $recentActivity = $this->widgets->recentActivity($store);
 
         // Last completed week's variance — surface red/yellow lines as alerts.
         $alerts = collect($this->variance->compute($store->id, $priorWeek))
@@ -51,6 +54,9 @@ class InventoryDashboardController extends Controller
             'submittedItems' => $submittedItems,
             'pendingOrders' => $pendingOrders,
             'alerts' => $alerts,
+            'countStatus' => $countStatus,
+            'lowStock' => $lowStock,
+            'recentActivity' => $recentActivity,
         ]);
     }
 

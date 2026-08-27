@@ -733,7 +733,7 @@
 
                         <!-- Inventory (Phase 5) — grouped dropdown -->
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle d-flex align-items-center {{ request()->routeIs('inventory.*') || request()->routeIs('admin.inventory-dashboard.*') || request()->routeIs('admin.menu-items.*') || request()->routeIs('admin.square-import.*') || request()->routeIs('admin.stock-up.*') || request()->routeIs('admin.orders.*') || request()->routeIs('admin.vendor-prices.*') ? 'active' : '' }}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="padding: 8px 16px; border-radius: 20px; font-family: 'Google Sans', sans-serif; font-weight: 500; font-size: 14px; transition: all 0.2s ease; {{ request()->routeIs('inventory.*') || request()->routeIs('admin.inventory-dashboard.*') || request()->routeIs('admin.menu-items.*') || request()->routeIs('admin.square-import.*') || request()->routeIs('admin.stock-up.*') || request()->routeIs('admin.orders.*') || request()->routeIs('admin.vendor-prices.*') ? 'background: #4285f4; color: white;' : 'color: #5f6368;' }}" onmouseover="if(!this.classList.contains('active')) { this.style.background='#f1f3f4'; this.style.color='#1a73e8'; }" onmouseout="if(!this.classList.contains('active')) { this.style.background='transparent'; this.style.color='#5f6368'; }">
+                            <a class="nav-link dropdown-toggle d-flex align-items-center {{ request()->routeIs('inventory.*') || request()->routeIs('admin.inventory-dashboard.*') || request()->routeIs('admin.menu-items.*') || request()->routeIs('admin.square-import.*') || request()->routeIs('admin.stock-up.*') || request()->routeIs('admin.orders.*') || request()->routeIs('admin.vendor-prices.*') || request()->routeIs('admin.inventory-categories.*') || request()->routeIs('admin.inventory-items.*') || request()->routeIs('admin.inventory-targets.*') ? 'active' : '' }}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="padding: 8px 16px; border-radius: 20px; font-family: 'Google Sans', sans-serif; font-weight: 500; font-size: 14px; transition: all 0.2s ease; {{ request()->routeIs('inventory.*') || request()->routeIs('admin.inventory-dashboard.*') || request()->routeIs('admin.menu-items.*') || request()->routeIs('admin.square-import.*') || request()->routeIs('admin.stock-up.*') || request()->routeIs('admin.orders.*') || request()->routeIs('admin.vendor-prices.*') || request()->routeIs('admin.inventory-categories.*') || request()->routeIs('admin.inventory-items.*') || request()->routeIs('admin.inventory-targets.*') ? 'background: #4285f4; color: white;' : 'color: #5f6368;' }}" onmouseover="if(!this.classList.contains('active')) { this.style.background='#f1f3f4'; this.style.color='#1a73e8'; }" onmouseout="if(!this.classList.contains('active')) { this.style.background='transparent'; this.style.color='#5f6368'; }">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
                                     <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
                                 </svg>
@@ -744,7 +744,15 @@
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2"><path d="M9 11l3 3l8 -8"/><path d="M20 12v6a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h9"/></svg>
                                     Inventory Count
                                 </a></li>
+                                <li><a class="dropdown-item d-flex align-items-center" href="{{ route('inventory.weekly-count.index') }}" style="padding: 8px 16px; font-family: 'Google Sans', sans-serif; font-size: 14px; border-radius: 8px; margin: 0 8px;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                                    Weekly Count
+                                </a></li>
                                 @if(Auth::user()->isAdmin() || Auth::user()->isOwner() || Auth::user()->isManager())
+                                <li><a class="dropdown-item d-flex align-items-center" href="{{ route('admin.inventory-items.index') }}" style="padding: 8px 16px; font-family: 'Google Sans', sans-serif; font-size: 14px; border-radius: 8px; margin: 0 8px;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                                    Items
+                                </a></li>
                                 <li><a class="dropdown-item d-flex align-items-center" href="{{ route('admin.inventory-dashboard.index') }}" style="padding: 8px 16px; font-family: 'Google Sans', sans-serif; font-size: 14px; border-radius: 8px; margin: 0 8px;">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
                                     Dashboard
@@ -769,9 +777,77 @@
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
                                     Prices
                                 </a></li>
+                                <li><a class="dropdown-item d-flex align-items-center" href="{{ route('admin.vendor-prices.compare') }}" style="padding: 8px 16px; font-family: 'Google Sans', sans-serif; font-size: 14px; border-radius: 8px; margin: 0 8px;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>
+                                    Price Comparison
+                                </a></li>
+                                @endif
+                                @if(Auth::user()->isAdmin())
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item d-flex align-items-center" href="{{ route('admin.inventory-categories.index') }}" style="padding: 8px 16px; font-family: 'Google Sans', sans-serif; font-size: 14px; border-radius: 8px; margin: 0 8px;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                                    Categories
+                                </a></li>
+                                <li><a class="dropdown-item d-flex align-items-center" href="{{ route('admin.inventory-targets.index', Auth::user()->getAccessibleStoreIds()[0] ?? 0) }}" style="padding: 8px 16px; font-family: 'Google Sans', sans-serif; font-size: 14px; border-radius: 8px; margin: 0 8px;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+                                    Stock Targets
+                                </a></li>
                                 @endif
                             </ul>
                         </li>
+
+                        @if(Auth::user()->isAdmin() || Auth::user()->isOwner() || Auth::user()->isManager())
+                        <!-- Inventory Dashboard (Phase 5.9) -->
+                        <li class="nav-item">
+                            <a class="nav-link d-flex align-items-center {{ request()->routeIs('admin.inventory-dashboard.*') ? 'active' : '' }}" href="{{ route('admin.inventory-dashboard.index') }}" style="padding: 8px 16px; border-radius: 20px; font-family: 'Google Sans', sans-serif; font-weight: 500; font-size: 14px; transition: all 0.2s ease; {{ request()->routeIs('admin.inventory-dashboard.*') ? 'background: #4285f4; color: white;' : 'color: #5f6368;' }}" onmouseover="if(!this.classList.contains('active')) { this.style.background='#f1f3f4'; this.style.color='#1a73e8'; }" onmouseout="if(!this.classList.contains('active')) { this.style.background='transparent'; this.style.color='#5f6368'; }">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
+                                    <rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/>
+                                </svg>
+                                Inv Dashboard
+                            </a>
+                        </li>
+                        <!-- Square Import (Phase 5.4) -->
+                        <li class="nav-item">
+                            <a class="nav-link d-flex align-items-center {{ request()->routeIs('admin.square-import.*') ? 'active' : '' }}" href="{{ route('admin.square-import.form') }}" style="padding: 8px 16px; border-radius: 20px; font-family: 'Google Sans', sans-serif; font-weight: 500; font-size: 14px; transition: all 0.2s ease; {{ request()->routeIs('admin.square-import.*') ? 'background: #4285f4; color: white;' : 'color: #5f6368;' }}" onmouseover="if(!this.classList.contains('active')) { this.style.background='#f1f3f4'; this.style.color='#1a73e8'; }" onmouseout="if(!this.classList.contains('active')) { this.style.background='transparent'; this.style.color='#5f6368'; }">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
+                                    <rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h6v6H9z"/>
+                                </svg>
+                                Square Import
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link d-flex align-items-center {{ request()->routeIs('admin.stock-up.*') ? 'active' : '' }}" href="{{ route('admin.stock-up.index') }}" style="padding: 8px 16px; border-radius: 20px; font-family: 'Google Sans', sans-serif; font-weight: 500; font-size: 14px; transition: all 0.2s ease; {{ request()->routeIs('admin.stock-up.*') ? 'background: #4285f4; color: white;' : 'color: #5f6368;' }}" onmouseover="if(!this.classList.contains('active')) { this.style.background='#f1f3f4'; this.style.color='#1a73e8'; }" onmouseout="if(!this.classList.contains('active')) { this.style.background='transparent'; this.style.color='#5f6368'; }">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
+                                    <path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/>
+                                </svg>
+                                Stock-Up
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link d-flex align-items-center {{ request()->routeIs('admin.orders.*') ? 'active' : '' }}" href="{{ route('admin.orders.index') }}" style="padding: 8px 16px; border-radius: 20px; font-family: 'Google Sans', sans-serif; font-weight: 500; font-size: 14px; transition: all 0.2s ease; {{ request()->routeIs('admin.orders.*') ? 'background: #4285f4; color: white;' : 'color: #5f6368;' }}" onmouseover="if(!this.classList.contains('active')) { this.style.background='#f1f3f4'; this.style.color='#1a73e8'; }" onmouseout="if(!this.classList.contains('active')) { this.style.background='transparent'; this.style.color='#5f6368'; }">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
+                                    <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                                </svg>
+                                Orders
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link d-flex align-items-center {{ request()->routeIs('admin.vendor-prices.*') ? 'active' : '' }}" href="{{ route('admin.vendor-prices.index') }}" style="padding: 8px 16px; border-radius: 20px; font-family: 'Google Sans', sans-serif; font-weight: 500; font-size: 14px; transition: all 0.2s ease; {{ request()->routeIs('admin.vendor-prices.*') ? 'background: #4285f4; color: white;' : 'color: #5f6368;' }}" onmouseover="if(!this.classList.contains('active')) { this.style.background='#f1f3f4'; this.style.color='#1a73e8'; }" onmouseout="if(!this.classList.contains('active')) { this.style.background='transparent'; this.style.color='#5f6368'; }">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
+                                    <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                                </svg>
+                                Prices
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link d-flex align-items-center {{ request()->routeIs('admin.variance.*') ? 'active' : '' }}" href="{{ route('admin.variance.index') }}" style="padding: 8px 16px; border-radius: 20px; font-family: 'Google Sans', sans-serif; font-weight: 500; font-size: 14px; transition: all 0.2s ease; {{ request()->routeIs('admin.variance.*') ? 'background: #4285f4; color: white;' : 'color: #5f6368;' }}" onmouseover="if(!this.classList.contains('active')) { this.style.background='#f1f3f4'; this.style.color='#1a73e8'; }" onmouseout="if(!this.classList.contains('active')) { this.style.background='transparent'; this.style.color='#5f6368'; }">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
+                                    <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                                </svg>
+                                Variance
+                            </a>
+                        </li>
+                        @endif
 
                         {{-- Stores moved into the profile dropdown (see User Profile Menu below). --}}
 
@@ -855,6 +931,13 @@
                                         <path d="M20 12v6a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h9"/>
                                     </svg>
                                     Categorization Rules
+                                </a></li>
+                                <li><a class="dropdown-item d-flex align-items-center" href="{{ route('admin.menu-items.index') }}" style="padding: 8px 16px; font-family: 'Google Sans', sans-serif; font-size: 14px; border-radius: 8px; margin: 0 8px;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
+                                        <path d="M4 3h16a1 1 0 0 1 1 1v16a1 1 0 0 1 -1 1h-16a1 1 0 0 1 -1 -1v-16a1 1 0 0 1 1 -1"/>
+                                        <path d="M8 7h8M8 11h8M8 15h5"/>
+                                    </svg>
+                                    Menu &amp; Recipes
                                 </a></li>
                             </ul>
                         </li>
@@ -942,13 +1025,13 @@
                         <!-- P&L Reports (Admin, Owner, Manager) -->
                         @if(Auth::user()->isAdmin() || Auth::user()->isOwner() || Auth::user()->isManager())
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle d-flex align-items-center {{ request()->routeIs('admin.reports.profit-loss.*') || request()->routeIs('admin.variance.*') ? 'active' : '' }}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="padding: 8px 16px; border-radius: 20px; font-family: 'Google Sans', sans-serif; font-weight: 500; font-size: 14px; transition: all 0.2s ease; {{ request()->routeIs('admin.reports.profit-loss.*') || request()->routeIs('admin.variance.*') ? 'background: #4285f4; color: white;' : 'color: #5f6368;' }}" onmouseover="if(!this.classList.contains('active')) { this.style.background='#f1f3f4'; this.style.color='#1a73e8'; }" onmouseout="if(!this.classList.contains('active')) { this.style.background='transparent'; this.style.color='#5f6368'; }">
+                            <a class="nav-link dropdown-toggle d-flex align-items-center {{ request()->routeIs('admin.reports.profit-loss.*') ? 'active' : '' }}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="padding: 8px 16px; border-radius: 20px; font-family: 'Google Sans', sans-serif; font-weight: 500; font-size: 14px; transition: all 0.2s ease; {{ request()->routeIs('admin.reports.profit-loss.*') ? 'background: #4285f4; color: white;' : 'color: #5f6368;' }}" onmouseover="if(!this.classList.contains('active')) { this.style.background='#f1f3f4'; this.style.color='#1a73e8'; }" onmouseout="if(!this.classList.contains('active')) { this.style.background='transparent'; this.style.color='#5f6368'; }">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
                                     <line x1="18" y1="20" x2="18" y2="10"/>
                                     <line x1="12" y1="20" x2="12" y2="4"/>
                                     <line x1="6" y1="20" x2="6" y2="14"/>
                                 </svg>
-                                Reports
+                                P&amp;L Reports
                             </a>
                             <ul class="dropdown-menu" style="border-radius: 12px; border: 1px solid #e0e0e0; box-shadow: 0 4px 12px rgba(0,0,0,0.15); padding: 8px 0;">
                                 <li><a class="dropdown-item d-flex align-items-center {{ request()->routeIs('admin.reports.profit-loss.index') || (request()->routeIs('admin.reports.profit-loss.*') && !request()->routeIs('admin.reports.profit-loss.annual')) ? 'active' : '' }}" href="{{ route('admin.reports.profit-loss.index') }}" style="padding: 8px 16px; font-family: 'Google Sans', sans-serif; font-size: 14px; border-radius: 8px; margin: 0 8px;">
@@ -959,14 +1042,40 @@
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                                     Annual P&amp;L
                                 </a></li>
-                                <li><a class="dropdown-item d-flex align-items-center {{ request()->routeIs('admin.variance.*') ? 'active' : '' }}" href="{{ route('admin.variance.index') }}" style="padding: 8px 16px; font-family: 'Google Sans', sans-serif; font-size: 14px; border-radius: 8px; margin: 0 8px;">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-                                    Variance Report
-                                </a></li>
                             </ul>
                         </li>
                         @endif
                     </ul>
+
+                    {{-- Task 14 — notification bell. Count is rendered server-side so
+                         it is correct on first paint, then refreshed when opened. --}}
+                    <li class="nav-item dropdown me-2">
+                        <a class="nav-link position-relative d-flex align-items-center" href="#" role="button"
+                           id="notificationBell" data-bs-toggle="dropdown" aria-expanded="false"
+                           aria-label="Notifications" style="padding: 8px 10px; border-radius: 20px; color: #5f6368;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                            </svg>
+                            @php $unread = Auth::user()->unreadNotifications()->count(); @endphp
+                            <span id="notificationBadge"
+                                  class="badge bg-danger position-absolute {{ $unread > 0 ? '' : 'd-none' }}"
+                                  style="top: 2px; right: 2px; font-size: 0.625rem; padding: 2px 5px; border-radius: 10px;">{{ $unread > 99 ? '99+' : $unread }}</span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" style="width: 340px; max-height: 420px; overflow-y: auto; border-radius: 12px; border: 1px solid #e0e0e0; box-shadow: 0 4px 12px rgba(0,0,0,0.15); padding: 8px 0;">
+                            <li class="d-flex justify-content-between align-items-center px-3 pb-2">
+                                <strong style="font-size: 0.875rem;">Notifications</strong>
+                                <form method="POST" action="{{ route('notifications.read-all') }}" class="m-0">
+                                    @csrf
+                                    <button class="btn btn-link btn-sm p-0" style="font-size: 0.75rem;">Mark all read</button>
+                                </form>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><div id="notificationList" class="px-3 py-2 text-muted small">Loading...</div></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item text-center small" href="{{ route('notifications.index') }}">See all</a></li>
+                        </ul>
+                    </li>
 
                     <!-- User Profile Menu -->
                     <div class="d-flex align-items-center">
@@ -1320,6 +1429,59 @@
     </script>
 
     <!-- Additional scripts -->
+
+<script>
+// Task 14 — notification bell. Contents load when the dropdown opens, so the
+// list is never a stale server render from whenever the page was loaded.
+(function () {
+    const bell = document.getElementById('notificationBell');
+    if (!bell) return;
+
+    const list = document.getElementById('notificationList');
+    const badge = document.getElementById('notificationBadge');
+
+    bell.addEventListener('show.bs.dropdown', function () {
+        fetch(@json(route('notifications.recent')), {
+            headers: { 'Accept': 'application/json' },
+            credentials: 'same-origin'
+        })
+            .then(response => response.json())
+            .then(data => {
+                badge.textContent = data.unread_count > 99 ? '99+' : data.unread_count;
+                badge.classList.toggle('d-none', data.unread_count === 0);
+
+                if (!data.notifications.length) {
+                    list.textContent = 'Nothing yet.';
+                    return;
+                }
+
+                list.innerHTML = '';
+                data.notifications.forEach(item => {
+                    const row = document.createElement('a');
+                    row.href = item.url;
+                    row.className = 'd-block text-decoration-none py-2 px-1 border-bottom';
+                    row.style.background = item.read ? 'transparent' : '#f4f8ff';
+
+                    const title = document.createElement('div');
+                    title.style.fontSize = '0.813rem';
+                    title.style.fontWeight = item.read ? '400' : '500';
+                    title.style.color = '#202124';
+                    title.textContent = item.title;
+
+                    const body = document.createElement('div');
+                    body.className = 'text-muted';
+                    body.style.fontSize = '0.75rem';
+                    body.textContent = item.body + ' · ' + item.ago;
+
+                    row.appendChild(title);
+                    row.appendChild(body);
+                    list.appendChild(row);
+                });
+            })
+            .catch(() => { list.textContent = 'Could not load notifications.'; });
+    });
+})();
+</script>
     @stack('scripts')
 </body>
 </html>

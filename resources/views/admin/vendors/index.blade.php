@@ -41,6 +41,11 @@
                         <option value="1" {{ request('is_active', '1') == '1' ? 'selected' : '' }}>Active</option>
                         <option value="0" {{ request('is_active') == '0' ? 'selected' : '' }}>Inactive</option>
                     </select>
+                    <div class="form-check mt-2">
+                        <input class="form-check-input" type="checkbox" name="status" value="hidden" id="showHidden"
+                               {{ request('status') === 'hidden' ? 'checked' : '' }}>
+                        <label class="form-check-label small text-muted" for="showHidden">Show hidden vendors only</label>
+                    </div>
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">Search</label>
@@ -70,35 +75,48 @@
                     <thead style="background-color: var(--google-grey-50, #f8f9fa); border-bottom: 2px solid var(--google-grey-200, #e8eaed);">
                         <tr>
                             <th style="font-weight: 500; padding: 1rem; border: none; font-size: 0.813rem;">Name</th>
-                            <th style="font-weight: 500; padding: 1rem; border: none; font-size: 0.813rem;">Type</th>
-                            <th style="font-weight: 500; padding: 1rem; border: none; font-size: 0.813rem;">Default COA</th>
-                            <th style="font-weight: 500; padding: 1rem; border: none; font-size: 0.813rem;">Stores</th>
-                            <th style="font-weight: 500; padding: 1rem; border: none; font-size: 0.813rem;">Status</th>
+                            <th style="font-weight: 500; padding: 1rem; border: none; font-size: 0.813rem;">Contact</th>
+                            <th style="font-weight: 500; padding: 1rem; border: none; font-size: 0.813rem;">Phone</th>
+                            <th style="font-weight: 500; padding: 1rem; border: none; font-size: 0.813rem;">Active</th>
+                            <th style="font-weight: 500; padding: 1rem; border: none; font-size: 0.813rem;" class="text-center"># Items</th>
                             <th style="font-weight: 500; padding: 1rem; border: none; font-size: 0.813rem; text-align: center;">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($vendors as $vendor)
-                        <tr>
+                        <tr @if($vendor->trashed()) class="table-warning" @endif>
                             <td style="padding: 1rem; vertical-align: middle;">
-                                <div><strong>{{ $vendor->vendor_name }}</strong></div>
-                                @if($vendor->vendor_identifier)
-                                    <small class="text-muted">{{ $vendor->vendor_identifier }}</small>
+                                <div><strong>{{ $vendor->vendor_name }}</strong>
+                                    @if($vendor->trashed())
+                                        <span class="badge bg-warning text-dark ms-1">Hidden</span>
+                                    @endif
+                                </div>
+                                <small class="text-muted">
+                                    {{ $vendor->vendor_type }}@if($vendor->vendor_identifier) &middot; {{ $vendor->vendor_identifier }}@endif
+                                    @if($vendor->defaultCoa)
+                                        &middot; COA {{ $vendor->defaultCoa->account_code }}
+                                    @endif
+                                    @if($vendor->stores->count() > 0)
+                                        &middot; {{ $vendor->stores->count() }} store(s)
+                                    @endif
+                                </small>
+                            </td>
+                            <td style="padding: 1rem; vertical-align: middle;">
+                                @if($vendor->contact_name)
+                                    <div>{{ $vendor->contact_name }}</div>
+                                @endif
+                                @if($vendor->contact_email)
+                                    <small class="text-muted">{{ $vendor->contact_email }}</small>
+                                @endif
+                                @if(! $vendor->contact_name && ! $vendor->contact_email)
+                                    <span class="text-muted">Not set</span>
                                 @endif
                             </td>
-                            <td style="padding: 1rem; vertical-align: middle;"><span class="badge bg-secondary">{{ $vendor->vendor_type }}</span></td>
                             <td style="padding: 1rem; vertical-align: middle;">
-                                @if($vendor->defaultCoa)
-                                    {{ $vendor->defaultCoa->account_code }} - {{ $vendor->defaultCoa->account_name }}
+                                @if($vendor->contact_phone)
+                                    {{ $vendor->contact_phone }}
                                 @else
-                                    <span class="text-muted">Not assigned</span>
-                                @endif
-                            </td>
-                            <td style="padding: 1rem; vertical-align: middle;">
-                                @if($vendor->stores->count() === 0)
-                                    <span class="text-muted">All Stores</span>
-                                @else
-                                    <span class="badge bg-light text-dark">{{ $vendor->stores->count() }} store(s)</span>
+                                    <span class="text-muted">Not set</span>
                                 @endif
                             </td>
                             <td style="padding: 1rem; vertical-align: middle;">
@@ -109,21 +127,37 @@
                                 @endif
                             </td>
                             <td style="padding: 1rem; vertical-align: middle; text-align: center;">
+                                @if($vendor->inventory_items_count > 0)
+                                    <span class="badge bg-light text-dark">{{ $vendor->inventory_items_count }}</span>
+                                @else
+                                    <span class="text-muted">0</span>
+                                @endif
+                            </td>
+                            <td style="padding: 1rem; vertical-align: middle; text-align: center;">
                                 <div class="btn-group btn-group-sm" role="group">
-                                    <button class="btn btn-outline-primary" onclick="editVendor({{ $vendor->id }})" title="Edit">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                                        </svg>
-                                    </button>
-                                    <button class="btn btn-outline-danger" onclick="deleteVendor({{ $vendor->id }})" title="Delete">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                            <polyline points="3 6 5 6 21 6"/>
-                                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                                            <line x1="10" y1="11" x2="10" y2="17"/>
-                                            <line x1="14" y1="11" x2="14" y2="17"/>
-                                        </svg>
-                                    </button>
+                                    @if($vendor->trashed())
+                                        <button class="btn btn-outline-success" onclick="restoreVendor({{ $vendor->id }})" title="Restore">
+                                            Restore
+                                        </button>
+                                    @else
+                                        <button class="btn btn-outline-primary" onclick="editVendor({{ $vendor->id }})" title="Edit">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                            </svg>
+                                        </button>
+                                        <button class="btn btn-outline-secondary" onclick="toggleActive({{ $vendor->id }})" title="{{ $vendor->is_active ? 'Set inactive' : 'Set active' }}">
+                                            {{ $vendor->is_active ? 'Deactivate' : 'Activate' }}
+                                        </button>
+                                        <button class="btn btn-outline-danger" onclick="openDeleteModal({{ $vendor->id }}, @js($vendor->vendor_name))" title="Hide vendor">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <polyline points="3 6 5 6 21 6"/>
+                                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                                <line x1="10" y1="11" x2="10" y2="17"/>
+                                                <line x1="14" y1="11" x2="14" y2="17"/>
+                                            </svg>
+                                        </button>
+                                    @endif
                                 </div>
                             </td>
                         </tr>
@@ -230,6 +264,12 @@
                                     <input type="text" class="form-control" id="contactPhone" name="contact_phone" maxlength="50">
                                 </div>
                                 <div class="mb-3">
+                                    <label for="website" class="form-label">Website</label>
+                                    <input type="url" class="form-control" id="website" name="website" maxlength="255" placeholder="https://www.example.com">
+                                    <small class="text-muted">Where orders are placed for this vendor.</small>
+                                    <div class="invalid-feedback"></div>
+                                </div>
+                                <div class="mb-3">
                                     <label for="address" class="form-label">Address</label>
                                     <textarea class="form-control" id="address" name="address" rows="2"></textarea>
                                 </div>
@@ -240,6 +280,25 @@
                     <div class="mb-3">
                         <label for="notes" class="form-label">Notes</label>
                         <textarea class="form-control" id="notes" name="notes" rows="3"></textarea>
+                    </div>
+
+                    <div class="mb-3 d-none" id="suppliedItemsSection">
+                        <label class="form-label">Items supplied <span class="text-muted" id="suppliedItemsCount"></span></label>
+                        <div class="border rounded" style="max-height: 200px; overflow-y: auto;">
+                            <table class="table table-sm mb-0">
+                                <thead style="background-color: var(--google-grey-50, #f8f9fa); position: sticky; top: 0;">
+                                    <tr>
+                                        <th>Item</th>
+                                        <th>Store</th>
+                                        <th>SKU</th>
+                                        <th class="text-end">Price</th>
+                                        <th class="text-center">Preferred</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="suppliedItemsBody"></tbody>
+                            </table>
+                        </div>
+                        <small class="text-muted">Mapped from the inventory item screen. Edit them there.</small>
                     </div>
 
                     <div class="mb-3">
@@ -266,16 +325,21 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title" id="deleteModalLabel">Confirm Deactivation</h5>
+                <h5 class="modal-title" id="deleteModalLabel">Confirm Hide Vendor</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <p>Are you sure you want to deactivate this vendor?</p>
-                <p class="text-muted mb-0">This action can be reversed by editing the vendor later.</p>
+                <p>Hide <strong id="deleteVendorName">this vendor</strong>?</p>
+                <p class="text-muted">It disappears from vendor pickers and order screens. Expense history,
+                   aliases and store assignments are kept, and an admin can restore it later.</p>
+                <div id="deleteBlockedBox" class="alert alert-danger d-none">
+                    <div id="deleteBlockedMessage" class="mb-2"></div>
+                    <ul id="deleteBlockedItems" class="mb-0 ps-3"></ul>
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Deactivate</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Hide vendor</button>
             </div>
         </div>
     </div>
@@ -337,9 +401,57 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
 // Open create modal
+function renderSuppliedItems(items) {
+    const section = document.getElementById('suppliedItemsSection');
+    const body = document.getElementById('suppliedItemsBody');
+    body.innerHTML = '';
+
+    if (!items.length) {
+        section.classList.add('d-none');
+        return;
+    }
+
+    document.getElementById('suppliedItemsCount').textContent = `(${items.length})`;
+
+    items.forEach(item => {
+        const pivot = item.pivot || {};
+        const row = document.createElement('tr');
+
+        const cell = (text, className) => {
+            const td = document.createElement('td');
+            td.textContent = text;
+            if (className) td.className = className;
+            return td;
+        };
+
+        row.appendChild(cell(item.name));
+        row.appendChild(cell(item.store ? item.store.store_info : '—'));
+        row.appendChild(cell(pivot.vendor_sku || '—'));
+        row.appendChild(cell(pivot.current_price !== null && pivot.current_price !== undefined
+            ? `$${parseFloat(pivot.current_price).toFixed(2)}` : '—', 'text-end'));
+
+        const preferred = document.createElement('td');
+        preferred.className = 'text-center';
+        if (pivot.is_preferred_vendor) {
+            const badge = document.createElement('span');
+            badge.className = 'badge bg-primary';
+            badge.textContent = 'Preferred';
+            preferred.appendChild(badge);
+        } else {
+            preferred.textContent = '—';
+        }
+        row.appendChild(preferred);
+
+        body.appendChild(row);
+    });
+
+    section.classList.remove('d-none');
+}
+
 function openCreateModal() {
     document.getElementById('vendorModalLabel').textContent = 'Add Vendor';
     document.getElementById('vendorForm').reset();
+    renderSuppliedItems([]);
     document.getElementById('vendorId').value = '';
     document.getElementById('defaultCoaSearch').value = '';
     clearValidationErrors();
@@ -411,7 +523,9 @@ async function editVendor(id) {
         document.getElementById('contactName').value = vendor.contact_name || '';
         document.getElementById('contactEmail').value = vendor.contact_email || '';
         document.getElementById('contactPhone').value = vendor.contact_phone || '';
+        document.getElementById('website').value = vendor.website || '';
         document.getElementById('address').value = vendor.address || '';
+        renderSuppliedItems(vendor.inventory_items || []);
         document.getElementById('notes').value = vendor.notes || '';
         
         const isGlobal = vendor.stores.length === 0;
@@ -452,6 +566,7 @@ function saveVendor() {
         contact_name: formData.get('contact_name'),
         contact_email: formData.get('contact_email'),
         contact_phone: formData.get('contact_phone'),
+        website: formData.get('website') || null,
         address: formData.get('address'),
         notes: formData.get('notes'),
         store_ids: formData.getAll('store_ids[]').map(id => parseInt(id))
@@ -490,12 +605,36 @@ function saveVendor() {
 }
 
 // Delete modal
-function openDeleteModal(id) {
+function openDeleteModal(id, name) {
     deleteVendorId = id;
+    document.getElementById('deleteVendorName').textContent = name || 'this vendor';
+    resetDeleteBlockedBox();
     new bootstrap.Modal(document.getElementById('deleteModal')).show();
 }
 
-// Delete vendor
+function resetDeleteBlockedBox() {
+    document.getElementById('deleteBlockedBox').classList.add('d-none');
+    document.getElementById('deleteBlockedItems').innerHTML = '';
+    document.getElementById('deleteBlockedMessage').textContent = '';
+    document.getElementById('confirmDeleteBtn').disabled = false;
+}
+
+// Show the items that block the delete, inside the modal, instead of a toast
+// that disappears before the admin can read which items to reassign.
+function showDeleteBlocked(message, items) {
+    document.getElementById('deleteBlockedMessage').textContent = message;
+    const list = document.getElementById('deleteBlockedItems');
+    list.innerHTML = '';
+    (items || []).forEach(item => {
+        const li = document.createElement('li');
+        li.textContent = item.name;
+        list.appendChild(li);
+    });
+    document.getElementById('deleteBlockedBox').classList.remove('d-none');
+    document.getElementById('confirmDeleteBtn').disabled = true;
+}
+
+// Hide (soft-delete) vendor
 function deleteVendor(id) {
     fetch(`/api/vendors/${id}`, {
         method: 'DELETE',
@@ -505,16 +644,68 @@ function deleteVendor(id) {
         },
         credentials: 'same-origin'
     })
+    .then(response => response.json().then(body => ({ status: response.status, body })))
+    .then(({ status, body }) => {
+        if (status === 422 && body.items) {
+            showDeleteBlocked(body.error, body.items);
+            return;
+        }
+        if (body.error) {
+            showToast(body.error, 'error');
+            return;
+        }
+        showToast(body.message, 'success');
+        setTimeout(() => window.location.reload(), 500);
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('Error hiding vendor', 'error');
+    });
+}
+
+// Flip active/inactive without deleting.
+function toggleActive(id) {
+    fetch(`/api/vendors/${id}/toggle-active`, {
+        method: 'PATCH',
+        headers: {
+            'Accept': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+        },
+        credentials: 'same-origin'
+    })
     .then(response => response.json())
     .then(result => {
-        showToast(result.message, result.error ? 'error' : 'success');
+        showToast(result.message || result.error, result.error ? 'error' : 'success');
         if (!result.error) {
             setTimeout(() => window.location.reload(), 500);
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        showToast('Error deleting vendor', 'error');
+        showToast('Error updating vendor status', 'error');
+    });
+}
+
+// Restore a hidden vendor (admin only).
+function restoreVendor(id) {
+    fetch(`/api/vendors/${id}/restore`, {
+        method: 'POST',
+        headers: {
+            'Accept': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+        },
+        credentials: 'same-origin'
+    })
+    .then(response => response.json())
+    .then(result => {
+        showToast(result.message || result.error, result.error ? 'error' : 'success');
+        if (!result.error) {
+            setTimeout(() => window.location.reload(), 500);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('Error restoring vendor', 'error');
     });
 }
 

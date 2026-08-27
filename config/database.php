@@ -57,8 +57,15 @@ return [
             'prefix_indexes' => true,
             'strict' => true,
             'engine' => null,
+            // PHP 8.5 deprecated PDO::MYSQL_ATTR_SSL_CA in favour of
+            // Pdo\Mysql::ATTR_SSL_CA. The notice was being prepended to every
+            // response body by `artisan serve`, which broke JSON parsing on
+            // every AJAX call in local dev. Resolve the constant by name so the
+            // config works on both PHP 8.4 and 8.5+.
             'options' => extension_loaded('pdo_mysql') ? array_filter([
-                PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
+                (defined('Pdo\\Mysql::ATTR_SSL_CA')
+                    ? constant('Pdo\\Mysql::ATTR_SSL_CA')
+                    : constant('PDO::MYSQL_ATTR_SSL_CA')) => env('MYSQL_ATTR_SSL_CA'),
             ]) : [],
         ],
 
@@ -77,8 +84,15 @@ return [
             'prefix_indexes' => true,
             'strict' => true,
             'engine' => null,
+            // PHP 8.5 deprecated PDO::MYSQL_ATTR_SSL_CA in favour of
+            // Pdo\Mysql::ATTR_SSL_CA. The notice was being prepended to every
+            // response body by `artisan serve`, which broke JSON parsing on
+            // every AJAX call in local dev. Resolve the constant by name so the
+            // config works on both PHP 8.4 and 8.5+.
             'options' => extension_loaded('pdo_mysql') ? array_filter([
-                PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
+                (defined('Pdo\\Mysql::ATTR_SSL_CA')
+                    ? constant('Pdo\\Mysql::ATTR_SSL_CA')
+                    : constant('PDO::MYSQL_ATTR_SSL_CA')) => env('MYSQL_ATTR_SSL_CA'),
             ]) : [],
         ],
 

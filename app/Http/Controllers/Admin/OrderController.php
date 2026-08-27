@@ -8,6 +8,10 @@ use App\Models\Order;
 use App\Models\Store;
 use App\Models\Vendor;
 use App\Services\Inventory\StockUpService;
+use App\Notifications\OrderStatusChangedNotification;
+use App\Support\VendorOrderText;
+use App\Models\User;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -127,10 +131,18 @@ class OrderController extends Controller
         $store = $this->resolveStore($request);
         $week = $this->week($request);
 
+        // A separate flag, not a magic value in week_start_date, so the date
+        // input and the toggle cannot collide on the same query parameter.
+        $allWeeks = $request->boolean('all_weeks');
+
         $query = Order::with(['vendor', 'items'])
             ->where('store_id', $store->id)
-            ->whereDate('week_start_date', $week->toDateString())
+            ->orderByDesc('week_start_date')
             ->orderBy('order_sequence')->orderBy('vendor_id');
+
+        if (! $allWeeks) {
+            $query->forWeek($week->toDateString());
+        }
 
         if ($request->filled('vendor_id')) {
             $query->where('vendor_id', (int) $request->input('vendor_id'));
@@ -151,8 +163,10 @@ class OrderController extends Controller
             'store' => $store,
             'stores' => $this->storeOptions(),
             'week' => $week,
+            'allWeeks' => $allWeeks,
             'orders' => $query->get(),
             'vendors' => Vendor::where('is_active', true)->orderBy('vendor_name')->get(),
+            'statuses' => Order::STATUSES,
             'history' => $history,
             'selectedVendorId' => (int) $request->input('vendor_id'),
         ]);
@@ -162,28 +176,304 @@ class OrderController extends Controller
     {
         $this->authorizeStore($order);
 
-        return view('admin.orders.show', ['order' => $order->load(['vendor', 'store', 'items.inventoryItem'])]);
+        return view('admin.orders.show', [
+            'order' => $order->load(['vendor', 'store', 'items.inventoryItem']),
+            'vendors' => Vendor::where('is_active', true)->orderBy('vendor_name')->get(),
+        ]);
+    }
+
+    /**
+     * The vendor-facing report: what actually gets printed, pasted into
+     * WhatsApp, or emailed. Readable at any status, because a placed order is
+     * exactly the thing you most want to re-send.
+     */
+    public function report(Order $order)
+    {
+        $this->authorizeStore($order);
+
+        $order->load(['vendor', 'store', 'items.inventoryItem']);
+
+        return view('admin.orders.report', [
+            'order' => $order,
+            'plainText' => VendorOrderText::build($order),
+            'subject' => VendorOrderText::subject($order),
+        ]);
+    }
+
+    /** The same report as a PDF, using the DomPDF setup the other exports use. */
+    public function reportPdf(Order $order)
+    {
+        $this->authorizeStore($order);
+
+        $order->load(['vendor', 'store', 'items.inventoryItem']);
+
+        $html = view('admin.orders.report-pdf', ['order' => $order])->render();
+
+        $dompdf = new \Dompdf\Dompdf;
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('letter', 'portrait');
+        $dompdf->render();
+
+        $filename = sprintf(
+            'order-%s-%s-%d.pdf',
+            str($order->vendor->vendor_name ?? 'vendor')->slug(),
+            $order->week_start_date->toDateString(),
+            $order->order_sequence
+        );
+
+        return response($dompdf->output(), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => "inline; filename=\"{$filename}\"",
+        ]);
     }
 
     public function markPlaced(Order $order)
     {
-        $this->authorizeStore($order);
-        $order->update(['status' => 'placed', 'placed_at' => now()]);
-
-        return back()->with('success', 'Order marked as placed.');
+        return $this->transition($order, Order::STATUS_PLACED, [
+            'placed_at' => now(),
+        ], 'Order marked as placed. The lines are now locked.', OrderStatusChangedNotification::EVENT_PLACED);
     }
 
     public function markReceived(Order $order)
     {
-        $this->authorizeStore($order);
-        $order->update(['status' => 'received', 'received_at' => now()]);
+        return $this->transition($order, Order::STATUS_RECEIVED, [
+            'received_at' => now(),
+        ], 'Order marked as received.', OrderStatusChangedNotification::EVENT_RECEIVED);
+    }
 
-        return back()->with('success', 'Order marked as received.');
+    public function cancel(Order $order)
+    {
+        return $this->transition($order, Order::STATUS_CANCELLED, [], 'Order cancelled.');
+    }
+
+    /**
+     * Move an order along its lifecycle, refusing any jump the state machine
+     * does not allow (a received order going back to draft, for instance).
+     */
+    private function transition(Order $order, string $status, array $extra, string $message, ?string $notifyEvent = null)
+    {
+        $this->authorizeStore($order);
+
+        if (! $order->canTransitionTo($status)) {
+            return back()->with(
+                'error',
+                "An order that is {$order->status} cannot be marked {$status}."
+            );
+        }
+
+        $order->update(['status' => $status] + $extra);
+
+        if ($notifyEvent !== null) {
+            $this->notifyManagement($order, $notifyEvent);
+        }
+
+        return back()->with('success', $message);
+    }
+
+    /**
+     * Tell admins (and the franchisor) that an order moved. Notifying fails
+     * soft: a mail outage must not roll back a status the manager already
+     * committed to with the vendor.
+     */
+    private function notifyManagement(Order $order, string $event): void
+    {
+        $recipients = User::where('role', 'admin')
+            ->orWhere(fn ($q) => $q->where('role', 'owner')->whereRaw('LOWER(name) = ?', ['franchisor']))
+            ->get();
+
+        if ($recipients->isEmpty()) {
+            return;
+        }
+
+        try {
+            Notification::send($recipients, new OrderStatusChangedNotification(
+                $order->load(['vendor', 'store', 'items']),
+                $event,
+                auth()->user()?->name
+            ));
+        } catch (\Throwable $e) {
+            report($e);
+        }
+    }
+
+    /**
+     * Edit a draft order's lines: quantity, price, note, or move a line to a
+     * different vendor. Moving a line means moving it to that vendor's order for
+     * the same week and sequence, creating it if there is not one yet, because an
+     * order belongs to exactly one vendor.
+     */
+    public function updateItems(Request $request, Order $order)
+    {
+        $this->authorizeStore($order);
+
+        if ($order->isLocked()) {
+            return back()->with('error', 'This order is '.$order->status.' and can no longer be edited.');
+        }
+
+        $data = $request->validate([
+            'quantity' => ['required', 'array'],
+            'quantity.*' => ['nullable', 'numeric', 'min:0', 'max:99999999'],
+            'unit_price' => ['nullable', 'array'],
+            'unit_price.*' => ['nullable', 'numeric', 'min:0', 'max:9999999999'],
+            'line_notes' => ['nullable', 'array'],
+            'line_notes.*' => ['nullable', 'string', 'max:255'],
+            'move_to_vendor' => ['nullable', 'array'],
+            'move_to_vendor.*' => ['nullable', 'integer', 'exists:vendors,id'],
+            'notes' => ['nullable', 'string'],
+        ]);
+
+        $moved = 0;
+        $removed = 0;
+
+        DB::transaction(function () use ($order, $data, &$moved, &$removed) {
+            $order->update(['notes' => $data['notes'] ?? null]);
+
+            foreach ($order->items()->get() as $line) {
+                $quantity = $data['quantity'][$line->id] ?? null;
+
+                // A quantity cleared to zero means the line is off the order.
+                if (! filled($quantity) || (float) $quantity <= 0) {
+                    $line->delete();
+                    $removed++;
+
+                    continue;
+                }
+
+                $line->fill([
+                    'quantity' => (float) $quantity,
+                    'unit_price' => filled($data['unit_price'][$line->id] ?? null)
+                        ? (float) $data['unit_price'][$line->id]
+                        : null,
+                    'notes' => $data['line_notes'][$line->id] ?? null,
+                ]);
+
+                if ($line->suggested_quantity !== null) {
+                    $line->is_manual_override =
+                        abs((float) $line->quantity - (float) $line->suggested_quantity) >= 0.0001;
+                }
+
+                $targetVendorId = (int) ($data['move_to_vendor'][$line->id] ?? 0);
+
+                if ($targetVendorId && $targetVendorId !== (int) $order->vendor_id) {
+                    $line->order_id = $this->draftOrderFor($order, $targetVendorId)->id;
+                    $moved++;
+                }
+
+                $line->save();
+            }
+
+            // An order with nothing left on it is not an order.
+            if ($order->items()->count() === 0) {
+                $order->delete();
+            }
+        });
+
+        $message = 'Order updated.';
+        if ($moved > 0) {
+            $message .= " {$moved} line(s) moved to another vendor.";
+        }
+        if ($removed > 0) {
+            $message .= " {$removed} line(s) removed.";
+        }
+
+        return $order->exists && Order::find($order->id)
+            ? back()->with('success', $message)
+            : redirect()->route('admin.orders.index', ['store_id' => $order->store_id])
+                ->with('success', $message.' The order is now empty and was removed.');
+    }
+
+    /**
+     * "Duplicate for Order 2" — a second delivery in the same week. Copies the
+     * lines across at the same quantities so the manager edits down rather than
+     * rebuilding from scratch.
+     */
+    public function duplicateForSecondOrder(Order $order)
+    {
+        $this->authorizeStore($order);
+
+        if ((int) $order->order_sequence !== 1) {
+            return back()->with('error', 'Only the first order of a week can be duplicated into Order 2.');
+        }
+
+        $existing = Order::where('store_id', $order->store_id)
+            ->forWeek($order->week_start_date->toDateString())
+            ->where('vendor_id', $order->vendor_id)
+            ->where('order_sequence', 2)
+            ->first();
+
+        if ($existing) {
+            return redirect()->route('admin.orders.show', $existing)
+                ->with('error', 'An Order 2 already exists for this vendor and week.');
+        }
+
+        $copy = DB::transaction(function () use ($order) {
+            $copy = Order::create([
+                'store_id' => $order->store_id,
+                'vendor_id' => $order->vendor_id,
+                'week_start_date' => $order->week_start_date->toDateString(),
+                'order_sequence' => 2,
+                'status' => Order::STATUS_DRAFT,
+                'notes' => $order->notes,
+                'created_by' => auth()->id(),
+            ]);
+
+            foreach ($order->items()->get() as $line) {
+                $copy->items()->create([
+                    'inventory_item_id' => $line->inventory_item_id,
+                    'quantity' => $line->quantity,
+                    // The suggestion belonged to Order 1's count, so it does not
+                    // carry over; this copy is a manual decision from the start.
+                    'suggested_quantity' => null,
+                    'is_manual_override' => false,
+                    'unit' => $line->unit,
+                    'unit_price' => $line->unit_price,
+                    'notes' => $line->notes,
+                ]);
+            }
+
+            return $copy;
+        });
+
+        return redirect()->route('admin.orders.show', $copy)
+            ->with('success', 'Order 2 created as a draft. Adjust the quantities before placing it.');
+    }
+
+    /**
+     * The draft order for a vendor in this order's week and sequence, created if
+     * needed.
+     *
+     * The week lookup uses whereDate, not an exact match: week_start_date is a
+     * date-cast column, so it is stored with a time component and an exact
+     * string comparison silently misses, which would open a duplicate order for
+     * a vendor that already has one.
+     */
+    private function draftOrderFor(Order $order, int $vendorId): Order
+    {
+        $existing = Order::where('store_id', $order->store_id)
+            ->where('vendor_id', $vendorId)
+            ->forWeek($order->week_start_date->toDateString())
+            ->where('order_sequence', $order->order_sequence)
+            ->where('status', Order::STATUS_DRAFT)
+            ->first();
+
+        return $existing ?? Order::create([
+            'store_id' => $order->store_id,
+            'vendor_id' => $vendorId,
+            'week_start_date' => $order->week_start_date->toDateString(),
+            'order_sequence' => $order->order_sequence,
+            'status' => Order::STATUS_DRAFT,
+            'created_by' => auth()->id(),
+        ]);
     }
 
     public function destroy(Order $order)
     {
         $this->authorizeStore($order);
+
+        if ($order->status === Order::STATUS_PLACED || $order->status === Order::STATUS_RECEIVED) {
+            return back()->with('error', 'A '.$order->status.' order is history. Cancel it instead of deleting it.');
+        }
+
         $order->delete();
 
         return back()->with('success', 'Order deleted.');
