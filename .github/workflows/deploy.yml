@@ -1,0 +1,183 @@
+name: Deploy
+
+# Manual on purpose. This deploys to the live restaurant system, so it should be
+# a decision someone makes, not something a merge does by surprise. Flip on the
+# push trigger below once you trust it.
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to deploy'
+        required: true
+        default: 'coa'
+        type: choice
+        options: [coa, main]
+      run_migrations:
+        description: 'Run database migrations'
+        required: true
+        default: true
+        type: boolean
+      dry_run:
+        description: 'Preview only: pull nothing, show what would change'
+        required: true
+        default: false
+        type: boolean
+      seed_reference_data:
+        description: 'Run the idempotent reference seeders (vendors, categories, order guide)'
+        required: true
+        default: false
+        type: boolean
+
+# One deploy at a time, and never cancel one midway.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to production
+    runs-on: ubuntu-latest
+    # Add a required reviewer to this environment in repo Settings to gate it.
+    environment: production
+
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch }}
+
+      - name: Open an SSH connection
+        env:
+          SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -p "${SSH_PORT:-22}" -H "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+          cat >> ~/.ssh/config <<EOF
+          Host production
+            HostName $SSH_HOST
+            User ${{ secrets.SSH_USER }}
+            Port ${SSH_PORT:-22}
+            IdentityFile ~/.ssh/deploy_key
+            StrictHostKeyChecking yes
+          EOF
+
+      - name: Show what is currently deployed
+        run: |
+          ssh production "cd ${{ secrets.DEPLOY_PATH }} && \
+            echo 'branch: '\$(git branch --show-current) && \
+            echo 'commit: '\$(git rev-parse --short HEAD) && \
+            git log --oneline -1"
+
+      - name: Back up the database
+        if: ${{ !inputs.dry_run }}
+        run: |
+          ssh production "cd ${{ secrets.DEPLOY_PATH }} && \
+            mysqldump --no-tablespaces -u '${{ secrets.DB_USERNAME }}' -p'${{ secrets.DB_PASSWORD }}' \
+              '${{ secrets.DB_DATABASE }}' > ~/deploy-backup-\$(date +%Y%m%d-%H%M%S).sql && \
+            LATEST=\$(ls -t ~/deploy-backup-*.sql | head -1) && \
+            echo \"backup: \$LATEST (\$(du -h \$LATEST | cut -f1))\" && \
+            tail -1 \$LATEST | grep -q 'Dump completed' && echo 'backup verified' || (echo 'BACKUP INCOMPLETE' && exit 1)"
+
+      - name: Prune backups older than 30 days
+        if: ${{ !inputs.dry_run }}
+        run: |
+          ssh production "find ~ -maxdepth 1 -name 'deploy-backup-*.sql' -mtime +30 -delete 2>/dev/null; true"
+
+      - name: Preview the incoming changes
+        run: |
+          ssh production "cd ${{ secrets.DEPLOY_PATH }} && \
+            git fetch origin ${{ inputs.branch }} && \
+            echo '--- commits to be applied ---' && \
+            git log --oneline HEAD..origin/${{ inputs.branch }} && \
+            echo '--- files that will change ---' && \
+            git diff --stat HEAD origin/${{ inputs.branch }} | tail -20"
+
+      - name: Stop here if this is a dry run
+        if: ${{ inputs.dry_run }}
+        run: echo "Dry run. Nothing was pulled, migrated or cached."
+
+      - name: Pull the code
+        if: ${{ !inputs.dry_run }}
+        run: |
+          ssh production "cd ${{ secrets.DEPLOY_PATH }} && \
+            git pull origin ${{ inputs.branch }} && \
+            git log --oneline -1"
+
+      - name: Install dependencies only if they changed
+        if: ${{ !inputs.dry_run }}
+        run: |
+          ssh production "cd ${{ secrets.DEPLOY_PATH }} && \
+            if git diff --name-only HEAD@{1} HEAD 2>/dev/null | grep -q '^composer.lock$'; then \
+              echo 'composer.lock changed, installing'; \
+              if ! command -v composer >/dev/null 2>&1; then \
+                echo 'no composer on PATH, fetching composer.phar'; \
+                php -r \"copy('https://getcomposer.org/installer','/tmp/ci.php');\" && \
+                php /tmp/ci.php --install-dir=\$HOME --filename=composer.phar && \
+                php \$HOME/composer.phar install --no-dev --optimize-autoloader --no-interaction; \
+              else \
+                composer install --no-dev --optimize-autoloader --no-interaction; \
+              fi; \
+            else \
+              echo 'composer.lock unchanged, skipping install'; \
+            fi"
+
+      - name: Preview migrations
+        if: ${{ !inputs.dry_run && inputs.run_migrations }}
+        run: |
+          ssh production "cd ${{ secrets.DEPLOY_PATH }} && php artisan migrate --pretend"
+
+      - name: Run migrations
+        if: ${{ !inputs.dry_run && inputs.run_migrations }}
+        run: |
+          ssh production "cd ${{ secrets.DEPLOY_PATH }} && \
+            php artisan migrate --force && \
+            php artisan migrate:status | tail -12"
+
+      - name: Rebuild caches
+        if: ${{ !inputs.dry_run }}
+        run: |
+          ssh production "cd ${{ secrets.DEPLOY_PATH }} && \
+            php artisan route:clear && php artisan config:clear && \
+            php artisan view:clear && php artisan cache:clear && \
+            php artisan config:cache && php artisan route:cache && php artisan view:cache"
+
+      - name: Seed reference data
+        if: ${{ !inputs.dry_run && inputs.seed_reference_data }}
+        run: |
+          ssh production "cd ${{ secrets.DEPLOY_PATH }} && \
+            php artisan db:seed --class=VendorsSeeder --force && \
+            php artisan db:seed --class=InventoryCategoriesSeeder --force && \
+            php artisan db:seed --class=FannsPhillyOrderGuideSeeder --force"
+
+      - name: Health check
+        if: ${{ !inputs.dry_run }}
+        run: |
+          URL="${{ secrets.APP_URL }}"
+          for path in "/login" "/"; do
+            code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 "$URL$path")
+            echo "$path -> $code"
+            case "$code" in
+              200|302|301) ;;
+              *) echo "Unexpected status for $path"; exit 1 ;;
+            esac
+          done
+          body=$(curl -s --max-time 30 "$URL/login")
+          if echo "$body" | grep -qiE "Whoops|SQLSTATE|Server Error"; then
+            echo "The login page is rendering an error"
+            exit 1
+          fi
+          echo "Site is responding"
+
+      - name: Report what is now live
+        if: ${{ always() && !inputs.dry_run }}
+        run: |
+          ssh production "cd ${{ secrets.DEPLOY_PATH }} && \
+            echo 'now on: '\$(git rev-parse --short HEAD)' ('\$(git branch --show-current)')'" || true
+
+      - name: Clean up the key
+        if: ${{ always() }}
+        run: rm -f ~/.ssh/deploy_key
