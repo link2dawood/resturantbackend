@@ -97,9 +97,30 @@ class ImportInventoryFromExcel extends Command
             ['Items to create', count($plan['items_to_create'])],
             ['Items to update', count($plan['items_to_update'])],
             ['Item/vendor mappings', $plan['mappings']],
+            ['Items with several vendors', $plan['multi_vendor_items']],
             ['Prices to record', $plan['prices']],
             ['Rows with warnings', count($plan['errors'])],
         ]);
+
+        if (! empty($plan['vendor_contacts'])) {
+            $this->line('');
+            $this->info('Vendor contact tab found, covering:');
+            $this->line('  '.implode(', ', $plan['vendor_contacts']));
+        }
+
+        if (! empty($plan['stores_matched']) || ! empty($plan['stores_unmatched'])) {
+            $this->line('');
+            $this->info('Store list tab found.');
+
+            if (! empty($plan['stores_matched'])) {
+                $this->line('  Matched: '.implode(', ', $plan['stores_matched']));
+            }
+
+            if (! empty($plan['stores_unmatched'])) {
+                $this->warn('  Not found in the system (create these by hand first): '
+                    .implode(', ', $plan['stores_unmatched']));
+            }
+        }
 
         if (! empty($plan['vendors_retired'])) {
             $this->line('');
@@ -132,7 +153,7 @@ class ImportInventoryFromExcel extends Command
                     $row['line'],
                     $row['action'],
                     \Illuminate\Support\Str::limit($row['name'], 26),
-                    $row['vendor'] ?? '—',
+                    empty($row['vendors']) ? '—' : implode(' + ', $row['vendors']),
                     \Illuminate\Support\Str::limit($row['category'], 16),
                     rtrim(rtrim(number_format($row['pack_size'], 2, '.', ''), '0'), '.'),
                     $row['cost'] !== null ? '$'.number_format($row['cost'], 2) : '—',

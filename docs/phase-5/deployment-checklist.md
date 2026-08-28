@@ -201,8 +201,41 @@ clear returns the app to its prior behaviour with the new tables sitting unused.
 
 ---
 
+## The spreadsheet format the importer accepts
+
+Either shape works; the importer identifies each tab from its headings.
+
+**Item tab** needs a name column plus at least one of Category, Unit or Portions per Unit:
+
+| Column | Accepted headings |
+|---|---|
+| Name | Item Name, Name, Item, Product, Description |
+| Category | Category, Group, Section |
+| Unit | Unit, Purchase Unit, Order Unit, UOM |
+| Portions per Unit | Portions per Unit, Pack Size, Portions per Box |
+| Portion Size | Portion Size, Serving Size |
+| Portion Unit | Portion Unit, Serving Unit, Size Unit |
+| Vendors | Which Vendor(s), Vendors, Supplier, Supplied By |
+| Cost | Cost, Price, Unit Cost, Case Cost |
+
+The vendor column may list several, separated by comma, semicolon, slash or the
+word "and": `Lisanti, Sam's Club, Restaurant Depot`. **The first one listed
+becomes the preferred vendor.** Apostrophes are safe, so `Sam's Club` stays whole.
+
+**Vendor contact tab** (optional): Vendor Name, Contact Person, Phone, Email, Website.
+Existing vendors are topped up; blanks never overwrite a value already on file.
+
+**Store list tab** (optional): Store Name, Address, Manager Name. Stores are
+matched by name and their address updated. **Unmatched stores are reported, never
+created** — a store needs a creator, tax rates and access grants that a
+spreadsheet cannot supply.
+
+Retired vendors (Sysco, Cisco, K&M, Nogales) are remapped to Restaurant Depot
+wherever they appear, including inside a multi-vendor list.
+
 ## Known limitations to tell the client
 
-1. **Pack size defaults to 1** for any spreadsheet row with a blank Pack Size. Their current sheet leaves that column empty throughout, so every item will need its real pack size entered under Inventory → Items before order quantities are meaningful.
+1. **Pack size defaults to 1** for any row with a blank Portions per Unit. Their current sheet leaves that column empty throughout, so every item will need its real pack size entered under Inventory → Items before order quantities are meaningful.
 2. **Prices are only imported when the Cost column has a value.** Their current sheet has none, so prices need entering under Pricing → Update.
 3. **Targets are not imported.** See step 7.
+4. **A portion size with no portion unit is ignored** and reported as a warning, because a portion of "3" with no unit cannot be converted.

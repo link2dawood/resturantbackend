@@ -7,6 +7,7 @@ use App\Models\InventoryItem;
 use App\Models\Store;
 use App\Models\Vendor;
 use App\Models\VendorPrice;
+use App\Services\Inventory\ItemVendorMapper;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
@@ -27,6 +28,11 @@ use RuntimeException;
  */
 class ClientInventoryImporter
 {
+    public function __construct(private ?ItemVendorMapper $mapper = null)
+    {
+        $this->mapper ??= app(ItemVendorMapper::class);
+    }
+
     /** Retired vendor => replacement. */
     public const RETIRED_VENDORS = [
         'sysco' => 'Restaurant Depot',
@@ -56,12 +62,39 @@ class ClientInventoryImporter
     /** @var array<string, list<string>> canonical => accepted headings (lowercased) */
     private array $aliases = [
         'name' => ['name', 'item', 'item name', 'description', 'product'],
-        'vendor' => ['supplier', 'vendor', 'vendor name'],
+        // "Which Vendor(s)" may hold several, comma separated. See splitVendors().
+        'vendor' => [
+            'supplier', 'suppliers', 'vendor', 'vendors', 'vendor name',
+            'which vendor(s)', 'which vendors', 'which vendor(s) supply it',
+            'vendor(s)', 'supplied by',
+        ],
         'category' => ['category', 'group', 'section'],
-        'pack_size' => ['pack size', 'pack', 'portions per unit', 'portions per box', 'units per purchase', 'size'],
+        'pack_size' => [
+            'portions per unit', 'pack size', 'pack', 'portions per box',
+            'units per purchase', 'portions', 'size',
+        ],
+        'portion_size' => ['portion size', 'serving size', 'portion'],
+        'portion_unit' => ['portion unit', 'serving unit', 'size unit'],
         'vendor_sku' => ['vendorid #', 'vendorid#', 'vendor id', 'vendor sku', 'sku', 'item #', 'item number'],
         'cost' => ['cost', 'price', 'unit cost', 'case cost'],
         'unit' => ['unit', 'purchase unit', 'order unit', 'uom'],
+    ];
+
+    /** Headings that identify the vendor-contact tab. */
+    private array $vendorSheetAliases = [
+        'name' => ['vendor name', 'vendor', 'name', 'supplier'],
+        'contact_name' => ['contact person', 'contact name', 'contact'],
+        'contact_phone' => ['phone', 'telephone', 'contact phone'],
+        'contact_email' => ['email', 'e-mail', 'contact email'],
+        'website' => ['website', 'web site', 'url', 'web'],
+    ];
+
+    /** Headings that identify the store-list tab. */
+    private array $storeSheetAliases = [
+        'name' => ['store name', 'store', 'location'],
+        'address' => ['address', 'street address'],
+        'manager_name' => ['manager name', 'manager'],
+        'phone' => ['phone', 'store phone'],
     ];
 
     /**
@@ -71,10 +104,16 @@ class ClientInventoryImporter
      */
     public function plan(string $path, Store $store): array
     {
-        $rows = $this->readRows($path);
+        $sheets = $this->classifySheets($path);
+        $rows = $sheets['items'] === null ? collect() : $this->mapToCanonical($sheets['items']);
 
-        if ($rows->isEmpty()) {
-            throw new RuntimeException('No data rows found in that file.');
+        // A workbook may legitimately carry only the vendor-contact or store tab,
+        // so an absent item sheet is only fatal when there is nothing else.
+        if ($rows->isEmpty() && empty($sheets['vendors']) && empty($sheets['stores'])) {
+            throw new RuntimeException(
+                'No usable sheet found. The item tab needs a Name or Item Name column '
+                .'alongside Category, Unit or Portions per Unit.'
+            );
         }
 
         $existingVendors = Vendor::withTrashed()->get()->keyBy(fn ($v) => mb_strtolower($v->vendor_name));
@@ -92,7 +131,11 @@ class ClientInventoryImporter
             'items_to_create' => [],
             'items_to_update' => [],
             'mappings' => 0,
+            'multi_vendor_items' => 0,
             'prices' => 0,
+            'vendor_contacts' => [],
+            'stores_matched' => [],
+            'stores_unmatched' => [],
             'errors' => [],
             'rows' => [],
         ];
@@ -115,33 +158,39 @@ class ClientInventoryImporter
             }
             $seenNames[$key] = $line;
 
-            // ---- vendor
-            $rawVendor = trim((string) ($row['vendor'] ?? ''));
-            $vendorName = null;
-            $retiredFrom = null;
+            // ---- vendors. One cell can name several, comma separated, which is
+            // the multi-vendor rule the whole system is built around. The first
+            // one listed becomes the preferred vendor.
+            $vendorNames = [];
+            $retiredFrom = [];
 
-            if ($rawVendor !== '') {
+            foreach ($this->splitVendors((string) ($row['vendor'] ?? '')) as $rawVendor) {
                 $lower = mb_strtolower($rawVendor);
 
                 if (isset(self::RETIRED_VENDORS[$lower])) {
-                    $retiredFrom = $rawVendor;
-                    $vendorName = self::RETIRED_VENDORS[$lower];
-                    $label = $rawVendor.' -> '.$vendorName;
+                    $resolved = self::RETIRED_VENDORS[$lower];
+                    $retiredFrom[] = $rawVendor;
+                    $label = $rawVendor.' -> '.$resolved;
                     if (! in_array($label, $plan['vendors_retired'], true)) {
                         $plan['vendors_retired'][] = $label;
                     }
                 } else {
-                    $vendorName = self::VENDOR_ALIASES[$lower] ?? $rawVendor;
+                    $resolved = self::VENDOR_ALIASES[$lower] ?? $rawVendor;
                 }
 
-                $vendorKey = mb_strtolower($vendorName);
+                if (in_array($resolved, $vendorNames, true)) {
+                    continue; // two spellings of the same vendor on one row
+                }
+
+                $vendorNames[] = $resolved;
+                $vendorKey = mb_strtolower($resolved);
 
                 if ($existingVendors->has($vendorKey)) {
-                    if (! in_array($vendorName, $plan['vendors_matched'], true)) {
-                        $plan['vendors_matched'][] = $vendorName;
+                    if (! in_array($resolved, $plan['vendors_matched'], true)) {
+                        $plan['vendors_matched'][] = $resolved;
                     }
-                } elseif (! in_array($vendorName, $plan['vendors_to_create'], true)) {
-                    $plan['vendors_to_create'][] = $vendorName;
+                } elseif (! in_array($resolved, $plan['vendors_to_create'], true)) {
+                    $plan['vendors_to_create'][] = $resolved;
                 }
             }
 
@@ -167,24 +216,41 @@ class ClientInventoryImporter
             $cost = $this->numeric($row['cost'] ?? null);
             $unit = trim((string) ($row['unit'] ?? '')) ?: 'case';
 
+            $portionSize = $this->numeric($row['portion_size'] ?? null);
+            $portionUnit = trim((string) ($row['portion_unit'] ?? '')) ?: null;
+
+            if ($portionSize !== null && $portionSize <= 0) {
+                $portionSize = null;
+                $errors[] = 'Portion size is not a positive number, ignored.';
+            }
+
+            if ($portionSize !== null && $portionUnit === null) {
+                $errors[] = 'Portion size has no unit, so it was ignored. Add a Portion Unit column (oz, lb).';
+                $portionSize = null;
+            }
+
             $isUpdate = $existingItems->has($key);
             $plan[$isUpdate ? 'items_to_update' : 'items_to_create'][] = $name;
 
-            if ($vendorName !== null) {
-                $plan['mappings']++;
+            $plan['mappings'] += count($vendorNames);
 
-                if ($cost !== null && $cost > 0) {
-                    $plan['prices']++;
-                }
+            if (count($vendorNames) > 1) {
+                $plan['multi_vendor_items']++;
+            }
+
+            if ($cost !== null && $cost > 0) {
+                $plan['prices'] += count($vendorNames);
             }
 
             $plan['rows'][] = [
                 'line' => $line,
                 'name' => $name,
-                'vendor' => $vendorName,
+                'vendors' => $vendorNames,
                 'retired_from' => $retiredFrom,
                 'category' => $categoryName,
                 'pack_size' => $packSize,
+                'portion_size' => $portionSize,
+                'portion_unit' => $portionUnit,
                 'unit' => $unit,
                 'vendor_sku' => trim((string) ($row['vendor_sku'] ?? '')) ?: null,
                 'cost' => $cost,
@@ -196,6 +262,25 @@ class ClientInventoryImporter
                 $plan['errors'][] = "Line {$line} ({$name}): {$error}";
             }
         }
+
+        foreach ($sheets['vendors'] as $sheet) {
+            $contacts = $this->applyVendorContacts($sheet, commit: false);
+            $plan['vendor_contacts'] = array_values(array_unique(
+                array_merge($plan['vendor_contacts'], $contacts['names'])
+            ));
+        }
+
+        foreach ($sheets['stores'] as $sheet) {
+            $stores = $this->applyStoreList($sheet, commit: false);
+            $plan['stores_matched'] = array_values(array_unique(
+                array_merge($plan['stores_matched'], $stores['matched'])
+            ));
+            $plan['stores_unmatched'] = array_values(array_unique(
+                array_merge($plan['stores_unmatched'], $stores['unmatched'])
+            ));
+        }
+
+        $plan['path'] = $path;
 
         return $plan;
     }
@@ -214,34 +299,51 @@ class ClientInventoryImporter
             'vendors_created' => 0, 'categories_created' => 0,
             'items_created' => 0, 'items_updated' => 0,
             'mappings_written' => 0, 'prices_written' => 0, 'rows_skipped' => 0,
+            'vendor_contacts_updated' => 0, 'stores_updated' => 0,
         ];
 
         DB::transaction(function () use ($plan, $store, $options, &$result) {
+            // Vendor contacts first: an item row can then map straight onto a
+            // vendor the contact tab just created.
+            if (! empty($plan['path'])) {
+                $sheets = $this->classifySheets($plan['path']);
+
+                foreach ($sheets['vendors'] as $sheet) {
+                    $contacts = $this->applyVendorContacts($sheet, commit: true);
+                    $result['vendors_created'] += $contacts['created'];
+                    $result['vendor_contacts_updated'] += $contacts['updated'];
+                }
+
+                foreach ($sheets['stores'] as $sheet) {
+                    $result['stores_updated'] += $this->applyStoreList($sheet, commit: true)['updated'];
+                }
+            }
+
             $vendors = Vendor::withTrashed()->get()->keyBy(fn ($v) => mb_strtolower($v->vendor_name));
             $categories = InventoryCategory::all()->keyBy(fn ($c) => mb_strtolower($c->name));
 
             foreach ($plan['rows'] as $row) {
-                $vendor = null;
+                $rowVendors = [];
 
-                if ($row['vendor'] !== null) {
-                    $vendorKey = mb_strtolower($row['vendor']);
+                foreach ($row['vendors'] as $vendorName) {
+                    $vendorKey = mb_strtolower($vendorName);
                     $vendor = $vendors->get($vendorKey);
 
                     if (! $vendor) {
                         if (! $options->createVendors) {
-                            $result['rows_skipped']++;
-
                             continue;
                         }
 
                         $vendor = Vendor::create([
-                            'vendor_name' => $row['vendor'],
+                            'vendor_name' => $vendorName,
                             'vendor_type' => 'Food',
                             'is_active' => true,
                         ]);
                         $vendors->put($vendorKey, $vendor);
                         $result['vendors_created']++;
                     }
+
+                    $rowVendors[] = $vendor;
                 }
 
                 $categoryKey = mb_strtolower($row['category']);
@@ -271,8 +373,12 @@ class ClientInventoryImporter
                     'inventory_category_id' => $category->id,
                     'category' => $category->name,
                     'purchase_unit' => $row['unit'],
-                    'base_unit' => 'each',
+                    // When the sheet gives a portion unit, that is what the item
+                    // is counted in; otherwise fall back to counting pieces.
+                    'base_unit' => $row['portion_unit'] ?? 'each',
                     'units_per_purchase' => $row['pack_size'],
+                    'portion_size' => $row['portion_size'],
+                    'portion_unit' => $row['portion_unit'],
                     'is_active' => true,
                 ];
 
@@ -287,34 +393,30 @@ class ClientInventoryImporter
                     $result['items_created']++;
                 }
 
-                if (! $vendor) {
+                if (empty($rowVendors)) {
                     continue;
                 }
 
-                // The sheet lists one supplier per item, so that supplier is the
-                // preferred vendor. Both readings of "preferred" are written.
-                $item->vendors()->syncWithoutDetaching([
-                    $vendor->id => [
+                // Route through the mapper so the one-preferred-vendor rule and
+                // the vendor_prices mirror are applied the same way the UI does
+                // it. First vendor named on the row wins the preference.
+                $mapping = [];
+
+                foreach ($rowVendors as $index => $vendor) {
+                    $mapping[$vendor->id] = [
+                        'enabled' => true,
                         'vendor_sku' => $row['vendor_sku'],
                         'current_price' => $row['cost'],
-                        'price_updated_at' => $row['cost'] !== null ? now() : null,
-                        'is_preferred_vendor' => true,
-                    ],
-                ]);
-                $item->forceFill(['preferred_vendor_id' => $vendor->id])->save();
-                $result['mappings_written']++;
+                        'is_preferred' => $index === 0,
+                    ];
+                    $result['mappings_written']++;
 
-                if ($row['cost'] !== null && $row['cost'] > 0) {
-                    VendorPrice::create([
-                        'vendor_id' => $vendor->id,
-                        'inventory_item_id' => $item->id,
-                        'price' => $row['cost'],
-                        'price_unit' => $row['unit'],
-                        'effective_date' => now()->toDateString(),
-                        'entered_by' => auth()->id(),
-                    ]);
-                    $result['prices_written']++;
+                    if ($row['cost'] !== null && $row['cost'] > 0) {
+                        $result['prices_written']++;
+                    }
                 }
+
+                $this->mapper->sync($item->fresh(), $mapping);
             }
         });
 
@@ -323,8 +425,89 @@ class ClientInventoryImporter
 
     // ---- reading -----------------------------------------------------------
 
+    /**
+     * Work out what each sheet in the workbook is, from its headings.
+     *
+     * Order matters: a vendor-contact tab has a "Vendor Name" column that also
+     * looks like an item "name", so the more specific shapes are tested first.
+     *
+     * @return array{items: ?Collection, vendors: list<Collection>, stores: list<Collection>}
+     */
+    private function classifySheets(string $path): array
+    {
+        $result = ['items' => null, 'vendors' => [], 'stores' => []];
+
+        foreach ($this->readAllSheets($path) as $sheet) {
+            if ($sheet->isEmpty()) {
+                continue;
+            }
+
+            if ($this->sheetLooksLike($sheet, $this->vendorSheetAliases, 'name',
+                ['contact_name', 'contact_email', 'contact_phone', 'website'])) {
+                $result['vendors'][] = $sheet;
+
+                continue;
+            }
+
+            if ($this->sheetLooksLike($sheet, $this->storeSheetAliases, 'name', ['address', 'manager_name'])) {
+                $result['stores'][] = $sheet;
+
+                continue;
+            }
+
+            if ($result['items'] === null
+                && $this->sheetLooksLike($sheet, $this->aliases, 'name', ['category', 'pack_size', 'vendor'])) {
+                $result['items'] = $sheet;
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * True when some row in the sheet maps the required key plus at least one of
+     * the supporting keys.
+     *
+     * @param  Collection<int, list<string>>  $sheet
+     * @param  array<string, list<string>>  $aliases
+     * @param  list<string>  $anyOf
+     */
+    private function sheetLooksLike(Collection $sheet, array $aliases, string $requiredKey, array $anyOf): bool
+    {
+        foreach ($sheet as $cells) {
+            $map = $this->mapHeaderWith($cells, $aliases);
+
+            if (! isset($map[$requiredKey])) {
+                continue;
+            }
+
+            foreach ($anyOf as $key) {
+                if (isset($map[$key])) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
     /** @return Collection<int, array<string, mixed>> */
     private function readRows(string $path): Collection
+    {
+        $itemSheet = $this->classifySheets($path)['items'];
+
+        return $itemSheet === null ? collect() : $this->mapToCanonical($itemSheet);
+    }
+
+    /**
+     * Every sheet in the workbook, as raw rows.
+     *
+     * A single-sheet file (or the client's HTML export) yields one entry, so the
+     * item import behaves exactly as before.
+     *
+     * @return Collection<int, Collection<int, list<string>>>
+     */
+    private function readAllSheets(string $path): Collection
     {
         if (! is_readable($path)) {
             throw new RuntimeException("Cannot read {$path}.");
@@ -334,11 +517,15 @@ class ClientInventoryImporter
 
         // The client's export is an Excel "save as web page" HTML table, so that
         // is supported alongside real spreadsheets.
-        $raw = in_array($extension, ['html', 'htm'], true)
-            ? $this->readHtml($path)
-            : $this->readSpreadsheet($path);
+        if (in_array($extension, ['html', 'htm'], true)) {
+            return collect([$this->readHtml($path)]);
+        }
 
-        return $raw->isEmpty() ? collect() : $this->mapToCanonical($raw);
+        return collect(Excel::toArray(new \stdClass, $path))
+            ->map(fn ($sheet) => collect($sheet)
+                ->map(fn ($row) => array_map(fn ($cell) => trim((string) $cell), (array) $row))
+                ->filter(fn (array $cells) => count(array_filter($cells, fn ($c) => $c !== '')) > 0)
+                ->values());
     }
 
     /** @return Collection<int, list<string>> */
@@ -421,6 +608,194 @@ class ClientInventoryImporter
             $key = strtolower(trim(str_replace("\u{FEFF}", '', (string) $cell)));
 
             foreach ($this->aliases as $canonical => $names) {
+                if (in_array($key, $names, true) && ! isset($map[$canonical])) {
+                    $map[$canonical] = $i;
+                }
+            }
+        }
+
+        return $map;
+    }
+
+    /**
+     * "Lisanti, Sam's, Restaurant Depot" -> three vendors.
+     *
+     * Split on commas, semicolons, slashes and the word "and". Apostrophes are
+     * left alone so "Sam's Club" survives intact.
+     *
+     * @return list<string>
+     */
+    private function splitVendors(string $raw): array
+    {
+        $raw = trim($raw);
+
+        if ($raw === '') {
+            return [];
+        }
+
+        $parts = preg_split('/\s*(?:,|;|\/|\band\b|&(?!\s*M))\s*/i', $raw) ?: [];
+
+        return array_values(array_filter(array_map('trim', $parts), fn ($p) => $p !== ''));
+    }
+
+    /**
+     * Vendor-contact tab: create or top up vendors with the details the client
+     * supplied. Existing values are never overwritten with blanks.
+     *
+     * @param  Collection<int, list<string>>  $raw
+     * @return array{created: int, updated: int, names: list<string>}
+     */
+    private function applyVendorContacts(Collection $raw, bool $commit): array
+    {
+        $result = ['created' => 0, 'updated' => 0, 'names' => []];
+        $rows = $this->mapSheet($raw, $this->vendorSheetAliases, 'name');
+
+        foreach ($rows as $row) {
+            $name = trim((string) ($row['name'] ?? ''));
+
+            if ($name === '' || mb_strtolower($name) === 'vendor name') {
+                continue;
+            }
+
+            $canonical = self::VENDOR_ALIASES[mb_strtolower($name)] ?? $name;
+            $result['names'][] = $canonical;
+
+            if (! $commit) {
+                continue;
+            }
+
+            $vendor = Vendor::withTrashed()
+                ->whereRaw('LOWER(vendor_name) = ?', [mb_strtolower($canonical)])
+                ->first();
+
+            $details = array_filter([
+                'contact_name' => trim((string) ($row['contact_name'] ?? '')) ?: null,
+                'contact_phone' => trim((string) ($row['contact_phone'] ?? '')) ?: null,
+                'contact_email' => trim((string) ($row['contact_email'] ?? '')) ?: null,
+                'website' => trim((string) ($row['website'] ?? '')) ?: null,
+            ], fn ($v) => $v !== null);
+
+            if ($vendor) {
+                if (! empty($details)) {
+                    $vendor->update($details);
+                    $result['updated']++;
+                }
+
+                continue;
+            }
+
+            Vendor::create($details + [
+                'vendor_name' => $canonical,
+                'vendor_type' => 'Food',
+                'is_active' => true,
+            ]);
+            $result['created']++;
+        }
+
+        return $result;
+    }
+
+    /**
+     * Store-list tab: match by name and top up the address details.
+     *
+     * Deliberately does NOT create stores. A store carries a creator, tax rates
+     * and access grants that a spreadsheet cannot supply, so an unmatched row is
+     * reported for a human to handle instead of half-created here.
+     *
+     * @param  Collection<int, list<string>>  $raw
+     * @return array{matched: list<string>, unmatched: list<string>, updated: int}
+     */
+    private function applyStoreList(Collection $raw, bool $commit): array
+    {
+        $result = ['matched' => [], 'unmatched' => [], 'updated' => 0];
+        $rows = $this->mapSheet($raw, $this->storeSheetAliases, 'name');
+        $stores = Store::all();
+
+        foreach ($rows as $row) {
+            $name = trim((string) ($row['name'] ?? ''));
+
+            if ($name === '' || mb_strtolower($name) === 'store name') {
+                continue;
+            }
+
+            $store = $stores->first(
+                fn ($s) => mb_strtolower(trim((string) $s->store_info)) === mb_strtolower($name)
+            );
+
+            if (! $store) {
+                $result['unmatched'][] = $name;
+
+                continue;
+            }
+
+            $result['matched'][] = $name;
+
+            if (! $commit) {
+                continue;
+            }
+
+            $details = array_filter([
+                'address' => trim((string) ($row['address'] ?? '')) ?: null,
+                'phone' => trim((string) ($row['phone'] ?? '')) ?: null,
+            ], fn ($v) => $v !== null);
+
+            if (! empty($details)) {
+                $store->update($details);
+                $result['updated']++;
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * Map a sheet's rows onto canonical keys using the given alias table.
+     *
+     * @param  Collection<int, list<string>>  $raw
+     * @param  array<string, list<string>>  $aliases
+     * @return list<array<string, mixed>>
+     */
+    private function mapSheet(Collection $raw, array $aliases, string $requiredKey): array
+    {
+        $headingIndex = null;
+        $map = [];
+
+        foreach ($raw as $index => $cells) {
+            $candidate = $this->mapHeaderWith($cells, $aliases);
+
+            if (isset($candidate[$requiredKey])) {
+                $headingIndex = $index;
+                $map = $candidate;
+                break;
+            }
+        }
+
+        if ($headingIndex === null) {
+            return [];
+        }
+
+        return $raw->slice($headingIndex + 1)->values()
+            ->map(function (array $cells) use ($map) {
+                $row = [];
+
+                foreach ($map as $key => $column) {
+                    $row[$key] = $cells[$column] ?? null;
+                }
+
+                return $row;
+            })
+            ->all();
+    }
+
+    /** @return array<string, int> */
+    private function mapHeaderWith(array $cells, array $aliases): array
+    {
+        $map = [];
+
+        foreach ($cells as $i => $cell) {
+            $key = strtolower(trim(str_replace("\u{FEFF}", '', (string) $cell)));
+
+            foreach ($aliases as $canonical => $names) {
                 if (in_array($key, $names, true) && ! isset($map[$canonical])) {
                     $map[$canonical] = $i;
                 }
