@@ -6,6 +6,7 @@ use App\Models\InventoryCategory;
 use App\Models\InventoryItem;
 use App\Models\InventoryStock;
 use App\Models\Order;
+use App\Models\OrderItem;
 use App\Models\Store;
 use App\Models\StoreInventoryTarget;
 use App\Models\User;
@@ -174,6 +175,110 @@ class GoLiveHardeningTest extends TestCase
     }
 
     /** @test */
+    public function a_manager_counts_and_receives_but_never_orders(): void
+    {
+        $item = $this->itemFor($this->storeA, 'Alpha Steak');
+        $vendor = Vendor::factory()->create(['vendor_name' => 'Lisanti', 'vendor_type' => 'Food']);
+
+        // The client drew this line: "manager can send just the inventory on
+        // hand", and "right now only owners can place an order".
+        $this->actingAs($this->managerA)
+            ->get(route('inventory.weekly-count.suggestions', ['store_id' => $this->storeA->id]))
+            ->assertForbidden();
+
+        $this->actingAs($this->managerA)->post(route('inventory.weekly-count.generate-order'), [
+            'store_id' => $this->storeA->id,
+            'week' => $this->monday()->toDateString(),
+            'quantities' => [$item->id => 5],
+            'vendors' => [$item->id => $vendor->id],
+        ])->assertForbidden();
+
+        $this->assertSame(0, Order::count(), 'A manager must not be able to raise an order.');
+
+        // Counting stays open to them.
+        $this->actingAs($this->managerA)->get(route('inventory.weekly-count.index'))->assertOk();
+
+        // So does checking a delivery in: "once orders are received managers
+        // should go into the system and verify received".
+        $order = Order::create([
+            'store_id' => $this->storeA->id,
+            'vendor_id' => $vendor->id,
+            'order_date' => $this->monday()->toDateString(),
+            'week_start_date' => $this->monday()->toDateString(),
+            'status' => Order::STATUS_PLACED,
+            'placed_at' => now(),
+            'created_by' => $this->admin->id,
+            'total_amount' => 0,
+        ]);
+        OrderItem::create([
+            'order_id' => $order->id,
+            'inventory_item_id' => $item->id,
+            'quantity' => 5,
+            'unit' => 'box',
+            'unit_price' => 10,
+            'line_total' => 50,
+        ]);
+
+        $this->actingAs($this->managerA)->get(route('admin.orders.receive', $order))->assertOk();
+
+        $this->actingAs($this->managerA)->patch(route('admin.orders.received', $order), [
+            'received' => [$order->items()->value('id') => 4],
+        ])->assertRedirect();
+
+        $this->assertSame(Order::STATUS_RECEIVED, $order->fresh()->status);
+        $this->assertEqualsWithDelta(4.0, (float) $order->items()->value('quantity_received'), 0.001);
+    }
+
+    /** @test */
+    public function the_order_screens_hide_the_buttons_a_manager_cannot_use(): void
+    {
+        $item = $this->itemFor($this->storeA, 'Alpha Steak');
+        $vendor = Vendor::factory()->create(['vendor_name' => 'Lisanti', 'vendor_type' => 'Food']);
+
+        $order = Order::create([
+            'store_id' => $this->storeA->id,
+            'vendor_id' => $vendor->id,
+            'week_start_date' => $this->monday()->toDateString(),
+            'order_sequence' => 1,
+            'status' => Order::STATUS_DRAFT,
+            'created_by' => $this->admin->id,
+        ]);
+        OrderItem::create([
+            'order_id' => $order->id, 'inventory_item_id' => $item->id,
+            'quantity' => 5, 'unit' => 'box', 'unit_price' => 10, 'line_total' => 50,
+        ]);
+
+        // A dead button is worse than a missing one: it 403s after a click.
+        $index = $this->actingAs($this->managerA)
+            ->get(route('admin.orders.index', ['store_id' => $this->storeA->id]))
+            ->assertOk();
+
+        $index->assertDontSee(route('admin.orders.build', ['store_id' => $this->storeA->id]), false);
+        $index->assertDontSee(route('admin.orders.history', ['store_id' => $this->storeA->id]), false);
+        $index->assertDontSee(route('admin.orders.placed', $order), false);
+        $index->assertDontSee(route('admin.orders.duplicate', $order), false);
+
+        // What they do need stays.
+        $index->assertSee(route('admin.orders.show', $order), false);
+
+        $show = $this->actingAs($this->managerA)->get(route('admin.orders.show', $order))->assertOk();
+        $show->assertDontSee(route('admin.orders.items.update', $order), false);
+        $show->assertSee('Check in delivery');
+
+        // The owner still gets the full set.
+        $ownerA = User::factory()->create(['role' => 'owner']);
+        $ownerA->ownedStores()->attach($this->storeA->id);
+
+        $this->actingAs($ownerA)->get(route('admin.orders.index', ['store_id' => $this->storeA->id]))
+            ->assertOk()
+            ->assertSee(route('admin.orders.build', ['store_id' => $this->storeA->id]), false);
+
+        $this->actingAs($ownerA)->get(route('admin.orders.show', $order))
+            ->assertOk()
+            ->assertSee(route('admin.orders.items.update', $order), false);
+    }
+
+    /** @test */
     public function an_employee_is_confined_to_the_count_screens(): void
     {
         $employee = User::factory()->create(['role' => 'employee', 'store_id' => $this->storeA->id]);
@@ -263,17 +368,21 @@ class GoLiveHardeningTest extends TestCase
         $this->assertSame(360, InventoryItem::count());
 
         // Each page must render, and the suggestion engine must cover every item.
+        $ownerA = User::factory()->create(['role' => 'owner']);
+        $ownerA->ownedStores()->attach($this->storeA->id);
+
+        // Suggestions is an owner screen; the rest the manager opens daily.
         $pages = [
-            route('inventory.weekly-count.index', ['store_id' => $this->storeA->id]),
-            route('inventory.weekly-count.suggestions', ['store_id' => $this->storeA->id]),
-            route('admin.inventory-items.index', ['store_id' => $this->storeA->id]),
-            route('admin.vendor-prices.compare', ['store_id' => $this->storeA->id]),
-            route('admin.inventory-dashboard.index', ['store_id' => $this->storeA->id]),
+            [$this->managerA, route('inventory.weekly-count.index', ['store_id' => $this->storeA->id])],
+            [$ownerA, route('inventory.weekly-count.suggestions', ['store_id' => $this->storeA->id])],
+            [$this->managerA, route('admin.inventory-items.index', ['store_id' => $this->storeA->id])],
+            [$this->managerA, route('admin.vendor-prices.compare', ['store_id' => $this->storeA->id])],
+            [$this->managerA, route('admin.inventory-dashboard.index', ['store_id' => $this->storeA->id])],
         ];
 
-        foreach ($pages as $url) {
+        foreach ($pages as [$actor, $url]) {
             $start = microtime(true);
-            $this->actingAs($this->managerA)->get($url)->assertOk();
+            $this->actingAs($actor)->get($url)->assertOk();
             $elapsed = microtime(true) - $start;
 
             // Generous: this is a correctness guard against an accidental N+1

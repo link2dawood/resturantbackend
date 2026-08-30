@@ -5,7 +5,10 @@
 @php
     $fmt = fn ($n) => rtrim(rtrim(number_format((float) $n, 4, '.', ''), '0'), '.');
     $money = fn ($n) => '$'.number_format((float) $n, 2);
-    $editable = $order->isEditable();
+    // The owner decides what to buy and can still edit a draft; the manager
+    // places the order and checks the delivery in.
+    $canOrder = Auth::user()->isAdmin() || Auth::user()->isOwner();
+    $editable = $order->isEditable() && $canOrder;
 @endphp
 
 @section('content')
@@ -13,7 +16,7 @@
     <div class="d-flex justify-content-between align-items-center mb-3 d-print-none">
         <a href="{{ route('admin.orders.index', ['store_id' => $order->store_id, 'week_start_date' => $order->week_start_date->toDateString()]) }}" class="btn btn-link">&larr; Orders</a>
         <div class="d-flex gap-2">
-            @if($order->canTransitionTo('placed'))
+            @if($canOrder && $order->canTransitionTo('placed'))
                 <form action="{{ route('admin.orders.placed', $order) }}" method="POST"
                       onsubmit="return confirm('Mark this order placed? The lines will be locked.');">
                     @csrf @method('PATCH')<button class="btn btn-outline-info">Mark placed</button>
@@ -22,13 +25,13 @@
             @if($order->canTransitionTo('received'))
                 <a href="{{ route('admin.orders.receive', $order) }}" class="btn btn-outline-success">Check in delivery</a>
             @endif
-            @if($order->canTransitionTo('cancelled'))
+            @if($canOrder && $order->canTransitionTo('cancelled'))
                 <form action="{{ route('admin.orders.cancel', $order) }}" method="POST"
                       onsubmit="return confirm('Cancel this order?');">
                     @csrf @method('PATCH')<button class="btn btn-outline-danger">Cancel</button>
                 </form>
             @endif
-            @if((int) $order->order_sequence === 1 && $order->status !== 'cancelled')
+            @if($canOrder && (int) $order->order_sequence === 1 && $order->status !== 'cancelled')
                 <form action="{{ route('admin.orders.duplicate', $order) }}" method="POST">
                     @csrf<button class="btn btn-outline-secondary">Duplicate for Order 2</button>
                 </form>
@@ -66,8 +69,13 @@
     @unless($editable)
         <div class="alert alert-secondary d-print-none">
             <small>
-                This order is <strong>{{ $order->status }}</strong>, so its lines are locked.
-                @if($order->status === 'placed') It can still be marked received or cancelled. @endif
+                @if(! $canOrder)
+                    The owner sets the quantities on this order. Place it with the vendor, then use
+                    <strong>Check in delivery</strong> to record what actually arrives.
+                @else
+                    This order is <strong>{{ $order->status }}</strong>, so its lines are locked.
+                    @if($order->status === 'placed') It can still be marked received or cancelled. @endif
+                @endif
             </small>
         </div>
     @endunless
@@ -87,8 +95,11 @@
                 </div>
             </div>
 
-            <form method="POST" action="{{ route('admin.orders.items.update', $order) }}">
+            {{-- A read-only viewer gets no form at all, so nothing here can be posted. --}}
+            @if($editable)
+                <form method="POST" action="{{ route('admin.orders.items.update', $order) }}">
                 @csrf @method('PUT')
+            @endif
 
                 <div class="table-responsive">
                     <table class="table table-sm align-middle">
@@ -201,8 +212,8 @@
                     <small class="text-muted">Set a quantity to 0 to take a line off the order.</small>
                     <button type="submit" class="btn btn-primary">Save changes</button>
                 </div>
+                </form>
                 @endif
-            </form>
 
             @if($order->placed_at || $order->received_at)
                 <div class="text-muted small mt-3">

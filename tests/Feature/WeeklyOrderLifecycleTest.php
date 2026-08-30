@@ -24,6 +24,8 @@ class WeeklyOrderLifecycleTest extends TestCase
 
     private User $manager;
 
+    private User $owner;
+
     private Vendor $lisanti;
 
     private Vendor $depot;
@@ -49,6 +51,11 @@ class WeeklyOrderLifecycleTest extends TestCase
         $this->store = Store::factory()->create(['created_by' => $admin->id, 'store_info' => 'Round Rock']);
         $this->manager = User::factory()->create(['role' => 'manager', 'store_id' => $this->store->id]);
         $this->manager->assignedStoresPivot()->attach($this->store->id);
+
+        // The manager reports what is on the shelf; the owner decides what to
+        // buy. Anything that creates or places an order runs as the owner.
+        $this->owner = User::factory()->create(['role' => 'owner', 'name' => 'Sam Owner']);
+        $this->owner->ownedStores()->attach($this->store->id);
         $this->meats = InventoryCategory::where('name', 'Meats')->firstOrFail();
         $this->lisanti = Vendor::factory()->create(['vendor_name' => 'Lisanti', 'vendor_type' => 'Food']);
         $this->depot = Vendor::factory()->create(['vendor_name' => 'Restaurant Depot', 'vendor_type' => 'Food']);
@@ -108,7 +115,7 @@ class WeeklyOrderLifecycleTest extends TestCase
             ]);
         }
 
-        $this->actingAs($this->manager)->post(route('inventory.weekly-count.generate-order'), [
+        $this->actingAs($this->owner)->post(route('inventory.weekly-count.generate-order'), [
             'store_id' => $this->store->id,
             'week' => $this->monday()->toDateString(),
             'quantities' => [$steak->id => 10, $bread->id => 10],
@@ -155,7 +162,7 @@ class WeeklyOrderLifecycleTest extends TestCase
         $order = $this->order();
         $this->line($order, $this->item());
 
-        $this->actingAs($this->manager)->patch(route('admin.orders.placed', $order))->assertRedirect();
+        $this->actingAs($this->owner)->patch(route('admin.orders.placed', $order))->assertRedirect();
         $order->refresh();
         $this->assertSame(Order::STATUS_PLACED, $order->status);
         $this->assertNotNull($order->placed_at);
@@ -186,7 +193,7 @@ class WeeklyOrderLifecycleTest extends TestCase
         $order = $this->order(['status' => Order::STATUS_RECEIVED]);
 
         foreach (['placed', 'received', 'cancel'] as $route) {
-            $this->actingAs($this->manager)
+            $this->actingAs($this->owner)
                 ->patch(route("admin.orders.{$route}", $order))
                 ->assertSessionHas('error');
         }
@@ -198,11 +205,11 @@ class WeeklyOrderLifecycleTest extends TestCase
     public function an_order_can_be_cancelled_from_draft_or_placed(): void
     {
         $draft = $this->order();
-        $this->actingAs($this->manager)->patch(route('admin.orders.cancel', $draft))->assertRedirect();
+        $this->actingAs($this->owner)->patch(route('admin.orders.cancel', $draft))->assertRedirect();
         $this->assertSame(Order::STATUS_CANCELLED, $draft->fresh()->status);
 
         $placed = $this->order(['vendor_id' => $this->depot->id, 'status' => Order::STATUS_PLACED]);
-        $this->actingAs($this->manager)->patch(route('admin.orders.cancel', $placed))->assertRedirect();
+        $this->actingAs($this->owner)->patch(route('admin.orders.cancel', $placed))->assertRedirect();
         $this->assertSame(Order::STATUS_CANCELLED, $placed->fresh()->status);
     }
 
@@ -214,7 +221,7 @@ class WeeklyOrderLifecycleTest extends TestCase
         $order = $this->order(['status' => Order::STATUS_PLACED]);
         $line = $this->line($order, $this->item(), ['quantity' => 5]);
 
-        $this->actingAs($this->manager)->put(route('admin.orders.items.update', $order), [
+        $this->actingAs($this->owner)->put(route('admin.orders.items.update', $order), [
             'quantity' => [$line->id => 99],
         ])->assertSessionHas('error');
 
@@ -226,7 +233,7 @@ class WeeklyOrderLifecycleTest extends TestCase
     {
         $order = $this->order(['status' => Order::STATUS_PLACED]);
 
-        $this->actingAs($this->manager)->delete(route('admin.orders.destroy', $order))
+        $this->actingAs($this->owner)->delete(route('admin.orders.destroy', $order))
             ->assertSessionHas('error');
 
         $this->assertNotNull(Order::find($order->id));
@@ -238,9 +245,17 @@ class WeeklyOrderLifecycleTest extends TestCase
         $order = $this->order(['status' => Order::STATUS_PLACED]);
         $this->line($order, $this->item());
 
-        $this->actingAs($this->manager)->get(route('admin.orders.show', $order))
+        // The owner could edit this order while it was a draft, so they are the
+        // one who needs telling that it is now locked.
+        $this->actingAs($this->owner)->get(route('admin.orders.show', $order))
             ->assertOk()
             ->assertSee('lines are locked')
+            ->assertDontSee('Save changes');
+
+        // A manager never had the controls, and gets told whose call it is.
+        $this->actingAs($this->manager)->get(route('admin.orders.show', $order))
+            ->assertOk()
+            ->assertSee('The owner sets the quantities')
             ->assertDontSee('Save changes');
     }
 
@@ -252,7 +267,7 @@ class WeeklyOrderLifecycleTest extends TestCase
         $order = $this->order();
         $line = $this->line($order, $this->item(), ['quantity' => 5, 'suggested_quantity' => 5]);
 
-        $this->actingAs($this->manager)->put(route('admin.orders.items.update', $order), [
+        $this->actingAs($this->owner)->put(route('admin.orders.items.update', $order), [
             'quantity' => [$line->id => 8],
             'unit_price' => [$line->id => 145.00],
             'line_notes' => [$line->id => 'Ask for the fresh pallet'],
@@ -275,7 +290,7 @@ class WeeklyOrderLifecycleTest extends TestCase
         $keep = $this->line($order, $this->item('Steak'));
         $drop = $this->line($order, $this->item('Bread'));
 
-        $this->actingAs($this->manager)->put(route('admin.orders.items.update', $order), [
+        $this->actingAs($this->owner)->put(route('admin.orders.items.update', $order), [
             'quantity' => [$keep->id => 5, $drop->id => 0],
         ])->assertRedirect();
 
@@ -289,7 +304,7 @@ class WeeklyOrderLifecycleTest extends TestCase
         $order = $this->order();
         $line = $this->line($order, $this->item());
 
-        $this->actingAs($this->manager)->put(route('admin.orders.items.update', $order), [
+        $this->actingAs($this->owner)->put(route('admin.orders.items.update', $order), [
             'quantity' => [$line->id => 0],
         ])->assertRedirect(route('admin.orders.index', ['store_id' => $this->store->id]));
 
@@ -305,7 +320,7 @@ class WeeklyOrderLifecycleTest extends TestCase
         $stay = $this->line($order, $this->item('Steak'));
         $move = $this->line($order, $this->item('Bread'));
 
-        $this->actingAs($this->manager)->put(route('admin.orders.items.update', $order), [
+        $this->actingAs($this->owner)->put(route('admin.orders.items.update', $order), [
             'quantity' => [$stay->id => 5, $move->id => 5],
             'move_to_vendor' => [$move->id => $this->depot->id],
         ])->assertRedirect();
@@ -328,7 +343,7 @@ class WeeklyOrderLifecycleTest extends TestCase
         $existingDepotOrder = $this->order(['vendor_id' => $this->depot->id]);
         $this->line($existingDepotOrder, $this->item('Cheese'));
 
-        $this->actingAs($this->manager)->put(route('admin.orders.items.update', $order), [
+        $this->actingAs($this->owner)->put(route('admin.orders.items.update', $order), [
             'quantity' => [$stay->id => 5, $move->id => 5],
             'move_to_vendor' => [$move->id => $this->depot->id],
         ])->assertRedirect();
@@ -347,7 +362,7 @@ class WeeklyOrderLifecycleTest extends TestCase
         $this->line($order, $this->item('Steak'), ['quantity' => 9, 'unit_price' => 145.00, 'suggested_quantity' => 9]);
         $this->line($order, $this->item('Bread'), ['quantity' => 4, 'unit_price' => 32.00]);
 
-        $this->actingAs($this->manager)->post(route('admin.orders.duplicate', $order))->assertRedirect();
+        $this->actingAs($this->owner)->post(route('admin.orders.duplicate', $order))->assertRedirect();
 
         $copy = Order::where('order_sequence', 2)->firstOrFail();
         $this->assertSame($this->lisanti->id, $copy->vendor_id);
@@ -369,7 +384,7 @@ class WeeklyOrderLifecycleTest extends TestCase
         $order = $this->order(['status' => Order::STATUS_PLACED]);
         $this->line($order, $this->item());
 
-        $this->actingAs($this->manager)->post(route('admin.orders.duplicate', $order))->assertRedirect();
+        $this->actingAs($this->owner)->post(route('admin.orders.duplicate', $order))->assertRedirect();
 
         $this->assertSame(1, Order::where('order_sequence', 2)->count());
         $this->assertSame(Order::STATUS_PLACED, $order->fresh()->status);
@@ -381,7 +396,7 @@ class WeeklyOrderLifecycleTest extends TestCase
         $order = $this->order(['order_sequence' => 2]);
         $this->line($order, $this->item());
 
-        $this->actingAs($this->manager)->post(route('admin.orders.duplicate', $order))
+        $this->actingAs($this->owner)->post(route('admin.orders.duplicate', $order))
             ->assertSessionHas('error');
 
         $this->assertSame(1, Order::count());
@@ -393,8 +408,8 @@ class WeeklyOrderLifecycleTest extends TestCase
         $order = $this->order();
         $this->line($order, $this->item());
 
-        $this->actingAs($this->manager)->post(route('admin.orders.duplicate', $order))->assertRedirect();
-        $this->actingAs($this->manager)->post(route('admin.orders.duplicate', $order))
+        $this->actingAs($this->owner)->post(route('admin.orders.duplicate', $order))->assertRedirect();
+        $this->actingAs($this->owner)->post(route('admin.orders.duplicate', $order))
             ->assertSessionHas('error');
 
         $this->assertSame(1, Order::where('order_sequence', 2)->count());
@@ -405,7 +420,7 @@ class WeeklyOrderLifecycleTest extends TestCase
     {
         $first = $this->order();
         $this->line($first, $this->item('Steak'));
-        $this->actingAs($this->manager)->post(route('admin.orders.duplicate', $first))->assertRedirect();
+        $this->actingAs($this->owner)->post(route('admin.orders.duplicate', $first))->assertRedirect();
 
         $orders = Order::where('store_id', $this->store->id)
             ->forWeek($this->monday()->toDateString())
@@ -482,10 +497,10 @@ class WeeklyOrderLifecycleTest extends TestCase
             'status' => Order::STATUS_DRAFT,
         ]);
 
-        $this->actingAs($this->manager)->get(route('admin.orders.show', $foreign))->assertForbidden();
-        $this->actingAs($this->manager)->patch(route('admin.orders.placed', $foreign))->assertForbidden();
-        $this->actingAs($this->manager)->post(route('admin.orders.duplicate', $foreign))->assertForbidden();
-        $this->actingAs($this->manager)->put(route('admin.orders.items.update', $foreign), ['quantity' => []])->assertForbidden();
+        $this->actingAs($this->owner)->get(route('admin.orders.show', $foreign))->assertForbidden();
+        $this->actingAs($this->owner)->patch(route('admin.orders.placed', $foreign))->assertForbidden();
+        $this->actingAs($this->owner)->post(route('admin.orders.duplicate', $foreign))->assertForbidden();
+        $this->actingAs($this->owner)->put(route('admin.orders.items.update', $foreign), ['quantity' => []])->assertForbidden();
 
         $this->assertSame(Order::STATUS_DRAFT, $foreign->fresh()->status);
     }

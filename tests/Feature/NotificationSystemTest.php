@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Models\Vendor;
 use App\Notifications\InventoryOverdueNotification;
 use App\Notifications\InventoryReminderNotification;
+use App\Notifications\OrderReadyForManagerNotification;
 use App\Notifications\OrderStatusChangedNotification;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -25,6 +26,8 @@ class NotificationSystemTest extends TestCase
     private Store $store;
 
     private User $manager;
+
+    private User $owner;
 
     private User $admin;
 
@@ -47,6 +50,11 @@ class NotificationSystemTest extends TestCase
         $this->store = Store::factory()->create(['created_by' => $this->admin->id, 'store_info' => 'Round Rock']);
         $this->manager = User::factory()->create(['role' => 'manager', 'store_id' => $this->store->id, 'name' => 'Dana Reed']);
         $this->manager->assignedStoresPivot()->attach($this->store->id);
+
+        // The manager reports what is on the shelf; the owner decides what to
+        // buy. Anything that creates or places an order runs as the owner.
+        $this->owner = User::factory()->create(['role' => 'owner', 'name' => 'Sam Owner']);
+        $this->owner->ownedStores()->attach($this->store->id);
         $this->meats = InventoryCategory::where('name', 'Meats')->firstOrFail();
         $this->lisanti = Vendor::factory()->create(['vendor_name' => 'Lisanti', 'vendor_type' => 'Food']);
     }
@@ -191,15 +199,99 @@ class NotificationSystemTest extends TestCase
     {
         $order = $this->order();
 
-        $this->actingAs($this->manager)->patch(route('admin.orders.placed', $order))->assertRedirect();
+        $this->actingAs($this->owner)->patch(route('admin.orders.placed', $order))->assertRedirect();
 
         $notification = $this->admin->fresh()->notifications()->first();
 
         $this->assertNotNull($notification);
         $this->assertSame(OrderStatusChangedNotification::class, $notification->type);
         $this->assertStringContainsString('Order placed with Lisanti', $notification->data['title']);
-        $this->assertStringContainsString('Dana Reed placed an order with Lisanti', $notification->data['body']);
+        $this->assertStringContainsString('Sam Owner placed an order with Lisanti', $notification->data['body']);
         $this->assertStringContainsString('$580.00', $notification->data['body']);
+    }
+
+    // ---- Handing the approved order to the store ---------------------------
+
+    /** @test */
+    public function placing_an_order_sends_the_order_sheet_to_the_store_manager(): void
+    {
+        $this->lisanti->update([
+            'order_method' => 'phone',
+            'contact_phone' => '215-555-0142',
+        ]);
+
+        $order = $this->order();
+
+        $this->actingAs($this->owner)->patch(route('admin.orders.placed', $order))->assertRedirect();
+
+        $notification = $this->manager->fresh()->notifications()
+            ->where('type', OrderReadyForManagerNotification::class)->first();
+
+        $this->assertNotNull($notification, 'The manager who has to place the order was not told.');
+        $this->assertStringContainsString('Place this order with Lisanti', $notification->data['title']);
+        $this->assertStringContainsString('Sam Owner approved a Lisanti order', $notification->data['body']);
+
+        // The client wanted the channel spelled out, vendor by vendor.
+        $this->assertStringContainsString('215-555-0142', $notification->data['body']);
+
+        // The link is the printable sheet, not a wall of text to copy.
+        $this->assertSame(route('admin.orders.report.pdf', $order), $notification->data['url']);
+    }
+
+    /** @test */
+    public function a_manager_assigned_only_by_pivot_still_gets_the_order(): void
+    {
+        // The two assignment mechanisms drift apart in the live data, so a
+        // manager attached by pivot alone must not be skipped.
+        $pivotOnly = User::factory()->create(['role' => 'manager', 'store_id' => null, 'name' => 'Pivot Pat']);
+        $pivotOnly->assignedStoresPivot()->attach($this->store->id);
+
+        $this->actingAs($this->owner)->patch(route('admin.orders.placed', $this->order()))->assertRedirect();
+
+        $this->assertSame(
+            1,
+            $pivotOnly->fresh()->notifications()->where('type', OrderReadyForManagerNotification::class)->count()
+        );
+
+        // And the manager attached both ways is told once, not twice.
+        $this->manager->assignedStoresPivot()->syncWithoutDetaching([$this->store->id]);
+        $this->assertSame(
+            1,
+            $this->manager->fresh()->notifications()->where('type', OrderReadyForManagerNotification::class)->count()
+        );
+    }
+
+    /** @test */
+    public function receiving_an_order_does_not_resend_the_order_sheet(): void
+    {
+        $order = $this->order(['status' => Order::STATUS_PLACED, 'placed_at' => now()]);
+
+        $this->actingAs($this->manager)->patch(route('admin.orders.received', $order), [
+            'received' => [$order->items()->value('id') => 4],
+        ])->assertRedirect();
+
+        $this->assertSame(
+            0,
+            $this->manager->fresh()->notifications()->where('type', OrderReadyForManagerNotification::class)->count()
+        );
+    }
+
+    /** @test */
+    public function the_order_email_carries_the_pdf_and_the_vendors_channel(): void
+    {
+        $this->lisanti->update(['order_method' => 'email', 'contact_email' => 'orders@lisanti.test']);
+        $order = $this->order();
+
+        $mail = (new OrderReadyForManagerNotification($order->load(['vendor', 'store', 'items.inventoryItem']), 'Sam Owner'))
+            ->toMail($this->manager);
+
+        $attachments = $mail->rawAttachments;
+        $this->assertCount(1, $attachments, 'The order sheet was not attached.');
+        $this->assertStringStartsWith('%PDF-', $attachments[0]['data']);
+        $this->assertStringContainsString('lisanti', $attachments[0]['name']);
+
+        $body = implode(' ', array_merge($mail->introLines, $mail->outroLines));
+        $this->assertStringContainsString('orders@lisanti.test', $body);
     }
 
     /** @test */
@@ -225,7 +317,7 @@ class NotificationSystemTest extends TestCase
         $plainOwner = User::factory()->create(['role' => 'owner', 'name' => 'Some Owner', 'state' => 'PA']);
         $order = $this->order();
 
-        $this->actingAs($this->manager)->patch(route('admin.orders.placed', $order))->assertRedirect();
+        $this->actingAs($this->owner)->patch(route('admin.orders.placed', $order))->assertRedirect();
 
         $this->assertSame(1, $franchisor->fresh()->notifications()->count());
         // A regular owner is not management for this purpose.
@@ -238,7 +330,7 @@ class NotificationSystemTest extends TestCase
         Notification::fake();
         $order = $this->order(['status' => Order::STATUS_RECEIVED]);
 
-        $this->actingAs($this->manager)->patch(route('admin.orders.placed', $order))->assertSessionHas('error');
+        $this->actingAs($this->owner)->patch(route('admin.orders.placed', $order))->assertSessionHas('error');
 
         Notification::assertNothingSent();
     }

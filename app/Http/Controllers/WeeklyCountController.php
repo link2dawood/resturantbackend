@@ -58,6 +58,7 @@ class WeeklyCountController extends Controller
             'canUnlock' => auth()->user()->isAdmin(),
             'totalItems' => $rows->count(),
             'countedItems' => $rows->filter(fn ($r) => $r->counted_at !== null)->count(),
+            'canSeeSuggestions' => $this->canSeeSuggestions(),
             'previousWeekUrl' => $this->weekUrl($store, $week->copy()->subWeek(), $groupBy),
             'nextWeekUrl' => $this->isFutureWeek($week->copy()->addWeek())
                 ? null
@@ -122,13 +123,21 @@ class WeeklyCountController extends Controller
         $rows = $this->rowsFor($store, $week);
         $uncounted = $rows->filter(fn ($r) => $r->counted_at === null)->count();
 
-        // Straight on to the order suggestions: counting and ordering are one
-        // Monday-morning job, not two.
+        $summary = $uncounted > 0
+            ? "Week submitted and locked. {$uncounted} item(s) were left uncounted."
+            : 'Week submitted and locked. Every item was counted.';
+
+        // An owner carries straight on into deciding what to order. A manager's
+        // job ends at the count, so they get told it landed and stop there.
+        if ($this->canSeeSuggestions()) {
+            return redirect()
+                ->route('inventory.weekly-count.suggestions', ['store_id' => $store->id, 'week' => $week->toDateString()])
+                ->with('success', $summary);
+        }
+
         return redirect()
-            ->route('inventory.weekly-count.suggestions', ['store_id' => $store->id, 'week' => $week->toDateString()])
-            ->with('success', $uncounted > 0
-                ? "Week submitted and locked. {$uncounted} item(s) were left uncounted."
-                : 'Week submitted and locked. Every item was counted.');
+            ->route('inventory.weekly-count.index', ['store_id' => $store->id, 'week' => $week->toDateString()])
+            ->with('success', $summary.' Your counts have gone to the owner for ordering.');
     }
 
     /**
@@ -261,6 +270,14 @@ class WeeklyCountController extends Controller
             ->update(['status' => InventoryStock::STATUS_DRAFT]);
 
         return back()->with('success', 'Week unlocked for editing.');
+    }
+
+    /** Only the owner decides what to buy; the manager reports what is there. */
+    private function canSeeSuggestions(): bool
+    {
+        $user = auth()->user();
+
+        return $user && ($user->isAdmin() || $user->isOwner());
     }
 
     // ---- week + permission rules ------------------------------------------

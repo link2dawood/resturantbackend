@@ -59,12 +59,17 @@
     <tr>
         <td style="width: 50%; padding-right: 12pt;">
             <div class="label">Vendor</div>
-            <strong>{{ $vendor->vendor_name ?? 'Vendor' }}</strong><br>
+            <strong>{{ $vendor->vendor_name ?? 'Vendor' }}</strong>
+            @if(filled($vendor?->order_method_label))
+                <span class="muted">({{ $vendor->order_method_label }})</span>
+            @endif
+            <br>
             <span class="muted">
                 @if(filled($vendor?->contact_name)){{ $vendor->contact_name }}<br>@endif
                 @if(filled($vendor?->contact_phone)){{ $vendor->contact_phone }}<br>@endif
                 @if(filled($vendor?->contact_email)){{ $vendor->contact_email }}<br>@endif
                 @if(filled($vendor?->address)){{ $vendor->address }}@endif
+                @if(filled($vendor?->order_notes))<br>{{ $vendor->order_notes }}@endif
             </span>
         </td>
         <td style="width: 50%;">

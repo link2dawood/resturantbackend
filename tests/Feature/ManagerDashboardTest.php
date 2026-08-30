@@ -23,6 +23,8 @@ class ManagerDashboardTest extends TestCase
 
     private User $manager;
 
+    private User $owner;
+
     private Vendor $lisanti;
 
     private InventoryCategory $meats;
@@ -44,6 +46,11 @@ class ManagerDashboardTest extends TestCase
         $this->store = Store::factory()->create(['created_by' => $admin->id, 'store_info' => 'Round Rock']);
         $this->manager = User::factory()->create(['role' => 'manager', 'store_id' => $this->store->id, 'name' => 'Dana Reed']);
         $this->manager->assignedStoresPivot()->attach($this->store->id);
+
+        // The manager reports what is on the shelf; the owner decides what to
+        // buy. Anything that creates or places an order runs as the owner.
+        $this->owner = User::factory()->create(['role' => 'owner', 'name' => 'Sam Owner']);
+        $this->owner->ownedStores()->attach($this->store->id);
         $this->meats = InventoryCategory::where('name', 'Meats')->firstOrFail();
         $this->lisanti = Vendor::factory()->create(['vendor_name' => 'Lisanti', 'vendor_type' => 'Food']);
         $this->widgets = app(ManagerDashboardService::class);
@@ -367,6 +374,12 @@ class ManagerDashboardTest extends TestCase
             ->assertOk()
             ->assertSee(route('inventory.weekly-count.index', ['store_id' => $this->store->id]), false)
             ->assertSee(route('admin.orders.index', ['store_id' => $this->store->id]), false)
+            // The manager cannot open suggestions, so the low-stock widget sends
+            // them to the count instead of a 403.
+            ->assertDontSee(route('inventory.weekly-count.suggestions', ['store_id' => $this->store->id]), false);
+
+        $this->actingAs($this->owner)->get(route('admin.inventory-dashboard.index'))
+            ->assertOk()
             ->assertSee(route('inventory.weekly-count.suggestions', ['store_id' => $this->store->id]), false);
     }
 

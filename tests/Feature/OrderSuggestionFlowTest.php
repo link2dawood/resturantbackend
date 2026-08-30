@@ -24,6 +24,8 @@ class OrderSuggestionFlowTest extends TestCase
 
     private User $manager;
 
+    private User $owner;
+
     private InventoryCategory $meats;
 
     private Vendor $lisanti;
@@ -47,6 +49,11 @@ class OrderSuggestionFlowTest extends TestCase
         $this->store = Store::factory()->create(['created_by' => $admin->id, 'store_info' => 'Round Rock']);
         $this->manager = User::factory()->create(['role' => 'manager', 'store_id' => $this->store->id]);
         $this->manager->assignedStoresPivot()->attach($this->store->id);
+
+        // The manager reports what is on the shelf; the owner decides what to
+        // buy. Anything that creates or places an order runs as the owner.
+        $this->owner = User::factory()->create(['role' => 'owner', 'name' => 'Sam Owner']);
+        $this->owner->ownedStores()->attach($this->store->id);
         $this->meats = InventoryCategory::where('name', 'Meats')->firstOrFail();
         $this->lisanti = Vendor::factory()->create(['vendor_name' => 'Lisanti', 'vendor_type' => 'Food']);
     }
@@ -97,7 +104,7 @@ class OrderSuggestionFlowTest extends TestCase
         $this->target($steak, 15);
         $this->countRow($steak, 53 * 6);
 
-        $this->actingAs($this->manager)
+        $this->actingAs($this->owner)
             ->get(route('inventory.weekly-count.suggestions', ['week' => $this->monday()->toDateString()]))
             ->assertOk()
             ->assertSee('Order Suggestions')
@@ -107,7 +114,7 @@ class OrderSuggestionFlowTest extends TestCase
     }
 
     /** @test */
-    public function submitting_the_count_lands_on_the_suggestions_screen(): void
+    public function submitting_the_count_lands_the_manager_back_on_the_count(): void
     {
         $steak = $this->item();
         $this->target($steak, 15);
@@ -121,7 +128,7 @@ class OrderSuggestionFlowTest extends TestCase
                 'week' => $this->monday()->toDateString(),
                 'counts' => [$row->id => 53 * 6],
             ])
-            ->assertRedirect(route('inventory.weekly-count.suggestions', [
+            ->assertRedirect(route('inventory.weekly-count.index', [
                 'store_id' => $this->store->id,
                 'week' => $this->monday()->toDateString(),
             ]));
@@ -132,7 +139,7 @@ class OrderSuggestionFlowTest extends TestCase
     {
         $this->item('Untargeted Item');
 
-        $this->actingAs($this->manager)
+        $this->actingAs($this->owner)
             ->get(route('inventory.weekly-count.suggestions', ['week' => $this->monday()->toDateString()]))
             ->assertOk()
             ->assertSee('no stock target')
@@ -148,7 +155,7 @@ class OrderSuggestionFlowTest extends TestCase
         $this->target($steak, 15);
         $this->countRow($steak, 53 * 6);
 
-        $this->actingAs($this->manager)->post(route('inventory.weekly-count.generate-order'), [
+        $this->actingAs($this->owner)->post(route('inventory.weekly-count.generate-order'), [
             'store_id' => $this->store->id,
             'week' => $this->monday()->toDateString(),
             'quantities' => [$steak->id => 9],
@@ -169,7 +176,7 @@ class OrderSuggestionFlowTest extends TestCase
         $this->target($steak, 15);
         $this->countRow($steak, 53 * 6); // suggests 9
 
-        $response = $this->actingAs($this->manager)->post(route('inventory.weekly-count.generate-order'), [
+        $response = $this->actingAs($this->owner)->post(route('inventory.weekly-count.generate-order'), [
             'store_id' => $this->store->id,
             'week' => $this->monday()->toDateString(),
             'quantities' => [$steak->id => 12], // manager orders more
@@ -192,7 +199,7 @@ class OrderSuggestionFlowTest extends TestCase
         $this->target($steak, 15);
         $this->countRow($steak, 53 * 6);
 
-        $this->actingAs($this->manager)->post(route('inventory.weekly-count.generate-order'), [
+        $this->actingAs($this->owner)->post(route('inventory.weekly-count.generate-order'), [
             'store_id' => $this->store->id,
             'week' => $this->monday()->toDateString(),
             'quantities' => [$steak->id => 0],
@@ -214,7 +221,7 @@ class OrderSuggestionFlowTest extends TestCase
         $this->countRow($steak, 0);
         $this->countRow($bread, 0);
 
-        $this->actingAs($this->manager)->post(route('inventory.weekly-count.generate-order'), [
+        $this->actingAs($this->owner)->post(route('inventory.weekly-count.generate-order'), [
             'store_id' => $this->store->id,
             'week' => $this->monday()->toDateString(),
             'quantities' => [$steak->id => 15, $bread->id => 10],
@@ -233,7 +240,7 @@ class OrderSuggestionFlowTest extends TestCase
         $this->target($orphan, 15);
         $this->countRow($orphan, 0);
 
-        $this->actingAs($this->manager)->post(route('inventory.weekly-count.generate-order'), [
+        $this->actingAs($this->owner)->post(route('inventory.weekly-count.generate-order'), [
             'store_id' => $this->store->id,
             'week' => $this->monday()->toDateString(),
             'quantities' => [$orphan->id => 15],
@@ -259,7 +266,7 @@ class OrderSuggestionFlowTest extends TestCase
         ]);
 
         foreach ([15, 12] as $quantity) {
-            $this->actingAs($this->manager)->post(route('inventory.weekly-count.generate-order'), [
+            $this->actingAs($this->owner)->post(route('inventory.weekly-count.generate-order'), [
                 'store_id' => $this->store->id,
                 'week' => $this->monday()->toDateString(),
                 'quantities' => [$steak->id => $quantity],
@@ -293,7 +300,7 @@ class OrderSuggestionFlowTest extends TestCase
         $this->target($mine, 15);
         $this->countRow($mine, 0);
 
-        $this->actingAs($this->manager)->post(route('inventory.weekly-count.generate-order'), [
+        $this->actingAs($this->owner)->post(route('inventory.weekly-count.generate-order'), [
             'store_id' => $this->store->id,
             'week' => $this->monday()->toDateString(),
             'quantities' => [$mine->id => 15, $foreign->id => 99],
@@ -316,7 +323,7 @@ class OrderSuggestionFlowTest extends TestCase
         ]);
         $this->item('Zeta Mine Fixture');
 
-        $this->actingAs($this->manager)
+        $this->actingAs($this->owner)
             ->get(route('inventory.weekly-count.suggestions', ['store_id' => $otherStore->id]))
             ->assertOk()
             ->assertSee('Zeta Mine Fixture')
@@ -350,18 +357,18 @@ class OrderSuggestionFlowTest extends TestCase
             'store_id' => $this->store->id,
             'week' => $this->monday()->toDateString(),
             'counts' => [$steakRow->id => 4, $oilRow->id => 3],
-        ])->assertRedirect(route('inventory.weekly-count.suggestions', [
+        ])->assertRedirect(route('inventory.weekly-count.index', [
             'store_id' => $this->store->id, 'week' => $this->monday()->toDateString(),
         ]));
 
         // 2. The suggestions screen proposes 11 boxes and 7 jugs.
-        $this->actingAs($this->manager)
+        $this->actingAs($this->owner)
             ->get(route('inventory.weekly-count.suggestions', ['week' => $this->monday()->toDateString()]))
             ->assertOk()
             ->assertSee('2 of 2 items');
 
         // 3. Accept steak, override oil down to 5.
-        $this->actingAs($this->manager)->post(route('inventory.weekly-count.generate-order'), [
+        $this->actingAs($this->owner)->post(route('inventory.weekly-count.generate-order'), [
             'store_id' => $this->store->id,
             'week' => $this->monday()->toDateString(),
             'quantities' => [$steak->id => 11, $oil->id => 5],

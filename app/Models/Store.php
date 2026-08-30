@@ -82,6 +82,24 @@ class Store extends Model
     }
 
     /**
+     * Every manager of this store, however they were assigned.
+     *
+     * Managers reach a store two ways, the `store_id` column and the
+     * `manager_store` pivot, and the two drift apart in practice. Anything that
+     * must reach all of them, such as sending an approved order out to be
+     * placed, reads both and dedupes.
+     *
+     * @return \Illuminate\Support\Collection<int, User>
+     */
+    public function allManagers()
+    {
+        return $this->managers()->get()
+            ->concat($this->assignedManagers()->get())
+            ->unique('id')
+            ->values();
+    }
+
+    /**
      * The daily reports for this store.
      */
     public function dailyReports()

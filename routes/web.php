@@ -166,8 +166,13 @@ Route::middleware(['auth', 'verified', 'trial'])->group(function () {
         Route::post('/inventory/weekly-count/autosave', [\App\Http\Controllers\WeeklyCountController::class, 'autosave'])->name('inventory.weekly-count.autosave');
         Route::post('/inventory/weekly-count/submit', [\App\Http\Controllers\WeeklyCountController::class, 'submit'])->name('inventory.weekly-count.submit');
         Route::post('/inventory/weekly-count/unlock', [\App\Http\Controllers\WeeklyCountController::class, 'unlock'])->name('inventory.weekly-count.unlock');
-        Route::get('/inventory/weekly-count/suggestions', [\App\Http\Controllers\WeeklyCountController::class, 'suggestions'])->name('inventory.weekly-count.suggestions');
-        Route::post('/inventory/weekly-count/generate-order', [\App\Http\Controllers\WeeklyCountController::class, 'generateOrder'])->name('inventory.weekly-count.generate-order');
+        // Suggestions and order creation are owner-facing. The client: "manager
+        // can send just the inventory on hand", and "only owners can place an
+        // order".
+        Route::middleware('role:admin,owner')->group(function () {
+            Route::get('/inventory/weekly-count/suggestions', [\App\Http\Controllers\WeeklyCountController::class, 'suggestions'])->name('inventory.weekly-count.suggestions');
+            Route::post('/inventory/weekly-count/generate-order', [\App\Http\Controllers\WeeklyCountController::class, 'generateOrder'])->name('inventory.weekly-count.generate-order');
+        });
     });
 
     // Square sales import (Phase 5.4) — weekly Items Sold CSV wizard.
@@ -181,8 +186,8 @@ Route::middleware(['auth', 'verified', 'trial'])->group(function () {
 
         // Multi-vendor orders (Phase 5.6). build/generate MUST precede {order}.
         Route::get('/orders', [\App\Http\Controllers\Admin\OrderController::class, 'index'])->name('admin.orders.index');
-        Route::get('/orders/build', [\App\Http\Controllers\Admin\OrderController::class, 'build'])->name('admin.orders.build');
-        Route::post('/orders/generate', [\App\Http\Controllers\Admin\OrderController::class, 'generate'])->name('admin.orders.generate');
+        Route::get('/orders/build', [\App\Http\Controllers\Admin\OrderController::class, 'build'])->middleware('role:admin,owner')->name('admin.orders.build');
+        Route::post('/orders/generate', [\App\Http\Controllers\Admin\OrderController::class, 'generate'])->middleware('role:admin,owner')->name('admin.orders.generate');
         // /orders/history MUST precede /orders/{order} or the wildcard eats it.
         // Owner-facing only: the client considers past ordering a back-office
         // view, not something the manager needs on a Monday morning.
@@ -191,15 +196,15 @@ Route::middleware(['auth', 'verified', 'trial'])->group(function () {
         Route::get('/orders/{order}', [\App\Http\Controllers\Admin\OrderController::class, 'show'])->name('admin.orders.show');
         Route::get('/orders/{order}/report', [\App\Http\Controllers\Admin\OrderController::class, 'report'])->name('admin.orders.report');
         Route::get('/orders/{order}/report/pdf', [\App\Http\Controllers\Admin\OrderController::class, 'reportPdf'])->name('admin.orders.report.pdf');
-        Route::patch('/orders/{order}/placed', [\App\Http\Controllers\Admin\OrderController::class, 'markPlaced'])->name('admin.orders.placed');
+        Route::patch('/orders/{order}/placed', [\App\Http\Controllers\Admin\OrderController::class, 'markPlaced'])->middleware('role:admin,owner')->name('admin.orders.placed');
         Route::get('/orders/{order}/receive', [\App\Http\Controllers\Admin\OrderController::class, 'receiveForm'])->name('admin.orders.receive');
         Route::patch('/orders/{order}/received', [\App\Http\Controllers\Admin\OrderController::class, 'markReceived'])->name('admin.orders.received');
-        Route::patch('/orders/{order}/cancel', [\App\Http\Controllers\Admin\OrderController::class, 'cancel'])->name('admin.orders.cancel');
-        Route::put('/orders/{order}/items', [\App\Http\Controllers\Admin\OrderController::class, 'updateItems'])->name('admin.orders.items.update');
-        Route::post('/orders/{order}/duplicate', [\App\Http\Controllers\Admin\OrderController::class, 'duplicateForSecondOrder'])->name('admin.orders.duplicate');
+        Route::patch('/orders/{order}/cancel', [\App\Http\Controllers\Admin\OrderController::class, 'cancel'])->middleware('role:admin,owner')->name('admin.orders.cancel');
+        Route::put('/orders/{order}/items', [\App\Http\Controllers\Admin\OrderController::class, 'updateItems'])->middleware('role:admin,owner')->name('admin.orders.items.update');
+        Route::post('/orders/{order}/duplicate', [\App\Http\Controllers\Admin\OrderController::class, 'duplicateForSecondOrder'])->middleware('role:admin,owner')->name('admin.orders.duplicate');
         Route::post('/orders/{order}/reorder', [\App\Http\Controllers\Admin\OrderHistoryController::class, 'reorder'])
             ->middleware('role:admin,owner')->name('admin.orders.reorder');
-        Route::delete('/orders/{order}', [\App\Http\Controllers\Admin\OrderController::class, 'destroy'])->name('admin.orders.destroy');
+        Route::delete('/orders/{order}', [\App\Http\Controllers\Admin\OrderController::class, 'destroy'])->middleware('role:admin,owner')->name('admin.orders.destroy');
 
         // Vendor prices & comparison (Phase 5.7, extended in Phase 5 Part 1 Task 6).
         // Paths moved from /vendor-prices to /pricing/*; the route NAMES are kept

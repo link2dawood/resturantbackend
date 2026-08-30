@@ -8,7 +8,9 @@ use App\Models\Order;
 use App\Models\Store;
 use App\Models\Vendor;
 use App\Services\Inventory\StockUpService;
+use App\Notifications\OrderReadyForManagerNotification;
 use App\Notifications\OrderStatusChangedNotification;
+use App\Support\OrderPdf;
 use App\Support\VendorOrderText;
 use App\Models\User;
 use Illuminate\Support\Facades\Notification;
@@ -205,23 +207,9 @@ class OrderController extends Controller
     {
         $this->authorizeStore($order);
 
-        $order->load(['vendor', 'store', 'items.inventoryItem']);
+        $filename = OrderPdf::filename($order);
 
-        $html = view('admin.orders.report-pdf', ['order' => $order])->render();
-
-        $dompdf = new \Dompdf\Dompdf;
-        $dompdf->loadHtml($html);
-        $dompdf->setPaper('letter', 'portrait');
-        $dompdf->render();
-
-        $filename = sprintf(
-            'order-%s-%s-%d.pdf',
-            str($order->vendor->vendor_name ?? 'vendor')->slug(),
-            $order->week_start_date->toDateString(),
-            $order->order_sequence
-        );
-
-        return response($dompdf->output(), 200, [
+        return response(OrderPdf::render($order), 200, [
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => "inline; filename=\"{$filename}\"",
         ]);
@@ -354,6 +342,12 @@ class OrderController extends Controller
             $this->notifyManagement($order, $notifyEvent);
         }
 
+        // An owner approving an order is only half the job: somebody at the
+        // store still has to phone it through. Send them the sheet.
+        if ($status === Order::STATUS_PLACED) {
+            $this->sendOrderToStoreManagers($order);
+        }
+
         return back()->with('success', $message);
     }
 
@@ -376,6 +370,33 @@ class OrderController extends Controller
             Notification::send($recipients, new OrderStatusChangedNotification(
                 $order->load(['vendor', 'store', 'items']),
                 $event,
+                auth()->user()?->name
+            ));
+        } catch (\Throwable $e) {
+            report($e);
+        }
+    }
+
+    /**
+     * Hand an approved order to the people who will place it and later check it
+     * in. Like notifyManagement this fails soft: the order is already approved,
+     * and a mail outage must not undo that.
+     */
+    private function sendOrderToStoreManagers(Order $order): void
+    {
+        $order->loadMissing(['vendor', 'store', 'items.inventoryItem']);
+
+        $recipients = $order->store?->allManagers() ?? collect();
+
+        // The owner may have placed it themselves at a store with no manager on
+        // file. Nothing to send, and nothing wrong.
+        if ($recipients->isEmpty()) {
+            return;
+        }
+
+        try {
+            Notification::send($recipients, new OrderReadyForManagerNotification(
+                $order,
                 auth()->user()?->name
             ));
         } catch (\Throwable $e) {

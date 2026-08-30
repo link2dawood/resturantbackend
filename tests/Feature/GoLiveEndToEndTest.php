@@ -133,7 +133,7 @@ class GoLiveEndToEndTest extends TestCase
             'store_id' => $this->store->id,
             'week' => $this->monday()->toDateString(),
             'counts' => [$steakRow->id => 4, $breadRow->id => 3],
-        ])->assertRedirect(route('inventory.weekly-count.suggestions', [
+        ])->assertRedirect(route('inventory.weekly-count.index', [
             'store_id' => $this->store->id, 'week' => $this->monday()->toDateString(),
         ]));
 
@@ -146,7 +146,7 @@ class GoLiveEndToEndTest extends TestCase
         ])->assertStatus(422);
 
         // ── 5. Suggestions: target minus counted, per item.
-        $this->actingAs($this->manager)
+        $this->actingAs($this->owner)
             ->get(route('inventory.weekly-count.suggestions', ['week' => $this->monday()->toDateString()]))
             ->assertOk()
             ->assertSee('2 of 2 items');
@@ -160,7 +160,7 @@ class GoLiveEndToEndTest extends TestCase
         $this->assertEqualsWithDelta(7.0, $suggestions['8 inch Bread']['suggested_order'], 0.001);
 
         // ── 6. Generate orders, overriding the bread down to 5.
-        $this->actingAs($this->manager)->post(route('inventory.weekly-count.generate-order'), [
+        $this->actingAs($this->owner)->post(route('inventory.weekly-count.generate-order'), [
             'store_id' => $this->store->id,
             'week' => $this->monday()->toDateString(),
             'quantities' => [$steak->id => 11, $bread->id => 5],
@@ -178,7 +178,7 @@ class GoLiveEndToEndTest extends TestCase
 
         // ── 7. Price the Lisanti order and check the total.
         $steakLine = $lisantiOrder->items()->firstOrFail();
-        $this->actingAs($this->manager)->put(route('admin.orders.items.update', $lisantiOrder), [
+        $this->actingAs($this->owner)->put(route('admin.orders.items.update', $lisantiOrder), [
             'quantity' => [$steakLine->id => 11],
             'unit_price' => [$steakLine->id => 145.00],
             'notes' => 'Deliver before 10am',
@@ -198,11 +198,11 @@ class GoLiveEndToEndTest extends TestCase
         $this->assertStringStartsWith('%PDF-', $pdf->getContent());
 
         // ── 9. Mark placed. The order locks and management is notified.
-        $this->actingAs($this->manager)->patch(route('admin.orders.placed', $lisantiOrder))->assertRedirect();
+        $this->actingAs($this->owner)->patch(route('admin.orders.placed', $lisantiOrder))->assertRedirect();
         $this->assertSame(Order::STATUS_PLACED, $lisantiOrder->fresh()->status);
         Notification::assertSentTo($this->admin, \App\Notifications\OrderStatusChangedNotification::class);
 
-        $this->actingAs($this->manager)->put(route('admin.orders.items.update', $lisantiOrder), [
+        $this->actingAs($this->owner)->put(route('admin.orders.items.update', $lisantiOrder), [
             'quantity' => [$steakLine->id => 99],
         ])->assertSessionHas('error');
 

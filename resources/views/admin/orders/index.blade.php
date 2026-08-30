@@ -2,16 +2,22 @@
 
 @section('title', 'Orders')
 
-@php $fmt = fn ($n) => rtrim(rtrim(number_format((float) $n, 4, '.', ''), '0'), '.'); @endphp
+@php
+    $fmt = fn ($n) => rtrim(rtrim(number_format((float) $n, 4, '.', ''), '0'), '.');
+    // The owner decides what to buy; the manager places it and checks it in.
+    $canOrder = Auth::user()->isAdmin() || Auth::user()->isOwner();
+@endphp
 
 @section('content')
 <div class="container-xl mt-4">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
         <h1 class="mb-0">Orders @unless($allWeeks) &middot; week of {{ $week->format('M j, Y') }} @else &middot; all weeks @endunless</h1>
-        <div class="d-flex gap-2">
-            <a href="{{ route('admin.orders.history', ['store_id' => $store->id]) }}" class="btn btn-outline-secondary">Order history</a>
-            <a href="{{ route('admin.orders.build', ['store_id' => $store->id, 'week_start_date' => $week->toDateString()]) }}" class="btn btn-primary">Build order</a>
-        </div>
+        @if($canOrder)
+            <div class="d-flex gap-2">
+                <a href="{{ route('admin.orders.history', ['store_id' => $store->id]) }}" class="btn btn-outline-secondary">Order history</a>
+                <a href="{{ route('admin.orders.build', ['store_id' => $store->id, 'week_start_date' => $week->toDateString()]) }}" class="btn btn-primary">Build order</a>
+            </div>
+        @endif
     </div>
 
     @if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
@@ -72,18 +78,25 @@
                                 <td class="text-end">
                                     <a href="{{ route('admin.orders.show', $order) }}" class="btn btn-sm btn-outline-primary">View</a>
                                     <a href="{{ route('admin.orders.report', $order) }}" class="btn btn-sm btn-outline-secondary" title="Printable vendor report">Report</a>
-                                    @if($order->status === 'draft')
+                                    @if($order->status === 'draft' && $canOrder)
                                         <form action="{{ route('admin.orders.placed', $order) }}" method="POST" class="d-inline">@csrf @method('PATCH')<button class="btn btn-sm btn-outline-info">Mark placed</button></form>
                                     @elseif($order->status === 'placed')
                                         <a href="{{ route('admin.orders.receive', $order) }}" class="btn btn-sm btn-outline-success">Check in</a>
                                     @endif
-                                    @if((int) $order->order_sequence === 1 && $order->status !== 'cancelled')
+                                    @if($canOrder && (int) $order->order_sequence === 1 && $order->status !== 'cancelled')
                                         <form action="{{ route('admin.orders.duplicate', $order) }}" method="POST" class="d-inline">@csrf<button class="btn btn-sm btn-outline-secondary" title="Copy these lines into a second order for the same week">Duplicate for Order 2</button></form>
                                     @endif
                                 </td>
                             </tr>
                         @empty
-                            <tr><td colspan="{{ $allWeeks ? 7 : 6 }}" class="text-center text-muted py-4">No orders for this week. <a href="{{ route('admin.orders.build', ['store_id' => $store->id, 'week_start_date' => $week->toDateString()]) }}">Build one</a>.</td></tr>
+                            <tr><td colspan="{{ $allWeeks ? 7 : 6 }}" class="text-center text-muted py-4">
+                                No orders for this week.
+                                @if($canOrder)
+                                    <a href="{{ route('admin.orders.build', ['store_id' => $store->id, 'week_start_date' => $week->toDateString()]) }}">Build one</a>.
+                                @else
+                                    The owner raises the orders; they will appear here for you to place and check in.
+                                @endif
+                            </td></tr>
                         @endforelse
                     </tbody>
                 </table>

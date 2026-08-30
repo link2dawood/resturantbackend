@@ -214,6 +214,11 @@
 
         @if($editable && $totalItems > 0)
         <div class="sticky-save mt-3">
+            @unless($canSeeSuggestions)
+                <div class="text-center text-muted small mb-2">
+                    Submitting sends your counts to the owner, who places the orders.
+                </div>
+            @endunless
             <div class="d-flex gap-2 align-items-center">
                 <button type="button" class="btn btn-outline-primary flex-fill" onclick="saveDraft(true)">
                     Save draft

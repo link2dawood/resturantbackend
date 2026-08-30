@@ -73,8 +73,10 @@
         <div class="col-12 col-md-6 col-xl-3">
             <x-widget-card
                 title="Low stock"
-                :href="route('inventory.weekly-count.suggestions', ['store_id' => $store->id])"
-                link-text="Suggestions"
+                :href="(Auth::user()->isAdmin() || Auth::user()->isOwner())
+                    ? route('inventory.weekly-count.suggestions', ['store_id' => $store->id])
+                    : route('inventory.weekly-count.index', ['store_id' => $store->id])"
+                :link-text="(Auth::user()->isAdmin() || Auth::user()->isOwner()) ? 'Suggestions' : 'Count'"
                 :value="$lowStock->count()"
                 :subtitle="$lowStock->count() === 0
                     ? 'everything counted is above its reorder point'

@@ -12,6 +12,7 @@ All project documentation lives here. Use **`CURSOR.md`** at the project root fo
 | **compliance/** | Client reports, phase requirements, implementation summary, security |
 | **development/** | Frontend components (tables, buttons), dev conventions |
 | **data/** | Sample data / PDFs (optional) |
+| **phase-5/** | Inventory and ordering: user guides, deployment checklist, CI/CD setup |
 
 ## Quick links
 
@@ -22,3 +23,6 @@ All project documentation lives here. Use **`CURSOR.md`** at the project root fo
 - [Docker](guides/docker.md) / [Docker setup](guides/docker-setup.md)
 - [Permissions](guides/permissions-implementation.md) / [Role permissions](guides/role-permissions.md)
 - [Table component](development/table-component-usage.md) / [Button components](development/button-components-usage.md)
+- [Manager quick start](phase-5/manager-quick-start.md) — counting the shelf, placing and checking in orders
+- [Owner quick start](phase-5/owner-quick-start.md) — order suggestions, approving orders, stock targets
+- [Deployment checklist](phase-5/deployment-checklist.md) / [CI/CD setup](phase-5/ci-cd-setup.md)
