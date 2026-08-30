@@ -198,7 +198,10 @@ class NotificationSystemTest extends TestCase
     {
         $order = $this->order(['status' => Order::STATUS_PLACED, 'placed_at' => now()]);
 
-        $this->actingAs($this->manager)->patch(route('admin.orders.received', $order))->assertRedirect();
+        $line = $order->items()->firstOrFail();
+        $this->actingAs($this->manager)->patch(route('admin.orders.received', $order), [
+            'received' => [$line->id => $line->quantity],
+        ])->assertRedirect();
 
         $notification = $this->admin->fresh()->notifications()->first();
 

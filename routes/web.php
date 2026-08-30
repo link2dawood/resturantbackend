@@ -192,6 +192,7 @@ Route::middleware(['auth', 'verified', 'trial'])->group(function () {
         Route::get('/orders/{order}/report', [\App\Http\Controllers\Admin\OrderController::class, 'report'])->name('admin.orders.report');
         Route::get('/orders/{order}/report/pdf', [\App\Http\Controllers\Admin\OrderController::class, 'reportPdf'])->name('admin.orders.report.pdf');
         Route::patch('/orders/{order}/placed', [\App\Http\Controllers\Admin\OrderController::class, 'markPlaced'])->name('admin.orders.placed');
+        Route::get('/orders/{order}/receive', [\App\Http\Controllers\Admin\OrderController::class, 'receiveForm'])->name('admin.orders.receive');
         Route::patch('/orders/{order}/received', [\App\Http\Controllers\Admin\OrderController::class, 'markReceived'])->name('admin.orders.received');
         Route::patch('/orders/{order}/cancel', [\App\Http\Controllers\Admin\OrderController::class, 'cancel'])->name('admin.orders.cancel');
         Route::put('/orders/{order}/items', [\App\Http\Controllers\Admin\OrderController::class, 'updateItems'])->name('admin.orders.items.update');

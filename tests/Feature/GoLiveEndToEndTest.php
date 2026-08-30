@@ -207,7 +207,9 @@ class GoLiveEndToEndTest extends TestCase
         ])->assertSessionHas('error');
 
         // ── 10. Mark received.
-        $this->actingAs($this->manager)->patch(route('admin.orders.received', $lisantiOrder))->assertRedirect();
+        $this->actingAs($this->manager)->patch(route('admin.orders.received', $lisantiOrder), [
+            'received' => [$steakLine->id => $steakLine->quantity],
+        ])->assertRedirect();
         $this->assertSame(Order::STATUS_RECEIVED, $lisantiOrder->fresh()->status);
         $this->assertNotNull($lisantiOrder->fresh()->received_at);
 

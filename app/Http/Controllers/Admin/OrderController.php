@@ -234,11 +234,98 @@ class OrderController extends Controller
         ], 'Order marked as placed. The lines are now locked.', OrderStatusChangedNotification::EVENT_PLACED);
     }
 
-    public function markReceived(Order $order)
+    /** The check-in screen: what was ordered against what turned up. */
+    public function receiveForm(Order $order)
     {
-        return $this->transition($order, Order::STATUS_RECEIVED, [
-            'received_at' => now(),
-        ], 'Order marked as received.', OrderStatusChangedNotification::EVENT_RECEIVED);
+        $this->authorizeStore($order);
+
+        if (! $order->canTransitionTo(Order::STATUS_RECEIVED) && $order->status !== Order::STATUS_RECEIVED) {
+            return redirect()->route('admin.orders.show', $order)
+                ->with('error', 'An order that is '.$order->status.' cannot be checked in.');
+        }
+
+        return view('admin.orders.receive', [
+            'order' => $order->load(['vendor', 'store', 'items.inventoryItem']),
+        ]);
+    }
+
+    /**
+     * Record the delivery line by line.
+     *
+     * The client had a vendor ship more than was ordered and nobody caught it,
+     * so what arrived is stored against what was asked for and any difference is
+     * reported rather than quietly accepted.
+     */
+    public function markReceived(Request $request, Order $order)
+    {
+        $this->authorizeStore($order);
+
+        if (! $order->canTransitionTo(Order::STATUS_RECEIVED)) {
+            return back()->with('error', "An order that is {$order->status} cannot be marked received.");
+        }
+
+        $data = $request->validate([
+            // present, not required: an order with no lines can still be closed
+            // off, but a caller must send the field consciously rather than
+            // falling back to the old one-click "all arrived" behaviour.
+            'received' => ['present', 'array'],
+            'received.*' => ['nullable', 'numeric', 'min:0', 'max:99999999'],
+            'received_notes' => ['nullable', 'array'],
+            'received_notes.*' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $unchecked = 0;
+
+        DB::transaction(function () use ($order, $data, &$unchecked) {
+            foreach ($order->items()->get() as $line) {
+                $entered = $data['received'][$line->id] ?? null;
+
+                // Blank means nobody checked this line, which is not the same as
+                // nothing arriving. Leave it null and say so.
+                if (! filled($entered)) {
+                    $unchecked++;
+                    $line->received_notes = $data['received_notes'][$line->id] ?? null;
+                    $line->save();
+
+                    continue;
+                }
+
+                $line->quantity_received = (float) $entered;
+                $line->received_notes = $data['received_notes'][$line->id] ?? null;
+                $line->save();
+            }
+
+            $order->update([
+                'status' => Order::STATUS_RECEIVED,
+                'received_at' => now(),
+                'received_by' => auth()->id(),
+            ]);
+        });
+
+        $this->notifyManagement($order, OrderStatusChangedNotification::EVENT_RECEIVED);
+
+        $order->refresh()->load('items.inventoryItem');
+        $discrepancies = $order->discrepancies;
+
+        $message = 'Delivery checked in.';
+
+        if ($discrepancies->isNotEmpty()) {
+            $message .= ' '.$discrepancies->count().' line(s) did not match the order';
+
+            if (abs($order->discrepancy_value) >= 0.01) {
+                $message .= ' ('.($order->discrepancy_value > 0 ? '+' : '')
+                    .'$'.number_format($order->discrepancy_value, 2).')';
+            }
+
+            $message .= '.';
+        }
+
+        if ($unchecked > 0) {
+            $message .= " {$unchecked} line(s) were left unchecked.";
+        }
+
+        return redirect()->route('admin.orders.show', $order)
+            ->with($discrepancies->isNotEmpty() ? 'error' : 'success', $message);
     }
 
     public function cancel(Order $order)

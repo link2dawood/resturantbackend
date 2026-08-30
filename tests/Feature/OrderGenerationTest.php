@@ -94,7 +94,7 @@ class OrderGenerationTest extends TestCase
         $this->assertSame('placed', $order->fresh()->status);
         $this->assertNotNull($order->fresh()->placed_at);
 
-        $this->actingAs($admin)->patch(route('admin.orders.received', $order));
+        $this->actingAs($admin)->patch(route('admin.orders.received', $order), ['received' => $order->items()->pluck('quantity', 'id')->all()]);
         $this->assertSame('received', $order->fresh()->status);
         $this->assertNotNull($order->fresh()->received_at);
     }

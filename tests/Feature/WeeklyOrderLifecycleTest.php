@@ -160,7 +160,10 @@ class WeeklyOrderLifecycleTest extends TestCase
         $this->assertSame(Order::STATUS_PLACED, $order->status);
         $this->assertNotNull($order->placed_at);
 
-        $this->actingAs($this->manager)->patch(route('admin.orders.received', $order))->assertRedirect();
+        $line = $order->items()->firstOrFail();
+        $this->actingAs($this->manager)->patch(route('admin.orders.received', $order), [
+            'received' => [$line->id => $line->quantity],
+        ])->assertRedirect();
         $order->refresh();
         $this->assertSame(Order::STATUS_RECEIVED, $order->status);
         $this->assertNotNull($order->received_at);
@@ -171,7 +174,7 @@ class WeeklyOrderLifecycleTest extends TestCase
     {
         $order = $this->order();
 
-        $this->actingAs($this->manager)->patch(route('admin.orders.received', $order))
+        $this->actingAs($this->manager)->patch(route('admin.orders.received', $order), ['received' => []])
             ->assertSessionHas('error');
 
         $this->assertSame(Order::STATUS_DRAFT, $order->fresh()->status);

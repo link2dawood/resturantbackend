@@ -65,6 +65,9 @@
                                 <td>
                                     @php $badge = ['draft'=>'bg-secondary','placed'=>'bg-blue','received'=>'bg-green','cancelled'=>'bg-red'][$order->status] ?? 'bg-secondary'; @endphp
                                     <span class="badge {{ $badge }}">{{ $order->status }}</span>
+                                    @if($order->status === 'received' && $order->has_discrepancies)
+                                        <span class="badge bg-red" title="What arrived did not match the order">mismatch</span>
+                                    @endif
                                 </td>
                                 <td class="text-end">
                                     <a href="{{ route('admin.orders.show', $order) }}" class="btn btn-sm btn-outline-primary">View</a>
@@ -72,7 +75,7 @@
                                     @if($order->status === 'draft')
                                         <form action="{{ route('admin.orders.placed', $order) }}" method="POST" class="d-inline">@csrf @method('PATCH')<button class="btn btn-sm btn-outline-info">Mark placed</button></form>
                                     @elseif($order->status === 'placed')
-                                        <form action="{{ route('admin.orders.received', $order) }}" method="POST" class="d-inline">@csrf @method('PATCH')<button class="btn btn-sm btn-outline-success">Mark received</button></form>
+                                        <a href="{{ route('admin.orders.receive', $order) }}" class="btn btn-sm btn-outline-success">Check in</a>
                                     @endif
                                     @if((int) $order->order_sequence === 1 && $order->status !== 'cancelled')
                                         <form action="{{ route('admin.orders.duplicate', $order) }}" method="POST" class="d-inline">@csrf<button class="btn btn-sm btn-outline-secondary" title="Copy these lines into a second order for the same week">Duplicate for Order 2</button></form>

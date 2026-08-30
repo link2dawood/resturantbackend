@@ -20,9 +20,7 @@
                 </form>
             @endif
             @if($order->canTransitionTo('received'))
-                <form action="{{ route('admin.orders.received', $order) }}" method="POST">
-                    @csrf @method('PATCH')<button class="btn btn-outline-success">Mark received</button>
-                </form>
+                <a href="{{ route('admin.orders.receive', $order) }}" class="btn btn-outline-success">Check in delivery</a>
             @endif
             @if($order->canTransitionTo('cancelled'))
                 <form action="{{ route('admin.orders.cancel', $order) }}" method="POST"
@@ -42,6 +40,28 @@
     @if(session('success'))<div class="alert alert-success d-print-none">{{ session('success') }}</div>@endif
     @if(session('error'))<div class="alert alert-danger d-print-none">{{ session('error') }}</div>@endif
     @if($errors->any())<div class="alert alert-danger d-print-none">{{ $errors->first() }}</div>@endif
+
+    @if($order->status === 'received' && $order->has_discrepancies)
+        <div class="alert alert-danger d-print-none">
+            <strong>This delivery did not match the order.</strong>
+            <ul class="mb-0 mt-2 ps-3">
+                @foreach($order->discrepancies as $line)
+                    <li>
+                        {{ $line->inventoryItem->name ?? 'Item' }}:
+                        ordered {{ $fmt($line->quantity) }}, arrived {{ $fmt($line->quantity_received) }}
+                        ({{ $line->received_delta > 0 ? 'over by ' : 'short by ' }}{{ $fmt(abs($line->received_delta)) }} {{ $line->unit }})
+                        @if(filled($line->received_notes)) &middot; {{ $line->received_notes }} @endif
+                    </li>
+                @endforeach
+            </ul>
+            @if(abs($order->discrepancy_value) >= 0.01)
+                <div class="mt-2">
+                    Worth {{ $order->discrepancy_value > 0 ? '+' : '' }}{{ $money($order->discrepancy_value) }}
+                    against what was ordered.
+                </div>
+            @endif
+        </div>
+    @endif
 
     @unless($editable)
         <div class="alert alert-secondary d-print-none">
@@ -79,6 +99,7 @@
                                 <th style="width: 70px;">Unit</th>
                                 <th class="text-end" style="width: 120px;">Unit price</th>
                                 <th class="text-end" style="width: 100px;">Line total</th>
+                                @if($order->status === 'received')<th class="text-end" style="width: 110px;">Arrived</th>@endif
                                 @if($editable)<th class="d-print-none" style="width: 170px;">Move to vendor</th>@endif
                             </tr>
                         </thead>
@@ -122,6 +143,23 @@
                                     @endif
                                 </td>
                                 <td class="text-end">{{ $line->line_total !== null ? $money($line->line_total) : '—' }}</td>
+                                @if($order->status === 'received')
+                                <td class="text-end">
+                                    @if($line->is_checked)
+                                        {{ $fmt($line->quantity_received) }}
+                                        @if($line->has_discrepancy)
+                                            <div class="small {{ $line->received_delta > 0 ? 'text-danger fw-bold' : 'text-warning fw-bold' }}">
+                                                {{ $line->received_delta > 0 ? '+' : '' }}{{ $fmt($line->received_delta) }}
+                                            </div>
+                                        @endif
+                                    @else
+                                        <span class="text-muted">not checked</span>
+                                    @endif
+                                    @if(filled($line->received_notes))
+                                        <div class="text-muted small">{{ $line->received_notes }}</div>
+                                    @endif
+                                </td>
+                                @endif
                                 @if($editable)
                                 <td class="d-print-none">
                                     <select name="move_to_vendor[{{ $line->id }}]" class="form-select form-select-sm">

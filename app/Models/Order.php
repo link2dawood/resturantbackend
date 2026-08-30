@@ -28,7 +28,7 @@ class Order extends Model
 
     protected $fillable = [
         'store_id', 'vendor_id', 'week_start_date', 'order_sequence',
-        'status', 'placed_at', 'received_at', 'notes', 'created_by',
+        'status', 'placed_at', 'received_at', 'received_by', 'notes', 'created_by',
     ];
 
     protected $casts = [
@@ -109,5 +109,43 @@ class Order extends Model
     public function scopeStatus($query, string $status)
     {
         return $query->where('status', $status);
+    }
+
+    public function receiver(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'received_by');
+    }
+
+    /** Lines where what arrived did not match what was ordered. */
+    public function getDiscrepanciesAttribute()
+    {
+        return $this->items->filter(fn ($item) => $item->has_discrepancy)->values();
+    }
+
+    public function getHasDiscrepanciesAttribute(): bool
+    {
+        return $this->discrepancies->isNotEmpty();
+    }
+
+    /** Every line checked in, whether or not it matched. */
+    public function getIsFullyCheckedAttribute(): bool
+    {
+        return $this->items->isNotEmpty()
+            && $this->items->every(fn ($item) => $item->is_checked);
+    }
+
+    /**
+     * What the difference is worth. Positive means the delivery was worth more
+     * than the order, which is the over-shipping the client is watching for.
+     */
+    public function getDiscrepancyValueAttribute(): float
+    {
+        return round($this->items->sum(function ($item) {
+            if (! $item->has_discrepancy || $item->unit_price === null) {
+                return 0;
+            }
+
+            return $item->received_delta * (float) $item->unit_price;
+        }), 2);
     }
 }
