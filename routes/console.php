@@ -18,14 +18,13 @@ Schedule::command('trials:check')->dailyAt('08:00');
 // Phase 5 — open the weekly inventory-count rows every Monday morning.
 Schedule::command('inventory:open-week')->weeklyOn(1, '00:05');
 
-// Weekly variance snapshot + large-variance alerts.
-//
-// The count reminders are deliberately NOT scheduled. The client counts every
-// Monday because orders must go out by Wednesday, and asked for no automated
-// nagging: "I don't think reminders need to be set." Both commands still exist
-// and can be run by hand if that changes:
-//   php artisan inventory:remind
-//   php artisan inventory:remind-overdue
+// Monday nudge to count. In-app only: it shows on the bell when the manager
+// signs in, and sends no email. The client did not want an inbox full of these.
+Schedule::command('inventory:remind')->weeklyOn(1, '06:00');
+
+// The Wednesday chase stays OFF. Counting happens on Monday because orders go
+// out by Wednesday, and the client asked for no follow-up nagging. The command
+// still exists for manual use: php artisan inventory:remind-overdue
 Schedule::command('inventory:generate-variance')->weeklyOn(2, '02:00');
 
 Artisan::command('create:test-users', function () {

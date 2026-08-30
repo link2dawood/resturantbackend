@@ -20,9 +20,15 @@ class InventoryReminderNotification extends Notification implements ShouldQueue
     {
     }
 
+    /**
+     * In-app only. The client asked for the nudge without the email: the manager
+     * signs in on a Monday anyway, and an inbox reminder they never read is
+     * noise. toMail is kept so `inventory:remind --email` style manual use, or a
+     * later change of mind, needs no rework.
+     */
     public function via(object $notifiable): array
     {
-        return ['mail', 'database'];
+        return ['database'];
     }
 
     /** @return array<string, mixed> */

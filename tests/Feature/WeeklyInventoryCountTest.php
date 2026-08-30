@@ -577,42 +577,40 @@ class WeeklyInventoryCountTest extends TestCase
     // ---- Monday reminder ---------------------------------------------------
 
     /** @test */
-    public function the_monday_reminder_emails_the_manager_and_links_to_the_count(): void
+    public function the_monday_reminder_reaches_the_bell_and_sends_no_email(): void
     {
-        Notification::fake();
+        \Illuminate\Support\Facades\Mail::fake();
         $this->item('Ribeye Steak');
 
         $this->artisan('inventory:remind', ['--week' => $this->monday()->toDateString()])
             ->assertExitCode(0);
 
-        Notification::assertSentTo($this->manager, InventoryReminderNotification::class,
-            function (InventoryReminderNotification $notification) {
-                $mail = $notification->toMail($this->manager);
+        $notification = $this->manager->fresh()->notifications()->first();
 
-                $this->assertStringContainsString("Time to enter this week's inventory", $mail->subject);
-                $this->assertStringContainsString('/inventory/weekly-count', $mail->actionUrl);
+        $this->assertNotNull($notification, 'It should land on the bell.');
+        $this->assertSame("Time to enter this week's inventory", $notification->data['title']);
+        $this->assertStringContainsString('/inventory/weekly-count', $notification->data['url']);
 
-                return true;
-            });
+        // In-app only: the client did not want an inbox full of these.
+        \Illuminate\Support\Facades\Mail::assertNothingSent();
     }
 
     /** @test */
-    public function the_count_reminders_are_deliberately_not_scheduled(): void
+    public function the_monday_reminder_is_scheduled_and_the_wednesday_chase_is_not(): void
     {
-        // The client counts every Monday because orders go out by Wednesday and
-        // asked for no automated nagging. Both commands still exist for manual
-        // use; neither is on the schedule.
-        $scheduled = collect(app(\Illuminate\Console\Scheduling\Schedule::class)->events())
-            ->filter(fn ($event) => str_contains($event->command ?? '', 'inventory:remind'));
+        $events = collect(app(\Illuminate\Console\Scheduling\Schedule::class)->events());
 
-        $this->assertCount(0, $scheduled, 'No count reminder should be scheduled.');
+        $monday = $events->filter(fn ($e) => str_contains($e->command ?? '', 'inventory:remind')
+            && ! str_contains($e->command ?? '', 'overdue'));
+        $this->assertCount(1, $monday);
+        $this->assertSame('0 6 * * 1', $monday->first()->expression);
 
-        $this->assertTrue(
-            array_key_exists('inventory:remind', \Illuminate\Support\Facades\Artisan::all()),
-            'The command must remain available to run by hand.'
-        );
-        $this->assertTrue(
-            array_key_exists('inventory:remind-overdue', \Illuminate\Support\Facades\Artisan::all())
+        // Counting happens on Monday because orders go out by Wednesday; the
+        // client asked for no follow-up nagging.
+        $this->assertCount(
+            0,
+            $events->filter(fn ($e) => str_contains($e->command ?? '', 'inventory:remind-overdue')),
+            'The Wednesday chase should not be scheduled.'
         );
     }
 

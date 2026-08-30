@@ -82,8 +82,9 @@ class NotificationSystemTest extends TestCase
     // ---- 1. Monday reminder -------------------------------------------------
 
     /** @test */
-    public function the_monday_reminder_reaches_the_manager_by_mail_and_in_app(): void
+    public function the_monday_reminder_reaches_the_bell_but_sends_no_email(): void
     {
+        \Illuminate\Support\Facades\Mail::fake();
         $this->item();
 
         $this->artisan('inventory:remind', ['--week' => $this->monday()->toDateString()])->assertExitCode(0);
@@ -94,6 +95,9 @@ class NotificationSystemTest extends TestCase
         $this->assertSame(InventoryReminderNotification::class, $notification->type);
         $this->assertSame("Time to enter this week's inventory", $notification->data['title']);
         $this->assertStringContainsString('/inventory/weekly-count', $notification->data['url']);
+
+        // The client wanted the nudge without the inbox clutter.
+        \Illuminate\Support\Facades\Mail::assertNothingSent();
     }
 
 
@@ -160,19 +164,24 @@ class NotificationSystemTest extends TestCase
 
 
     /** @test */
-    public function neither_reminder_is_scheduled_but_both_still_run_by_hand(): void
+    public function the_monday_nudge_is_scheduled_and_the_wednesday_chase_is_not(): void
     {
-        // The client asked for no automated nagging: they count every Monday
-        // because orders go out by Wednesday.
-        $scheduled = collect(app(Schedule::class)->events())
-            ->filter(fn ($event) => str_contains($event->command ?? '', 'inventory:remind'));
+        $events = collect(app(Schedule::class)->events());
 
-        $this->assertCount(0, $scheduled);
+        $monday = $events->filter(fn ($e) => str_contains($e->command ?? '', 'inventory:remind')
+            && ! str_contains($e->command ?? '', 'overdue'));
 
-        // Run by hand, they still work. That is what the tests above cover.
-        $this->item();
-        $this->artisan('inventory:remind', ['--week' => $this->monday()->toDateString()])->assertExitCode(0);
-        $this->assertSame(1, $this->manager->fresh()->unreadNotifications()->count());
+        $this->assertCount(1, $monday);
+        $this->assertSame('0 6 * * 1', $monday->first()->expression);
+
+        $this->assertCount(
+            0,
+            $events->filter(fn ($e) => str_contains($e->command ?? '', 'inventory:remind-overdue')),
+            'Counting happens on Monday; the client asked for no follow-up chase.'
+        );
+
+        // The chase still runs by hand if it is ever wanted.
+        $this->assertTrue(array_key_exists('inventory:remind-overdue', \Illuminate\Support\Facades\Artisan::all()));
     }
 
     // ---- 3 & 4. Order status ------------------------------------------------
