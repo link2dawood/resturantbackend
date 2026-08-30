@@ -13,12 +13,12 @@ class VendorsSeeder extends Seeder
         // (matched by vendor_name) so re-seeding never duplicates.
         $vendors = [
             // Ordering / supply vendors
-            ['vendor_name' => 'Lisanti', 'vendor_identifier' => 'LISANTI', 'vendor_type' => 'Food'],
-            ['vendor_name' => 'Restaurant Depot', 'vendor_identifier' => 'RESTAURANT DEPOT', 'vendor_type' => 'Food'],
-            ['vendor_name' => 'Sam\'s Club', 'vendor_identifier' => 'SAMSCLUB', 'vendor_type' => 'Food'],
-            ['vendor_name' => 'Coca-Cola', 'vendor_identifier' => 'COCA-COLA', 'vendor_type' => 'Beverage'],
-            ['vendor_name' => 'Walmart', 'vendor_identifier' => 'WALMART', 'vendor_type' => 'Supplies'],
-            ['vendor_name' => 'HEB', 'vendor_identifier' => 'HEB', 'vendor_type' => 'Food'],
+            ['vendor_name' => 'Lisanti', 'vendor_identifier' => 'LISANTI', 'vendor_type' => 'Food', 'order_method' => 'phone'],
+            ['vendor_name' => 'Restaurant Depot', 'vendor_identifier' => 'RESTAURANT DEPOT', 'vendor_type' => 'Food', 'order_method' => 'online'],
+            ['vendor_name' => 'Sam\'s Club', 'vendor_identifier' => 'SAMSCLUB', 'vendor_type' => 'Food', 'order_method' => 'online'],
+            ['vendor_name' => 'Coca-Cola', 'vendor_identifier' => 'COCA-COLA', 'vendor_type' => 'Beverage', 'order_method' => 'online'],
+            ['vendor_name' => 'Walmart', 'vendor_identifier' => 'WALMART', 'vendor_type' => 'Supplies', 'order_method' => 'in_person'],
+            ['vendor_name' => 'HEB', 'vendor_identifier' => 'HEB', 'vendor_type' => 'Food', 'order_method' => 'in_person'],
             // Expense / service vendors (retained)
             ['vendor_name' => 'Spectrum', 'vendor_identifier' => 'SPECTRUM', 'vendor_type' => 'Utilities'],
             ['vendor_name' => 'AT&T', 'vendor_identifier' => 'ATT', 'vendor_type' => 'Utilities'],
@@ -47,11 +47,14 @@ class VendorsSeeder extends Seeder
                     ->value('vendor_id');
 
             if ($existingId) {
-                DB::table('vendors')->where('id', $existingId)->update([
+                DB::table('vendors')->where('id', $existingId)->update(array_filter([
                     'vendor_type' => $vendor['vendor_type'],
                     'is_active' => true,
+                    // Only fill the method in; never blank one an admin has set.
+                    'order_method' => DB::table('vendors')->where('id', $existingId)->value('order_method')
+                        ?: ($vendor['order_method'] ?? null),
                     'updated_at' => now(),
-                ]);
+                ], fn ($v) => $v !== null));
 
                 continue;
             }

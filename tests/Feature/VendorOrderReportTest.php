@@ -204,15 +204,18 @@ class VendorOrderReportTest extends TestCase
     }
 
     /** @test */
-    public function the_plain_text_is_rendered_on_the_page_for_copying(): void
+    public function the_copy_as_text_option_is_gone(): void
     {
+        // None of the client's vendors takes an order as pasted text: Coca-Cola
+        // and Amazon online, Lisanti by phone, HEB and Walmart in person. Print
+        // and PDF are what they actually use.
         $order = $this->orderWithLines();
 
         $this->actingAs($this->manager)->get(route('admin.orders.report', $order))
             ->assertOk()
-            ->assertSee('Plain text version')
-            ->assertSee('id="orderPlainText"', false)
-            ->assertSee('copyOrderText()', false);
+            ->assertDontSee('Copy as text')
+            ->assertDontSee('Plain text version')
+            ->assertDontSee('id="orderPlainText"', false);
     }
 
     /** @test */
@@ -226,8 +229,11 @@ class VendorOrderReportTest extends TestCase
     // ---- Email button ------------------------------------------------------
 
     /** @test */
-    public function the_email_button_is_offered_when_the_vendor_has_an_address(): void
+    public function the_email_button_is_offered_only_when_email_is_how_they_take_orders(): void
     {
+        // Having an address is not the same as accepting orders there. Lisanti
+        // takes orders by phone.
+        $this->lisanti->update(['order_method' => 'email']);
         $order = $this->orderWithLines();
 
         $this->actingAs($this->manager)->get(route('admin.orders.report', $order))
@@ -237,14 +243,14 @@ class VendorOrderReportTest extends TestCase
     }
 
     /** @test */
-    public function the_email_button_is_disabled_when_the_vendor_has_no_address(): void
+    public function a_phone_vendor_gets_no_email_button_even_with_an_address_on_file(): void
     {
-        $this->lisanti->update(['contact_email' => null]);
+        $this->lisanti->update(['order_method' => 'phone', 'contact_phone' => '215-555-0142']);
         $order = $this->orderWithLines();
 
         $this->actingAs($this->manager)->get(route('admin.orders.report', $order))
             ->assertOk()
-            ->assertSee('has no contact email')
+            ->assertSee('Phone the vendor')
             ->assertDontSee('Email Lisanti');
     }
 

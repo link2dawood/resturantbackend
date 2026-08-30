@@ -54,7 +54,12 @@
                                     Order {{ $order->order_sequence }}
                                     @if($order->has_overrides)<span class="badge bg-yellow-lt" title="At least one line was changed from the suggestion">edited</span>@endif
                                 </td>
-                                <td>{{ $order->vendor->vendor_name ?? '—' }}</td>
+                                <td>
+                                    {{ $order->vendor->vendor_name ?? '—' }}
+                                    @if($order->vendor?->order_method)
+                                        <div class="text-muted small">{{ $order->vendor->order_method_label }}</div>
+                                    @endif
+                                </td>
                                 <td class="text-center">{{ $order->items->count() }}</td>
                                 <td class="text-end">{{ $order->total > 0 ? '$'.number_format($order->total, 2) : '—' }}</td>
                                 <td>

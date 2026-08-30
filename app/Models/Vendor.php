@@ -24,6 +24,8 @@ class Vendor extends Model
         'contact_email',
         'contact_phone',
         'website',
+        'order_method',
+        'order_notes',
         'address',
         'notes',
         'is_active',
@@ -109,5 +111,35 @@ class Vendor extends Model
               ->orWhere('contact_name', 'like', "%{$search}%")
               ->orWhere('contact_email', 'like', "%{$search}%");
         });
+    }
+
+    /** How this vendor takes an order. */
+    public const ORDER_METHODS = [
+        'online' => 'Order online',
+        'phone' => 'Phone the vendor',
+        'in_person' => 'Order in person',
+        'email' => 'Email the vendor',
+    ];
+
+    public function getOrderMethodLabelAttribute(): string
+    {
+        return self::ORDER_METHODS[$this->order_method] ?? 'Method not set';
+    }
+
+    /**
+     * A one-line instruction for whoever has to place this order, including the
+     * detail they need to actually do it.
+     */
+    public function getOrderInstructionAttribute(): string
+    {
+        $detail = match ($this->order_method) {
+            'online' => filled($this->website) ? $this->website : 'no website on file',
+            'phone' => filled($this->contact_phone) ? $this->contact_phone : 'no phone number on file',
+            'email' => filled($this->contact_email) ? $this->contact_email : 'no email on file',
+            'in_person' => filled($this->address) ? $this->address : 'take the printed sheet',
+            default => 'set how this vendor takes orders under Vendors',
+        };
+
+        return $this->order_method_label.': '.$detail;
     }
 }

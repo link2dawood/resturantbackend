@@ -21,6 +21,8 @@ class OrderHistoryTest extends TestCase
 
     private User $manager;
 
+    private User $owner;
+
     private Vendor $lisanti;
 
     private Vendor $depot;
@@ -42,6 +44,11 @@ class OrderHistoryTest extends TestCase
         $this->store = Store::factory()->create(['created_by' => $admin->id, 'store_info' => 'Round Rock']);
         $this->manager = User::factory()->create(['role' => 'manager', 'store_id' => $this->store->id]);
         $this->manager->assignedStoresPivot()->attach($this->store->id);
+
+        // Order history moved to owner-only: the client treats past ordering as
+        // a back-office view, not something the manager needs on a Monday.
+        $this->owner = User::factory()->create(['role' => 'owner', 'state' => 'PA']);
+        $this->owner->ownedStores()->attach($this->store->id);
         $this->meats = InventoryCategory::where('name', 'Meats')->firstOrFail();
         $this->lisanti = Vendor::factory()->create(['vendor_name' => 'Lisanti', 'vendor_type' => 'Food']);
         $this->depot = Vendor::factory()->create(['vendor_name' => 'Restaurant Depot', 'vendor_type' => 'Food']);
@@ -92,7 +99,7 @@ class OrderHistoryTest extends TestCase
         $this->order(1, [], [[$steak, 5, 145.00]]);
         $this->order(2, ['vendor_id' => $this->depot->id], [[$steak, 3, 152.50]]);
 
-        $this->actingAs($this->manager)
+        $this->actingAs($this->owner)
             ->get(route('admin.orders.history'))
             ->assertOk()
             ->assertSee('Order History')
@@ -104,7 +111,7 @@ class OrderHistoryTest extends TestCase
     public function the_history_route_is_not_swallowed_by_the_order_wildcard(): void
     {
         // /orders/history would otherwise resolve as /orders/{order}.
-        $this->actingAs($this->manager)->get('/orders/history')->assertOk()->assertSee('Order History');
+        $this->actingAs($this->owner)->get('/orders/history')->assertOk()->assertSee('Order History');
     }
 
     /** @test */
@@ -114,7 +121,7 @@ class OrderHistoryTest extends TestCase
         $recent = $this->order(1, [], [[$steak, 5, 145.00]]);
         $old = $this->order(9, [], [[$steak, 5, 145.00]]);
 
-        $response = $this->actingAs($this->manager)->get(route('admin.orders.history'))->assertOk();
+        $response = $this->actingAs($this->owner)->get(route('admin.orders.history'))->assertOk();
 
         $response->assertSee('data-order-id="'.$recent->id.'"', false);
         $response->assertDontSee('data-order-id="'.$old->id.'"', false);
@@ -126,7 +133,7 @@ class OrderHistoryTest extends TestCase
         $steak = $this->item('Ribeye Steak');
         $order = $this->order(1, [], [[$steak, 5, 145.00]]);
 
-        $this->actingAs($this->manager)->get(route('admin.orders.history'))
+        $this->actingAs($this->owner)->get(route('admin.orders.history'))
             ->assertOk()
             ->assertSee('id="lines-'.$order->id.'"', false)
             ->assertSee('Ribeye Steak')
@@ -142,7 +149,7 @@ class OrderHistoryTest extends TestCase
         $lisantiOrder = $this->order(1, [], [[$steak, 5, 145.00]]);
         $depotOrder = $this->order(1, ['vendor_id' => $this->depot->id], [[$steak, 3, 152.50]]);
 
-        $response = $this->actingAs($this->manager)
+        $response = $this->actingAs($this->owner)
             ->get(route('admin.orders.history', ['vendor_ids' => [$this->depot->id]]))
             ->assertOk();
 
@@ -160,7 +167,7 @@ class OrderHistoryTest extends TestCase
         $b = $this->order(1, ['vendor_id' => $this->depot->id], [[$steak, 3, 150.00]]);
         $c = $this->order(1, ['vendor_id' => $third->id], [[$steak, 2, 149.00]]);
 
-        $response = $this->actingAs($this->manager)
+        $response = $this->actingAs($this->owner)
             ->get(route('admin.orders.history', ['vendor_ids' => [$this->lisanti->id, $this->depot->id]]))
             ->assertOk();
 
@@ -176,7 +183,7 @@ class OrderHistoryTest extends TestCase
         $received = $this->order(1, [], [[$steak, 5, 145.00]]);
         $draft = $this->order(1, ['order_sequence' => 2, 'status' => Order::STATUS_DRAFT], [[$steak, 2, 145.00]]);
 
-        $response = $this->actingAs($this->manager)
+        $response = $this->actingAs($this->owner)
             ->get(route('admin.orders.history', ['statuses' => ['draft']]))
             ->assertOk();
 
@@ -191,7 +198,7 @@ class OrderHistoryTest extends TestCase
         $inRange = $this->order(6, [], [[$steak, 5, 145.00]]);
         $outOfRange = $this->order(1, [], [[$steak, 5, 145.00]]);
 
-        $response = $this->actingAs($this->manager)->get(route('admin.orders.history', [
+        $response = $this->actingAs($this->owner)->get(route('admin.orders.history', [
             'date_from' => $this->monday()->copy()->subWeeks(8)->toDateString(),
             'date_to' => $this->monday()->copy()->subWeeks(5)->toDateString(),
         ]))->assertOk();
@@ -206,7 +213,7 @@ class OrderHistoryTest extends TestCase
         $steak = $this->item();
         $order = $this->order(6, [], [[$steak, 5, 145.00]]);
 
-        $this->actingAs($this->manager)->get(route('admin.orders.history', [
+        $this->actingAs($this->owner)->get(route('admin.orders.history', [
             'date_from' => $this->monday()->copy()->subWeeks(5)->toDateString(),
             'date_to' => $this->monday()->copy()->subWeeks(8)->toDateString(),
         ]))->assertOk()->assertSee('data-order-id="'.$order->id.'"', false);
@@ -290,7 +297,7 @@ class OrderHistoryTest extends TestCase
         $this->order(1, [], [[$steak, 4, 145.00]]);
         $this->order(2, [], [[$steak, 6, 145.00]]);
 
-        $this->actingAs($this->manager)->get(route('admin.orders.history'))
+        $this->actingAs($this->owner)->get(route('admin.orders.history'))
             ->assertOk()
             ->assertSee('What you order, per week')
             ->assertSee('Ribeye Steak')
@@ -306,7 +313,7 @@ class OrderHistoryTest extends TestCase
         $bread = $this->item('Bread');
         $past = $this->order(3, ['notes' => 'Deliver before 10am'], [[$steak, 5, 145.00], [$bread, 2, 32.00]]);
 
-        $this->actingAs($this->manager)
+        $this->actingAs($this->owner)
             ->post(route('admin.orders.reorder', $past), ['week' => $this->monday()->toDateString()])
             ->assertRedirect();
 
@@ -336,7 +343,7 @@ class OrderHistoryTest extends TestCase
         $past = $this->order(3, [], [[$steak, 5, 145.00]]);
         $this->order(0, ['status' => Order::STATUS_DRAFT], [[$steak, 1, 145.00]]); // this week, Order 1
 
-        $this->actingAs($this->manager)
+        $this->actingAs($this->owner)
             ->post(route('admin.orders.reorder', $past), ['week' => $this->monday()->toDateString()])
             ->assertRedirect();
 
@@ -352,7 +359,7 @@ class OrderHistoryTest extends TestCase
         $this->order(0, ['order_sequence' => 1], [[$steak, 1, 145.00]]);
         $this->order(0, ['order_sequence' => 2], [[$steak, 1, 145.00]]);
 
-        $this->actingAs($this->manager)
+        $this->actingAs($this->owner)
             ->post(route('admin.orders.reorder', $past), ['week' => $this->monday()->toDateString()])
             ->assertSessionHas('error');
 
@@ -365,7 +372,7 @@ class OrderHistoryTest extends TestCase
         $steak = $this->item();
         $past = $this->order(3, [], [[$steak, 5, 145.00]]);
 
-        $this->actingAs($this->manager)->post(route('admin.orders.reorder', $past), [
+        $this->actingAs($this->owner)->post(route('admin.orders.reorder', $past), [
             'week' => $this->monday()->copy()->addWeek()->toDateString(),
         ])->assertSessionHas('error');
 
@@ -377,7 +384,7 @@ class OrderHistoryTest extends TestCase
     {
         $past = $this->order(3);
 
-        $this->actingAs($this->manager)
+        $this->actingAs($this->owner)
             ->post(route('admin.orders.reorder', $past), ['week' => $this->monday()->toDateString()])
             ->assertSessionHas('error');
 
@@ -391,7 +398,7 @@ class OrderHistoryTest extends TestCase
         $steak = $this->item();
         $past = $this->order(3, ['status' => Order::STATUS_CANCELLED], [[$steak, 5, 145.00]]);
 
-        $this->actingAs($this->manager)
+        $this->actingAs($this->owner)
             ->post(route('admin.orders.reorder', $past), ['week' => $this->monday()->toDateString()])
             ->assertRedirect();
 
@@ -401,7 +408,7 @@ class OrderHistoryTest extends TestCase
     // ---- Scoping -----------------------------------------------------------
 
     /** @test */
-    public function a_manager_only_sees_their_own_stores_history(): void
+    public function an_owner_only_sees_their_own_stores_history(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
         $otherStore = Store::factory()->create(['created_by' => $admin->id]);
@@ -416,7 +423,7 @@ class OrderHistoryTest extends TestCase
             'status' => Order::STATUS_RECEIVED,
         ]);
 
-        $response = $this->actingAs($this->manager)
+        $response = $this->actingAs($this->owner)
             ->get(route('admin.orders.history', ['store_id' => $otherStore->id]))
             ->assertOk();
 
@@ -425,7 +432,7 @@ class OrderHistoryTest extends TestCase
     }
 
     /** @test */
-    public function a_manager_cannot_reorder_another_stores_order(): void
+    public function an_owner_cannot_reorder_another_stores_order(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
         $otherStore = Store::factory()->create(['created_by' => $admin->id]);
@@ -437,7 +444,7 @@ class OrderHistoryTest extends TestCase
             'status' => Order::STATUS_RECEIVED,
         ]);
 
-        $this->actingAs($this->manager)
+        $this->actingAs($this->owner)
             ->post(route('admin.orders.reorder', $foreign), ['week' => $this->monday()->toDateString()])
             ->assertForbidden();
 
@@ -445,10 +452,27 @@ class OrderHistoryTest extends TestCase
     }
 
     /** @test */
-    public function employees_cannot_reach_the_history(): void
+    public function only_owners_and_admins_can_reach_the_history(): void
     {
         $employee = User::factory()->create(['role' => 'employee', 'store_id' => $this->store->id]);
 
+        // The manager counts stock; reviewing past orders is the owner's job.
+        $this->actingAs($this->manager)->get(route('admin.orders.history'))->assertStatus(403);
         $this->actingAs($employee)->get(route('admin.orders.history'))->assertStatus(403);
+
+        $this->actingAs($this->owner)->get(route('admin.orders.history'))->assertOk();
+    }
+
+    /** @test */
+    public function a_manager_cannot_reorder(): void
+    {
+        $steak = $this->item();
+        $past = $this->order(3, [], [[$steak, 5, 145.00]]);
+
+        $this->actingAs($this->manager)
+            ->post(route('admin.orders.reorder', $past), ['week' => $this->monday()->toDateString()])
+            ->assertStatus(403);
+
+        $this->assertSame(0, Order::forWeek($this->monday()->toDateString())->count());
     }
 }

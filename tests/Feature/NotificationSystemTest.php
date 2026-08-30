@@ -96,15 +96,6 @@ class NotificationSystemTest extends TestCase
         $this->assertStringContainsString('/inventory/weekly-count', $notification->data['url']);
     }
 
-    /** @test */
-    public function the_monday_reminder_is_scheduled_for_six_am(): void
-    {
-        $event = collect(app(Schedule::class)->events())
-            ->first(fn ($e) => str_contains($e->command ?? '', 'inventory:remind') && ! str_contains($e->command ?? '', 'overdue'));
-
-        $this->assertNotNull($event);
-        $this->assertSame('0 6 * * 1', $event->expression);
-    }
 
     // ---- 2. Wednesday chase -------------------------------------------------
 
@@ -167,14 +158,21 @@ class NotificationSystemTest extends TestCase
         $this->assertStringContainsString('1 of 2 items counted', $data['body']);
     }
 
-    /** @test */
-    public function the_wednesday_chase_is_scheduled_for_wednesday_morning(): void
-    {
-        $event = collect(app(Schedule::class)->events())
-            ->first(fn ($e) => str_contains($e->command ?? '', 'inventory:remind-overdue'));
 
-        $this->assertNotNull($event);
-        $this->assertSame('0 8 * * 3', $event->expression);
+    /** @test */
+    public function neither_reminder_is_scheduled_but_both_still_run_by_hand(): void
+    {
+        // The client asked for no automated nagging: they count every Monday
+        // because orders go out by Wednesday.
+        $scheduled = collect(app(Schedule::class)->events())
+            ->filter(fn ($event) => str_contains($event->command ?? '', 'inventory:remind'));
+
+        $this->assertCount(0, $scheduled);
+
+        // Run by hand, they still work. That is what the tests above cover.
+        $this->item();
+        $this->artisan('inventory:remind', ['--week' => $this->monday()->toDateString()])->assertExitCode(0);
+        $this->assertSame(1, $this->manager->fresh()->unreadNotifications()->count());
     }
 
     // ---- 3 & 4. Order status ------------------------------------------------

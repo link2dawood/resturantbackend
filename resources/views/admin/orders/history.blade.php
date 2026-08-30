@@ -114,8 +114,9 @@
         </div>
     @endif
 
-    {{-- Trends --}}
-    @if($trends->isNotEmpty())
+    {{-- Trends. Owner-facing: the client sees no day-to-day value in averages,
+         but they are the input to the learned-target work, so they stay. --}}
+    @if($trends->isNotEmpty() && (Auth::user()->isAdmin() || Auth::user()->isOwner()))
     <div class="card mb-4">
         <div class="card-header border-0 pb-0">
             <h3 class="card-title mb-0" style="font-size: 1rem; font-weight: 500;">What you order, per week</h3>

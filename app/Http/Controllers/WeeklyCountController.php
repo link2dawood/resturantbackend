@@ -435,7 +435,9 @@ class WeeklyCountController extends Controller
                 }
 
                 if ($hasCount) {
-                    $count = (float) $counts[$row->id];
+                    // Entered in the item's purchase unit (boxes, cases), stored
+                    // in its base unit, which is what variance works in.
+                    $count = $this->toBaseUnits($row, (float) $counts[$row->id]);
                     $row->starting_stock = $count;
                     $row->counted_by = auth()->id();
                     $row->counted_at = now();
@@ -464,6 +466,31 @@ class WeeklyCountController extends Controller
         });
 
         return $saved;
+    }
+
+    /**
+     * Convert a count entered in the item's purchase unit into base units.
+     *
+     * A pack size of zero would divide by zero elsewhere, so treat it as 1 and
+     * let the entered figure stand.
+     */
+    private function toBaseUnits(InventoryStock $row, float $purchaseUnits): float
+    {
+        $perPurchase = (float) ($row->inventoryItem->units_per_purchase ?? 1);
+
+        return round($purchaseUnits * ($perPurchase > 0 ? $perPurchase : 1), 4);
+    }
+
+    /** The inverse, for showing a stored count back on the form. */
+    public static function toPurchaseUnits(?float $baseUnits, $item): ?float
+    {
+        if ($baseUnits === null) {
+            return null;
+        }
+
+        $perPurchase = (float) ($item->units_per_purchase ?? 1);
+
+        return round($baseUnits / ($perPurchase > 0 ? $perPurchase : 1), 4);
     }
 
     // ---- store scoping -----------------------------------------------------

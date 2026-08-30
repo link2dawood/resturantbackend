@@ -111,7 +111,7 @@ class WeeklyInventoryCountTest extends TestCase
         $this->actingAs($this->manager)
             ->get(route('inventory.weekly-count.index'))
             ->assertOk()
-            ->assertSee('53 portion per box')   // portions_per_unit hint
+            ->assertSee('1 box = 53 portion')   // pack-size hint
             ->assertSee('Last week:')
             ->assertSee('42');
     }
@@ -166,7 +166,8 @@ class WeeklyInventoryCountTest extends TestCase
             ->assertJsonPath('total_items', 1);
 
         $row->refresh();
-        $this->assertEqualsWithDelta(120, (float) $row->starting_stock, 1e-4);
+        // 120 boxes entered, stored as 120 x 53 portions.
+        $this->assertEqualsWithDelta(120 * 53, (float) $row->starting_stock, 1e-4);
         $this->assertSame(InventoryStock::STATUS_DRAFT, $row->status);
         $this->assertFalse($row->is_submitted);
         $this->assertSame($this->manager->id, $row->counted_by);
@@ -190,7 +191,7 @@ class WeeklyInventoryCountTest extends TestCase
 
         $this->assertSame(1, InventoryStock::where('inventory_item_id', $steak->id)
             ->forWeek($this->monday()->toDateString())->count());
-        $this->assertEqualsWithDelta(75, (float) $row->fresh()->starting_stock, 1e-4);
+        $this->assertEqualsWithDelta(75 * 53, (float) $row->fresh()->starting_stock, 1e-4);
     }
 
     /** @test */
@@ -260,6 +261,89 @@ class WeeklyInventoryCountTest extends TestCase
         $this->assertNull($row->fresh()->counted_at);
     }
 
+    /** @test */
+    public function counts_are_entered_in_the_unit_the_item_is_ordered_in(): void
+    {
+        // Steak is 53 portions to a box. The manager can see 7 boxes on the
+        // shelf; asking them to count 371 individual portions at 7am is not a
+        // workable ask.
+        $steak = $this->item('Ribeye Steak');
+        $this->actingAs($this->manager)->get(route('inventory.weekly-count.index'))->assertOk();
+        $row = $this->rowFor($steak);
+
+        $this->actingAs($this->manager)->postJson(route('inventory.weekly-count.autosave'), [
+            'store_id' => $this->store->id,
+            'week' => $this->monday()->toDateString(),
+            'counts' => [$row->id => 7],
+        ])->assertOk();
+
+        // Stored in base units so variance still works.
+        $this->assertEqualsWithDelta(371, (float) $row->fresh()->starting_stock, 1e-4);
+    }
+
+    /** @test */
+    public function the_count_screen_asks_for_and_shows_the_ordering_unit(): void
+    {
+        $steak = $this->item('Ribeye Steak');
+        $this->actingAs($this->manager)->get(route('inventory.weekly-count.index'))->assertOk();
+        $row = $this->rowFor($steak);
+        $row->update(['starting_stock' => 371, 'counted_at' => now()]);
+
+        $this->actingAs($this->manager)
+            ->get(route('inventory.weekly-count.index'))
+            ->assertOk()
+            ->assertSee('How many box of Ribeye Steak are on hand', false)
+            ->assertSee('1 box = 53 portion')
+            ->assertSee('value="7"', false);
+    }
+
+    /** @test */
+    public function last_weeks_figure_is_shown_in_the_ordering_unit_too(): void
+    {
+        $steak = $this->item('Ribeye Steak');
+
+        InventoryStock::factory()->create([
+            'inventory_item_id' => $steak->id,
+            'store_id' => $this->store->id,
+            'week_start_date' => $this->monday()->copy()->subWeek()->toDateString(),
+            'starting_stock' => 53 * 4,
+            'counted_at' => now()->subWeek(),
+        ]);
+
+        $this->actingAs($this->manager)
+            ->get(route('inventory.weekly-count.index'))
+            ->assertOk()
+            ->assertSee('Last week:')
+            ->assertSee('>4</strong>', false);
+    }
+
+    /** @test */
+    public function a_count_in_ordering_units_produces_the_right_suggestion(): void
+    {
+        // The whole point: 7 boxes on hand, target 15, so order 8.
+        $steak = $this->item('Ribeye Steak');
+        \App\Models\StoreInventoryTarget::create([
+            'store_id' => $this->store->id,
+            'inventory_item_id' => $steak->id,
+            'target_stock_level' => 15,
+        ]);
+
+        $this->actingAs($this->manager)->get(route('inventory.weekly-count.index'))->assertOk();
+        $row = $this->rowFor($steak);
+
+        $this->actingAs($this->manager)->postJson(route('inventory.weekly-count.autosave'), [
+            'store_id' => $this->store->id,
+            'week' => $this->monday()->toDateString(),
+            'counts' => [$row->id => 7],
+        ])->assertOk();
+
+        $suggestion = app(\App\Services\Inventory\OrderSuggestionService::class)
+            ->generateSuggestions($this->store, $this->monday())->first();
+
+        $this->assertEqualsWithDelta(7.0, $suggestion['current_stock'], 1e-4);
+        $this->assertEqualsWithDelta(8.0, $suggestion['suggested_order'], 1e-4);
+    }
+
     // ---- Submit and lock ---------------------------------------------------
 
     /** @test */
@@ -286,10 +370,10 @@ class WeeklyInventoryCountTest extends TestCase
         $row->refresh();
         $this->assertSame(InventoryStock::STATUS_SUBMITTED, $row->status);
         $this->assertTrue($row->is_submitted);
-        $this->assertEqualsWithDelta(120, (float) $row->starting_stock, 1e-4);
+        $this->assertEqualsWithDelta(120 * 53, (float) $row->starting_stock, 1e-4);
 
         // The same count closes the prior week for the variance engine.
-        $this->assertEqualsWithDelta(120, (float) $prior->fresh()->actual_ending_stock, 1e-4);
+        $this->assertEqualsWithDelta(120 * 53, (float) $prior->fresh()->actual_ending_stock, 1e-4);
     }
 
     /** @test */
@@ -319,7 +403,7 @@ class WeeklyInventoryCountTest extends TestCase
             'counts' => [$row->id => 999],
         ])->assertSessionHas('error');
 
-        $this->assertEqualsWithDelta(120, (float) $row->fresh()->starting_stock, 1e-4);
+        $this->assertEqualsWithDelta(120 * 53, (float) $row->fresh()->starting_stock, 1e-4);
 
         $this->actingAs($this->manager)
             ->get(route('inventory.weekly-count.index'))
@@ -371,7 +455,7 @@ class WeeklyInventoryCountTest extends TestCase
             'week' => $this->monday()->toDateString(),
             'counts' => [$row->id => 130],
         ])->assertOk();
-        $this->assertEqualsWithDelta(130, (float) $row->fresh()->starting_stock, 1e-4);
+        $this->assertEqualsWithDelta(130 * 53, (float) $row->fresh()->starting_stock, 1e-4);
     }
 
     // ---- Week rules --------------------------------------------------------
@@ -417,7 +501,7 @@ class WeeklyInventoryCountTest extends TestCase
             'store_id' => $this->store->id, 'week' => $lastWeek, 'counts' => [$row->id => 80],
         ])->assertOk();
 
-        $this->assertEqualsWithDelta(80, (float) $row->fresh()->starting_stock, 1e-4);
+        $this->assertEqualsWithDelta(80 * 53, (float) $row->fresh()->starting_stock, 1e-4);
     }
 
     /** @test */
@@ -513,16 +597,23 @@ class WeeklyInventoryCountTest extends TestCase
     }
 
     /** @test */
-    public function the_reminder_is_scheduled_for_monday_at_six_am(): void
+    public function the_count_reminders_are_deliberately_not_scheduled(): void
     {
-        // Exclude inventory:remind-overdue, which is the Wednesday chase and
-        // also contains the substring "inventory:remind".
-        $events = collect(app(\Illuminate\Console\Scheduling\Schedule::class)->events())
-            ->filter(fn ($event) => str_contains($event->command ?? '', 'inventory:remind')
-                && ! str_contains($event->command ?? '', 'overdue'));
+        // The client counts every Monday because orders go out by Wednesday and
+        // asked for no automated nagging. Both commands still exist for manual
+        // use; neither is on the schedule.
+        $scheduled = collect(app(\Illuminate\Console\Scheduling\Schedule::class)->events())
+            ->filter(fn ($event) => str_contains($event->command ?? '', 'inventory:remind'));
 
-        $this->assertCount(1, $events, 'The Monday reminder should be scheduled exactly once.');
-        // "0 6 * * 1" = 06:00 every Monday.
-        $this->assertSame('0 6 * * 1', $events->first()->expression);
+        $this->assertCount(0, $scheduled, 'No count reminder should be scheduled.');
+
+        $this->assertTrue(
+            array_key_exists('inventory:remind', \Illuminate\Support\Facades\Artisan::all()),
+            'The command must remain available to run by hand.'
+        );
+        $this->assertTrue(
+            array_key_exists('inventory:remind-overdue', \Illuminate\Support\Facades\Artisan::all())
+        );
     }
+
 }

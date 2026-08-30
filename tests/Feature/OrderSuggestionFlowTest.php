@@ -349,7 +349,7 @@ class OrderSuggestionFlowTest extends TestCase
         $this->actingAs($this->manager)->post(route('inventory.weekly-count.submit'), [
             'store_id' => $this->store->id,
             'week' => $this->monday()->toDateString(),
-            'counts' => [$steakRow->id => 53 * 4, $oilRow->id => 3],
+            'counts' => [$steakRow->id => 4, $oilRow->id => 3],
         ])->assertRedirect(route('inventory.weekly-count.suggestions', [
             'store_id' => $this->store->id, 'week' => $this->monday()->toDateString(),
         ]));

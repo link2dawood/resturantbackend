@@ -184,7 +184,10 @@ Route::middleware(['auth', 'verified', 'trial'])->group(function () {
         Route::get('/orders/build', [\App\Http\Controllers\Admin\OrderController::class, 'build'])->name('admin.orders.build');
         Route::post('/orders/generate', [\App\Http\Controllers\Admin\OrderController::class, 'generate'])->name('admin.orders.generate');
         // /orders/history MUST precede /orders/{order} or the wildcard eats it.
-        Route::get('/orders/history', [\App\Http\Controllers\Admin\OrderHistoryController::class, 'index'])->name('admin.orders.history');
+        // Owner-facing only: the client considers past ordering a back-office
+        // view, not something the manager needs on a Monday morning.
+        Route::get('/orders/history', [\App\Http\Controllers\Admin\OrderHistoryController::class, 'index'])
+            ->middleware('role:admin,owner')->name('admin.orders.history');
         Route::get('/orders/{order}', [\App\Http\Controllers\Admin\OrderController::class, 'show'])->name('admin.orders.show');
         Route::get('/orders/{order}/report', [\App\Http\Controllers\Admin\OrderController::class, 'report'])->name('admin.orders.report');
         Route::get('/orders/{order}/report/pdf', [\App\Http\Controllers\Admin\OrderController::class, 'reportPdf'])->name('admin.orders.report.pdf');
@@ -193,7 +196,8 @@ Route::middleware(['auth', 'verified', 'trial'])->group(function () {
         Route::patch('/orders/{order}/cancel', [\App\Http\Controllers\Admin\OrderController::class, 'cancel'])->name('admin.orders.cancel');
         Route::put('/orders/{order}/items', [\App\Http\Controllers\Admin\OrderController::class, 'updateItems'])->name('admin.orders.items.update');
         Route::post('/orders/{order}/duplicate', [\App\Http\Controllers\Admin\OrderController::class, 'duplicateForSecondOrder'])->name('admin.orders.duplicate');
-        Route::post('/orders/{order}/reorder', [\App\Http\Controllers\Admin\OrderHistoryController::class, 'reorder'])->name('admin.orders.reorder');
+        Route::post('/orders/{order}/reorder', [\App\Http\Controllers\Admin\OrderHistoryController::class, 'reorder'])
+            ->middleware('role:admin,owner')->name('admin.orders.reorder');
         Route::delete('/orders/{order}', [\App\Http\Controllers\Admin\OrderController::class, 'destroy'])->name('admin.orders.destroy');
 
         // Vendor prices & comparison (Phase 5.7, extended in Phase 5 Part 1 Task 6).

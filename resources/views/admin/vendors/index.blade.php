@@ -264,6 +264,22 @@
                                     <input type="text" class="form-control" id="contactPhone" name="contact_phone" maxlength="50">
                                 </div>
                                 <div class="mb-3">
+                                    <label for="orderMethod" class="form-label">How do we order from them?</label>
+                                    <select class="form-select" id="orderMethod" name="order_method">
+                                        <option value="">Not set</option>
+                                        <option value="online">Order online</option>
+                                        <option value="phone">Phone the vendor</option>
+                                        <option value="in_person">Order in person</option>
+                                        <option value="email">Email the vendor</option>
+                                    </select>
+                                    <small class="text-muted">Shown on the order sheet so whoever places it knows what to do.</small>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="orderNotes" class="form-label">Ordering notes</label>
+                                    <input type="text" class="form-control" id="orderNotes" name="order_notes" maxlength="255"
+                                           placeholder="e.g. ask for Marco, orders before 2pm ship same day">
+                                </div>
+                                <div class="mb-3">
                                     <label for="website" class="form-label">Website</label>
                                     <input type="url" class="form-control" id="website" name="website" maxlength="255" placeholder="https://www.example.com">
                                     <small class="text-muted">Where orders are placed for this vendor.</small>
@@ -524,6 +540,8 @@ async function editVendor(id) {
         document.getElementById('contactEmail').value = vendor.contact_email || '';
         document.getElementById('contactPhone').value = vendor.contact_phone || '';
         document.getElementById('website').value = vendor.website || '';
+        document.getElementById('orderMethod').value = vendor.order_method || '';
+        document.getElementById('orderNotes').value = vendor.order_notes || '';
         document.getElementById('address').value = vendor.address || '';
         renderSuppliedItems(vendor.inventory_items || []);
         document.getElementById('notes').value = vendor.notes || '';
@@ -567,6 +585,8 @@ function saveVendor() {
         contact_email: formData.get('contact_email'),
         contact_phone: formData.get('contact_phone'),
         website: formData.get('website') || null,
+        order_method: formData.get('order_method') || null,
+        order_notes: formData.get('order_notes') || null,
         address: formData.get('address'),
         notes: formData.get('notes'),
         store_ids: formData.getAll('store_ids[]').map(id => parseInt(id))

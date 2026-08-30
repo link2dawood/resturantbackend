@@ -30,6 +30,8 @@ class GoLiveEndToEndTest extends TestCase
 
     private User $admin;
 
+    private User $owner;
+
     private Vendor $lisanti;
 
     private Vendor $depot;
@@ -56,6 +58,10 @@ class GoLiveEndToEndTest extends TestCase
             'role' => 'manager', 'store_id' => $this->store->id, 'name' => 'Dana Reed',
         ]);
         $this->manager->assignedStoresPivot()->attach($this->store->id);
+
+        // History and reorder are owner-facing now.
+        $this->owner = User::factory()->create(['role' => 'owner', 'state' => 'TX', 'name' => 'Owner Two']);
+        $this->owner->ownedStores()->attach($this->store->id);
 
         $this->lisanti = Vendor::factory()->create([
             'vendor_name' => 'Lisanti', 'vendor_type' => 'Food', 'contact_email' => 'orders@lisanti.test',
@@ -99,7 +105,8 @@ class GoLiveEndToEndTest extends TestCase
         $steak = $this->item('Steak', $this->lisanti, 53, 'box', 15, 145.00);
         $bread = $this->item('8 inch Bread', $this->depot, 60, 'case', 10, 32.00);
 
-        // ── 1. Monday 6am: the reminder goes out.
+        // ── 1. The reminder is no longer scheduled (the client counts every
+        // Monday by habit), but the command still works when run by hand.
         $this->artisan('inventory:remind', ['--week' => $this->monday()->toDateString()])->assertExitCode(0);
         Notification::assertSentTo($this->manager, \App\Notifications\InventoryReminderNotification::class);
 
@@ -118,14 +125,14 @@ class GoLiveEndToEndTest extends TestCase
         $this->actingAs($this->manager)->postJson(route('inventory.weekly-count.autosave'), [
             'store_id' => $this->store->id,
             'week' => $this->monday()->toDateString(),
-            'counts' => [$steakRow->id => 53 * 4],   // 4 boxes on hand
+            'counts' => [$steakRow->id => 4],   // 4 boxes on hand
         ])->assertOk()->assertJsonPath('counted_items', 1);
 
         // ── 4. Submit the finished count. The week locks.
         $this->actingAs($this->manager)->post(route('inventory.weekly-count.submit'), [
             'store_id' => $this->store->id,
             'week' => $this->monday()->toDateString(),
-            'counts' => [$steakRow->id => 53 * 4, $breadRow->id => 60 * 3],
+            'counts' => [$steakRow->id => 4, $breadRow->id => 3],
         ])->assertRedirect(route('inventory.weekly-count.suggestions', [
             'store_id' => $this->store->id, 'week' => $this->monday()->toDateString(),
         ]));
@@ -210,14 +217,17 @@ class GoLiveEndToEndTest extends TestCase
             ->assertSee('Recent activity')
             ->assertSee('Lisanti');
 
-        // ── 12. History shows it, and it can be reordered next week.
+        // ── 12. History shows it, and the owner can reorder it next week.
+        // The manager counts; reviewing and re-sending is the owner's job.
         $this->travelTo($this->monday()->copy()->addWeek()->setTime(8, 0));
 
-        $this->actingAs($this->manager)->get(route('admin.orders.history'))
+        $this->actingAs($this->manager)->get(route('admin.orders.history'))->assertForbidden();
+
+        $this->actingAs($this->owner)->get(route('admin.orders.history'))
             ->assertOk()
             ->assertSee('data-order-id="'.$lisantiOrder->id.'"', false);
 
-        $this->actingAs($this->manager)->post(route('admin.orders.reorder', $lisantiOrder), [
+        $this->actingAs($this->owner)->post(route('admin.orders.reorder', $lisantiOrder), [
             'week' => $this->monday()->copy()->addWeek()->toDateString(),
         ])->assertRedirect();
 

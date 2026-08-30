@@ -4,6 +4,11 @@
 
 @php
     $trim = fn ($n) => $n === null ? '' : rtrim(rtrim(number_format((float) $n, 2, '.', ''), '0'), '.');
+    // Counts are entered in the unit the item is ORDERED in, so the manager
+    // counts 7 boxes rather than 371 portions. Stored in base units.
+    $inOrderUnits = fn ($base, $item) => \App\Http\Controllers\WeeklyCountController::toPurchaseUnits(
+        $base === null ? null : (float) $base, $item
+    );
 @endphp
 
 @push('styles')
@@ -147,7 +152,7 @@
                                 <div class="col-12 col-md-6">
                                     <div style="font-weight: 600; font-size: 1.05rem;">{{ $item->name }}</div>
                                     <div class="text-muted small">
-                                        {{ $trim($item->units_per_purchase) }} {{ $item->base_unit }} per {{ $item->purchase_unit }}
+                                        1 {{ $item->purchase_unit }} = {{ $trim($item->units_per_purchase) }} {{ $item->base_unit }}
                                         @if($item->portion_size)
                                             &middot; {{ $trim($item->portion_size) }} {{ $item->portion_unit }} portions
                                         @endif
@@ -160,8 +165,8 @@
                                 <div class="col-5 col-md-3 text-md-end">
                                     <div class="text-muted small prev-week">
                                         Last week:
-                                        <strong>{{ $prev !== null ? $trim($prev) : '—' }}</strong>
-                                        @if($prev !== null)<span class="text-muted">{{ $item->base_unit }}</span>@endif
+                                        <strong>{{ $prev !== null ? $trim($inOrderUnits($prev, $item)) : '—' }}</strong>
+                                        @if($prev !== null)<span class="text-muted">{{ $item->purchase_unit }}</span>@endif
                                     </div>
                                 </div>
 
@@ -171,11 +176,11 @@
                                                class="form-control count-input"
                                                name="counts[{{ $row->id }}]"
                                                data-row-input="{{ $row->id }}"
-                                               value="{{ $row->counted_at ? $trim($row->starting_stock) : '' }}"
+                                               value="{{ $row->counted_at ? $trim($inOrderUnits($row->starting_stock, $item)) : '' }}"
                                                placeholder="0"
-                                               aria-label="On-hand count for {{ $item->name }}"
+                                               aria-label="How many {{ $item->purchase_unit }} of {{ $item->name }} are on hand"
                                                @disabled(! $editable)>
-                                        <span class="input-group-text">{{ $item->base_unit }}</span>
+                                        <span class="input-group-text">{{ $item->purchase_unit }}</span>
                                     </div>
                                     @if($editable)
                                     <button type="button" class="btn btn-link btn-sm note-toggle p-0 mt-1"

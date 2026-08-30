@@ -53,27 +53,35 @@
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3 d-print-none">
         <a href="{{ route('admin.orders.show', $order) }}" class="btn btn-link">&larr; Back to order</a>
         <div class="d-flex flex-wrap gap-2">
-            <button class="btn btn-outline-secondary" onclick="copyOrderText()" id="copyBtn">Copy as text</button>
             <a class="btn btn-outline-secondary" href="{{ route('admin.orders.report.pdf', $order) }}" target="_blank" rel="noopener">Download PDF</a>
-            @if(filled($vendor?->contact_email))
+            @if($vendor?->order_method === 'email' && filled($vendor?->contact_email))
                 <a class="btn btn-outline-primary" id="emailBtn" href="#">Email {{ $vendor->vendor_name }}</a>
-            @else
-                <button class="btn btn-outline-primary" disabled
-                        title="Add a contact email to this vendor to enable this">Email vendor</button>
+            @elseif($vendor?->order_method === 'online' && filled($vendor?->website))
+                <a class="btn btn-outline-primary" href="{{ $vendor->website }}" target="_blank" rel="noopener">Open {{ $vendor->vendor_name }} site</a>
             @endif
             <button class="btn btn-primary" onclick="window.print()">Print</button>
         </div>
     </div>
 
-    @unless(filled($vendor?->contact_email))
+    @unless(filled($vendor?->order_method))
         <div class="alert alert-warning d-print-none">
             <small>
-                {{ $vendor->vendor_name ?? 'This vendor' }} has no contact email, so the email button is off.
-                <a href="{{ route('admin.vendors.index', ['search' => $vendor->vendor_name ?? '']) }}">Add one</a>,
-                or use Copy as text and paste it wherever you send orders.
+                No ordering method is set for {{ $vendor->vendor_name ?? 'this vendor' }}.
+                <a href="{{ route('admin.vendors.index', ['search' => $vendor->vendor_name ?? '']) }}">Set one</a>
+                so whoever places the order knows whether to phone, go online, or walk in.
             </small>
         </div>
     @endunless
+
+    @if($vendor)
+    <div class="alert alert-info d-print-none">
+        <strong>{{ $vendor->order_method_label }}</strong>
+        <div class="small">{{ $vendor->order_instruction }}</div>
+        @if(filled($vendor->order_notes))
+            <div class="small mt-1">{{ $vendor->order_notes }}</div>
+        @endif
+    </div>
+    @endif
 
     <div class="report-sheet">
         <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
@@ -167,17 +175,6 @@
         @endif
     </div>
 
-    <div class="card mt-4 d-print-none">
-        <div class="card-header border-0 pb-0 d-flex justify-content-between align-items-center">
-            <h3 class="card-title mb-0" style="font-size: 1rem; font-weight: 500;">Plain text version</h3>
-            <small class="text-muted">For email, WhatsApp, or a text message</small>
-        </div>
-        <div class="card-body">
-            <pre id="orderPlainText" class="mb-0" style="white-space: pre-wrap; font-size: 0.813rem; background: #f8f9fa; padding: 1rem; border-radius: 8px; margin: 0;">{{ $plainText }}</pre>
-        </div>
-    </div>
-</div>
-
 <div class="toast-container position-fixed bottom-0 end-0 p-3 d-print-none" id="toastContainer" style="z-index: 1080;"></div>
 @endsection
 
@@ -199,28 +196,6 @@ function showToast(message, type = 'success') {
     const instance = new bootstrap.Toast(toast, { delay: 2500 });
     toast.addEventListener('hidden.bs.toast', () => toast.remove());
     instance.show();
-}
-
-// navigator.clipboard needs a secure context, which local http:// is not, so
-// fall back to selecting the text for a manual copy rather than failing silently.
-async function copyOrderText() {
-    try {
-        if (navigator.clipboard && window.isSecureContext) {
-            await navigator.clipboard.writeText(ORDER_TEXT);
-            showToast('Order copied to clipboard');
-            return;
-        }
-        throw new Error('clipboard unavailable');
-    } catch (error) {
-        const pre = document.getElementById('orderPlainText');
-        const range = document.createRange();
-        range.selectNodeContents(pre);
-        const selection = window.getSelection();
-        selection.removeAllRanges();
-        selection.addRange(range);
-        pre.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        showToast('Text selected below, press Ctrl+C or Cmd+C to copy', 'error');
-    }
 }
 
 // mailto bodies are capped by the browser and the OS mail client, so a long
