@@ -417,4 +417,35 @@ class StoreInventoryTargetTest extends TestCase
 
         $this->assertSame(10, StoreInventoryTarget::count());
     }
+
+    /** @test */
+    public function the_owner_can_find_and_set_stock_targets_but_the_manager_cannot_find_them(): void
+    {
+        $item = $this->item($this->roundRock, 'Steak');
+
+        // The owner decides what gets ordered, so the owner sets the targets.
+        $owner = User::factory()->create(['role' => 'owner']);
+        $owner->ownedStores()->attach($this->roundRock->id);
+        $targetsUrl = route('admin.inventory-targets.index', $this->roundRock);
+
+        $this->actingAs($owner)->get(route('admin.inventory-items.index'))
+            ->assertOk()
+            ->assertSee($targetsUrl, false);
+
+        $this->actingAs($owner)->get($targetsUrl)->assertOk()->assertSee('Steak');
+
+        $this->actingAs($owner)->post(route('admin.inventory-targets.update', $this->roundRock), [
+            'targets' => [$item->id => ['target_stock_level' => 15]],
+        ])->assertRedirect();
+
+        $this->assertEqualsWithDelta(15.0, (float) StoreInventoryTarget::where('inventory_item_id', $item->id)->value('target_stock_level'), 0.001);
+
+        // A manager only counts; the link is not offered to them.
+        $manager = User::factory()->create(['role' => 'manager', 'store_id' => $this->roundRock->id]);
+        $manager->assignedStoresPivot()->attach($this->roundRock->id);
+
+        $this->actingAs($manager)->get(route('admin.inventory-items.index'))
+            ->assertOk()
+            ->assertDontSee($targetsUrl, false);
+    }
 }
