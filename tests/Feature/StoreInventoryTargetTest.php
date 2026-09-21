@@ -334,16 +334,17 @@ class StoreInventoryTargetTest extends TestCase
     // ---- Access ------------------------------------------------------------
 
     /** @test */
-    public function a_manager_cannot_reach_a_store_they_are_not_assigned_to(): void
+    public function an_owner_cannot_reach_a_store_they_do_not_own(): void
     {
-        $manager = User::factory()->create(['role' => 'manager', 'store_id' => $this->roundRock->id]);
-        $manager->assignedStoresPivot()->attach($this->roundRock->id);
+        // Targets are owner-only; this checks the store scoping beneath that.
+        $owner = User::factory()->create(['role' => 'owner']);
+        $owner->ownedStores()->attach($this->roundRock->id);
 
-        $this->actingAs($manager)->get(route('admin.inventory-targets.index', $this->roundRock))->assertOk();
-        $this->actingAs($manager)->get(route('admin.inventory-targets.index', $this->downtown))->assertForbidden();
+        $this->actingAs($owner)->get(route('admin.inventory-targets.index', $this->roundRock))->assertOk();
+        $this->actingAs($owner)->get(route('admin.inventory-targets.index', $this->downtown))->assertForbidden();
 
         $steak = $this->item($this->downtown, 'Steak');
-        $this->actingAs($manager)->post(route('admin.inventory-targets.update', $this->downtown), [
+        $this->actingAs($owner)->post(route('admin.inventory-targets.update', $this->downtown), [
             'targets' => [$steak->id => ['target_stock_level' => 99]],
         ])->assertForbidden();
 
@@ -374,10 +375,10 @@ class StoreInventoryTargetTest extends TestCase
         StoreInventoryTarget::create(['store_id' => $this->roundRock->id, 'inventory_item_id' => $rrSteak->id, 'target_stock_level' => 15]);
         $this->item($this->downtown, 'Steak');
 
-        $manager = User::factory()->create(['role' => 'manager', 'store_id' => $this->downtown->id]);
-        $manager->assignedStoresPivot()->attach($this->downtown->id);
+        $owner = User::factory()->create(['role' => 'owner']);
+        $owner->ownedStores()->attach($this->downtown->id);
 
-        $this->actingAs($manager)->post(route('admin.inventory-targets.copy-from', $this->downtown), [
+        $this->actingAs($owner)->post(route('admin.inventory-targets.copy-from', $this->downtown), [
             'source_store_id' => $this->roundRock->id,
         ])->assertSessionHas('error');
 
@@ -440,12 +441,31 @@ class StoreInventoryTargetTest extends TestCase
 
         $this->assertEqualsWithDelta(15.0, (float) StoreInventoryTarget::where('inventory_item_id', $item->id)->value('target_stock_level'), 0.001);
 
-        // A manager only counts; the link is not offered to them.
+        // A manager only counts. The link is not offered to them, and typing
+        // the URL for their own store is refused too: found on the live site,
+        // where hiding the link had left the page open.
         $manager = User::factory()->create(['role' => 'manager', 'store_id' => $this->roundRock->id]);
         $manager->assignedStoresPivot()->attach($this->roundRock->id);
 
         $this->actingAs($manager)->get(route('admin.inventory-items.index'))
             ->assertOk()
             ->assertDontSee($targetsUrl, false);
+
+        $this->actingAs($manager)->get($targetsUrl)->assertForbidden();
+
+        $this->actingAs($manager)->post(route('admin.inventory-targets.update', $this->roundRock), [
+            'targets' => [$item->id => ['target_stock_level' => 99]],
+        ])->assertForbidden();
+
+        $this->actingAs($manager)->post(route('admin.inventory-targets.bulk-default', $this->roundRock), [
+            'target_stock_level' => 99,
+        ])->assertForbidden();
+
+        $this->assertEqualsWithDelta(
+            15.0,
+            (float) StoreInventoryTarget::where('inventory_item_id', $item->id)->value('target_stock_level'),
+            0.001,
+            'A manager changed a stock target.'
+        );
     }
 }

@@ -225,11 +225,13 @@ Route::middleware(['auth', 'verified', 'trial'])->group(function () {
         Route::get('/variance/drill-down/{inventoryItem}', [\App\Http\Controllers\Admin\VarianceReportController::class, 'drillDown'])->name('admin.variance.drill-down');
 
         // Per-store stock targets (Phase 5). Literal sub-paths precede nothing
-        // here, but keep them above any future wildcard.
-        Route::get('/stores/{store}/inventory-targets', [\App\Http\Controllers\Admin\InventoryTargetController::class, 'index'])->name('admin.inventory-targets.index');
-        Route::post('/stores/{store}/inventory-targets', [\App\Http\Controllers\Admin\InventoryTargetController::class, 'update'])->name('admin.inventory-targets.update');
-        Route::post('/stores/{store}/inventory-targets/bulk-default', [\App\Http\Controllers\Admin\InventoryTargetController::class, 'bulkDefault'])->name('admin.inventory-targets.bulk-default');
-        Route::post('/stores/{store}/inventory-targets/copy-from', [\App\Http\Controllers\Admin\InventoryTargetController::class, 'copyFrom'])->name('admin.inventory-targets.copy-from');
+        // here, but keep them above any future wildcard. Owner-facing: targets
+        // decide what gets ordered, and the client keeps ordering with owners.
+        // Hiding the menu link is not enough; a manager could type the URL.
+        Route::get('/stores/{store}/inventory-targets', [\App\Http\Controllers\Admin\InventoryTargetController::class, 'index'])->middleware('role:admin,owner')->name('admin.inventory-targets.index');
+        Route::post('/stores/{store}/inventory-targets', [\App\Http\Controllers\Admin\InventoryTargetController::class, 'update'])->middleware('role:admin,owner')->name('admin.inventory-targets.update');
+        Route::post('/stores/{store}/inventory-targets/bulk-default', [\App\Http\Controllers\Admin\InventoryTargetController::class, 'bulkDefault'])->middleware('role:admin,owner')->name('admin.inventory-targets.bulk-default');
+        Route::post('/stores/{store}/inventory-targets/copy-from', [\App\Http\Controllers\Admin\InventoryTargetController::class, 'copyFrom'])->middleware('role:admin,owner')->name('admin.inventory-targets.copy-from');
 
         // Inventory operations dashboard (Phase 5.9).
         Route::get('/inventory-dashboard', [\App\Http\Controllers\Admin\InventoryDashboardController::class, 'index'])->name('admin.inventory-dashboard.index');

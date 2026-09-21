@@ -158,8 +158,12 @@ class GoLiveHardeningTest extends TestCase
         ])->assertOk();
         $this->assertCount(0, $theirs->fresh()->vendors);
 
-        // Stock targets
-        $this->actingAs($this->managerA)->post(route('admin.inventory-targets.update', $this->storeA), [
+        // Stock targets. Owner-only now, so the store-scoping check runs as an
+        // owner of store A; the role gate itself is covered in
+        // StoreInventoryTargetTest.
+        $ownerOfA = User::factory()->create(['role' => 'owner']);
+        $ownerOfA->ownedStores()->attach($this->storeA->id);
+        $this->actingAs($ownerOfA)->post(route('admin.inventory-targets.update', $this->storeA), [
             'targets' => [$theirs->id => ['target_stock_level' => 99]],
         ])->assertRedirect();
         $this->assertDatabaseMissing('store_inventory_targets', ['inventory_item_id' => $theirs->id]);
