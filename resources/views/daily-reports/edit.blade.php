@@ -653,7 +653,9 @@
                                 <td>
                                     Projected Sales<br>
                                     <small class="text-muted">
+                                        @if(Auth::user()->isAdmin() || Auth::user()->isOwner())
                                         From the <a href="{{ route('sales-projections.index') }}" target="_blank">Sales Projection</a> calendar for this date.
+                                        @endif
                                     </small>
                                 </td>
                                 <td>

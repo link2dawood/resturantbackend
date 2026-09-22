@@ -769,6 +769,7 @@
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
                                     Orders
                                 </a></li>
+                                @if(Auth::user()->isAdmin() || Auth::user()->isOwner())
                                 <li><a class="dropdown-item d-flex align-items-center" href="{{ route('admin.vendor-prices.index') }}" style="padding: 8px 16px; font-family: 'Google Sans', sans-serif; font-size: 14px; border-radius: 8px; margin: 0 8px;">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
                                     Prices
@@ -777,7 +778,6 @@
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>
                                     Price Comparison
                                 </a></li>
-                                @if(Auth::user()->isAdmin() || Auth::user()->isOwner())
                                 <li><a class="dropdown-item d-flex align-items-center" href="{{ route('admin.inventory-targets.index', Auth::user()->getAccessibleStoreIds()[0] ?? 0) }}" style="padding: 8px 16px; font-family: 'Google Sans', sans-serif; font-size: 14px; border-radius: 8px; margin: 0 8px;">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
                                     Stock Targets
@@ -968,8 +968,8 @@
                         </li>
                         @endif
 
-                        <!-- P&L Reports (Admin, Owner, Manager) -->
-                        @if(Auth::user()->isAdmin() || Auth::user()->isOwner() || Auth::user()->isManager())
+                        <!-- P&L Reports (Admin, Owner) -->
+                        @if(Auth::user()->isAdmin() || Auth::user()->isOwner())
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle d-flex align-items-center {{ request()->routeIs('admin.reports.profit-loss.*') || request()->routeIs('admin.variance.*') ? 'active' : '' }}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="padding: 8px 16px; border-radius: 20px; font-family: 'Google Sans', sans-serif; font-weight: 500; font-size: 14px; transition: all 0.2s ease; {{ request()->routeIs('admin.reports.profit-loss.*') ? 'background: #4285f4; color: white;' : 'color: #5f6368;' }}" onmouseover="if(!this.classList.contains('active')) { this.style.background='#f1f3f4'; this.style.color='#1a73e8'; }" onmouseout="if(!this.classList.contains('active')) { this.style.background='transparent'; this.style.color='#5f6368'; }">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
@@ -1062,7 +1062,7 @@
                                     Stores
                                 </a></li>
                                 @endif
-                                @if(Route::has('sales-projections.index'))
+                                @if(Route::has('sales-projections.index') && (Auth::user()->isAdmin() || Auth::user()->isOwner()))
                                 <li><a class="dropdown-item d-flex align-items-center" href="{{ route('sales-projections.index') }}" style="padding: 10px 16px; font-family: 'Google Sans', sans-serif; font-size: 14px; border-radius: 8px; margin: 0 8px;">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-3">
                                         <rect x="3" y="4" width="18" height="18" rx="2"/>

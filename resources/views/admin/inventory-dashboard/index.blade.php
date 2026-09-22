@@ -96,7 +96,9 @@
             </x-widget-card>
         </div>
 
-        {{-- 4. Variance alerts (Phase 5.9, kept) --}}
+        {{-- 4. Variance alerts (Phase 5.9, kept). Owner-facing: the variance
+             report is not open to managers, so neither is the link to it. --}}
+        @if(Auth::user()->isAdmin() || Auth::user()->isOwner())
         <div class="col-12 col-md-6 col-xl-3">
             <x-widget-card
                 title="Variance alerts"
@@ -106,6 +108,7 @@
                 :subtitle="'week of '.$priorWeek->format('M j').' · '.$alerts->where('line.severity','red')->count().' problem, '.$alerts->where('line.severity','yellow')->count().' investigate'"
                 :tone="$alerts->where('line.severity','red')->count() > 0 ? 'danger' : ($alerts->count() > 0 ? 'warning' : 'success')" />
         </div>
+        @endif
     </div>
 
     {{-- Recent activity --}}

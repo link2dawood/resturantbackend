@@ -283,6 +283,45 @@ class GoLiveHardeningTest extends TestCase
     }
 
     /** @test */
+    public function a_manager_sees_operations_but_no_money_reports(): void
+    {
+        // From the 2026-09-22 client meeting: a manager sees food and payroll
+        // cost and the count screens. The money and planning screens, and the
+        // prices that decide which vendor wins, belong to the owner.
+        foreach ([
+            route('admin.reports.profit-loss.index'),
+            route('admin.reports.profit-loss.annual'),
+            route('admin.variance.index'),
+            route('admin.expenses.index'),
+            route('admin.expenses.review'),
+            route('sales-projections.index'),
+            route('admin.vendor-prices.index'),
+            route('admin.vendor-prices.compare'),
+        ] as $url) {
+            $this->actingAs($this->managerA)->get($url)->assertForbidden("Expected 403 for {$url}");
+        }
+
+        // The tools they run the store with stay open.
+        foreach ([
+            route('inventory.entry.index'),
+            route('inventory.weekly-count.index'),
+            route('admin.inventory-items.index'),
+            route('admin.inventory-dashboard.index'),
+            route('admin.stock-up.index'),
+            route('admin.orders.index'),
+        ] as $url) {
+            $this->actingAs($this->managerA)->get($url)->assertOk("Expected 200 for {$url}");
+        }
+
+        // And nothing on those pages links somewhere they will be refused:
+        // an offered link that 403s is the bug this pass was fixing.
+        $dashboard = $this->actingAs($this->managerA)->get(route('admin.inventory-dashboard.index'))->assertOk();
+        foreach ([route('admin.variance.index'), route('admin.vendor-prices.index'), route('admin.reports.profit-loss.index')] as $hidden) {
+            $dashboard->assertDontSee($hidden, false);
+        }
+    }
+
+    /** @test */
     public function an_employee_is_confined_to_the_count_screens(): void
     {
         $employee = User::factory()->create(['role' => 'employee', 'store_id' => $this->storeA->id]);
@@ -375,12 +414,12 @@ class GoLiveHardeningTest extends TestCase
         $ownerA = User::factory()->create(['role' => 'owner']);
         $ownerA->ownedStores()->attach($this->storeA->id);
 
-        // Suggestions is an owner screen; the rest the manager opens daily.
+        // Suggestions and pricing are owner screens; the rest the manager opens daily.
         $pages = [
             [$this->managerA, route('inventory.weekly-count.index', ['store_id' => $this->storeA->id])],
             [$ownerA, route('inventory.weekly-count.suggestions', ['store_id' => $this->storeA->id])],
             [$this->managerA, route('admin.inventory-items.index', ['store_id' => $this->storeA->id])],
-            [$this->managerA, route('admin.vendor-prices.compare', ['store_id' => $this->storeA->id])],
+            [$ownerA, route('admin.vendor-prices.compare', ['store_id' => $this->storeA->id])],
             [$this->managerA, route('admin.inventory-dashboard.index', ['store_id' => $this->storeA->id])],
         ];
 

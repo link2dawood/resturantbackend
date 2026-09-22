@@ -105,13 +105,18 @@ class VarianceReportTest extends TestCase
     }
 
     /** @test */
-    public function managers_can_view_but_employees_cannot(): void
+    public function owners_can_view_but_managers_and_employees_cannot(): void
     {
         $store = Store::factory()->create();
+        $owner = User::factory()->create(['role' => 'owner']);
+        $owner->ownedStores()->attach($store->id);
         $manager = User::factory()->create(['role' => 'manager', 'store_id' => $store->id]);
         $employee = User::factory()->create(['role' => 'employee', 'store_id' => $store->id]);
 
-        $this->actingAs($manager)->get(route('admin.variance.index'))->assertOk();
+        $this->actingAs($owner)->get(route('admin.variance.index'))->assertOk();
+
+        // Client meeting, 2026-09-22: the variance report is an owner screen.
+        $this->actingAs($manager)->get(route('admin.variance.index'))->assertStatus(403);
         $this->actingAs($employee)->get(route('admin.variance.index'))->assertStatus(403);
     }
 }

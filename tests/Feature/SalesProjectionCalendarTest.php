@@ -101,19 +101,30 @@ class SalesProjectionCalendarTest extends TestCase
     }
 
     /** @test */
-    public function a_manager_with_store_access_can_enter_projections(): void
+    public function an_owner_enters_projections_and_a_manager_cannot(): void
     {
         $owner = User::factory()->create(['role' => 'owner']);
         $manager = User::factory()->create(['role' => 'manager']);
         $store = Store::factory()->create(['created_by' => $owner->id]);
         $store->assignedManagers()->attach($manager->id);
 
-        $this->actingAs($manager)->postJson(route('sales-projections.store'), [
+        $this->actingAs($owner)->postJson(route('sales-projections.store'), [
             'store_id' => $store->id,
             'date' => '2026-06-12',
             'amount' => 900,
         ])->assertOk();
 
         $this->assertDatabaseHas('sales_projections', ['store_id' => $store->id, 'amount' => 900]);
+
+        // Projecting sales is planning, which the client keeps with owners.
+        $this->actingAs($manager)->get(route('sales-projections.index'))->assertForbidden();
+
+        $this->actingAs($manager)->postJson(route('sales-projections.store'), [
+            'store_id' => $store->id,
+            'date' => '2026-06-13',
+            'amount' => 500,
+        ])->assertForbidden();
+
+        $this->assertDatabaseMissing('sales_projections', ['amount' => 500]);
     }
 }

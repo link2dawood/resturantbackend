@@ -211,18 +211,18 @@ Route::middleware(['auth', 'verified', 'trial'])->group(function () {
         // so every existing route() call and test keeps resolving.
         // /compare/export must precede nothing here, but keep literal paths above
         // any wildcard if one is ever added.
-        Route::get('/pricing/update', [\App\Http\Controllers\Admin\VendorPriceController::class, 'index'])->name('admin.vendor-prices.index');
-        Route::post('/pricing/update', [\App\Http\Controllers\Admin\VendorPriceController::class, 'bulkUpdate'])->name('admin.vendor-prices.bulk');
-        Route::get('/pricing/compare', [\App\Http\Controllers\Admin\VendorPriceController::class, 'compare'])->name('admin.vendor-prices.compare');
-        Route::get('/pricing/compare/export', [\App\Http\Controllers\Admin\VendorPriceController::class, 'exportCompare'])->name('admin.vendor-prices.compare.export');
-        Route::post('/pricing/apply-cheapest', [\App\Http\Controllers\Admin\VendorPriceController::class, 'applyCheapest'])->name('admin.vendor-prices.apply-cheapest');
-        Route::get('/pricing/history/{inventoryItem}', [\App\Http\Controllers\Admin\VendorPriceController::class, 'history'])->name('admin.vendor-prices.history');
+        Route::get('/pricing/update', [\App\Http\Controllers\Admin\VendorPriceController::class, 'index'])->middleware('role:admin,owner')->name('admin.vendor-prices.index');
+        Route::post('/pricing/update', [\App\Http\Controllers\Admin\VendorPriceController::class, 'bulkUpdate'])->middleware('role:admin,owner')->name('admin.vendor-prices.bulk');
+        Route::get('/pricing/compare', [\App\Http\Controllers\Admin\VendorPriceController::class, 'compare'])->middleware('role:admin,owner')->name('admin.vendor-prices.compare');
+        Route::get('/pricing/compare/export', [\App\Http\Controllers\Admin\VendorPriceController::class, 'exportCompare'])->middleware('role:admin,owner')->name('admin.vendor-prices.compare.export');
+        Route::post('/pricing/apply-cheapest', [\App\Http\Controllers\Admin\VendorPriceController::class, 'applyCheapest'])->middleware('role:admin,owner')->name('admin.vendor-prices.apply-cheapest');
+        Route::get('/pricing/history/{inventoryItem}', [\App\Http\Controllers\Admin\VendorPriceController::class, 'history'])->middleware('role:admin,owner')->name('admin.vendor-prices.history');
 
         // Variance report (Phase 5.8) — the headline module.
-        Route::get('/variance', [\App\Http\Controllers\Admin\VarianceReportController::class, 'index'])->name('admin.variance.index');
-        Route::get('/variance/export/pdf', [\App\Http\Controllers\Admin\VarianceReportController::class, 'exportPdf'])->name('admin.variance.export.pdf');
-        Route::get('/variance/export/csv', [\App\Http\Controllers\Admin\VarianceReportController::class, 'exportCsv'])->name('admin.variance.export.csv');
-        Route::get('/variance/drill-down/{inventoryItem}', [\App\Http\Controllers\Admin\VarianceReportController::class, 'drillDown'])->name('admin.variance.drill-down');
+        Route::get('/variance', [\App\Http\Controllers\Admin\VarianceReportController::class, 'index'])->middleware('role:admin,owner')->name('admin.variance.index');
+        Route::get('/variance/export/pdf', [\App\Http\Controllers\Admin\VarianceReportController::class, 'exportPdf'])->middleware('role:admin,owner')->name('admin.variance.export.pdf');
+        Route::get('/variance/export/csv', [\App\Http\Controllers\Admin\VarianceReportController::class, 'exportCsv'])->middleware('role:admin,owner')->name('admin.variance.export.csv');
+        Route::get('/variance/drill-down/{inventoryItem}', [\App\Http\Controllers\Admin\VarianceReportController::class, 'drillDown'])->middleware('role:admin,owner')->name('admin.variance.drill-down');
 
         // Per-store stock targets (Phase 5). Literal sub-paths precede nothing
         // here, but keep them above any future wildcard. Owner-facing: targets
@@ -376,8 +376,8 @@ Route::middleware(['auth', 'verified', 'trial'])->group(function () {
 
     // Expenses - Admin, Owner, Manager can view
     Route::middleware(['role:admin,owner,manager', 'convert_date_format'])->group(function () {
-        Route::get('/expenses', [ExpenseViewController::class, 'index'])->name('admin.expenses.index');
-        Route::get('/expenses/review', [ReviewQueueViewController::class, 'index'])->name('admin.expenses.review');
+        Route::get('/expenses', [ExpenseViewController::class, 'index'])->middleware('role:admin,owner')->name('admin.expenses.index');
+        Route::get('/expenses/review', [ReviewQueueViewController::class, 'index'])->middleware('role:admin,owner')->name('admin.expenses.review');
     });
     
     // Merchant Fees - Admin, Owner
@@ -414,9 +414,9 @@ Route::middleware(['auth', 'verified', 'trial'])->group(function () {
     // P&L Reports - Admin, Owner (full access), Manager (view only)
     Route::middleware(['role:admin,owner,manager', 'convert_date_format'])->group(function () {
         // Managers can view but not export
-        Route::get('/reports/profit-loss', [ProfitLossViewController::class, 'index'])->name('admin.reports.profit-loss.index');
-        Route::get('/reports/profit-loss/annual', [ProfitLossViewController::class, 'annual'])->name('admin.reports.profit-loss.annual');
-        Route::get('/reports/profit-loss/drill-down', [ProfitLossViewController::class, 'drillDown'])->name('admin.reports.profit-loss.drill-down');
+        Route::get('/reports/profit-loss', [ProfitLossViewController::class, 'index'])->middleware('role:admin,owner')->name('admin.reports.profit-loss.index');
+        Route::get('/reports/profit-loss/annual', [ProfitLossViewController::class, 'annual'])->middleware('role:admin,owner')->name('admin.reports.profit-loss.annual');
+        Route::get('/reports/profit-loss/drill-down', [ProfitLossViewController::class, 'drillDown'])->middleware('role:admin,owner')->name('admin.reports.profit-loss.drill-down');
     });
     
     // P&L Export and Advanced Features - Admin and Owner only
@@ -474,8 +474,8 @@ Route::middleware(['auth', 'verified', 'trial'])->group(function () {
 
     // Sales Projection Calendar (per-store daily projections vs actuals) - Phase 4
     Route::middleware('role:admin,owner,manager')->group(function () {
-        Route::get('/sales-projections', [SalesProjectionController::class, 'index'])->name('sales-projections.index');
-        Route::post('/sales-projections', [SalesProjectionController::class, 'store'])->name('sales-projections.store');
+        Route::get('/sales-projections', [SalesProjectionController::class, 'index'])->middleware('role:admin,owner')->name('sales-projections.index');
+        Route::post('/sales-projections', [SalesProjectionController::class, 'store'])->middleware('role:admin,owner')->name('sales-projections.store');
     });
 
     // Reports Routes

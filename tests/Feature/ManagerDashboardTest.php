@@ -344,7 +344,7 @@ class ManagerDashboardTest extends TestCase
     // ---- The page -----------------------------------------------------------
 
     /** @test */
-    public function the_dashboard_renders_all_four_widgets_and_the_activity_feed(): void
+    public function the_dashboard_renders_its_widgets_and_the_activity_feed(): void
     {
         $steak = $this->item('Ribeye Steak', ['min_stock_level' => 200]);
         $this->countRow($steak, 10);
@@ -359,10 +359,16 @@ class ManagerDashboardTest extends TestCase
             ->assertSee("This week's count")
             ->assertSee('Pending orders')
             ->assertSee('Low stock')
-            ->assertSee('Variance alerts')
             ->assertSee('Recent activity')
             ->assertSee('Ribeye Steak')
-            ->assertSee('Lisanti');
+            ->assertSee('Lisanti')
+            // The variance report is owner-facing, so the manager is not shown
+            // a widget linking into a 403.
+            ->assertDontSee('Variance alerts');
+
+        $this->actingAs($this->owner)->get(route('admin.inventory-dashboard.index'))
+            ->assertOk()
+            ->assertSee('Variance alerts');
     }
 
     /** @test */
