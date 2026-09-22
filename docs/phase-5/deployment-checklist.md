@@ -16,9 +16,16 @@ Nothing here needs downtime.
 ## 1. Back up (non-negotiable)
 
 ```bash
-mysqldump -u "$DB_USERNAME" -p "$DB_DATABASE" > backup-pre-phase5-$(date +%Y%m%d-%H%M).sql
+mysqldump --no-tablespaces -u "$DB_USERNAME" -p "$DB_DATABASE" > backup-pre-phase5-$(date +%Y%m%d-%H%M).sql
 ls -lh backup-pre-phase5-*.sql        # confirm it is not 0 bytes
+tail -1 backup-pre-phase5-*.sql       # must read "Dump completed on ..."
 ```
+
+`--no-tablespaces` is required on Bluehost: dumping tablespaces needs the
+PROCESS privilege, which the shared-hosting DB user does not have, and without
+the flag mysqldump exits leaving a **0-byte file that looks like a backup**.
+Substitute the real user and database name; passing the literal `$DB_USERNAME`
+without exporting it first fails the same silent way.
 
 Keep this file until the client has signed off. It is the rollback.
 
