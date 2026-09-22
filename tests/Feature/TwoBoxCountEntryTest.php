@@ -99,21 +99,36 @@ class TwoBoxCountEntryTest extends TestCase
     }
 
     /** @test */
-    public function loose_pieces_cannot_reach_a_full_pack(): void
+    public function steak_pieces_cannot_exceed_fifty_three(): void
     {
+        // The client: "steak partial cannot exceed 53 (one box has 53 pieces)".
         $steak = $this->item('Steak', 'portion', 'box', 53);
         $row = $this->rowFor($steak);
 
-        // 53 loose pieces is a whole box, so it belongs in the left column.
-        $this->save([$row->id => 2], [$row->id => 53])
+        $this->save([$row->id => 2], [$row->id => 54])
             ->assertStatus(422)
-            ->assertJsonPath('errors.'.$row->id, 'Steak: partial cannot exceed 52 portions.');
+            ->assertJsonPath('errors.'.$row->id, 'Steak: partial cannot exceed 53 portions.');
 
         $this->assertNull($row->fresh()->counted_at, 'A refused count must not be stored.');
 
-        // One short of a pack is fine.
-        $this->save([$row->id => 2], [$row->id => 52])->assertOk();
-        $this->assertEqualsWithDelta(158.0, (float) $row->fresh()->starting_stock, 0.001);
+        // A full pack in the partial box is allowed and simply totals up.
+        $this->save([$row->id => 2], [$row->id => 53])->assertOk();
+        $this->assertEqualsWithDelta(159.0, (float) $row->fresh()->starting_stock, 0.001);
+    }
+
+    /** @test */
+    public function hamburger_meat_pieces_cannot_exceed_forty(): void
+    {
+        // The client named this cap directly, so the item carries a 40 pack.
+        $meat = $this->item('Hamburger Meat', 'each', 'case', 40);
+        $row = $this->rowFor($meat);
+
+        $this->save([$row->id => 1], [$row->id => 41])
+            ->assertStatus(422)
+            ->assertJsonPath('errors.'.$row->id, 'Hamburger Meat: partial cannot exceed 40 eaches.');
+
+        $this->save([$row->id => 1], [$row->id => 40])->assertOk();
+        $this->assertEqualsWithDelta(80.0, (float) $row->fresh()->starting_stock, 0.001);
     }
 
     /** @test */
@@ -170,7 +185,7 @@ class TwoBoxCountEntryTest extends TestCase
     }
 
     /** @test */
-    public function the_screen_offers_pieces_for_packs_and_quarter_buttons_otherwise(): void
+    public function the_screen_offers_typed_pieces_for_packs_and_a_dropdown_otherwise(): void
     {
         $steak = $this->item('Steak', 'portion', 'box', 53);
         $oil = $this->item('Frying Oil', 'jug', 'jug', 1);
@@ -178,14 +193,17 @@ class TwoBoxCountEntryTest extends TestCase
 
         $page = $this->actingAs($this->manager)->get(route('inventory.weekly-count.index'))->assertOk();
 
-        // Steak: a numeric pieces box capped one short of a pack.
+        // Steak and the other high-granularity meats take a typed number.
         $steakRow = InventoryStock::where('inventory_item_id', $steak->id)->firstOrFail();
-        $page->assertSee('data-max-partial="52"', false);
+        $page->assertSee('data-max-partial="53"', false);
         $page->assertSee('id="partial-'.$steakRow->id.'"', false);
 
-        // Oil: quarters to tap, no keyboard.
+        // Everything else picks from the preset list the client asked for.
         $oilRow = InventoryStock::where('inventory_item_id', $oil->id)->firstOrFail();
-        $page->assertSee('onclick="setFraction('.$oilRow->id.", '0.75'", false);
+        $page->assertSee('<select class="form-select count-input count-select"', false);
+        foreach (['0.25', '0.5', '0.75'] as $preset) {
+            $page->assertSee('<option value="'.$preset.'"', false);
+        }
     }
 
     /** @test */

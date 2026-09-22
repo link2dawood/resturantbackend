@@ -299,7 +299,7 @@ class WeeklyInventoryCountTest extends TestCase
             ->assertSee('1 box = 53 portion')
             ->assertSee('name="whole['.$row->id.']"', false)
             ->assertSee('value="7"', false)
-            ->assertSee('data-max-partial="52"', false);
+            ->assertSee('data-max-partial="53"', false);
     }
 
     /** @test */

@@ -40,8 +40,8 @@ class FannsPhillyOrderGuideSeederTest extends TestCase
     /** @test */
     public function it_seeds_the_whole_order_guide_into_every_store(): void
     {
-        $this->assertSame(123, InventoryItem::where('store_id', $this->store->id)->count());
-        $this->assertSame(123, InventoryItem::where('store_id', $this->store->id)->where('is_active', true)->count());
+        $this->assertSame(130, InventoryItem::where('store_id', $this->store->id)->count());
+        $this->assertSame(130, InventoryItem::where('store_id', $this->store->id)->where('is_active', true)->count());
     }
 
     /** @test */
@@ -114,7 +114,7 @@ class FannsPhillyOrderGuideSeederTest extends TestCase
     /** @test */
     public function the_coca_cola_column_maps_to_the_coca_cola_vendor(): void
     {
-        foreach (['Coke', 'Diet Coke', 'Sprite', 'Coke Zero'] as $name) {
+        foreach (['Coke (Bag-in-Box)', 'Coke (20oz Bottle)', 'Diet Coke (Bag-in-Box)', 'Sprite (20oz Bottle)', 'Coke Zero (Bag-in-Box)'] as $name) {
             $this->assertSame(
                 'Coca-Cola',
                 $this->item($name)->preferredVendor->vendor_name,
@@ -127,7 +127,7 @@ class FannsPhillyOrderGuideSeederTest extends TestCase
     public function drinks_are_filed_as_beverages_not_produce(): void
     {
         // "Dr. Pepper" matched a produce keyword on the first pass.
-        foreach (['Dr. Pepper', 'Root Beer', 'Coke', 'Apple Juice'] as $name) {
+        foreach (['Dr. Pepper (Bag-in-Box)', 'Root Beer', 'Coke (20oz Bottle)', 'Apple Juice'] as $name) {
             $this->assertSame(
                 'Beverages',
                 $this->item($name)->inventoryCategory->name,
@@ -160,7 +160,7 @@ class FannsPhillyOrderGuideSeederTest extends TestCase
 
         $this->seed(FannsPhillyOrderGuideSeeder::class);
 
-        $this->assertSame(123, InventoryItem::where('store_id', $this->store->id)->count());
+        $this->assertSame(130, InventoryItem::where('store_id', $this->store->id)->count());
         $this->assertSame($mappingsBefore, \Illuminate\Support\Facades\DB::table('inventory_item_vendor')->count());
     }
 
@@ -175,6 +175,6 @@ class FannsPhillyOrderGuideSeederTest extends TestCase
             ->assertExitCode(0);
 
         // Items still land; only the mappings are skipped.
-        $this->assertSame(123, InventoryItem::where('store_id', $this->store->id)->count());
+        $this->assertSame(130, InventoryItem::where('store_id', $this->store->id)->count());
     }
 }

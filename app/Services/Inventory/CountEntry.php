@@ -39,13 +39,17 @@ class CountEntry
     }
 
     /**
-     * The largest partial the item accepts. One short of a full pack for a
-     * piece count, just under a whole unit for a fraction.
+     * The largest partial the item accepts.
+     *
+     * The client set this as the pack size itself: "steak partial cannot exceed
+     * 53, hamburger meat cannot exceed 40". A partial of exactly one full pack
+     * is therefore allowed and simply totals as another whole unit, which is
+     * harmless; anything above it is a miscount and is refused.
      */
     public static function maxPartial(?InventoryItem $item): float
     {
         return self::countsInPieces($item)
-            ? self::packSize($item) - 1
+            ? self::packSize($item)
             : 0.75;
     }
 

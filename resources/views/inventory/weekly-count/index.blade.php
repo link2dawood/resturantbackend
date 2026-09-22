@@ -28,10 +28,7 @@
         letter-spacing: .02em; color: #6c757d; margin-bottom: 0.15rem; white-space: nowrap;
         overflow: hidden; text-overflow: ellipsis;
     }
-    .fraction-group .btn {
-        min-height: 56px; font-size: 1.1rem; font-weight: 600; padding: 0 0.25rem;
-    }
-    .fraction-group .btn.active { background: #206bc4; border-color: #206bc4; color: #fff; }
+    .count-select { text-align: left; text-align-last: center; }
     .count-total { min-height: 1.1rem; margin-top: 0.15rem; font-variant-numeric: tabular-nums; }
     .count-input.is-invalid { border-color: #d63939; }
     .count-row { padding: 0.85rem 0; border-bottom: 1px solid #eceef1; }
@@ -230,20 +227,19 @@
                                                        aria-label="Loose {{ $partialLabel }} of {{ $item->name }} outside a full {{ $item->purchase_unit }}"
                                                        @disabled(! $editable)>
                                             @else
-                                                <input type="hidden" name="partial[{{ $row->id }}]"
-                                                       data-row-partial="{{ $row->id }}"
-                                                       data-max-partial="0.75"
-                                                       value="{{ $split['partial'] ? $trim($split['partial']) : '' }}">
-                                                <div class="btn-group fraction-group w-100" role="group"
-                                                     aria-label="Partial {{ $item->purchase_unit }} of {{ $item->name }}">
-                                                    @foreach([['0', '0'], ['0.25', '&frac14;'], ['0.5', '&frac12;'], ['0.75', '&frac34;']] as [$value, $glyph])
-                                                        <button type="button"
-                                                                class="btn btn-outline-secondary fraction-btn {{ (string) ($split['partial'] ?: 0) === (string) (float) $value ? 'active' : '' }}"
-                                                                data-fraction="{{ $value }}"
-                                                                onclick="setFraction({{ $row->id }}, '{{ $value }}', this)"
-                                                                @disabled(! $editable)>{!! $glyph !!}</button>
+                                                <select class="form-select count-input count-select"
+                                                        id="partial-{{ $row->id }}"
+                                                        name="partial[{{ $row->id }}]"
+                                                        data-row-partial="{{ $row->id }}"
+                                                        data-max-partial="0.75"
+                                                        aria-label="Partial {{ $item->purchase_unit }} of {{ $item->name }}"
+                                                        @disabled(! $editable)>
+                                                    <option value="">0</option>
+                                                    @foreach(\App\Services\Inventory\CountEntry::FRACTIONS as $fraction)
+                                                        <option value="{{ $fraction }}"
+                                                            @selected((float) ($split['partial'] ?? 0) === (float) $fraction)>{{ $fraction }}</option>
                                                     @endforeach
-                                                </div>
+                                                </select>
                                             @endif
                                         </div>
                                     </div>
@@ -356,29 +352,6 @@ function collect() {
     });
 
     return { whole, partial, notes };
-}
-
-// Tap a quarter. Tapping the active one again clears it, so a mis-tap does not
-// need the keyboard to undo.
-function setFraction(rowId, value, button) {
-    const hidden = document.querySelector(`[data-row-partial="${rowId}"]`);
-    if (!hidden) return;
-
-    const group = button.closest('.fraction-group');
-    const alreadyOn = button.classList.contains('active');
-
-    group.querySelectorAll('.fraction-btn').forEach(b => b.classList.remove('active'));
-
-    if (alreadyOn) {
-        hidden.value = '';
-    } else {
-        hidden.value = value === '0' ? '' : value;
-        button.classList.add('active');
-    }
-
-    dirty = true;
-    refreshLocalState();
-    setStatus('Unsaved changes');
 }
 
 // "2 boxes + 15 loose = 121 portions", under the boxes, so the counter can see
