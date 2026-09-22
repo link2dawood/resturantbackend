@@ -160,4 +160,68 @@ class DashboardMetricsTest extends TestCase
         $this->assertSame(5000.0, $service->forUser($start, $end, $storeA->id)['sales']['actual']);
         $this->assertSame(3000.0, $service->forUser($start, $end, $storeB->id)['sales']['actual']);
     }
+
+    /** @return array<string, mixed> */
+    private function ring(string $label): array
+    {
+        return [
+            'label' => $label, 'has_data' => true, 'percent' => 50.0, 'ahead' => true,
+            'display' => '10%', 'sub' => 'of sales', 'variance_label' => 'on target',
+        ];
+    }
+
+    /** @test */
+    public function the_manager_rings_leave_out_the_rental_cost(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $store = Store::factory()->create(['created_by' => $admin->id, 'store_info' => 'Round Rock']);
+        $manager = User::factory()->create(['role' => 'manager', 'store_id' => $store->id]);
+        $manager->assignedStoresPivot()->attach($store->id);
+
+        $metrics = [
+            'sales' => $this->ring('Sales'),
+            'food' => $this->ring('Food Cost'),
+            'payroll' => $this->ring('Payroll Cost'),
+            'rent' => $this->ring('Rental Cost'),
+        ];
+
+        // Rent is the owner's number, so the manager sees only the costs they
+        // can influence. The dashboard route itself needs MySQL (YEARWEEK), so
+        // the partial is rendered directly.
+        $this->actingAs($manager);
+        $asManager = view('dashboard.partials.circular-metrics', ['circularMetrics' => $metrics])->render();
+
+        $this->assertStringContainsString('Food Cost', $asManager);
+        $this->assertStringContainsString('Payroll Cost', $asManager);
+        $this->assertStringNotContainsString('Rental Cost', $asManager);
+
+        $owner = User::factory()->create(['role' => 'owner']);
+        $owner->ownedStores()->attach($store->id);
+
+        $this->actingAs($owner);
+        $asOwner = view('dashboard.partials.circular-metrics', ['circularMetrics' => $metrics])->render();
+
+        $this->assertStringContainsString('Rental Cost', $asOwner);
+    }
+
+    /** @test */
+    public function the_manager_is_not_offered_the_recipes_page_they_cannot_open(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $store = Store::factory()->create(['created_by' => $admin->id]);
+        $manager = User::factory()->create(['role' => 'manager', 'store_id' => $store->id]);
+        $manager->assignedStoresPivot()->attach($store->id);
+
+        // The route is admin/owner only, so offering the link only produced a
+        // 403. Reported from the live site.
+        $this->actingAs($manager)->get(route('admin.inventory-items.index'))
+            ->assertOk()
+            ->assertDontSee(route('admin.menu-items.index'), false);
+
+        $this->actingAs($manager)->get(route('admin.menu-items.index'))->assertForbidden();
+
+        $this->actingAs($admin)->get(route('admin.inventory-items.index'))
+            ->assertOk()
+            ->assertSee(route('admin.menu-items.index'), false);
+    }
 }

@@ -34,8 +34,16 @@
     <p class="metric-rings__period">Cost &amp; sales rings · {{ $circularMetricsPeriod }}</p>
 @endisset
 
+@php
+    // Rent is the owner's number, not the store's. A manager sees sales and the
+    // two costs they influence.
+    $ringKeys = Auth::user()?->isManager()
+        ? ['sales', 'food', 'payroll']
+        : ['sales', 'food', 'payroll', 'rent'];
+@endphp
+
 <div class="metric-rings">
-    @foreach (['sales', 'food', 'payroll', 'rent'] as $k)
+    @foreach ($ringKeys as $k)
         @php($m = $circularMetrics[$k])
         @php($r = 56)
         @php($circ = 2 * M_PI * $r)
