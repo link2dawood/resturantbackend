@@ -31,7 +31,7 @@
     <table>
         <thead><tr>
             <th>Item</th><th>Unit</th><th>Start</th><th>Ordered</th><th>Available</th>
-            <th>Theo. usage</th><th>Theo. ending</th><th>Actual</th><th>Variance</th><th>%</th>
+            <th>Used</th><th>Assumed on hand</th><th>Counted</th><th>Variance</th><th>%</th>
         </tr></thead>
         <tbody>
             @foreach($rows as $r)

@@ -12,7 +12,7 @@
     </div>
 
     <div class="row g-3 mb-4">
-        @foreach([['Starting', $line->startingStock], ['Ordered', $line->orderedQty], ['Available', $line->totalAvailable], ['Theo. usage', $line->theoreticalUsage], ['Theo. ending', $line->theoreticalEnding], ['Actual ending', $line->isIncomplete ? null : $line->actualEnding], ['Variance', $line->isIncomplete ? null : $line->variance]] as [$label, $val])
+        @foreach([['Starting', $line->startingStock], ['Ordered', $line->orderedQty], ['Available', $line->totalAvailable], ['Used', $line->theoreticalUsage], ['Assumed on hand', $line->theoreticalEnding], ['Actual ending', $line->isIncomplete ? null : $line->actualEnding], ['Variance', $line->isIncomplete ? null : $line->variance]] as [$label, $val])
             <div class="col-6 col-md-3"><div class="card"><div class="card-body py-2">
                 <div class="text-muted small">{{ $label }}</div>
                 <div class="fs-4">{{ $fmt($val) }} <span class="text-muted fs-6">{{ $line->baseUnit }}</span></div>

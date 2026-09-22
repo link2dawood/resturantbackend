@@ -48,8 +48,19 @@ class VarianceCalculationService
         $variancePct = null;
         $severity = null;
         if (! $incomplete) {
-            $variance = $theoreticalEnding - $actualEnding;
-            $variancePct = $available == 0.0 ? 0.0 : $variance / $available * 100.0;
+            // The client walked this through on 2026-09-22 and set the
+            // convention: variance is what was counted MINUS what should have
+            // been there, so a shortage reads negative, and the percentage is
+            // measured against the assumed on hand rather than everything that
+            // passed through the shelf.
+            //
+            //   53 on hand, 20 used, so 33 assumed. Counted 23.
+            //   Variance  = 23 - 33 = -10
+            //   Variance% = -10 / 33 = -30.3%
+            $variance = $actualEnding - $theoreticalEnding;
+            $variancePct = $theoreticalEnding == 0.0
+                ? 0.0
+                : $variance / abs($theoreticalEnding) * 100.0;
             $severity = $this->severityFor($variancePct);
         }
 
@@ -117,7 +128,11 @@ class VarianceCalculationService
 
         $total = 0.0;
         foreach ($rows as $row) {
-            $total += $this->convertToBase((float) $row->quantity, $row->unit, $item);
+            // What arrived, not what was asked for. The check-in screen records
+            // the received figure per line, and the client's reason for adding
+            // it was a vendor sending more than the order said.
+            $qty = $row->quantity_received ?? $row->quantity;
+            $total += $this->convertToBase((float) $qty, $row->unit, $item);
         }
 
         return $total;

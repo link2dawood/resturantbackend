@@ -1,6 +1,6 @@
 # Variance Report — Formula & Unit Conventions
 
-> **Status:** design (Phase 5, pending approval). This document defines the exact
+> **Status:** confirmed by the client on 2026-09-22, and built. This document defines the exact
 > math for the variance engine. Per the project constraint, the
 > `VarianceCalculationService` will be built **test-first** against these rules,
 > with 100% coverage. This file is the single source of truth for the formula.
@@ -18,18 +18,18 @@ All quantities are expressed in the item's **base unit** (see §4). For one item
 | Symbol | Name | Source |
 |--------|------|--------|
 | `S`  | Starting Stock | opening physical count for the week (= prior week's actual ending, or entered) |
-| `O`  | Ordered Quantity | Σ received `order_items` for the item this week, converted to base unit |
+| `O`  | Received Quantity | Σ `order_items` on received orders this week, taking `quantity_received` where the delivery was checked in line by line, else the ordered quantity, converted to base unit |
 | `A`  | **Total Available** | `A = S + O` |
 | `U`  | **Theoretical Usage** | `U = Σ_m ( qty_sold(m) × portion(m → item) )` over every menu item `m` sold |
-| `TE` | **Theoretical Ending** | `TE = A − U` |
+| `TE` | **Assumed On Hand** | `TE = A − U` (called "theoretical ending" in code) |
 | `AE` | Actual Ending Stock | closing physical count for the week |
-| `V`  | **Variance** | `V = TE − AE` |
+| `V`  | **Variance** | `V = AE − TE` |
 
 ```
-Total Available    = Starting Stock + Ordered Quantity
-Theoretical Usage  = Σ (items sold × portion per item)
-Theoretical Ending = Total Available − Theoretical Usage
-Variance           = Theoretical Ending − Actual Ending Stock
+Total Available  = Starting Stock + Received Quantity
+Usage            = Σ (items sold × portion per item)
+Assumed On Hand  = Total Available − Usage
+Variance         = Counted Stock − Assumed On Hand
 ```
 
 `portion(m → item)` = how much of **this** ingredient one unit of menu item `m`
@@ -37,22 +37,40 @@ Variance           = Theoretical Ending − Actual Ending Stock
 
 ### Sign convention
 
-- **`V > 0` → SHORT / loss.** Actual is *less* than theoretical: more was consumed
+Set by the client on 2026-09-22, who walked the arithmetic through in person.
+
+- **`V < 0` → SHORT / loss.** Less was counted than assumed: more was consumed
   than recipes account for (waste, theft, over-portioning, breakage). This is the
   "problem" direction.
-- **`V < 0` → OVER.** Actual is *more* than theoretical: under-portioning,
-  miscount, or unrecorded returns.
+- **`V > 0` → OVER.** More was counted than assumed: under-portioning, miscount,
+  or unrecorded returns.
 - **`V = 0` → perfect** (rare).
 
 ### Variance percentage
 
 ```
-variance_pct = V / A × 100      (percent of total available; A = 0 → variance_pct = 0, line flagged)
+variance_pct = V / |TE| × 100   (percent of assumed on hand; TE = 0 → variance_pct = 0, line flagged)
 ```
 
-We normalise against **total available** so a fixed absolute gap reads as small on
-a high-volume item and large on a low-volume one. Thresholds may also be set as
-absolute base-unit amounts (see §3).
+We normalise against **assumed on hand**, so being one short of an expected ten
+reads as 10%, not as a rounding error against everything that passed through the
+shelf that week. The absolute value in the denominator keeps the sign of the
+variance itself meaningful when the assumption has gone negative through a
+miscount.
+
+### The client's worked example
+
+```
+Starting         53 pieces of steak (one case)
+Received          0
+Sold             10 large sandwiches x 2 pieces = 20 used
+Assumed on hand  53 - 20 = 33
+Counted          23
+Variance         23 - 33 = -10 pieces
+Variance %       -10 / 33 = -30.3%   (missing or wasted)
+```
+
+This example is pinned in `VarianceCalculationServiceTest`.
 
 ## 3. Color coding (configurable per store, item defaults)
 

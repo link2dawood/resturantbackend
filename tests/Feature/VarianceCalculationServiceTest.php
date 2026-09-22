@@ -93,7 +93,9 @@ class VarianceCalculationServiceTest extends TestCase
     {
         // Ribeye: 320 oz start + 2 cases (2×640=1280) = 1600 available.
         // 200 Standard sandwiches × 4.5 oz = 900 usage. Theoretical ending 700.
-        // Counted 680 → variance 20 oz short = 1.25% → green.
+        // Counted 680, so 20 oz short of the 700 assumed: -20, and -20/700 =
+        // -2.86%. The percentage is measured against the assumption, which is
+        // the convention the client set.
         $steak = $this->item();
         $this->stock($steak, 320, 680);
         $this->receivedOrder($steak, 2, 'case');
@@ -107,9 +109,9 @@ class VarianceCalculationServiceTest extends TestCase
         $this->assertEqualsWithDelta(900, $line->theoreticalUsage, 1e-4);
         $this->assertEqualsWithDelta(700, $line->theoreticalEnding, 1e-4);
         $this->assertEqualsWithDelta(680, $line->actualEnding, 1e-4);
-        $this->assertEqualsWithDelta(20, $line->variance, 1e-4);
-        $this->assertEqualsWithDelta(1.25, $line->variancePct, 1e-4);
-        $this->assertSame('green', $line->severity);
+        $this->assertEqualsWithDelta(-20, $line->variance, 1e-4);
+        $this->assertEqualsWithDelta(-2.857142, $line->variancePct, 1e-4);
+        $this->assertSame('yellow', $line->severity);
         $this->assertFalse($line->isIncomplete);
         $this->assertSame('oz', $line->baseUnit);
     }
@@ -124,13 +126,13 @@ class VarianceCalculationServiceTest extends TestCase
 
         $line = $this->svc->calculate($this->store->id, $steak->id, $this->week);
 
-        $this->assertEqualsWithDelta(100, $line->variance, 1e-4);
-        $this->assertEqualsWithDelta(6.25, $line->variancePct, 1e-4);
+        $this->assertEqualsWithDelta(-100, $line->variance, 1e-4);
+        $this->assertEqualsWithDelta(-14.285714, $line->variancePct, 1e-4);
         $this->assertSame('red', $line->severity);
     }
 
     /** @test */
-    public function a_surplus_gives_a_negative_variance(): void
+    public function a_surplus_gives_a_positive_variance(): void
     {
         $steak = $this->item();
         $this->stock($steak, 320, 720); // more than the 700 theoretical
@@ -139,9 +141,9 @@ class VarianceCalculationServiceTest extends TestCase
 
         $line = $this->svc->calculate($this->store->id, $steak->id, $this->week);
 
-        $this->assertEqualsWithDelta(-20, $line->variance, 1e-4);
-        $this->assertEqualsWithDelta(-1.25, $line->variancePct, 1e-4);
-        $this->assertSame('green', $line->severity); // |1.25%| ≤ 2%
+        $this->assertEqualsWithDelta(20, $line->variance, 1e-4);
+        $this->assertEqualsWithDelta(2.857142, $line->variancePct, 1e-4);
+        $this->assertSame('yellow', $line->severity); // |2.86%| is over the 2% green band
     }
 
     /** @test */
@@ -267,5 +269,79 @@ class VarianceCalculationServiceTest extends TestCase
 
         $this->expectException(UnitMismatchException::class);
         $this->svc->convertToBase(1, 'gallon', $item);
+    }
+
+    /** @test */
+    public function it_matches_the_clients_worked_steak_example(): void
+    {
+        // Walked through by the client on 2026-09-22:
+        //   Starting 53 pieces (one case), ordered 0.
+        //   10 large sandwiches sold, 2 pieces each, so 20 used.
+        //   Assumed on hand 53 - 20 = 33. Manager counted 23.
+        //   Variance -10 pieces, which is -30.3%.
+        $steak = $this->item(['name' => 'Steak', 'base_unit' => 'each', 'purchase_unit' => 'box', 'units_per_purchase' => 53]);
+        $this->stock($steak, 53, 23);
+        $this->sell($steak, 10, 2, 'large');
+
+        $line = (new VarianceCalculationService)->calculate($this->store->id, $steak->id, $this->week);
+
+        $this->assertEqualsWithDelta(53.0, $line->startingStock, 0.001);
+        $this->assertEqualsWithDelta(0.0, $line->orderedQty, 0.001);
+        $this->assertEqualsWithDelta(20.0, $line->theoreticalUsage, 0.001);
+        $this->assertEqualsWithDelta(33.0, $line->theoreticalEnding, 0.001, 'Assumed on hand');
+        $this->assertEqualsWithDelta(23.0, $line->actualEnding, 0.001);
+
+        // Negative means missing, which is the client's convention.
+        $this->assertEqualsWithDelta(-10.0, $line->variance, 0.001);
+        $this->assertEqualsWithDelta(-30.3, $line->variancePct, 0.05);
+        $this->assertSame('red', $line->severity);
+    }
+
+    /** @test */
+    public function counting_more_than_expected_reads_positive(): void
+    {
+        $steak = $this->item(['base_unit' => 'each']);
+        $this->stock($steak, 53, 38);
+        $this->sell($steak, 10, 2, 'large');
+
+        $line = (new VarianceCalculationService)->calculate($this->store->id, $steak->id, $this->week);
+
+        // 38 counted against 33 assumed: five more than expected.
+        $this->assertEqualsWithDelta(5.0, $line->variance, 0.001);
+        $this->assertGreaterThan(0, $line->variancePct);
+    }
+
+    /** @test */
+    public function the_percentage_is_measured_against_the_assumed_on_hand(): void
+    {
+        // 100 available, 90 used, so 10 assumed; 9 counted. One short of ten is
+        // 10% of the assumption, not 1% of everything that passed through.
+        $item = $this->item(['base_unit' => 'each']);
+        $this->stock($item, 100, 9);
+        $this->sell($item, 90, 1);
+
+        $line = (new VarianceCalculationService)->calculate($this->store->id, $item->id, $this->week);
+
+        $this->assertEqualsWithDelta(10.0, $line->theoreticalEnding, 0.001);
+        $this->assertEqualsWithDelta(-1.0, $line->variance, 0.001);
+        $this->assertEqualsWithDelta(-10.0, $line->variancePct, 0.001);
+    }
+
+    /** @test */
+    public function what_actually_arrived_counts_not_what_was_ordered(): void
+    {
+        // The client added line-by-line receiving because a vendor sent more
+        // than the order said. Variance has to use the received figure.
+        $item = $this->item(['base_unit' => 'each', 'purchase_unit' => 'each', 'units_per_purchase' => 1]);
+        $this->stock($item, 10, 22);
+        $this->receivedOrder($item, 10, 'each');
+
+        OrderItem::query()->update(['quantity_received' => 14]);
+
+        $line = (new VarianceCalculationService)->calculate($this->store->id, $item->id, $this->week);
+
+        $this->assertEqualsWithDelta(14.0, $line->orderedQty, 0.001, 'Fourteen arrived, so fourteen counts.');
+        $this->assertEqualsWithDelta(24.0, $line->theoreticalEnding, 0.001);
+        $this->assertEqualsWithDelta(-2.0, $line->variance, 0.001);
     }
 }

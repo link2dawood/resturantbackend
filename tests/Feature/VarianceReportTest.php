@@ -22,7 +22,8 @@ class VarianceReportTest extends TestCase
 
     private string $week = '2026-08-17';
 
-    /** Build the worked-example scenario: 20 oz short → 1.25% → green. */
+    /** Build the worked-example scenario: 20 oz short of 700 assumed, so
+     *  -20 and -2.86%, which is the yellow "investigate" band. */
     private function scenario(): array
     {
         $admin = User::factory()->create(['role' => 'admin']);
@@ -56,7 +57,7 @@ class VarianceReportTest extends TestCase
         $this->actingAs($admin)->get(route('admin.variance.index', ['store_id' => $store->id, 'week_start_date' => $this->week]))
             ->assertOk()
             ->assertSee('Ribeye Steak')
-            ->assertSee('1 acceptable'); // the green tally
+            ->assertSee('1 investigate'); // the yellow tally
     }
 
     /** @test */
@@ -100,7 +101,7 @@ class VarianceReportTest extends TestCase
 
         $this->assertDatabaseHas('variance_reports', ['id' => $report->id, 'store_id' => $store->id]);
         $this->assertDatabaseHas('variance_report_lines', [
-            'variance_report_id' => $report->id, 'inventory_item_id' => $steak->id, 'severity' => 'green',
+            'variance_report_id' => $report->id, 'inventory_item_id' => $steak->id, 'severity' => 'yellow',
         ]);
     }
 

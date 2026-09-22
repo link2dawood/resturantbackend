@@ -45,8 +45,8 @@
             <table class="table table-hover align-middle mb-0">
                 <thead class="table-light"><tr>
                     <th>Item</th><th>Unit</th>
-                    <th class="text-end">Start</th><th class="text-end">Ordered</th><th class="text-end">Available</th>
-                    <th class="text-end">Theo. usage</th><th class="text-end">Theo. ending</th><th class="text-end">Actual</th>
+                    <th class="text-end">Start</th><th class="text-end">Received</th><th class="text-end">Available</th>
+                    <th class="text-end">Used</th><th class="text-end">Assumed on hand</th><th class="text-end">Counted</th>
                     <th class="text-end">Variance</th><th class="text-end">%</th><th></th>
                 </tr></thead>
                 <tbody>
@@ -72,6 +72,11 @@
             </table>
         </div>
     </div></div>
-    <p class="text-muted small mt-2">Variance = Theoretical Ending − Actual Ending (positive = short/loss). Incomplete rows are missing a starting or ending count.</p>
+    <p class="text-muted small mt-2">
+        Assumed On Hand = Starting Stock + Received − (Items Sold × Portion Per Item).
+        Variance = Counted − Assumed On Hand, so a <strong>negative</strong> figure is stock
+        that is missing or wasted. Variance % is measured against Assumed On Hand.
+        Incomplete rows are missing a starting or ending count.
+    </p>
 </div>
 @endsection
