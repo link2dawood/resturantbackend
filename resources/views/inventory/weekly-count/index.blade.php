@@ -20,6 +20,20 @@
         text-align: right;
         min-height: 56px;          /* comfortably above the 44px touch target floor */
     }
+    /* Two boxes per item: whole units on the left, the partial on the right. */
+    .count-pair { display: flex; gap: 0.5rem; }
+    .count-cell { flex: 1 1 0; min-width: 0; }
+    .count-cell__label {
+        display: block; font-size: 0.7rem; font-weight: 600; text-transform: uppercase;
+        letter-spacing: .02em; color: #6c757d; margin-bottom: 0.15rem; white-space: nowrap;
+        overflow: hidden; text-overflow: ellipsis;
+    }
+    .fraction-group .btn {
+        min-height: 56px; font-size: 1.1rem; font-weight: 600; padding: 0 0.25rem;
+    }
+    .fraction-group .btn.active { background: #206bc4; border-color: #206bc4; color: #fff; }
+    .count-total { min-height: 1.1rem; margin-top: 0.15rem; font-variant-numeric: tabular-nums; }
+    .count-input.is-invalid { border-color: #d63939; }
     .count-row { padding: 0.85rem 0; border-bottom: 1px solid #eceef1; }
     .count-row:last-child { border-bottom: 0; }
     .count-row.is-counted { background: #f2fbf5; }
@@ -171,17 +185,70 @@
                                 </div>
 
                                 <div class="col-7 col-md-3">
-                                    <div class="input-group">
-                                        <input type="number" inputmode="decimal" step="0.01" min="0"
-                                               class="form-control count-input"
-                                               name="counts[{{ $row->id }}]"
-                                               data-row-input="{{ $row->id }}"
-                                               value="{{ $row->counted_at ? $trim($inOrderUnits($row->starting_stock, $item)) : '' }}"
-                                               placeholder="0"
-                                               aria-label="How many {{ $item->purchase_unit }} of {{ $item->name }} are on hand"
-                                               @disabled(! $editable)>
-                                        <span class="input-group-text">{{ $item->purchase_unit }}</span>
+                                    @php
+                                        // Whole units on the left, the partial on the right. For an item
+                                        // with a real pack size the partial is loose pieces; otherwise it
+                                        // is a quarter of a unit, tapped rather than typed.
+                                        $split = \App\Services\Inventory\CountEntry::split($item, $row->counted_at ? (float) $row->starting_stock : null);
+                                        $inPieces = \App\Services\Inventory\CountEntry::countsInPieces($item);
+                                        $maxPartial = \App\Services\Inventory\CountEntry::maxPartial($item);
+                                        $wholeLabel = str($item->purchase_unit ?? 'unit')->plural();
+                                        $partialLabel = $inPieces ? str($item->base_unit ?? 'piece')->plural() : 'partial';
+                                    @endphp
+
+                                    <div class="count-pair" data-row-pair="{{ $row->id }}">
+                                        <div class="count-cell">
+                                            <label class="count-cell__label" for="whole-{{ $row->id }}">{{ $wholeLabel }}</label>
+                                            <input type="number" inputmode="numeric" step="1" min="0"
+                                                   id="whole-{{ $row->id }}"
+                                                   class="form-control count-input"
+                                                   name="whole[{{ $row->id }}]"
+                                                   data-row-whole="{{ $row->id }}"
+                                                   data-pack="{{ \App\Services\Inventory\CountEntry::packSize($item) }}"
+                                                   data-unit="{{ $item->purchase_unit }}"
+                                                   value="{{ $split['whole'] !== null ? $trim($split['whole']) : '' }}"
+                                                   placeholder="0"
+                                                   aria-label="How many whole {{ $wholeLabel }} of {{ $item->name }} are on hand"
+                                                   @disabled(! $editable)>
+                                        </div>
+
+                                        <div class="count-cell">
+                                            <label class="count-cell__label" for="partial-{{ $row->id }}">
+                                                {{ $partialLabel }}
+                                                @if($inPieces)<span class="text-muted">/ {{ $trim($maxPartial + 1) }}</span>@endif
+                                            </label>
+
+                                            @if($inPieces)
+                                                <input type="number" inputmode="numeric" step="1" min="0" max="{{ $trim($maxPartial) }}"
+                                                       id="partial-{{ $row->id }}"
+                                                       class="form-control count-input"
+                                                       name="partial[{{ $row->id }}]"
+                                                       data-row-partial="{{ $row->id }}"
+                                                       data-max-partial="{{ $trim($maxPartial) }}"
+                                                       value="{{ $split['partial'] ? $trim($split['partial']) : '' }}"
+                                                       placeholder="0"
+                                                       aria-label="Loose {{ $partialLabel }} of {{ $item->name }} outside a full {{ $item->purchase_unit }}"
+                                                       @disabled(! $editable)>
+                                            @else
+                                                <input type="hidden" name="partial[{{ $row->id }}]"
+                                                       data-row-partial="{{ $row->id }}"
+                                                       data-max-partial="0.75"
+                                                       value="{{ $split['partial'] ? $trim($split['partial']) : '' }}">
+                                                <div class="btn-group fraction-group w-100" role="group"
+                                                     aria-label="Partial {{ $item->purchase_unit }} of {{ $item->name }}">
+                                                    @foreach([['0', '0'], ['0.25', '&frac14;'], ['0.5', '&frac12;'], ['0.75', '&frac34;']] as [$value, $glyph])
+                                                        <button type="button"
+                                                                class="btn btn-outline-secondary fraction-btn {{ (string) ($split['partial'] ?: 0) === (string) (float) $value ? 'active' : '' }}"
+                                                                data-fraction="{{ $value }}"
+                                                                onclick="setFraction({{ $row->id }}, '{{ $value }}', this)"
+                                                                @disabled(! $editable)>{!! $glyph !!}</button>
+                                                    @endforeach
+                                                </div>
+                                            @endif
+                                        </div>
                                     </div>
+
+                                    <div class="count-total small text-muted" data-row-total="{{ $row->id }}"></div>
                                     @if($editable)
                                     <button type="button" class="btn btn-link btn-sm note-toggle p-0 mt-1"
                                             onclick="toggleNote({{ $row->id }})">
@@ -273,18 +340,84 @@ function toggleNote(rowId) {
 }
 
 function collect() {
-    const counts = {};
+    const whole = {};
+    const partial = {};
     const notes = {};
 
-    document.querySelectorAll('[data-row-input]').forEach(input => {
-        counts[input.dataset.rowInput] = input.value === '' ? null : input.value;
+    document.querySelectorAll('[data-row-whole]').forEach(input => {
+        whole[input.dataset.rowWhole] = input.value === '' ? null : input.value;
+    });
+    document.querySelectorAll('[data-row-partial]').forEach(input => {
+        partial[input.dataset.rowPartial] = input.value === '' ? null : input.value;
     });
     document.querySelectorAll('[name^="notes["]').forEach(input => {
         const id = input.name.replace('notes[', '').replace(']', '');
         notes[id] = input.value;
     });
 
-    return { counts, notes };
+    return { whole, partial, notes };
+}
+
+// Tap a quarter. Tapping the active one again clears it, so a mis-tap does not
+// need the keyboard to undo.
+function setFraction(rowId, value, button) {
+    const hidden = document.querySelector(`[data-row-partial="${rowId}"]`);
+    if (!hidden) return;
+
+    const group = button.closest('.fraction-group');
+    const alreadyOn = button.classList.contains('active');
+
+    group.querySelectorAll('.fraction-btn').forEach(b => b.classList.remove('active'));
+
+    if (alreadyOn) {
+        hidden.value = '';
+    } else {
+        hidden.value = value === '0' ? '' : value;
+        button.classList.add('active');
+    }
+
+    dirty = true;
+    refreshLocalState();
+    setStatus('Unsaved changes');
+}
+
+// "2 boxes + 15 loose = 121 portions", under the boxes, so the counter can see
+// the two entries add up to something sensible.
+function refreshRowTotal(row) {
+    const wholeInput = row.querySelector('[data-row-whole]');
+    const partialInput = row.querySelector('[data-row-partial]');
+    const out = row.querySelector('[data-row-total]');
+    if (!wholeInput || !out) return false;
+
+    const pack = parseFloat(wholeInput.dataset.pack || '1') || 1;
+    const inPieces = pack > 1;
+    const wholeVal = parseFloat(wholeInput.value || '0') || 0;
+    const partialVal = parseFloat((partialInput && partialInput.value) || '0') || 0;
+    const filled = wholeInput.value !== '' || (partialInput && partialInput.value !== '' && partialInput.value !== null);
+
+    const max = partialInput ? parseFloat(partialInput.dataset.maxPartial || '0') : 0;
+    const over = partialVal > max;
+
+    if (partialInput) partialInput.classList.toggle('is-invalid', over);
+
+    if (!filled) {
+        out.textContent = '';
+        out.className = 'count-total small text-muted';
+        return false;
+    }
+
+    if (over) {
+        out.textContent = inPieces
+            ? `More than a full ${wholeInput.dataset.unit || 'unit'}: use another whole unit`
+            : 'Partial cannot exceed \u00be';
+        out.className = 'count-total small text-danger';
+        return true;
+    }
+
+    const base = inPieces ? (wholeVal * pack) + partialVal : (wholeVal + partialVal) * pack;
+    out.textContent = `= ${Math.round(base * 100) / 100}`;
+    out.className = 'count-total small text-muted';
+    return true;
 }
 
 function setStatus(text, isError) {
@@ -306,8 +439,7 @@ function refreshLocalState() {
     const perGroup = {};
 
     document.querySelectorAll('.count-row').forEach(row => {
-        const input = row.querySelector('[data-row-input]');
-        const filled = input && input.value !== '';
+        const filled = refreshRowTotal(row);
         row.classList.toggle('is-counted', filled);
 
         const group = row.dataset.group;
@@ -358,7 +490,7 @@ function saveDraft(manual) {
 }
 
 if (EDITABLE) {
-    document.querySelectorAll('[data-row-input], [name^="notes["]').forEach(input => {
+    document.querySelectorAll('[data-row-whole], [data-row-partial], [name^="notes["]').forEach(input => {
         input.addEventListener('input', () => {
             dirty = true;
             refreshLocalState();

@@ -6,6 +6,7 @@ use App\Models\InventoryItem;
 use App\Models\InventoryStock;
 use App\Models\Order;
 use App\Models\Store;
+use App\Services\Inventory\CountEntry;
 use App\Models\Vendor;
 use App\Services\Inventory\OrderSuggestionService;
 use Illuminate\Http\Request;
@@ -80,13 +81,29 @@ class WeeklyCountController extends Controller
         }
 
         $data = $request->validate([
-            'counts' => ['required', 'array'],
+            'counts' => ['sometimes', 'array'],
             'counts.*' => ['nullable', 'numeric', 'min:0', 'max:99999999'],
+            // The two-box entry: whole units on the left, the partial on the
+            // right. Per-row limits are checked in countsFromRequest, which is
+            // where the item's pack size is known.
+            'whole' => ['sometimes', 'array'],
+            'whole.*' => ['nullable', 'numeric', 'min:0', 'max:99999999'],
+            'partial' => ['sometimes', 'array'],
+            'partial.*' => ['nullable', 'numeric', 'min:0', 'max:99999999'],
             'notes' => ['nullable', 'array'],
             'notes.*' => ['nullable', 'string', 'max:500'],
         ]);
 
-        $saved = $this->applyCounts($store, $week, $data['counts'], $data['notes'] ?? [], submit: false);
+        [$counts, $invalid] = $this->countsFromRequest($store, $week, $data);
+
+        if ($invalid !== []) {
+            return response()->json([
+                'error' => 'Some counts are out of range.',
+                'errors' => $invalid,
+            ], 422);
+        }
+
+        $saved = $this->applyCounts($store, $week, $counts, $data['notes'] ?? [], submit: false);
         $rows = $this->rowsFor($store, $week);
 
         return response()->json([
@@ -112,13 +129,26 @@ class WeeklyCountController extends Controller
         }
 
         $data = $request->validate([
-            'counts' => ['required', 'array'],
+            'counts' => ['sometimes', 'array'],
             'counts.*' => ['nullable', 'numeric', 'min:0', 'max:99999999'],
+            // The two-box entry: whole units on the left, the partial on the
+            // right. Per-row limits are checked in countsFromRequest, which is
+            // where the item's pack size is known.
+            'whole' => ['sometimes', 'array'],
+            'whole.*' => ['nullable', 'numeric', 'min:0', 'max:99999999'],
+            'partial' => ['sometimes', 'array'],
+            'partial.*' => ['nullable', 'numeric', 'min:0', 'max:99999999'],
             'notes' => ['nullable', 'array'],
             'notes.*' => ['nullable', 'string', 'max:500'],
         ]);
 
-        $this->applyCounts($store, $week, $data['counts'], $data['notes'] ?? [], submit: true);
+        [$counts, $invalid] = $this->countsFromRequest($store, $week, $data);
+
+        if ($invalid !== []) {
+            return back()->withInput()->with('error', 'Some counts are out of range: '.implode(' ', $invalid));
+        }
+
+        $this->applyCounts($store, $week, $counts, $data['notes'] ?? [], submit: true);
 
         $rows = $this->rowsFor($store, $week);
         $uncounted = $rows->filter(fn ($r) => $r->counted_at === null)->count();
@@ -452,9 +482,9 @@ class WeeklyCountController extends Controller
                 }
 
                 if ($hasCount) {
-                    // Entered in the item's purchase unit (boxes, cases), stored
-                    // in its base unit, which is what variance works in.
-                    $count = $this->toBaseUnits($row, (float) $counts[$row->id]);
+                    // Already in base units: countsFromRequest converts both the
+                    // two-box entry and the older single figure.
+                    $count = round((float) $counts[$row->id], 4);
                     $row->starting_stock = $count;
                     $row->counted_by = auth()->id();
                     $row->counted_at = now();
@@ -486,16 +516,81 @@ class WeeklyCountController extends Controller
     }
 
     /**
-     * Convert a count entered in the item's purchase unit into base units.
+     * Turn the posted boxes into one count per row, in BASE units, which is what
+     * is stored. Going back through purchase units would lose precision: 121
+     * portions is 2.283 boxes, and 2.283 boxes is 120.999 portions.
      *
-     * A pack size of zero would divide by zero elsewhere, so treat it as 1 and
-     * let the entered figure stand.
+     * Two shapes are accepted. The count screen posts `whole[]` and `partial[]`;
+     * anything older posts a single `counts[]`. Sending both for a row means the
+     * two boxes win, because that is what the person actually typed.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array{0: array<int, float|string|null>, 1: array<int, string>}
      */
-    private function toBaseUnits(InventoryStock $row, float $purchaseUnits): float
+    private function countsFromRequest(Store $store, Carbon $week, array $data): array
     {
-        $perPurchase = (float) ($row->inventoryItem->units_per_purchase ?? 1);
+        $counts = $data['counts'] ?? [];
+        $whole = $data['whole'] ?? [];
+        $partial = $data['partial'] ?? [];
 
-        return round($purchaseUnits * ($perPurchase > 0 ? $perPurchase : 1), 4);
+        $rows = $this->rowsFor($store, $week)->keyBy('id');
+        $invalid = [];
+
+        // The older shape posts one figure in purchase units. Convert it once,
+        // here, so the rest of the save path only ever sees base units.
+        if ($whole === [] && $partial === []) {
+            $base = [];
+            foreach ($counts as $rowId => $value) {
+                $row = $rows->get($rowId);
+                $base[$rowId] = ($row && $value !== null && $value !== '')
+                    ? CountEntry::toBaseUnits($row->inventoryItem, (float) $value, 0.0)
+                    : $value;
+            }
+
+            return [$base, []];
+        }
+
+        foreach (array_keys($whole + $partial) as $rowId) {
+            $row = $rows->get($rowId);
+
+            if (! $row) {
+                continue;
+            }
+
+            $wholeRaw = $whole[$rowId] ?? null;
+            $partialRaw = $partial[$rowId] ?? null;
+
+            // Both boxes blank means the line was not counted, which is not the
+            // same as a count of zero.
+            if (($wholeRaw === null || $wholeRaw === '') && ($partialRaw === null || $partialRaw === '')) {
+                $counts[$rowId] = null;
+
+                continue;
+            }
+
+            $item = $row->inventoryItem;
+            $partialValue = (float) ($partialRaw ?: 0);
+            $max = CountEntry::maxPartial($item);
+
+            if ($partialValue > $max) {
+                $unit = CountEntry::countsInPieces($item)
+                    ? str($item->base_unit ?? 'piece')->plural()
+                    : 'of a '.($item->purchase_unit ?? 'unit');
+                $invalid[$rowId] = ($item->name ?? 'Item').": partial cannot exceed {$max} {$unit}.";
+
+                continue;
+            }
+
+            if (CountEntry::countsInPieces($item) && fmod($partialValue, 1.0) !== 0.0) {
+                $invalid[$rowId] = ($item->name ?? 'Item').': loose pieces must be a whole number.';
+
+                continue;
+            }
+
+            $counts[$rowId] = CountEntry::toBaseUnits($item, (float) ($wholeRaw ?: 0), $partialValue);
+        }
+
+        return [$counts, $invalid];
     }
 
     /** The inverse, for showing a stored count back on the form. */

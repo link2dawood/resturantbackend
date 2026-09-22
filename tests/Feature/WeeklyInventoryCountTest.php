@@ -289,12 +289,17 @@ class WeeklyInventoryCountTest extends TestCase
         $row = $this->rowFor($steak);
         $row->update(['starting_stock' => 371, 'counted_at' => now()]);
 
+        // Two boxes now: whole boxes on the left, loose portions on the right.
+        // 371 portions is exactly 7 boxes, so the partial comes back empty.
         $this->actingAs($this->manager)
             ->get(route('inventory.weekly-count.index'))
             ->assertOk()
-            ->assertSee('How many box of Ribeye Steak are on hand', false)
+            ->assertSee('How many whole boxes of Ribeye Steak are on hand', false)
+            ->assertSee('Loose portions of Ribeye Steak outside a full box', false)
             ->assertSee('1 box = 53 portion')
-            ->assertSee('value="7"', false);
+            ->assertSee('name="whole['.$row->id.']"', false)
+            ->assertSee('value="7"', false)
+            ->assertSee('data-max-partial="52"', false);
     }
 
     /** @test */
