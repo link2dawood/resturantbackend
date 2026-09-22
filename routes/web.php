@@ -179,6 +179,12 @@ Route::middleware(['auth', 'verified', 'trial'])->group(function () {
     Route::middleware('role:admin,owner,manager')->group(function () {
         Route::get('/square-import', [\App\Http\Controllers\Admin\SquareSalesImportController::class, 'form'])->name('admin.square-import.form');
         Route::post('/square-import/preview', [\App\Http\Controllers\Admin\SquareSalesImportController::class, 'preview'])->name('admin.square-import.preview');
+        // Manual entry of what sold, the client's backup for a week when the
+        // Square export is not available. Owner-facing, like the import.
+        Route::get('/square-import/manual', [\App\Http\Controllers\Admin\SquareSalesImportController::class, 'manualForm'])
+            ->middleware('role:admin,owner')->name('admin.square-import.manual');
+        Route::post('/square-import/manual', [\App\Http\Controllers\Admin\SquareSalesImportController::class, 'manualStore'])
+            ->middleware('role:admin,owner')->name('admin.square-import.manual.store');
         Route::post('/square-import/commit', [\App\Http\Controllers\Admin\SquareSalesImportController::class, 'commit'])->name('admin.square-import.commit');
 
         // Stock-up worksheet (Phase 5.5) — projection → suggested order quantities.

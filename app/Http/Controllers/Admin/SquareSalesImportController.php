@@ -88,6 +88,96 @@ class SquareSalesImportController extends Controller
         ]);
     }
 
+    /**
+     * Manual entry, the backup the client asked for when the Square export is
+     * not to hand: one row per menu item and size, type what sold.
+     *
+     * It writes the same `menu_items_sold` rows the CSV wizard does, so the
+     * variance engine neither knows nor cares which route the numbers took.
+     */
+    public function manualForm(Request $request)
+    {
+        $store = $this->resolveStore($request);
+        $week = $this->weekFrom($request);
+
+        $existing = MenuItemSold::where('store_id', $store->id)
+            ->whereDate('week_start_date', $week)
+            ->get()
+            ->keyBy(fn ($row) => $row->menu_item_id.'-'.$row->size_variant);
+
+        return view('admin.square-import.manual', [
+            'store' => $store,
+            'stores' => $this->storeOptions(),
+            'week' => $week,
+            'sizes' => self::SIZES,
+            'menuItems' => MenuItem::where('store_id', $store->id)->orderBy('name')->get(),
+            'existing' => $existing,
+            'importedFromCsv' => $existing->contains(fn ($row) => filled($row->import_batch_id) && filled($row->square_raw_name)),
+        ]);
+    }
+
+    public function manualStore(Request $request)
+    {
+        $store = $this->resolveStore($request);
+
+        $data = $request->validate([
+            'week_start_date' => ['required', 'date'],
+            'sold' => ['present', 'array'],
+            'sold.*' => ['nullable', 'numeric', 'min:0', 'max:999999'],
+        ]);
+
+        $week = Carbon::parse($data['week_start_date'])->startOfWeek(Carbon::MONDAY)->toDateString();
+        $batch = (string) Str::uuid();
+        $menuItems = MenuItem::where('store_id', $store->id)->get()->keyBy('id');
+
+        $written = 0;
+        DB::transaction(function () use ($data, $store, $week, $batch, $menuItems, &$written) {
+            // Same rule as the CSV wizard: a save replaces that week entirely,
+            // so entering it twice cannot double the sales.
+            MenuItemSold::where('store_id', $store->id)->whereDate('week_start_date', $week)->delete();
+
+            foreach ($data['sold'] as $key => $qty) {
+                if ($qty === null || $qty === '' || (float) $qty <= 0) {
+                    continue;
+                }
+
+                // Keys arrive as "<menu item id>-<size>".
+                [$menuItemId, $size] = array_pad(explode('-', (string) $key, 2), 2, 'regular');
+                $menuItem = $menuItems->get((int) $menuItemId);
+
+                if (! $menuItem || ! in_array($size, self::SIZES, true)) {
+                    continue;
+                }
+
+                MenuItemSold::create([
+                    'store_id' => $store->id,
+                    'week_start_date' => $week,
+                    'menu_item_id' => $menuItem->id,
+                    'size_variant' => $size,
+                    'square_raw_name' => $menuItem->name.' ('.$size.', entered by hand)',
+                    'quantity_sold' => (float) $qty,
+                    'import_batch_id' => $batch,
+                    'is_matched' => true,
+                ]);
+                $written++;
+            }
+        });
+
+        return redirect()
+            ->route('admin.square-import.manual', ['store_id' => $store->id, 'week_start_date' => $week])
+            ->with('success', $written > 0
+                ? "Saved {$written} line(s) of sales for the week of {$week}."
+                : "Nothing saved: every quantity was blank or zero, so the week of {$week} now has no sales recorded.");
+    }
+
+    /** The Monday of the week being worked on. */
+    private function weekFrom(Request $request): string
+    {
+        return Carbon::parse($request->input('week_start_date', now()))
+            ->startOfWeek(Carbon::MONDAY)
+            ->toDateString();
+    }
+
     public function commit(Request $request)
     {
         $store = $this->resolveStore($request);

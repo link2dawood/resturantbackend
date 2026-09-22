@@ -753,10 +753,12 @@
                                 </a></li>
                                 @endif
                                 @if(Auth::user()->isAdmin() || Auth::user()->isOwner() || Auth::user()->isManager())
+                                @if(! Auth::user()->isOwner())
                                 <li><a class="dropdown-item d-flex align-items-center" href="{{ route('admin.inventory-items.index') }}" style="padding: 8px 16px; font-family: 'Google Sans', sans-serif; font-size: 14px; border-radius: 8px; margin: 0 8px;">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
                                     Items
                                 </a></li>
+                                @endif
                                 <li><a class="dropdown-item d-flex align-items-center" href="{{ route('admin.inventory-dashboard.index') }}" style="padding: 8px 16px; font-family: 'Google Sans', sans-serif; font-size: 14px; border-radius: 8px; margin: 0 8px;">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
                                     Dashboard
@@ -765,14 +767,16 @@
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h6v6H9z"/></svg>
                                     Square Import
                                 </a></li>
-                                <li><a class="dropdown-item d-flex align-items-center" href="{{ route('admin.stock-up.index') }}" style="padding: 8px 16px; font-family: 'Google Sans', sans-serif; font-size: 14px; border-radius: 8px; margin: 0 8px;">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>
-                                    Stock-Up
-                                </a></li>
                                 <li><a class="dropdown-item d-flex align-items-center" href="{{ route('admin.orders.index') }}" style="padding: 8px 16px; font-family: 'Google Sans', sans-serif; font-size: 14px; border-radius: 8px; margin: 0 8px;">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
                                     Orders
                                 </a></li>
+                                @if(Auth::user()->isAdmin() || Auth::user()->isOwner())
+                                <li><a class="dropdown-item d-flex align-items-center" href="{{ route('inventory.weekly-count.suggestions') }}" style="padding: 8px 16px; font-family: 'Google Sans', sans-serif; font-size: 14px; border-radius: 8px; margin: 0 8px;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2"><path d="M9 11l3 3l8 -8"/><path d="M20 12v6a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h9"/></svg>
+                                    Suggested Order
+                                </a></li>
+                                @endif
                                 @if(Auth::user()->isAdmin() || Auth::user()->isOwner())
                                 <li><a class="dropdown-item d-flex align-items-center" href="{{ route('admin.vendor-prices.index') }}" style="padding: 8px 16px; font-family: 'Google Sans', sans-serif; font-size: 14px; border-radius: 8px; margin: 0 8px;">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>

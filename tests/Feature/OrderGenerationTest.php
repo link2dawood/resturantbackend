@@ -111,8 +111,10 @@ class OrderGenerationTest extends TestCase
         ]);
         $order->items()->create(['inventory_item_id' => $item->id, 'quantity' => 5, 'unit' => 'case']);
 
+        // The build worksheet was merged into the suggestions screen, so it
+        // forwards there rather than rendering its own copy.
         $this->actingAs($admin)->get(route('admin.orders.build', ['store_id' => $store->id]))
-            ->assertOk()->assertSee('Ribeye Steak');
+            ->assertRedirect(route('inventory.weekly-count.suggestions', ['store_id' => $store->id]));
         $this->actingAs($admin)->get(route('admin.orders.index', ['store_id' => $store->id, 'week_start_date' => '2026-08-17']))
             ->assertOk();
         $this->actingAs($admin)->get(route('admin.orders.show', $order))

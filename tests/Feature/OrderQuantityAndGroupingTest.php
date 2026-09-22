@@ -184,4 +184,35 @@ class OrderQuantityAndGroupingTest extends TestCase
         $managerPage->assertSee($countHref, false);
         $managerPage->assertSee($entryHref, false);
     }
+
+    /** @test */
+    public function the_owners_menu_drops_items_and_stock_up_and_offers_the_suggested_order(): void
+    {
+        $this->item('Marinara', 'Canned Goods & Misc');
+
+        $page = $this->actingAs($this->owner)->get(route('admin.orders.index'))->assertOk();
+
+        // "Remove items section for owner" and "merge stock up and order".
+        $page->assertDontSee('href="'.route('admin.inventory-items.index').'"', false);
+        $page->assertDontSee('href="'.route('admin.stock-up.index').'"', false);
+
+        // The suggestion step is reachable from the same menu as the orders.
+        $page->assertSee('href="'.route('inventory.weekly-count.suggestions').'"', false);
+        $page->assertSee('Suggested Order', false);
+
+        // The manager still runs the store with the items list.
+        $this->actingAs($this->manager)->get(route('admin.orders.index'))
+            ->assertOk()
+            ->assertSee('href="'.route('admin.inventory-items.index').'"', false);
+    }
+
+    /** @test */
+    public function the_old_build_screen_now_lands_on_the_suggestions(): void
+    {
+        // Merged: the projected-dollars builder was the predictive ordering the
+        // client deferred, so its bookmarks point at target-minus-counted.
+        $this->actingAs($this->owner)
+            ->get(route('admin.orders.build', ['store_id' => $this->store->id]))
+            ->assertRedirect(route('inventory.weekly-count.suggestions', ['store_id' => $this->store->id]));
+    }
 }

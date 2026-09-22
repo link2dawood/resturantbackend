@@ -4,7 +4,12 @@
 
 @section('content')
 <div class="container-xl mt-4" style="max-width: 640px;">
-    <h1 class="mb-1">Square Sales Import</h1>
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <h1 class="mb-1">Square Sales Import</h1>
+        <a href="{{ route('admin.square-import.manual', ['store_id' => $store->id ?? null]) }}" class="btn btn-outline-secondary">
+            No export? Enter sales by hand
+        </a>
+    </div>
     <p class="text-muted">Upload the weekly Square "Items Sold" report. You'll preview and map items before anything is saved.</p>
 
     @if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif

@@ -31,31 +31,21 @@ class OrderController extends Controller
     }
 
     /** Combined order-build worksheet. */
+    /**
+     * Retired. The client merged this with the order flow: "the manager
+     * suggesting order quantity should tie into the owner's order screen, not
+     * be a separate step", and the projected-dollars engine behind this screen
+     * is the predictive ordering they deferred. Target minus counted lives on
+     * the suggestions screen, so bookmarks land there instead of 404ing.
+     */
     public function build(Request $request)
     {
         $store = $this->resolveStore($request);
-        $week = $this->week($request);
-        $sequence = in_array((int) $request->input('order_sequence'), [1, 2], true) ? (int) $request->input('order_sequence') : 1;
-        $projectedDollars = max(0.0, (float) $request->input('projected_dollars', 0));
 
-        $items = InventoryItem::with('preferredVendor')
-            ->where('store_id', $store->id)->where('is_active', true)
-            ->orderBy('category')->orderBy('name')->get();
-
-        // Suggested quantities from the stock-up engine (keyed by item id).
-        $suggested = collect($this->stockUp->suggest($store->id, $week, $projectedDollars))
-            ->keyBy(fn ($s) => $s['item']->id);
-
-        return view('admin.orders.build', [
-            'store' => $store,
-            'stores' => $this->storeOptions(),
-            'week' => $week,
-            'sequence' => $sequence,
-            'projectedDollars' => $projectedDollars,
-            'items' => $items,
-            'vendors' => Vendor::where('is_active', true)->orderBy('vendor_name')->get(),
-            'suggested' => $suggested,
-        ]);
+        return redirect()->route('inventory.weekly-count.suggestions', array_filter([
+            'store_id' => $store->id,
+            'week' => $request->input('week'),
+        ]));
     }
 
     /** Create one order per vendor from the build form. */
