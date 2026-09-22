@@ -31,6 +31,10 @@
     .count-select { text-align: left; text-align-last: center; }
     .count-total { min-height: 1.1rem; margin-top: 0.15rem; font-variant-numeric: tabular-nums; }
     .count-input.is-invalid { border-color: #d63939; }
+    .item-group-heading {
+        font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
+        color: #206bc4; padding: 0.6rem 0 0.2rem; border-top: 1px solid #eceef1;
+    }
     .count-row { padding: 0.85rem 0; border-bottom: 1px solid #eceef1; }
     .count-row:last-child { border-bottom: 0; }
     .count-row.is-counted { background: #f2fbf5; }
@@ -152,11 +156,23 @@
                 <div id="group-{{ $slug }}" class="accordion-collapse collapse {{ $loop->first ? 'show' : '' }}"
                      data-bs-parent="#countAccordion">
                     <div class="accordion-body py-0">
+                        @php
+                            $lastItemGroup = null;
+                        @endphp
                         @foreach($groupRows as $row)
                         @php
                             $item = $row->inventoryItem;
                             $prev = $previous[$item->id] ?? null;
+                            // Related items carry a shared label and are already
+                            // sorted together, so the heading prints once at the
+                            // top of the run.
+                            $itemGroup = $item->item_group;
+                            $showGroupHeading = filled($itemGroup) && $itemGroup !== ($lastItemGroup ?? null);
+                            $lastItemGroup = $itemGroup;
                         @endphp
+                        @if($showGroupHeading)
+                            <div class="item-group-heading">{{ $itemGroup }}</div>
+                        @endif
                         <div class="count-row {{ $row->counted_at ? 'is-counted' : '' }}"
                              data-row="{{ $row->id }}" data-group="{{ $slug }}">
                             <div class="row g-2 align-items-center">

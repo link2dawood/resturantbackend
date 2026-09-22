@@ -436,6 +436,13 @@ class WeeklyCountController extends Controller
             ->sortBy([
                 fn ($a, $b) => ($a->inventoryItem->inventoryCategory?->display_order ?? PHP_INT_MAX)
                     <=> ($b->inventoryItem->inventoryCategory?->display_order ?? PHP_INT_MAX),
+                // Related items stay together inside their category, so 8" and
+                // 10" bread are counted one after the other rather than pages
+                // apart. Ungrouped items keep their place by name.
+                fn ($a, $b) => strcasecmp(
+                    $a->inventoryItem->item_group ?? $a->inventoryItem->name,
+                    $b->inventoryItem->item_group ?? $b->inventoryItem->name
+                ),
                 fn ($a, $b) => strcasecmp($a->inventoryItem->name, $b->inventoryItem->name),
             ])
             ->groupBy(fn ($r) => $r->inventoryItem->inventoryCategory?->name

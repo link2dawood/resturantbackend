@@ -15,19 +15,35 @@ class InventoryItem extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'store_id', 'preferred_vendor_id', 'inventory_category_id', 'category', 'name',
-        'base_unit', 'purchase_unit', 'units_per_purchase', 'portion_size', 'portion_unit',
+        'store_id', 'preferred_vendor_id', 'inventory_category_id', 'item_group', 'category', 'name',
+        'base_unit', 'purchase_unit', 'units_per_purchase', 'order_quantity_max', 'portion_size', 'portion_unit',
         'min_stock_level', 'safety_buffer_pct', 'reorder_threshold', 'notes', 'is_active',
     ];
 
     protected $casts = [
         'units_per_purchase' => 'decimal:4',
+        'order_quantity_max' => 'integer',
         'portion_size' => 'decimal:2',
         'min_stock_level' => 'decimal:4',
         'safety_buffer_pct' => 'decimal:2',
         'reorder_threshold' => 'decimal:4',
         'is_active' => 'boolean',
     ];
+
+    /** Default ceiling for the order dropdown when an item has none. */
+    public const DEFAULT_ORDER_MAX = 5;
+
+    /**
+     * How far the order quantity dropdown counts up for this item.
+     *
+     * The client set the ranges: most items 1 to 5, bread 1 to 10, steak and
+     * hamburger meat 1 to 20. A suggestion above the ceiling still has to be
+     * selectable, so the caller widens the list rather than truncating it.
+     */
+    public function orderQuantityMax(): int
+    {
+        return (int) ($this->order_quantity_max ?: self::DEFAULT_ORDER_MAX);
+    }
 
     public function store(): BelongsTo
     {

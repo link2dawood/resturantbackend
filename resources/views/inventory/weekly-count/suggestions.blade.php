@@ -142,13 +142,24 @@
                                     </select>
                                 </td>
                                 <td>
+                                    @php
+                                        // Whole numbers picked from a list, not a decimal box: the
+                                        // client's ranges are most items 1-5, bread 1-10, steak and
+                                        // hamburger meat 1-20. A suggestion above the ceiling still
+                                        // has to be selectable, so the list stretches to reach it.
+                                        $suggested = (int) ceil((float) $row['suggested_order']);
+                                        $orderMax = max($item->orderQuantityMax(), $suggested);
+                                    @endphp
                                     <div class="input-group input-group-sm">
-                                        <input type="number" inputmode="decimal" step="0.01" min="0"
-                                               class="form-control qty-input"
-                                               name="quantities[{{ $item->id }}]"
-                                               value="{{ $row['suggested_order'] > 0 ? $trim($row['suggested_order']) : '' }}"
-                                               data-suggested="{{ $row['suggested_order'] }}"
-                                               aria-label="Order quantity for {{ $item->name }}">
+                                        <select class="form-select qty-input"
+                                                name="quantities[{{ $item->id }}]"
+                                                data-suggested="{{ $suggested }}"
+                                                aria-label="Order quantity for {{ $item->name }}">
+                                            <option value="0" @selected($suggested === 0)>0</option>
+                                            @for($q = 1; $q <= $orderMax; $q++)
+                                                <option value="{{ $q }}" @selected($q === $suggested)>{{ $q }}</option>
+                                            @endfor
+                                        </select>
                                         <span class="input-group-text">{{ $item->purchase_unit }}</span>
                                     </div>
                                     <div class="small text-warning d-none" data-override-flag>overridden</div>
@@ -179,10 +190,11 @@
 
 @push('scripts')
 <script>
-// Flag any quantity the manager changes away from the suggestion, so an
-// override is visible before the order is generated, not only afterwards.
+// Flag any quantity the owner changes away from the suggestion, so an override
+// is visible before the order is generated, not only afterwards. A <select>
+// fires change; input is kept for older browsers.
 document.querySelectorAll('.qty-input').forEach(input => {
-    input.addEventListener('input', function () {
+    ['change', 'input'].forEach(evt => input.addEventListener(evt, function () {
         const suggested = parseFloat(this.dataset.suggested);
         const entered = this.value === '' ? 0 : parseFloat(this.value);
         const row = this.closest('.suggestion-row');
@@ -191,7 +203,7 @@ document.querySelectorAll('.qty-input').forEach(input => {
 
         row.classList.toggle('overridden', changed);
         flag.classList.toggle('d-none', !changed);
-    });
+    }));
 });
 
 const hideZero = document.getElementById('hideZero');

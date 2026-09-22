@@ -69,6 +69,10 @@ class FannsPhillyOrderGuideSeeder extends Seeder
                     'base_unit' => $definition['base_unit'],
                     'purchase_unit' => $definition['purchase_unit'],
                     'units_per_purchase' => $definition['units_per_purchase'],
+                    // Client-set ranges for the order dropdown, and the grouping
+                    // that keeps 8" and 10" bread side by side on the count.
+                    'order_quantity_max' => $definition['order_quantity_max'] ?? 5,
+                    'item_group' => $definition['item_group'] ?? null,
                     'is_active' => true,
                 ]);
                 $item->save();
@@ -120,7 +124,7 @@ class FannsPhillyOrderGuideSeeder extends Seeder
      * @var list<array<string, mixed>>
      */
     private const ITEMS = [
-        ['name' => 'Steak', 'category' => 'Meats', 'base_unit' => 'each', 'purchase_unit' => 'box', 'units_per_purchase' => 53, 'vendors' => ['Lisanti']],
+        ['name' => 'Steak', 'category' => 'Meats', 'base_unit' => 'each', 'purchase_unit' => 'box', 'units_per_purchase' => 53, 'vendors' => ['Lisanti'], 'order_quantity_max' => 20],
         ['name' => 'Onions', 'category' => 'Veggies', 'base_unit' => 'each', 'purchase_unit' => 'case', 'units_per_purchase' => 1, 'vendors' => ['Lisanti']],
         ['name' => 'Coke (Bag-in-Box)', 'category' => 'Beverages', 'base_unit' => 'each', 'purchase_unit' => 'case', 'units_per_purchase' => 1, 'vendors' => ['Coca-Cola']],
         ['name' => 'Coke (20oz Bottle)', 'category' => 'Beverages', 'base_unit' => 'each', 'purchase_unit' => 'case', 'units_per_purchase' => 1, 'vendors' => ['Coca-Cola']],
@@ -152,15 +156,15 @@ class FannsPhillyOrderGuideSeeder extends Seeder
         ['name' => 'Juices Red/Blue/Purple', 'category' => 'Beverages', 'base_unit' => 'each', 'purchase_unit' => 'case', 'units_per_purchase' => 1, 'vendors' => ['Coca-Cola']],
         ['name' => 'Mexican Coke 500m', 'category' => 'Beverages', 'base_unit' => 'each', 'purchase_unit' => 'case', 'units_per_purchase' => 1, 'vendors' => ['Coca-Cola']],
         ['name' => 'Mexican Coke 355m', 'category' => 'Beverages', 'base_unit' => 'each', 'purchase_unit' => 'case', 'units_per_purchase' => 1, 'vendors' => ['Coca-Cola']],
-        ['name' => '8" Bread', 'category' => 'Breads', 'base_unit' => 'each', 'purchase_unit' => 'box', 'units_per_purchase' => 60, 'vendors' => ['Lisanti']],
+        ['name' => '8" Bread', 'category' => 'Breads', 'base_unit' => 'each', 'purchase_unit' => 'box', 'units_per_purchase' => 60, 'vendors' => ['Lisanti'], 'item_group' => 'Bread & Wraps', 'order_quantity_max' => 10],
         ['name' => 'Napkins', 'category' => 'Paper Goods', 'base_unit' => 'each', 'purchase_unit' => 'case', 'units_per_purchase' => 1, 'vendors' => ['Lisanti']],
         ['name' => 'Hamburger Buns', 'category' => 'Breads', 'base_unit' => 'each', 'purchase_unit' => 'case', 'units_per_purchase' => 1, 'vendors' => ['Sam\'s Club', 'Lisanti']],
-        ['name' => '10" Bread', 'category' => 'Breads', 'base_unit' => 'each', 'purchase_unit' => 'box', 'units_per_purchase' => 48, 'vendors' => ['Lisanti']],
+        ['name' => '10" Bread', 'category' => 'Breads', 'base_unit' => 'each', 'purchase_unit' => 'box', 'units_per_purchase' => 48, 'vendors' => ['Lisanti'], 'item_group' => 'Bread & Wraps', 'order_quantity_max' => 10],
         ['name' => 'Phil\'s Wrapping Paper', 'category' => 'Paper Goods', 'base_unit' => 'each', 'purchase_unit' => 'case', 'units_per_purchase' => 1, 'vendors' => ['Lisanti']],
         ['name' => 'Bacon Sliced', 'category' => 'Meats', 'base_unit' => 'each', 'purchase_unit' => 'case', 'units_per_purchase' => 1, 'vendors' => ['Sam\'s Club']],
-        ['name' => 'Pita', 'category' => 'Breads', 'base_unit' => 'each', 'purchase_unit' => 'box', 'units_per_purchase' => 120, 'vendors' => ['Lisanti']],
+        ['name' => 'Pita', 'category' => 'Breads', 'base_unit' => 'each', 'purchase_unit' => 'box', 'units_per_purchase' => 120, 'vendors' => ['Lisanti'], 'item_group' => 'Bread & Wraps', 'order_quantity_max' => 10],
         ['name' => 'Foil Wrapping Paper', 'category' => 'Paper Goods', 'base_unit' => 'each', 'purchase_unit' => 'case', 'units_per_purchase' => 1, 'vendors' => ['Lisanti']],
-        ['name' => '10" Tortilla', 'category' => 'Breads', 'base_unit' => 'each', 'purchase_unit' => 'case', 'units_per_purchase' => 1, 'vendors' => ['Sam\'s Club']],
+        ['name' => '10" Tortilla', 'category' => 'Breads', 'base_unit' => 'each', 'purchase_unit' => 'case', 'units_per_purchase' => 1, 'vendors' => ['Sam\'s Club'], 'item_group' => 'Bread & Wraps', 'order_quantity_max' => 10],
         ['name' => '20 oz Cups', 'category' => 'Paper Goods', 'base_unit' => 'each', 'purchase_unit' => 'case', 'units_per_purchase' => 1, 'vendors' => ['Lisanti']],
         ['name' => 'Mazzeralla Sticks', 'category' => 'Cheese', 'base_unit' => 'each', 'purchase_unit' => 'case', 'units_per_purchase' => 1, 'vendors' => ['Sam\'s Club']],
         ['name' => '16 oz lids', 'category' => 'Paper Goods', 'base_unit' => 'each', 'purchase_unit' => 'case', 'units_per_purchase' => 1, 'vendors' => ['Lisanti']],
@@ -199,10 +203,10 @@ class FannsPhillyOrderGuideSeeder extends Seeder
         ['name' => 'Garlic and Minced', 'category' => 'Canned Goods & Misc', 'base_unit' => 'each', 'purchase_unit' => 'case', 'units_per_purchase' => 1, 'vendors' => ['Sam\'s Club']],
         ['name' => 'Jalapeno Sliced', 'category' => 'Canned Goods & Misc', 'base_unit' => 'each', 'purchase_unit' => 'case', 'units_per_purchase' => 1, 'vendors' => ['Lisanti']],
         ['name' => 'Paprika', 'category' => 'Canned Goods & Misc', 'base_unit' => 'each', 'purchase_unit' => 'case', 'units_per_purchase' => 1, 'vendors' => ['Sam\'s Club']],
-        ['name' => 'Hamburger Meat', 'category' => 'Meats', 'base_unit' => 'each', 'purchase_unit' => 'case', 'units_per_purchase' => 40, 'vendors' => ['Restaurant Depot']],
+        ['name' => 'Hamburger Meat', 'category' => 'Meats', 'base_unit' => 'each', 'purchase_unit' => 'case', 'units_per_purchase' => 40, 'vendors' => ['Restaurant Depot'], 'order_quantity_max' => 20],
         ['name' => 'Black Olives', 'category' => 'Canned Goods & Misc', 'base_unit' => 'each', 'purchase_unit' => 'case', 'units_per_purchase' => 1, 'vendors' => ['Lisanti']],
         ['name' => 'Ice Tea', 'category' => 'Beverages', 'base_unit' => 'each', 'purchase_unit' => 'case', 'units_per_purchase' => 1, 'vendors' => ['Sam\'s Club']],
-        ['name' => '12" Tortilla', 'category' => 'Breads', 'base_unit' => 'each', 'purchase_unit' => 'case', 'units_per_purchase' => 1, 'vendors' => ['Restaurant Depot']],
+        ['name' => '12" Tortilla', 'category' => 'Breads', 'base_unit' => 'each', 'purchase_unit' => 'case', 'units_per_purchase' => 1, 'vendors' => ['Restaurant Depot'], 'item_group' => 'Bread & Wraps', 'order_quantity_max' => 10],
         ['name' => 'Franks Red Hot', 'category' => 'Canned Goods & Misc', 'base_unit' => 'each', 'purchase_unit' => 'case', 'units_per_purchase' => 1, 'vendors' => ['Lisanti']],
         ['name' => 'Honey', 'category' => 'Canned Goods & Misc', 'base_unit' => 'each', 'purchase_unit' => 'case', 'units_per_purchase' => 1, 'vendors' => ['Sam\'s Club']],
         ['name' => 'Onion Rings', 'category' => 'Sides', 'base_unit' => 'each', 'purchase_unit' => 'case', 'units_per_purchase' => 1, 'vendors' => ['Restaurant Depot']],
