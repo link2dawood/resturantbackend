@@ -26,3 +26,4 @@ All project documentation lives here. Use **`CURSOR.md`** at the project root fo
 - [Manager quick start](phase-5/manager-quick-start.md) — counting the shelf, placing and checking in orders
 - [Owner quick start](phase-5/owner-quick-start.md) — order suggestions, approving orders, stock targets
 - [Deployment checklist](phase-5/deployment-checklist.md) / [CI/CD setup](phase-5/ci-cd-setup.md)
+- [Open questions from the client meeting](phase-5/open-questions.md) — employee meals, item grouping, pack sizes, and the variance bands

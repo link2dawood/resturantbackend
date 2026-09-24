@@ -157,4 +157,47 @@ class ManualSalesEntryTest extends TestCase
             ->get(route('admin.square-import.manual', ['store_id' => $this->store->id]))
             ->assertForbidden();
     }
+
+    /** @test */
+    public function staff_meals_can_be_recorded_today_as_a_menu_item(): void
+    {
+        // Employee meals are undecided (client meeting, item 11). Until they
+        // choose, a menu item called "Employee Meal" with a recipe already
+        // accounts for the stock, using only what is built. This test exists so
+        // the interim answer is known to work, and so that a later, purpose
+        // built staff-meals input has something to be compared against.
+        $steak = InventoryItem::factory()->create([
+            'store_id' => $this->store->id, 'name' => 'Steak',
+            'base_unit' => 'each', 'purchase_unit' => 'box', 'units_per_purchase' => 53,
+        ]);
+        InventoryStock::factory()->create([
+            'inventory_item_id' => $steak->id, 'store_id' => $this->store->id,
+            'week_start_date' => $this->week, 'starting_stock' => 53, 'actual_ending_stock' => 23,
+        ]);
+
+        $sold = $this->menuItem('Steak Sandwich');
+        app(RecipeService::class)->saveVersion($sold, 'large', [
+            ['inventory_item_id' => $steak->id, 'quantity' => 2, 'unit' => 'each'],
+        ]);
+
+        $staffMeal = $this->menuItem('Employee Meal (Steak)');
+        app(RecipeService::class)->saveVersion($staffMeal, 'regular', [
+            ['inventory_item_id' => $steak->id, 'quantity' => 2, 'unit' => 'each'],
+        ]);
+
+        // 10 sandwiches sold and 5 eaten by staff: 30 pieces accounted for.
+        $this->save([
+            $sold->id.'-large' => 10,
+            $staffMeal->id.'-regular' => 5,
+        ])->assertRedirect();
+
+        $line = (new VarianceCalculationService)->calculate($this->store->id, $steak->id, $this->week);
+
+        $this->assertEqualsWithDelta(30.0, $line->theoreticalUsage, 0.001);
+        $this->assertEqualsWithDelta(23.0, $line->theoreticalEnding, 0.001);
+
+        // Counted 23 against 23 assumed: staff meals stop reading as theft.
+        $this->assertEqualsWithDelta(0.0, $line->variance, 0.001);
+        $this->assertSame('green', $line->severity);
+    }
 }
