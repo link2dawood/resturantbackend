@@ -188,7 +188,12 @@ Route::middleware(['auth', 'verified', 'trial'])->group(function () {
         Route::post('/square-import/commit', [\App\Http\Controllers\Admin\SquareSalesImportController::class, 'commit'])->name('admin.square-import.commit');
 
         // Stock-up worksheet (Phase 5.5) — projection → suggested order quantities.
-        Route::get('/stock-up', [\App\Http\Controllers\Admin\StockUpController::class, 'index'])->name('admin.stock-up.index');
+        // Stock-up is the predictive ordering the client deferred, and its
+        // worksheet was merged into the suggestions screen. Kept for when that
+        // work resumes, but closed to the store: a screen nobody links to is
+        // still a screen a manager can type their way into.
+        Route::get('/stock-up', [\App\Http\Controllers\Admin\StockUpController::class, 'index'])
+            ->middleware('role:admin')->name('admin.stock-up.index');
 
         // Multi-vendor orders (Phase 5.6). build/generate MUST precede {order}.
         Route::get('/orders', [\App\Http\Controllers\Admin\OrderController::class, 'index'])->name('admin.orders.index');

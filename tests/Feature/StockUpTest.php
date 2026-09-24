@@ -138,14 +138,20 @@ class StockUpTest extends TestCase
     }
 
     /** @test */
-    public function the_worksheet_renders_and_is_gated(): void
+    public function the_worksheet_renders_for_admins_only_while_the_feature_is_deferred(): void
     {
+        // The client deferred predictive ordering, so this worksheet is off the
+        // menu and closed to the store. The engine behind it stays covered by
+        // the rest of this suite, ready for when that work resumes.
+        $admin = User::factory()->create(['role' => 'admin']);
         $owner = User::factory()->create(['role' => 'owner']);
         $store = Store::factory()->create(['created_by' => $owner->id]);
         $this->steak($store, ['name' => 'Ribeye Steak']);
 
-        $this->actingAs($owner)->get(route('admin.stock-up.index', ['store_id' => $store->id, 'projected_dollars' => 2000]))
+        $this->actingAs($admin)->get(route('admin.stock-up.index', ['store_id' => $store->id, 'projected_dollars' => 2000]))
             ->assertOk()->assertSee('Ribeye Steak');
+
+        $this->actingAs($owner)->get(route('admin.stock-up.index'))->assertStatus(403);
 
         $employee = User::factory()->create(['role' => 'employee', 'store_id' => $store->id]);
         $this->actingAs($employee)->get(route('admin.stock-up.index'))->assertStatus(403);

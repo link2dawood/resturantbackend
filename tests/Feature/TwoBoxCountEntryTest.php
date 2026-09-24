@@ -109,11 +109,25 @@ class TwoBoxCountEntryTest extends TestCase
             ->assertStatus(422)
             ->assertJsonPath('errors.'.$row->id, 'Steak: partial cannot exceed 53 portions.');
 
+
         $this->assertNull($row->fresh()->counted_at, 'A refused count must not be stored.');
 
         // A full pack in the partial box is allowed and simply totals up.
         $this->save([$row->id => 2], [$row->id => 53])->assertOk();
         $this->assertEqualsWithDelta(159.0, (float) $row->fresh()->starting_stock, 0.001);
+    }
+
+    /** @test */
+    public function an_each_based_item_is_told_off_in_pieces_not_eaches(): void
+    {
+        // Live data uses base_unit "each", and str()->plural() made that
+        // "eaches" in the message the counter reads.
+        $steak = $this->item('Steak', 'each', 'box', 53);
+        $row = $this->rowFor($steak);
+
+        $this->save([$row->id => 2], [$row->id => 54])
+            ->assertStatus(422)
+            ->assertJsonPath('errors.'.$row->id, 'Steak: partial cannot exceed 53 pieces.');
     }
 
     /** @test */
@@ -125,7 +139,7 @@ class TwoBoxCountEntryTest extends TestCase
 
         $this->save([$row->id => 1], [$row->id => 41])
             ->assertStatus(422)
-            ->assertJsonPath('errors.'.$row->id, 'Hamburger Meat: partial cannot exceed 40 eaches.');
+            ->assertJsonPath('errors.'.$row->id, 'Hamburger Meat: partial cannot exceed 40 pieces.');
 
         $this->save([$row->id => 1], [$row->id => 40])->assertOk();
         $this->assertEqualsWithDelta(80.0, (float) $row->fresh()->starting_stock, 0.001);

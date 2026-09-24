@@ -297,6 +297,8 @@ class GoLiveHardeningTest extends TestCase
             route('sales-projections.index'),
             route('admin.vendor-prices.index'),
             route('admin.vendor-prices.compare'),
+            // Deferred predictive feature: no link to it, and no way in either.
+            route('admin.stock-up.index'),
         ] as $url) {
             $this->actingAs($this->managerA)->get($url)->assertForbidden("Expected 403 for {$url}");
         }
@@ -307,7 +309,6 @@ class GoLiveHardeningTest extends TestCase
             route('inventory.weekly-count.index'),
             route('admin.inventory-items.index'),
             route('admin.inventory-dashboard.index'),
-            route('admin.stock-up.index'),
             route('admin.orders.index'),
         ] as $url) {
             $this->actingAs($this->managerA)->get($url)->assertOk("Expected 200 for {$url}");

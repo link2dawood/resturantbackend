@@ -580,8 +580,13 @@ class WeeklyCountController extends Controller
             $max = CountEntry::maxPartial($item);
 
             if ($partialValue > $max) {
+                // "each" pluralises to "eaches", which is not English. Anything
+                // counted individually is just pieces.
+                $baseUnit = $item->base_unit ?? 'piece';
                 $unit = CountEntry::countsInPieces($item)
-                    ? str($item->base_unit ?? 'piece')->plural()
+                    ? (in_array(strtolower($baseUnit), ['each', 'ea', 'piece', 'pieces', 'unit'], true)
+                        ? 'pieces'
+                        : (string) str($baseUnit)->plural())
                     : 'of a '.($item->purchase_unit ?? 'unit');
                 $invalid[$rowId] = ($item->name ?? 'Item').": partial cannot exceed {$max} {$unit}.";
 

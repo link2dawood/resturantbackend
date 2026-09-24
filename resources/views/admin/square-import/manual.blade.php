@@ -1,5 +1,7 @@
 @extends('layouts.tabler')
 
+@section('title', 'Enter sales by hand')
+
 @section('content')
 <div class="container-xl py-3">
     <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
