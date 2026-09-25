@@ -53,6 +53,23 @@ class CountEntry
             : 0.75;
     }
 
+    /**
+     * A readable plural for a unit name.
+     *
+     * Laravel pluralises "each" to "eaches", which is not a word. Anything
+     * counted individually reads as pieces, on the screen and in the error.
+     */
+    public static function unitLabel(?string $unit, string $fallback = 'piece'): string
+    {
+        $unit = trim((string) ($unit ?: $fallback));
+
+        if (in_array(strtolower($unit), ['each', 'ea', 'piece', 'pieces', 'unit', 'units'], true)) {
+            return 'pieces';
+        }
+
+        return (string) str($unit)->plural();
+    }
+
     /** Whole units plus a partial, as base units for storage. */
     public static function toBaseUnits(?InventoryItem $item, float $whole, float $partial): float
     {

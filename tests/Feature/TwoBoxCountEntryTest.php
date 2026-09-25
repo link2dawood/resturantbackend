@@ -235,4 +235,23 @@ class TwoBoxCountEntryTest extends TestCase
 
         $this->assertEqualsWithDelta(159.0, (float) $row->fresh()->starting_stock, 0.001);
     }
+
+    /** @test */
+    public function unit_labels_read_as_pieces_rather_than_eaches(): void
+    {
+        // Spotted on the live site: the column above the partial box read
+        // "EACHES/48", because Laravel pluralises "each" to "eaches".
+        $bread = $this->item('10 inch Bread', 'each', 'box', 48);
+        $this->rowFor($bread);
+
+        $this->actingAs($this->manager)->get(route('inventory.weekly-count.index'))
+            ->assertOk()
+            ->assertSee('pieces', false)
+            ->assertDontSee('eaches', false)
+            ->assertDontSee('EACHES', false);
+
+        $this->assertSame('pieces', CountEntry::unitLabel('each'));
+        $this->assertSame('boxes', CountEntry::unitLabel('box'));
+        $this->assertSame('cases', CountEntry::unitLabel('case'));
+    }
 }

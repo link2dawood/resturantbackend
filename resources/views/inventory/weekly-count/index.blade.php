@@ -32,7 +32,9 @@
     }
     .count-row.is-hidden { display: none; }
 
-    .count-line { display: flex; align-items: center; gap: .75rem; }
+    /* On a wide monitor a full-width row strands the name on the left and the
+       boxes 600px away on the right. Capping the line keeps them together. */
+    .count-line { display: flex; align-items: center; gap: .75rem; max-width: 760px; }
 
     .count-name { flex: 1 1 auto; min-width: 0; }
     .count-name__title {
@@ -61,6 +63,10 @@
         font-variant-numeric: tabular-nums;
     }
     .count-input:focus { box-shadow: 0 0 0 3px rgba(32,107,196,.15); border-color: #206bc4; }
+    /* The spinner arrows appear on focus and shove the digits sideways. */
+    .count-input::-webkit-outer-spin-button,
+    .count-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    .count-input[type=number] { -moz-appearance: textfield; appearance: textfield; }
     .count-input.is-invalid { border-color: #d63939; background: #fff5f5; }
     .count-select { text-align: left; text-align-last: center; }
 
@@ -82,6 +88,7 @@
     .count-note { padding: .35rem 0 .15rem; }
     .count-note__read { font-size: .8rem; color: #6c757d; }
 
+    .count-note { max-width: 760px; }
     .item-group-heading {
         font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em;
         color: #206bc4; background: #f6f9ff;
@@ -288,8 +295,8 @@
                                 $split = \App\Services\Inventory\CountEntry::split($item, $row->counted_at ? (float) $row->starting_stock : null);
                                 $inPieces = \App\Services\Inventory\CountEntry::countsInPieces($item);
                                 $maxPartial = \App\Services\Inventory\CountEntry::maxPartial($item);
-                                $wholeLabel = Str::plural($item->purchase_unit ?? 'unit');
-                                $partialLabel = $inPieces ? Str::plural($item->base_unit ?? 'piece') : 'partial';
+                                $wholeLabel = \App\Services\Inventory\CountEntry::unitLabel($item->purchase_unit, 'unit');
+                                $partialLabel = $inPieces ? \App\Services\Inventory\CountEntry::unitLabel($item->base_unit) : 'partial';
                             @endphp
 
                             <div class="count-line">

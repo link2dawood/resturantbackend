@@ -14,16 +14,25 @@ Open **Inventory → Weekly Count**. You will also see a bell notification for i
 
 1. The page lists every item, grouped by category (Meats first, then Breads, and
    so on). Tap a category heading to open or close it.
-2. For each item, type how many **boxes, cases or jugs** you have. You count in
-   the same unit you order in, so if Steak comes in boxes, you count boxes. The
-   unit is printed next to every box.
-   - Part of a box is fine. Half a box is `0.5`.
-   - Last week's number sits beside each box so you can sanity-check yourself.
-3. The bar at the top shows how far along you are: **45 of 90 items counted**.
-4. **Your work saves itself every 30 seconds.** You can put the iPad down, serve
+2. Each item has **two boxes**. On the left, how many whole boxes, cases or
+   jugs you have. On the right, the part box.
+   - Items with a known pack size (steak, chicken, hamburger meat, gyro, the
+     breads, pita) take **loose pieces** on the right. Two boxes of steak and
+     fifteen loose pieces is `2` and `15`. The label shows the limit, so steak
+     reads `PORTIONS/53`.
+   - Everything else takes a **part unit** from the dropdown: 0, 0.25, 0.5 or
+     0.75. Two sticks of provolone and a half is `2` and `0.5`.
+   - The total appears to the right as you type, so you can see the two boxes
+     add up to something sensible.
+   - Last week's number sits under the item name so you can sanity-check
+     yourself.
+3. Can't find an item? Use **Search items** at the top. Turn on **Left to count**
+   to hide everything you have already done.
+4. The bar at the top shows how far along you are: **45 of 130 items counted**.
+5. **Your work saves itself every 30 seconds.** You can put the iPad down, serve
    a customer, and come back. You can also tap **Save draft** at any time.
-5. Need to explain something? Tap **Add note** on that item, for example
-   "2 boxes damaged, not counted".
+6. Need to explain something? Tap the **note icon** at the end of that row, for
+   example "2 boxes damaged, not counted".
 
 When every item is counted, tap **Submit week**. Confirm in the box that appears.
 
@@ -84,7 +93,7 @@ flagged so the office can take it up with the vendor.
 | This week's count | How many items you've counted, or "Not started" |
 | Pending orders | Orders to place, and orders you're still waiting on |
 | Low stock | Items at or below their reorder point |
-| Variance alerts | Where last week's numbers didn't add up |
+| Variance alerts | Owner-facing. You will not see this |
 
 Below that, **Recent activity** shows the last five things that happened.
 
@@ -103,7 +112,7 @@ Top right of every page. It shows how many unread notifications you have:
 
 | Problem | What to do |
 |---|---|
-| An item is missing from the count | Inventory → Items → **Add Item** |
+| An item is missing from the count | Ask the owner or admin to add it |
 | The pack size is wrong (a box now holds 48, not 53) | Inventory → Items → Edit → **Portions per Box/Unit**. Tell the owner; every order quantity comes from this number. |
 | The order quantity looks wrong | Tell the owner before you place it. They set the numbers. |
 | You submitted the week too early | Ask an admin to unlock it. |

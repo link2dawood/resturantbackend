@@ -9,8 +9,10 @@ For the owner (and admin). The manager counts the shelf; you decide what to buy.
 The manager counts every item and submits. You do not have to chase it: the
 dashboard tells you where each store is up to.
 
-Open **Inventory → Weekly Count → Order Suggestions**, or go straight to
-`/inventory/weekly-count/suggestions`.
+Open **Inventory → Suggested Order**, or go straight to
+`/inventory/weekly-count/suggestions`. You will not see the count screens
+themselves: the counting is the store's job and you pick up the finished
+numbers.
 
 For each item the system works out:
 
