@@ -112,7 +112,7 @@ class WeeklyInventoryCountTest extends TestCase
             ->get(route('inventory.weekly-count.index'))
             ->assertOk()
             ->assertSee('1 box = 53 portion')   // pack-size hint
-            ->assertSee('Last week:')
+            ->assertSee('last week')
             ->assertSee('42');
     }
 
@@ -318,7 +318,7 @@ class WeeklyInventoryCountTest extends TestCase
         $this->actingAs($this->manager)
             ->get(route('inventory.weekly-count.index'))
             ->assertOk()
-            ->assertSee('Last week:')
+            ->assertSee('last week')
             ->assertSee('>4</strong>', false);
     }
 

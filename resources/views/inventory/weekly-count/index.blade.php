@@ -13,43 +13,137 @@
 
 @push('styles')
 <style>
-    /* Mobile-first: the manager does this on a phone, standing in a walk-in. */
-    .count-input {
-        font-size: 1.35rem;
-        font-weight: 600;
-        text-align: right;
-        min-height: 56px;          /* comfortably above the 44px touch target floor */
+    /* The manager works through 130 items on a phone in a walk-in, so the row
+       is built for density and thumbs: one line per item, no dead gutter, and
+       every control at least 44px. */
+    .count-wrap { --count-field: 88px; }
+
+    .count-row {
+        padding: 0.5rem 0.75rem;
+        border-bottom: 1px solid #f0f2f5;
+        transition: background .12s ease;
     }
-    /* Two boxes per item: whole units on the left, the partial on the right. */
-    .count-pair { display: flex; gap: 0.5rem; }
-    .count-cell { flex: 1 1 0; min-width: 0; }
-    .count-cell__label {
-        display: block; font-size: 0.7rem; font-weight: 600; text-transform: uppercase;
-        letter-spacing: .02em; color: #6c757d; margin-bottom: 0.15rem; white-space: nowrap;
-        overflow: hidden; text-overflow: ellipsis;
-    }
-    .count-select { text-align: left; text-align-last: center; }
-    .count-total { min-height: 1.1rem; margin-top: 0.15rem; font-variant-numeric: tabular-nums; }
-    .count-input.is-invalid { border-color: #d63939; }
-    .item-group-heading {
-        font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
-        color: #206bc4; padding: 0.6rem 0 0.2rem; border-top: 1px solid #eceef1;
-    }
-    .count-row { padding: 0.85rem 0; border-bottom: 1px solid #eceef1; }
     .count-row:last-child { border-bottom: 0; }
-    .count-row.is-counted { background: #f2fbf5; }
+    .count-row.is-counted { background: #f4fbf6; }
+    .count-row.is-counted .count-name__title::after {
+        content: '';
+        display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+        background: #2fb344; margin-left: .45rem; vertical-align: middle;
+    }
+    .count-row.is-hidden { display: none; }
+
+    .count-line { display: flex; align-items: center; gap: .75rem; }
+
+    .count-name { flex: 1 1 auto; min-width: 0; }
+    .count-name__title {
+        font-weight: 600; font-size: .95rem; line-height: 1.25; color: #1a2230;
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .count-name__meta {
+        font-size: .75rem; color: #8a98a8; line-height: 1.3;
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .count-name__dot { margin: 0 .3rem; }
     .prev-week { font-variant-numeric: tabular-nums; }
+
+    .count-fields { display: flex; align-items: flex-end; gap: .4rem; flex: 0 0 auto; }
+    .count-cell { width: var(--count-field); }
+    .count-cell__label {
+        display: block; font-size: .65rem; font-weight: 600; text-transform: uppercase;
+        letter-spacing: .03em; color: #97a3b4; margin-bottom: .1rem;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .count-cell__max { color: #c3ccd8; font-weight: 500; }
+
+    .count-input {
+        font-size: 1rem; font-weight: 600; text-align: center;
+        min-height: 44px; padding: .25rem .4rem; border-radius: 8px;
+        font-variant-numeric: tabular-nums;
+    }
+    .count-input:focus { box-shadow: 0 0 0 3px rgba(32,107,196,.15); border-color: #206bc4; }
+    .count-input.is-invalid { border-color: #d63939; background: #fff5f5; }
+    .count-select { text-align: left; text-align-last: center; }
+
+    .count-cell--total { width: 62px; text-align: center; align-self: flex-end; }
+    .count-total {
+        min-height: 44px; display: flex; align-items: center; justify-content: center;
+        font-size: .95rem; font-weight: 600; color: #4b5a6b;
+        font-variant-numeric: tabular-nums; white-space: nowrap;
+    }
+    .count-total.is-error { color: #d63939; font-size: .7rem; line-height: 1.15; white-space: normal; }
+    .count-total.is-empty { color: #ccd4de; font-weight: 400; }
+
+    .count-note-btn {
+        border: 0; background: transparent; color: #b3bdc9; padding: .35rem;
+        border-radius: 8px; min-height: 44px; min-width: 40px; align-self: flex-end;
+    }
+    .count-note-btn:hover { background: #eef2f7; color: #5f6b7a; }
+    .count-note-btn.has-note { color: #206bc4; }
+    .count-note { padding: .35rem 0 .15rem; }
+    .count-note__read { font-size: .8rem; color: #6c757d; }
+
+    .item-group-heading {
+        font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em;
+        color: #206bc4; background: #f6f9ff;
+        padding: .35rem .75rem; margin: 0 -0.75rem;
+        border-top: 1px solid #e7eefb; border-bottom: 1px solid #e7eefb;
+    }
+
+    /* Toolbar: 130 items is too many to scroll blindly, so it can be searched
+       and narrowed to what is still outstanding. */
+    .count-toolbar {
+        position: sticky; top: 0; z-index: 1020;
+        background: #fff; border: 1px solid #e6e9ee; border-radius: 12px;
+        padding: .6rem .75rem; margin-bottom: .75rem;
+        box-shadow: 0 1px 2px rgba(16,24,40,.04);
+    }
+    .count-progress { height: 6px; border-radius: 999px; background: #eef1f5; overflow: hidden; }
+    .count-progress__bar { height: 100%; background: #2fb344; transition: width .2s ease; }
+    .count-search { max-width: 260px; }
+    .count-empty-search { display: none; padding: 1.25rem; text-align: center; color: #8a98a8; }
+
+    .accordion-button { font-weight: 600; padding: .65rem .75rem; font-size: .9rem; }
+    .accordion-button:not(.collapsed) { background: #f6f9ff; color: #1a2230; }
+    .accordion-button:focus { box-shadow: none; }
+    .accordion-item { border-color: #e6e9ee; }
+    .accordion-body { padding: 0; }
+
     .sticky-save {
         position: sticky; bottom: 0; z-index: 1030;
-        background: #fff; border-top: 1px solid #e0e0e0;
-        padding: 0.75rem 1rem; margin: 0 -0.75rem;
-        box-shadow: 0 -2px 8px rgba(0,0,0,0.06);
+        background: #fff; border-top: 1px solid #e6e9ee;
+        padding: .7rem .75rem; margin: 0 -0.75rem;
+        box-shadow: 0 -2px 10px rgba(16,24,40,.06);
     }
-    .accordion-button { font-weight: 500; }
-    .accordion-button:not(.collapsed) { background: #eef4ff; }
-    .note-toggle { font-size: 0.8rem; }
+
+    /* Phone: the name takes its own line and the fields spread across the
+       width, so the tap targets are big and nothing is squeezed. */
+    @media (max-width: 575.98px) {
+        /* Every pixel above the first item is a pixel the manager scrolls past
+           130 times, so the header is compressed hard on a phone. */
+        .count-page-title { font-size: 1.1rem !important; }
+        .count-page-head { margin-bottom: .5rem !important; }
+        .count-page-head .text-muted { font-size: .8rem; }
+        .count-weeknav { gap: .35rem !important; margin-bottom: .5rem !important; }
+        .count-weeknav .btn { padding: .2rem .5rem; font-size: .78rem; }
+        .count-toolbar { padding: .5rem .6rem; }
+
+        .count-line { flex-wrap: wrap; gap: .4rem .5rem; }
+        .count-name { flex: 1 1 100%; }
+        .count-fields { flex: 1 1 100%; align-items: flex-end; }
+        .count-cell { flex: 1 1 0; width: auto; }
+        .count-cell--total { flex: 0 0 58px; }
+        .count-input { min-height: 46px; font-size: 1.05rem; }
+        .count-search { max-width: none; }
+    }
+
     @media (min-width: 768px) {
         .sticky-save { margin: 0; border-radius: 0 0 12px 12px; }
+        .count-wrap { --count-field: 96px; }
+    }
+
+    @media print {
+        .count-toolbar, .sticky-save, .count-note-btn { display: none !important; }
+        .accordion-collapse { display: block !important; }
     }
 </style>
 @endpush
@@ -57,8 +151,8 @@
 @section('content')
 <div class="container-xl mt-3 mb-5">
 
-    <div class="mb-3">
-        <h1 class="mb-1" style="font-size: 1.5rem;">Weekly Inventory Count</h1>
+    <div class="mb-3 count-page-head">
+        <h1 class="mb-1 count-page-title" style="font-size: 1.35rem; font-weight: 600;">Weekly Inventory Count</h1>
         <div class="text-muted">
             {{ $store->store_info }} &middot;
             week of <strong>{{ $week->format('M j') }} – {{ $weekEnd->format('M j, Y') }}</strong>
@@ -70,7 +164,7 @@
     @if($errors->any())<div class="alert alert-danger">{{ $errors->first() }}</div>@endif
 
     {{-- Week navigation + store picker --}}
-    <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-3 count-weeknav">
         <a href="{{ $previousWeekUrl }}" class="btn btn-outline-secondary btn-sm">&larr; Previous week</a>
         @if($nextWeekUrl)
             <a href="{{ $nextWeekUrl }}" class="btn btn-outline-secondary btn-sm">Next week &rarr;</a>
@@ -115,18 +209,29 @@
         </div>
     @endif
 
-    {{-- Progress --}}
-    <div class="card mb-3">
-        <div class="card-body py-3">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-                <strong id="progressLabel">{{ $countedItems }} of {{ $totalItems }} items counted</strong>
-                <span class="text-muted small" id="saveStatus"></span>
+    {{-- Toolbar: progress, search, and a filter down to what is still
+         outstanding. With 130 items, finding one by scrolling is the slowest
+         part of the job. --}}
+    <div class="count-toolbar">
+        <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+            <strong id="progressLabel" class="me-auto">{{ $countedItems }} of {{ $totalItems }} items counted</strong>
+            <span class="text-muted small" id="saveStatus"></span>
+        </div>
+
+        <div class="count-progress mb-2">
+            <div class="count-progress__bar" id="progressBar"
+                 style="width: {{ $totalItems > 0 ? round($countedItems / $totalItems * 100) : 0 }}%"
+                 role="progressbar" aria-valuenow="{{ $countedItems }}" aria-valuemin="0" aria-valuemax="{{ $totalItems }}"></div>
+        </div>
+
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <input type="search" id="itemSearch" class="form-control form-control-sm count-search"
+                   placeholder="Search items" autocomplete="off" aria-label="Search the item list">
+            <div class="form-check form-switch mb-0">
+                <input class="form-check-input" type="checkbox" id="onlyUncounted">
+                <label class="form-check-label small" for="onlyUncounted">Left to count</label>
             </div>
-            <div class="progress" style="height: 10px;">
-                <div class="progress-bar bg-success" id="progressBar" role="progressbar"
-                     style="width: {{ $totalItems > 0 ? round($countedItems / $totalItems * 100) : 0 }}%"
-                     aria-valuenow="{{ $countedItems }}" aria-valuemin="0" aria-valuemax="{{ $totalItems }}"></div>
-            </div>
+            <button type="button" class="btn btn-sm btn-link text-decoration-none ms-auto" id="expandAll">Open all groups</button>
         </div>
     </div>
 
@@ -135,7 +240,7 @@
         <input type="hidden" name="store_id" value="{{ $store->id }}">
         <input type="hidden" name="week" value="{{ $week->toDateString() }}">
 
-        <div class="accordion" id="countAccordion">
+        <div class="accordion count-wrap" id="countAccordion">
             @forelse($groups as $groupName => $groupRows)
             @php
                 $slug = Str::slug($groupName ?: 'group').'-'.$loop->index;
@@ -174,111 +279,115 @@
                             <div class="item-group-heading">{{ $itemGroup }}</div>
                         @endif
                         <div class="count-row {{ $row->counted_at ? 'is-counted' : '' }}"
-                             data-row="{{ $row->id }}" data-group="{{ $slug }}">
-                            <div class="row g-2 align-items-center">
-                                <div class="col-12 col-md-6">
-                                    <div style="font-weight: 600; font-size: 1.05rem;">{{ $item->name }}</div>
-                                    <div class="text-muted small">
-                                        1 {{ $item->purchase_unit }} = {{ $trim($item->units_per_purchase) }} {{ $item->base_unit }}
-                                        @if($item->portion_size)
-                                            &middot; {{ $trim($item->portion_size) }} {{ $item->portion_unit }} portions
-                                        @endif
+                             data-row="{{ $row->id }}" data-group="{{ $slug }}"
+                             data-name="{{ Str::lower($item->name) }}">
+                            @php
+                                // Whole units on the left, the partial on the right. For an item
+                                // with a real pack size the partial is loose pieces; otherwise it
+                                // is a quarter of a unit, picked from the preset list.
+                                $split = \App\Services\Inventory\CountEntry::split($item, $row->counted_at ? (float) $row->starting_stock : null);
+                                $inPieces = \App\Services\Inventory\CountEntry::countsInPieces($item);
+                                $maxPartial = \App\Services\Inventory\CountEntry::maxPartial($item);
+                                $wholeLabel = Str::plural($item->purchase_unit ?? 'unit');
+                                $partialLabel = $inPieces ? Str::plural($item->base_unit ?? 'piece') : 'partial';
+                            @endphp
+
+                            <div class="count-line">
+                                <div class="count-name">
+                                    <div class="count-name__title">{{ $item->name }}</div>
+                                    <div class="count-name__meta">
+                                        <span>1 {{ $item->purchase_unit }} = {{ $trim($item->units_per_purchase) }} {{ $item->base_unit }}</span>
                                         @if($groupBy === 'category' && $item->preferredVendor)
-                                            &middot; {{ $item->preferredVendor->vendor_name }}
+                                            <span class="count-name__dot">&middot;</span><span>{{ $item->preferredVendor->vendor_name }}</span>
+                                        @endif
+                                        <span class="count-name__dot">&middot;</span>
+                                        <span class="prev-week">last week
+                                            <strong>{{ $prev !== null ? $trim($inOrderUnits($prev, $item)) : '—' }}</strong>
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div class="count-fields">
+                                    <div class="count-cell">
+                                        <label class="count-cell__label" for="whole-{{ $row->id }}">{{ $wholeLabel }}</label>
+                                        <input type="number" inputmode="numeric" step="1" min="0"
+                                               id="whole-{{ $row->id }}"
+                                               class="form-control count-input"
+                                               name="whole[{{ $row->id }}]"
+                                               data-row-whole="{{ $row->id }}"
+                                               data-pack="{{ \App\Services\Inventory\CountEntry::packSize($item) }}"
+                                               data-unit="{{ $item->purchase_unit }}"
+                                               value="{{ $split['whole'] !== null ? $trim($split['whole']) : '' }}"
+                                               placeholder="0"
+                                               aria-label="How many whole {{ $wholeLabel }} of {{ $item->name }} are on hand"
+                                               @disabled(! $editable)>
+                                    </div>
+
+                                    <div class="count-cell">
+                                        <label class="count-cell__label" for="partial-{{ $row->id }}">
+                                            {{ $partialLabel }}@if($inPieces)<span class="count-cell__max">/{{ $trim($maxPartial) }}</span>@endif
+                                        </label>
+                                        @if($inPieces)
+                                            <input type="number" inputmode="numeric" step="1" min="0" max="{{ $trim($maxPartial) }}"
+                                                   id="partial-{{ $row->id }}"
+                                                   class="form-control count-input"
+                                                   name="partial[{{ $row->id }}]"
+                                                   data-row-partial="{{ $row->id }}"
+                                                   data-max-partial="{{ $trim($maxPartial) }}"
+                                                   value="{{ $split['partial'] ? $trim($split['partial']) : '' }}"
+                                                   placeholder="0"
+                                                   aria-label="Loose {{ $partialLabel }} of {{ $item->name }} outside a full {{ $item->purchase_unit }}"
+                                                   @disabled(! $editable)>
+                                        @else
+                                            <select class="form-select count-input count-select"
+                                                    id="partial-{{ $row->id }}"
+                                                    name="partial[{{ $row->id }}]"
+                                                    data-row-partial="{{ $row->id }}"
+                                                    data-max-partial="0.75"
+                                                    aria-label="Partial {{ $item->purchase_unit }} of {{ $item->name }}"
+                                                    @disabled(! $editable)>
+                                                <option value="">0</option>
+                                                @foreach(\App\Services\Inventory\CountEntry::FRACTIONS as $fraction)
+                                                    <option value="{{ $fraction }}"
+                                                        @selected((float) ($split['partial'] ?? 0) === (float) $fraction)>{{ $fraction }}</option>
+                                                @endforeach
+                                            </select>
                                         @endif
                                     </div>
-                                </div>
 
-                                <div class="col-5 col-md-3 text-md-end">
-                                    <div class="text-muted small prev-week">
-                                        Last week:
-                                        <strong>{{ $prev !== null ? $trim($inOrderUnits($prev, $item)) : '—' }}</strong>
-                                        @if($prev !== null)<span class="text-muted">{{ $item->purchase_unit }}</span>@endif
-                                    </div>
-                                </div>
-
-                                <div class="col-7 col-md-3">
-                                    @php
-                                        // Whole units on the left, the partial on the right. For an item
-                                        // with a real pack size the partial is loose pieces; otherwise it
-                                        // is a quarter of a unit, tapped rather than typed.
-                                        $split = \App\Services\Inventory\CountEntry::split($item, $row->counted_at ? (float) $row->starting_stock : null);
-                                        $inPieces = \App\Services\Inventory\CountEntry::countsInPieces($item);
-                                        $maxPartial = \App\Services\Inventory\CountEntry::maxPartial($item);
-                                        $wholeLabel = str($item->purchase_unit ?? 'unit')->plural();
-                                        $partialLabel = $inPieces ? str($item->base_unit ?? 'piece')->plural() : 'partial';
-                                    @endphp
-
-                                    <div class="count-pair" data-row-pair="{{ $row->id }}">
-                                        <div class="count-cell">
-                                            <label class="count-cell__label" for="whole-{{ $row->id }}">{{ $wholeLabel }}</label>
-                                            <input type="number" inputmode="numeric" step="1" min="0"
-                                                   id="whole-{{ $row->id }}"
-                                                   class="form-control count-input"
-                                                   name="whole[{{ $row->id }}]"
-                                                   data-row-whole="{{ $row->id }}"
-                                                   data-pack="{{ \App\Services\Inventory\CountEntry::packSize($item) }}"
-                                                   data-unit="{{ $item->purchase_unit }}"
-                                                   value="{{ $split['whole'] !== null ? $trim($split['whole']) : '' }}"
-                                                   placeholder="0"
-                                                   aria-label="How many whole {{ $wholeLabel }} of {{ $item->name }} are on hand"
-                                                   @disabled(! $editable)>
-                                        </div>
-
-                                        <div class="count-cell">
-                                            <label class="count-cell__label" for="partial-{{ $row->id }}">
-                                                {{ $partialLabel }}
-                                                @if($inPieces)<span class="text-muted">/ {{ $trim($maxPartial + 1) }}</span>@endif
-                                            </label>
-
-                                            @if($inPieces)
-                                                <input type="number" inputmode="numeric" step="1" min="0" max="{{ $trim($maxPartial) }}"
-                                                       id="partial-{{ $row->id }}"
-                                                       class="form-control count-input"
-                                                       name="partial[{{ $row->id }}]"
-                                                       data-row-partial="{{ $row->id }}"
-                                                       data-max-partial="{{ $trim($maxPartial) }}"
-                                                       value="{{ $split['partial'] ? $trim($split['partial']) : '' }}"
-                                                       placeholder="0"
-                                                       aria-label="Loose {{ $partialLabel }} of {{ $item->name }} outside a full {{ $item->purchase_unit }}"
-                                                       @disabled(! $editable)>
-                                            @else
-                                                <select class="form-select count-input count-select"
-                                                        id="partial-{{ $row->id }}"
-                                                        name="partial[{{ $row->id }}]"
-                                                        data-row-partial="{{ $row->id }}"
-                                                        data-max-partial="0.75"
-                                                        aria-label="Partial {{ $item->purchase_unit }} of {{ $item->name }}"
-                                                        @disabled(! $editable)>
-                                                    <option value="">0</option>
-                                                    @foreach(\App\Services\Inventory\CountEntry::FRACTIONS as $fraction)
-                                                        <option value="{{ $fraction }}"
-                                                            @selected((float) ($split['partial'] ?? 0) === (float) $fraction)>{{ $fraction }}</option>
-                                                    @endforeach
-                                                </select>
-                                            @endif
-                                        </div>
+                                    {{-- The unit labels above differ per item, so they earn their
+                                         place; "total" would just repeat 130 times. --}}
+                                    <div class="count-cell count-cell--total">
+                                        <div class="count-total" data-row-total="{{ $row->id }}">&mdash;</div>
                                     </div>
 
-                                    <div class="count-total small text-muted" data-row-total="{{ $row->id }}"></div>
                                     @if($editable)
-                                    <button type="button" class="btn btn-link btn-sm note-toggle p-0 mt-1"
-                                            onclick="toggleNote({{ $row->id }})">
-                                        {{ $row->notes ? 'Edit note' : 'Add note' }}
-                                    </button>
-                                    @elseif($row->notes)
-                                        <div class="small text-muted mt-1">{{ $row->notes }}</div>
+                                        <button type="button"
+                                                class="count-note-btn {{ $row->notes ? 'has-note' : '' }}"
+                                                data-note-btn="{{ $row->id }}"
+                                                onclick="toggleNote({{ $row->id }})"
+                                                title="{{ $row->notes ? 'Edit note' : 'Add a note' }}"
+                                                aria-label="{{ $row->notes ? 'Edit note' : 'Add note' }} for {{ $item->name }}">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                                                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M14 3v4a1 1 0 0 0 1 1h4"/>
+                                                <path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/>
+                                            </svg>
+                                        </button>
                                     @endif
                                 </div>
+                            </div>
 
-                                <div class="col-12 {{ $row->notes ? '' : 'd-none' }}" data-note-wrap="{{ $row->id }}">
-                                    <input type="text" class="form-control form-control-sm mt-1"
+                            @if($editable)
+                                <div class="count-note {{ $row->notes ? '' : 'd-none' }}" data-note-wrap="{{ $row->id }}">
+                                    <input type="text" class="form-control form-control-sm"
                                            name="notes[{{ $row->id }}]" maxlength="500"
                                            value="{{ $row->notes }}"
-                                           placeholder="Note, e.g. 2 boxes damaged and not counted"
-                                           @disabled(! $editable)>
+                                           placeholder="Note, e.g. 2 boxes damaged and not counted">
                                 </div>
-                            </div>
+                            @elseif($row->notes)
+                                <div class="count-note"><div class="count-note__read">{{ $row->notes }}</div></div>
+                            @endif
                         </div>
                         @endforeach
                     </div>
@@ -289,6 +398,7 @@
                 No active inventory items for this store yet. Add them under Inventory &rarr; Items first.
             </div>
             @endforelse
+            <div class="count-empty-search" id="noSearchMatch">No item matches that search.</div>
         </div>
 
         @if($editable && $totalItems > 0)
@@ -348,7 +458,10 @@ const csrf = () => document.querySelector('meta[name="csrf-token"]').content;
 
 function toggleNote(rowId) {
     const wrap = document.querySelector(`[data-note-wrap="${rowId}"]`);
-    if (wrap) wrap.classList.toggle('d-none');
+    if (!wrap) return;
+    wrap.classList.toggle('d-none');
+    const input = wrap.querySelector('input');
+    if (input && !wrap.classList.contains('d-none')) input.focus();
 }
 
 function collect() {
@@ -390,62 +503,60 @@ function refreshRowTotal(row) {
     if (partialInput) partialInput.classList.toggle('is-invalid', over);
 
     if (!filled) {
-        out.textContent = '';
-        out.className = 'count-total small text-muted';
+        out.textContent = '\u2014';
+        out.className = 'count-total is-empty';
         return false;
     }
 
     if (over) {
-        out.textContent = inPieces
-            ? `More than a full ${wholeInput.dataset.unit || 'unit'}: use another whole unit`
-            : 'Partial cannot exceed \u00be';
-        out.className = 'count-total small text-danger';
+        out.textContent = inPieces ? 'over ' + max : 'max \u00be';
+        out.className = 'count-total is-error';
         return true;
     }
 
     const base = inPieces ? (wholeVal * pack) + partialVal : (wholeVal + partialVal) * pack;
-    out.textContent = `= ${Math.round(base * 100) / 100}`;
-    out.className = 'count-total small text-muted';
+    out.textContent = Math.round(base * 100) / 100;
+    out.className = 'count-total';
     return true;
 }
 
-function setStatus(text, isError) {
-    const el = document.getElementById('saveStatus');
-    el.textContent = text;
-    el.className = 'small ' + (isError ? 'text-danger' : 'text-muted');
-}
-
-function refreshProgress(counted) {
-    const total = TOTAL_ITEMS;
-    document.getElementById('progressLabel').textContent = `${counted} of ${total} items counted`;
-    document.getElementById('progressBar').style.width = total > 0 ? `${Math.round(counted / total * 100)}%` : '0%';
-}
-
-// Per-group badge and row shading update locally, so the page reflects work
-// immediately rather than only after a save round-trip.
-function refreshLocalState() {
-    let counted = 0;
-    const perGroup = {};
+// Search and the "left to count" switch work across every group, and open a
+// collapsed group when something inside it matches.
+function applyFilters() {
+    const term = (document.getElementById('itemSearch').value || '').trim().toLowerCase();
+    const onlyLeft = document.getElementById('onlyUncounted').checked;
+    let shown = 0;
 
     document.querySelectorAll('.count-row').forEach(row => {
-        const filled = refreshRowTotal(row);
-        row.classList.toggle('is-counted', filled);
-
-        const group = row.dataset.group;
-        perGroup[group] = perGroup[group] || 0;
-        if (filled) { counted++; perGroup[group]++; }
+        const name = row.dataset.name || '';
+        const counted = row.classList.contains('is-counted') || rowHasEntry(row);
+        const hide = (term && !name.includes(term)) || (onlyLeft && counted);
+        row.classList.toggle('is-hidden', hide);
+        if (!hide) shown++;
     });
 
-    Object.entries(perGroup).forEach(([group, n]) => {
-        const badge = document.querySelector(`[data-group-badge="${group}"]`);
-        if (!badge) return;
-        const total = parseInt(badge.dataset.groupTotal, 10);
-        badge.textContent = `${n}/${total}`;
-        badge.className = `badge ${n === total ? 'bg-success' : 'bg-secondary'} me-2`;
+    // A group with nothing left to show gets out of the way.
+    document.querySelectorAll('#countAccordion .accordion-item').forEach(group => {
+        const visible = group.querySelectorAll('.count-row:not(.is-hidden)').length;
+        group.style.display = visible === 0 ? 'none' : '';
+
+        if (visible > 0 && (term || onlyLeft)) {
+            const panel = group.querySelector('.accordion-collapse');
+            if (panel && !panel.classList.contains('show')) {
+                panel.classList.add('show');
+                const btn = group.querySelector('.accordion-button');
+                if (btn) { btn.classList.remove('collapsed'); btn.setAttribute('aria-expanded', 'true'); }
+            }
+        }
     });
 
-    refreshProgress(counted);
-    return counted;
+    document.getElementById('noSearchMatch').style.display = shown === 0 ? 'block' : 'none';
+}
+
+function rowHasEntry(row) {
+    const w = row.querySelector('[data-row-whole]');
+    const p = row.querySelector('[data-row-partial]');
+    return (w && w.value !== '') || (p && p.value !== '' && p.value !== null);
 }
 
 function saveDraft(manual) {
@@ -478,13 +589,38 @@ function saveDraft(manual) {
         .catch(() => setStatus('Save failed, your entries are still on screen', true));
 }
 
+// The toolbar works whether or not the week is still open, because reading a
+// locked week is exactly when you want to search it.
+(function wireToolbar() {
+    const search = document.getElementById('itemSearch');
+    const onlyLeft = document.getElementById('onlyUncounted');
+    const expand = document.getElementById('expandAll');
+    if (!search) return;
+
+    search.addEventListener('input', applyFilters);
+    onlyLeft.addEventListener('change', applyFilters);
+
+    expand.addEventListener('click', () => {
+        document.querySelectorAll('#countAccordion .accordion-collapse').forEach(panel => {
+            panel.classList.add('show');
+            // Bootstrap's parent link closes siblings; without it every group
+            // can stay open, which is what "open all" means.
+            panel.removeAttribute('data-bs-parent');
+        });
+        document.querySelectorAll('#countAccordion .accordion-button').forEach(btn => {
+            btn.classList.remove('collapsed');
+            btn.setAttribute('aria-expanded', 'true');
+        });
+    });
+})();
+
 if (EDITABLE) {
     document.querySelectorAll('[data-row-whole], [data-row-partial], [name^="notes["]').forEach(input => {
-        input.addEventListener('input', () => {
+        ['input', 'change'].forEach(evt => input.addEventListener(evt, () => {
             dirty = true;
             refreshLocalState();
             setStatus('Unsaved changes');
-        });
+        }));
     });
 
     autosaveTimer = setInterval(() => saveDraft(false), 30000);
