@@ -14,12 +14,7 @@
         </a>
     </div>
 
-    @if(session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
-    @endif
-    @if(session('error'))
-        <div class="alert alert-danger">{{ session('error') }}</div>
-    @endif
+    <x-flash />
 
     <div class="alert alert-info">
         The Square upload is the normal way to do this. Use this screen when the export is not to hand.
@@ -35,11 +30,7 @@
     <form method="GET" action="{{ route('admin.square-import.manual') }}" class="row g-2 align-items-end mb-3">
         <div class="col-auto">
             <label class="form-label">Store</label>
-            <select name="store_id" class="form-select" onchange="this.form.submit()">
-                @foreach($stores as $option)
-                    <option value="{{ $option->id }}" @selected($option->id === $store->id)>{{ $option->store_info }}</option>
-                @endforeach
-            </select>
+            <x-store-picker :stores="$stores" :selected="$store" :auto-submit="true" />
         </div>
         <div class="col-auto">
             <label class="form-label">Week beginning</label>

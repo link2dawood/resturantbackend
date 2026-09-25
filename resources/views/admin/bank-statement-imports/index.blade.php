@@ -3,6 +3,7 @@
 @section('title', 'Bank Statement Imports')
 
 @section('content')
+<x-flash :dismissible="true" />
 <div class="container-xl mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
@@ -12,20 +13,7 @@
         <a href="{{ route('admin.bank-statement-imports.create') }}" class="btn btn-primary">Import CSV</a>
     </div>
 
-    @if (session('success'))
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            {{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
-    @if (session('error'))
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            {{ session('error') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
-
-    <div class="card mb-4">
+            <div class="card mb-4">
         <div class="card-body">
             <form action="{{ route('admin.bank-statement-imports.index') }}" method="GET" class="row g-3">
                 <div class="col-md-4">

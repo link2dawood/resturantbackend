@@ -1,6 +1,7 @@
 @extends('layouts.tabler')
 @section('title', 'Edit Daily Report')
 @section('content')
+<x-flash :dismissible="true" />
 
 
 <select id="revenueTypeTemplate" style="display:none;">
@@ -376,13 +377,7 @@
         </div>
     @endif
 
-    @if(session('success'))
-        <div class="alert alert-success">
-            {{ session('success') }}
-        </div>
-    @endif
-
-    <select id="transactionTypeTemplate" style="display:none;">
+        <select id="transactionTypeTemplate" style="display:none;">
         <option value="">Select Type</option>
         @foreach($coas as $coa)
             <option value="{{ $coa->id }}">{{ $coa->account_code }} - {{ $coa->account_name }}</option>

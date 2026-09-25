@@ -30,8 +30,7 @@
         <a href="{{ route('admin.menu-items.edit', $menuItem) }}" class="btn btn-outline-secondary">Edit item</a>
     </div>
 
-    @if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
-    @if(session('error'))<div class="alert alert-danger">{{ session('error') }}</div>@endif
+    <x-flash />
 
     {{-- Recipe by size (native Bootstrap accordion) --}}
     <div class="card">

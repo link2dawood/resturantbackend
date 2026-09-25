@@ -12,11 +12,7 @@
         <div class="d-flex gap-2">
             @if($stores->isNotEmpty())
                 <form method="GET">
-                    <select name="store_id" class="form-select" onchange="this.form.submit()">
-                        @foreach($stores as $s)
-                            <option value="{{ $s->id }}" @selected($s->id === $store->id)>{{ $s->store_info ?? ('Store #'.$s->id) }}</option>
-                        @endforeach
-                    </select>
+                    <x-store-picker :stores="$stores" :selected="$store" :auto-submit="true" />
                 </form>
             @endif
             <a href="{{ route('admin.menu-items.import.form', ['store_id' => $store->id]) }}" class="btn btn-outline-secondary">Import CSV</a>
@@ -24,7 +20,7 @@
         </div>
     </div>
 
-    @if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
+    <x-flash />
     @if(session('import_errors') && count(session('import_errors')))
         <div class="alert alert-warning">
             <strong>{{ count(session('import_errors')) }} row(s) skipped:</strong>

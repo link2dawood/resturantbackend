@@ -3,6 +3,7 @@
 @section('title', 'Bulk Import Inventory Items')
 
 @section('content')
+<x-flash />
 <div class="container-xl mt-4">
     <div class="mb-4">
         <a href="{{ route('admin.inventory-items.index', ['store_id' => $store->id]) }}" class="text-muted text-decoration-none small">&larr; Back to inventory items</a>
@@ -10,8 +11,7 @@
         <p class="text-muted mb-0">Step 1 of 2 &middot; upload the order guide for {{ $store->store_info }}</p>
     </div>
 
-    @if(session('error'))<div class="alert alert-danger">{{ session('error') }}</div>@endif
-    @if($errors->any())<div class="alert alert-danger">{{ $errors->first() }}</div>@endif
+        @if($errors->any())<div class="alert alert-danger">{{ $errors->first() }}</div>@endif
 
     <div class="row">
         <div class="col-lg-7">

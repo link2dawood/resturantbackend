@@ -3,14 +3,9 @@
 @section('title', 'Third-Party Platform Costs')
 
 @section('content')
+<x-flash :dismissible="true" />
 <div class="container-xl mt-4">
-    @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            {{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
-    <!-- Page Header -->
+        <!-- Page Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h1 class="mb-0" style="font-family: 'Google Sans', sans-serif; font-size: 1.75rem; font-weight: 400; color: var(--on-surface, #202124);">Third-Party Platform Costs</h1>

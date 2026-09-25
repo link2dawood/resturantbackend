@@ -141,12 +141,8 @@
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label" style="font-family: 'Google Sans', sans-serif; font-weight: 500;">Filter by Store</label>
-                                <select name="store_id" class="form-select" onchange="this.form.submit()">
-                                    <option value="">All Stores</option>
-                                    @foreach($stores as $store)
-                                        <option value="{{ $store->id }}" {{ request('store_id') == $store->id ? 'selected' : '' }}>{{ $store->store_info }}</option>
-                                    @endforeach
-                                </select>
+                                <x-store-picker :stores="$stores" :selected="request('store_id')"
+                                                :auto-submit="true" :include-all="true" all-label="All Stores" />
                             </div>
                             <div class="col-md-3">
                                 @php

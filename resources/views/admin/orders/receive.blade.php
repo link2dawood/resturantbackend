@@ -23,6 +23,7 @@
 @endpush
 
 @section('content')
+<x-flash />
 <div class="container-xl mt-3 mb-5" style="max-width: 900px;">
 
     <div class="mb-3">
@@ -35,8 +36,7 @@
         </div>
     </div>
 
-    @if(session('error'))<div class="alert alert-danger">{{ session('error') }}</div>@endif
-    @if($errors->any())<div class="alert alert-danger">{{ $errors->first() }}</div>@endif
+        @if($errors->any())<div class="alert alert-danger">{{ $errors->first() }}</div>@endif
 
     <div class="alert alert-info py-2">
         <small>

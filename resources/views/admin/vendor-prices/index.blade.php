@@ -15,9 +15,7 @@
             <a href="{{ route('admin.vendor-prices.compare', ['store_id' => $store->id, 'inventory_category_id' => request('inventory_category_id')]) }}"
                class="btn btn-outline-secondary">Compare prices</a>
             @if($stores->isNotEmpty())
-                <form method="GET"><select name="store_id" class="form-select" onchange="this.form.submit()">
-                    @foreach($stores as $s)<option value="{{ $s->id }}" @selected($s->id === $store->id)>{{ $s->store_info ?? ('Store #'.$s->id) }}</option>@endforeach
-                </select></form>
+                <form method="GET"><x-store-picker :stores="$stores" :selected="$store" :auto-submit="true" /></form>
             @endif
             <form method="POST" action="{{ route('admin.vendor-prices.apply-cheapest') }}" onsubmit="return confirm('Set each item\'s preferred vendor to its cheapest?');">
                 @csrf<input type="hidden" name="store_id" value="{{ $store->id }}">
@@ -26,7 +24,7 @@
         </div>
     </div>
 
-    @if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
+    <x-flash />
 
     <form method="GET" class="row g-2 align-items-end mb-3">
         <input type="hidden" name="store_id" value="{{ $store->id }}">

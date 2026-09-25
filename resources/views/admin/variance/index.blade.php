@@ -31,7 +31,7 @@
         <form method="GET" class="row g-2 align-items-end">
             @if($stores->isNotEmpty())
                 <div class="col-sm-3"><label class="form-label">Store</label>
-                    <select name="store_id" class="form-select">@foreach($stores as $s)<option value="{{ $s->id }}" @selected($s->id === $store->id)>{{ $s->store_info ?? ('Store #'.$s->id) }}</option>@endforeach</select></div>
+                    <x-store-picker :stores="$stores" :selected="$store" /></div>
             @endif
             <div class="col-sm-3"><label class="form-label">Week</label><input type="date" name="week_start_date" class="form-control" value="{{ $week->toDateString() }}"></div>
             <div class="col-sm-4"><label class="form-label">Item</label>

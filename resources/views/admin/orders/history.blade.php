@@ -22,8 +22,7 @@
         <a href="{{ route('admin.orders.index', ['store_id' => $store->id]) }}" class="btn btn-outline-secondary">This week's orders</a>
     </div>
 
-    @if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
-    @if(session('error'))<div class="alert alert-danger">{{ session('error') }}</div>@endif
+    <x-flash />
 
     <div class="card mb-3">
         <div class="card-body">
@@ -31,11 +30,7 @@
                 @if($stores->isNotEmpty())
                 <div class="col-md-3">
                     <label class="form-label">Store</label>
-                    <select name="store_id" class="form-select">
-                        @foreach($stores as $s)
-                            <option value="{{ $s->id }}" @selected($s->id === $store->id)>{{ $s->store_info }}</option>
-                        @endforeach
-                    </select>
+                    <x-store-picker :stores="$stores" :selected="$store" />
                 </div>
                 @endif
 

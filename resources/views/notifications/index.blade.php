@@ -23,7 +23,7 @@
         @endif
     </div>
 
-    @if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
+    <x-flash />
 
     <div class="card">
         <div class="card-body p-0">

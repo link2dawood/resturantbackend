@@ -11,11 +11,7 @@
         </div>
         @if($stores->isNotEmpty())
             <form method="GET" action="{{ route('inventory.entry.index') }}">
-                <select name="store_id" class="form-select form-select-lg" onchange="this.form.submit()" style="min-width: 200px;">
-                    @foreach($stores as $s)
-                        <option value="{{ $s->id }}" @selected($s->id === $store->id)>{{ $s->store_info ?? ('Store #'.$s->id) }}</option>
-                    @endforeach
-                </select>
+                <x-store-picker :stores="$stores" :selected="$store" :auto-submit="true" style="min-width: 200px;" />
             </form>
         @endif
     </div>

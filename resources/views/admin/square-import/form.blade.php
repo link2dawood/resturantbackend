@@ -12,8 +12,7 @@
     </div>
     <p class="text-muted">Upload the weekly Square "Items Sold" report. You'll preview and map items before anything is saved.</p>
 
-    @if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
-    @if(session('error'))<div class="alert alert-danger">{{ session('error') }}</div>@endif
+    <x-flash />
     @if($errors->any())<div class="alert alert-danger"><ul class="mb-0">@foreach($errors->all() as $e)<li>{{ $e }}</li>@endforeach</ul></div>@endif
 
     <div class="card"><div class="card-body">
@@ -24,9 +23,7 @@
             @if($stores->isNotEmpty())
                 <div class="mb-3">
                     <label class="form-label">Store</label>
-                    <select name="store_id" class="form-select">
-                        @foreach($stores as $s)<option value="{{ $s->id }}" @selected($s->id === $store->id)>{{ $s->store_info ?? ('Store #'.$s->id) }}</option>@endforeach
-                    </select>
+                    <x-store-picker :stores="$stores" :selected="$store" />
                 </div>
             @endif
 

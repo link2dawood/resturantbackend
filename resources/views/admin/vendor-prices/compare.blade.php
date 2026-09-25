@@ -28,7 +28,7 @@
         </div>
     </div>
 
-    @if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
+    <x-flash />
 
     @if($unpricedCount > 0)
     <div class="alert alert-warning">
@@ -44,11 +44,7 @@
         @if($stores->isNotEmpty())
         <div class="col-md-3">
             <label class="form-label">Store</label>
-            <select name="store_id" class="form-select" onchange="this.form.submit()">
-                @foreach($stores as $s)
-                    <option value="{{ $s->id }}" @selected($s->id === $store->id)>{{ $s->store_info ?? ('Store #'.$s->id) }}</option>
-                @endforeach
-            </select>
+            <x-store-picker :stores="$stores" :selected="$store" :auto-submit="true" />
         </div>
         @endif
         <div class="col-md-3">

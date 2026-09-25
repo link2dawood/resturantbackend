@@ -1,6 +1,7 @@
 @extends('layouts.tabler')
 @section('title', 'Daily Report')
 @section('content')
+<x-flash :dismissible="true" />
 
 <style>
     /* Safari-specific fixes for daily report form */
@@ -538,13 +539,7 @@
         </div>
     @endif
 
-    @if(session('success'))
-        <div class="alert alert-success">
-            {{ session('success') }}
-        </div>
-    @endif
-
-    @if(isset($store) && isset($reportDate) && isset($prevDate) && isset($nextDate))
+        @if(isset($store) && isset($reportDate) && isset($prevDate) && isset($nextDate))
     <div class="container mb-3">
         <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
             @if(isset($prevReport) && $prevReport)

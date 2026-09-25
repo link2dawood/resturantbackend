@@ -3,6 +3,7 @@
 @section('title', 'Holidays')
 
 @section('content')
+<x-flash :dismissible="true" />
 <div class="container-xl mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
@@ -11,14 +12,7 @@
         </div>
     </div>
 
-    @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            {{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
-
-    <div class="row g-4">
+        <div class="row g-4">
         {{-- Add form --}}
         <div class="col-lg-4">
             <div class="card">

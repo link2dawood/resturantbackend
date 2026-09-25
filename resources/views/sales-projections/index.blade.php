@@ -12,11 +12,8 @@
 
         @unless ($stores->isEmpty())
             <form method="GET" action="{{ route('sales-projections.index') }}" class="d-flex align-items-center gap-2">
-                <select name="store_id" class="form-select" style="border-radius:10px; min-width:200px;" onchange="this.form.submit()">
-                    @foreach ($stores as $s)
-                        <option value="{{ $s->id }}" @selected($s->id === $storeId)>{{ $s->store_info }}</option>
-                    @endforeach
-                </select>
+                <x-store-picker :stores="$stores" :selected="$storeId" :auto-submit="true"
+                                style="border-radius:10px; min-width:200px;" />
                 <div class="spc-monthnav">
                     <a href="{{ route('sales-projections.index', ['store_id' => $storeId, 'month' => $prevMonth]) }}" aria-label="Previous month">‹</a>
                     <span>{{ $month->format('F Y') }}</span>

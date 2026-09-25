@@ -12,147 +12,7 @@
 @endphp
 
 @push('styles')
-<style>
-    /* The manager works through 130 items on a phone in a walk-in, so the row
-       is built for density and thumbs: one line per item, no dead gutter, and
-       every control at least 44px. */
-    .count-wrap { --count-field: 88px; }
-
-    .count-row {
-        padding: 0.5rem 0.75rem;
-        border-bottom: 1px solid #f0f2f5;
-        transition: background .12s ease;
-    }
-    .count-row:last-child { border-bottom: 0; }
-    .count-row.is-counted { background: #f4fbf6; }
-    .count-row.is-counted .count-name__title::after {
-        content: '';
-        display: inline-block; width: 6px; height: 6px; border-radius: 50%;
-        background: #2fb344; margin-left: .45rem; vertical-align: middle;
-    }
-    .count-row.is-hidden { display: none; }
-
-    /* On a wide monitor a full-width row strands the name on the left and the
-       boxes 600px away on the right. Capping the line keeps them together. */
-    .count-line { display: flex; align-items: center; gap: .75rem; max-width: 760px; }
-
-    .count-name { flex: 1 1 auto; min-width: 0; }
-    .count-name__title {
-        font-weight: 600; font-size: .95rem; line-height: 1.25; color: #1a2230;
-        overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-    }
-    .count-name__meta {
-        font-size: .75rem; color: #8a98a8; line-height: 1.3;
-        overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-    }
-    .count-name__dot { margin: 0 .3rem; }
-    .prev-week { font-variant-numeric: tabular-nums; }
-
-    .count-fields { display: flex; align-items: flex-end; gap: .4rem; flex: 0 0 auto; }
-    .count-cell { width: var(--count-field); }
-    .count-cell__label {
-        display: block; font-size: .65rem; font-weight: 600; text-transform: uppercase;
-        letter-spacing: .03em; color: #97a3b4; margin-bottom: .1rem;
-        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    }
-    .count-cell__max { color: #c3ccd8; font-weight: 500; }
-
-    .count-input {
-        font-size: 1rem; font-weight: 600; text-align: center;
-        min-height: 44px; padding: .25rem .4rem; border-radius: 8px;
-        font-variant-numeric: tabular-nums;
-    }
-    .count-input:focus { box-shadow: 0 0 0 3px rgba(32,107,196,.15); border-color: #206bc4; }
-    /* The spinner arrows appear on focus and shove the digits sideways. */
-    .count-input::-webkit-outer-spin-button,
-    .count-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-    .count-input[type=number] { -moz-appearance: textfield; appearance: textfield; }
-    .count-input.is-invalid { border-color: #d63939; background: #fff5f5; }
-    .count-select { text-align: left; text-align-last: center; }
-
-    .count-cell--total { width: 62px; text-align: center; align-self: flex-end; }
-    .count-total {
-        min-height: 44px; display: flex; align-items: center; justify-content: center;
-        font-size: .95rem; font-weight: 600; color: #4b5a6b;
-        font-variant-numeric: tabular-nums; white-space: nowrap;
-    }
-    .count-total.is-error { color: #d63939; font-size: .7rem; line-height: 1.15; white-space: normal; }
-    .count-total.is-empty { color: #ccd4de; font-weight: 400; }
-
-    .count-note-btn {
-        border: 0; background: transparent; color: #b3bdc9; padding: .35rem;
-        border-radius: 8px; min-height: 44px; min-width: 40px; align-self: flex-end;
-    }
-    .count-note-btn:hover { background: #eef2f7; color: #5f6b7a; }
-    .count-note-btn.has-note { color: #206bc4; }
-    .count-note { padding: .35rem 0 .15rem; }
-    .count-note__read { font-size: .8rem; color: #6c757d; }
-
-    .count-note { max-width: 760px; }
-    .item-group-heading {
-        font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em;
-        color: #206bc4; background: #f6f9ff;
-        padding: .35rem .75rem; margin: 0 -0.75rem;
-        border-top: 1px solid #e7eefb; border-bottom: 1px solid #e7eefb;
-    }
-
-    /* Toolbar: 130 items is too many to scroll blindly, so it can be searched
-       and narrowed to what is still outstanding. */
-    .count-toolbar {
-        position: sticky; top: 0; z-index: 1020;
-        background: #fff; border: 1px solid #e6e9ee; border-radius: 12px;
-        padding: .6rem .75rem; margin-bottom: .75rem;
-        box-shadow: 0 1px 2px rgba(16,24,40,.04);
-    }
-    .count-progress { height: 6px; border-radius: 999px; background: #eef1f5; overflow: hidden; }
-    .count-progress__bar { height: 100%; background: #2fb344; transition: width .2s ease; }
-    .count-search { max-width: 260px; }
-    .count-empty-search { display: none; padding: 1.25rem; text-align: center; color: #8a98a8; }
-
-    .accordion-button { font-weight: 600; padding: .65rem .75rem; font-size: .9rem; }
-    .accordion-button:not(.collapsed) { background: #f6f9ff; color: #1a2230; }
-    .accordion-button:focus { box-shadow: none; }
-    .accordion-item { border-color: #e6e9ee; }
-    .accordion-body { padding: 0; }
-
-    .sticky-save {
-        position: sticky; bottom: 0; z-index: 1030;
-        background: #fff; border-top: 1px solid #e6e9ee;
-        padding: .7rem .75rem; margin: 0 -0.75rem;
-        box-shadow: 0 -2px 10px rgba(16,24,40,.06);
-    }
-
-    /* Phone: the name takes its own line and the fields spread across the
-       width, so the tap targets are big and nothing is squeezed. */
-    @media (max-width: 575.98px) {
-        /* Every pixel above the first item is a pixel the manager scrolls past
-           130 times, so the header is compressed hard on a phone. */
-        .count-page-title { font-size: 1.1rem !important; }
-        .count-page-head { margin-bottom: .5rem !important; }
-        .count-page-head .text-muted { font-size: .8rem; }
-        .count-weeknav { gap: .35rem !important; margin-bottom: .5rem !important; }
-        .count-weeknav .btn { padding: .2rem .5rem; font-size: .78rem; }
-        .count-toolbar { padding: .5rem .6rem; }
-
-        .count-line { flex-wrap: wrap; gap: .4rem .5rem; }
-        .count-name { flex: 1 1 100%; }
-        .count-fields { flex: 1 1 100%; align-items: flex-end; }
-        .count-cell { flex: 1 1 0; width: auto; }
-        .count-cell--total { flex: 0 0 58px; }
-        .count-input { min-height: 46px; font-size: 1.05rem; }
-        .count-search { max-width: none; }
-    }
-
-    @media (min-width: 768px) {
-        .sticky-save { margin: 0; border-radius: 0 0 12px 12px; }
-        .count-wrap { --count-field: 96px; }
-    }
-
-    @media print {
-        .count-toolbar, .sticky-save, .count-note-btn { display: none !important; }
-        .accordion-collapse { display: block !important; }
-    }
-</style>
+<link href="{{ asset('css/inventory-count.css') }}" rel="stylesheet">
 @endpush
 
 @section('content')
@@ -166,9 +26,7 @@
         </div>
     </div>
 
-    @if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
-    @if(session('error'))<div class="alert alert-danger">{{ session('error') }}</div>@endif
-    @if($errors->any())<div class="alert alert-danger">{{ $errors->first() }}</div>@endif
+    <x-flash />
 
     {{-- Week navigation + store picker --}}
     <div class="d-flex flex-wrap align-items-center gap-2 mb-3 count-weeknav">
@@ -183,11 +41,7 @@
             <form method="GET" class="d-flex gap-2 align-items-center">
                 <input type="hidden" name="week" value="{{ $week->toDateString() }}">
                 @if($stores->isNotEmpty())
-                    <select name="store_id" class="form-select form-select-sm" onchange="this.form.submit()">
-                        @foreach($stores as $s)
-                            <option value="{{ $s->id }}" @selected($s->id === $store->id)>{{ $s->store_info }}</option>
-                        @endforeach
-                    </select>
+                    <x-store-picker :stores="$stores" :selected="$store" :auto-submit="true" class="form-select form-select-sm" />
                 @endif
                 <select name="group_by" class="form-select form-select-sm" onchange="this.form.submit()">
                     <option value="category" @selected($groupBy === 'category')>Group by category</option>

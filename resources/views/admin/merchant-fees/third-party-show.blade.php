@@ -3,6 +3,7 @@
 @section('title', 'Statement — ' . ucfirst($statement->platform))
 
 @section('content')
+<x-flash :dismissible="true" />
 <div class="container-xl mt-4">
     @php
         $adjustmentLabel = $statement->platform === 'ubereats' ? 'Amendments' : 'Adjustments';
@@ -16,13 +17,7 @@
         $grubhubNegativeAdjustments = $useGrubhubAdjustmentSplit ? max(0, -$adjSigned) : 0.0;
         $summaryColClass = $useGrubhubAdjustmentSplit ? 'col-sm-6 col-lg-3' : 'col-md-4';
     @endphp
-    @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            {{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
-    <div class="mb-4">
+        <div class="mb-4">
         <a href="{{ route('admin.merchant-fees.third-party') }}" class="btn btn-outline-secondary btn-sm mb-2">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
             Back to Third-Party Platforms

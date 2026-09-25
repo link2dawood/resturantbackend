@@ -3,6 +3,7 @@
 @section('title', 'Bank import: ' . $batch->file_name)
 
 @section('content')
+<x-flash :dismissible="true" />
 <div class="container-xl mt-4">
     <div class="mb-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
         <a href="{{ route('admin.bank-statement-imports.index') }}" class="btn btn-ghost-secondary btn-sm">← Back to all imports</a>
@@ -13,14 +14,7 @@
         </form>
     </div>
 
-    @if (session('success'))
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            {{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
-
-    <div class="card mb-4">
+        <div class="card mb-4">
         <div class="card-body">
             <h1 class="mb-2" style="font-size: 1.5rem; font-weight: 500;">{{ $batch->file_name }}</h1>
             <p class="text-muted mb-0">

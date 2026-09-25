@@ -15,9 +15,7 @@
             <p class="text-muted mb-0">{{ $store->store_info ?? 'Store' }} · week of {{ $week->format('M j, Y') }}</p>
         </div>
         @if($stores->isNotEmpty())
-            <form method="GET"><select name="store_id" class="form-select" onchange="this.form.submit()">
-                @foreach($stores as $s)<option value="{{ $s->id }}" @selected($s->id === $store->id)>{{ $s->store_info ?? ('Store #'.$s->id) }}</option>@endforeach
-            </select></form>
+            <form method="GET"><x-store-picker :stores="$stores" :selected="$store" :auto-submit="true" /></form>
         @endif
     </div>
 

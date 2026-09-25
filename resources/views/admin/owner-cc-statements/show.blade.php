@@ -3,6 +3,7 @@
 @section('title', 'CC Statement: ' . $import->file_name)
 
 @section('content')
+<x-flash :dismissible="true" />
 <div class="container-xl mt-4">
     <div class="mb-4 d-flex justify-content-between align-items-center">
         <a href="{{ route('admin.owner-cc-statements.index') }}" class="btn btn-ghost-secondary btn-sm">← Back to all statements</a>
@@ -15,20 +16,7 @@
         </form>
     </div>
 
-    @if (session('success'))
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            {{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
-    @if (session('info'))
-        <div class="alert alert-info alert-dismissible fade show" role="alert">
-            {{ session('info') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
-
-    <div class="card mb-4">
+            <div class="card mb-4">
         <div class="card-body d-flex flex-wrap justify-content-between align-items-start gap-3">
             <div>
                 <h1 class="mb-2" style="font-size: 1.5rem; font-weight: 500;">{{ $import->file_name }}</h1>

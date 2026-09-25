@@ -5,17 +5,16 @@
 @php $fmt = fn ($n) => rtrim(rtrim(number_format((float) $n, 4, '.', ''), '0'), '.'); @endphp
 
 @section('content')
+<x-flash />
 <div class="container-xl mt-4">
     <h1 class="mb-1">Build weekly order</h1>
     <p class="text-muted">Set a quantity and vendor per item, then generate one order per vendor.</p>
 
-    @if(session('error'))<div class="alert alert-danger">{{ session('error') }}</div>@endif
-
-    <div class="card mb-3"><div class="card-body">
+        <div class="card mb-3"><div class="card-body">
         <form method="GET" class="row g-2 align-items-end">
             @if($stores->isNotEmpty())
                 <div class="col-sm-3"><label class="form-label">Store</label>
-                    <select name="store_id" class="form-select">@foreach($stores as $s)<option value="{{ $s->id }}" @selected($s->id === $store->id)>{{ $s->store_info ?? ('Store #'.$s->id) }}</option>@endforeach</select>
+                    <x-store-picker :stores="$stores" :selected="$store" />
                 </div>
             @endif
             <div class="col-sm-3"><label class="form-label">Week</label><input type="date" name="week_start_date" class="form-control" value="{{ $week->toDateString() }}"></div>

@@ -3,20 +3,14 @@
 @section('title', 'Categorization Rules')
 
 @section('content')
+<x-flash :dismissible="true" />
 <div class="container-xl mt-4">
     <div class="mb-4">
         <h1 class="mb-0">Categorization Rules</h1>
         <p class="text-muted mb-0">Learned rules that auto-suggest a Chart of Accounts code for imported statement lines. Rules are learned per client.</p>
     </div>
 
-    @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            {{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
-
-    <div class="card mb-4">
+        <div class="card mb-4">
         <div class="card-header"><h3 class="card-title mb-0">{{ $rules->total() }} Rule{{ $rules->total() === 1 ? '' : 's' }}</h3></div>
         <div class="card-body p-0">
             <div class="table-responsive">

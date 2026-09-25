@@ -20,14 +20,13 @@
         @endif
     </div>
 
-    @if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
-    @if(session('error'))<div class="alert alert-danger">{{ session('error') }}</div>@endif
+    <x-flash />
 
     <div class="card mb-3"><div class="card-body">
         <form method="GET" class="row g-2 align-items-end">
             @if($stores->isNotEmpty())
                 <div class="col-sm-3"><label class="form-label">Store</label>
-                    <select name="store_id" class="form-select">@foreach($stores as $s)<option value="{{ $s->id }}" @selected($s->id === $store->id)>{{ $s->store_info ?? ('Store #'.$s->id) }}</option>@endforeach</select></div>
+                    <x-store-picker :stores="$stores" :selected="$store" /></div>
             @endif
             <div class="col-sm-3"><label class="form-label">Week</label>
                 <input type="date" name="week_start_date" class="form-control" value="{{ $allWeeks ? '' : $week->toDateString() }}">
